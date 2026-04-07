@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import create_event_card %}
+
+{% block title %}ei8ht plants | HOME{% endblock %}
+
+{% block extra_css %}
+<style>
+  .home-hero { text-align: center; padding: 60px 20px; background: var(--color-card-bg); border-bottom: 1px solid var(--color-border); margin-bottom: 40px; }
+  .home-logo { max-width: 400px; width: 85%; height: auto; margin-bottom: 20px; }
+  .home-subtitle { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 0;}
+  
+  .nav-grid { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 400px; margin: 0 auto 40px auto; }
+  .nav-btn { display: flex; align-items: center; justify-content: center; padding: 18px; background: var(--color-card-bg); border: 1px solid #ddd; border-radius: var(--radius-card); color: var(--color-text-main); text-decoration: none; font-size: var(--font-info); letter-spacing: 2px; font-weight: bold; transition: 0.3s; }
+  .nav-btn:hover { background: var(--color-text-main); color: #fff; }
+  
+  .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
+  .ig-grid { display: flex; justify-content: center; align-items: center; gap: 20px; max-width: 500px; margin: 0 auto; }
+  .ig-btn img { width: 80px; height: 80px; border-radius: 18%; transition: 0.3s; object-fit: contain; background: #fff; }
+  .ig-btn:hover img { opacity: 0.6; transform: scale(1.05); }
+
+  @media (min-width: 768px) {
+    .home-logo { max-width: 500px; }
+    .ig-btn img { width: 120px; height: 120px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-hero">
+    <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w1000" class="home-logo" alt="ei8ht plants">
+    <div class="home-subtitle">Bizarre Plants & Habitat Style</div>
+</div>
+
+<div class="container">
+    {% if next_event %}
+        <h2 class="section-header">NEXT EVENT</h2>
+        {{ create_event_card(next_event, is_next=True, is_home=True) }}
+    {% endif %}
+
+    <div class="nav-grid">
+        <a href="/events" class="nav-btn">🌿 ALL EVENTS</a>
+    </div>
+    
+    <div class="ig-section">
+        <div style="font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 4px; margin-bottom: 30px; text-transform: uppercase;">Instagram</div>
+        <div class="ig-grid">
+            <a href="https://www.instagram.com/habitatoides/" class="ig-btn" target="_blank"><img src="https://drive.google.com/thumbnail?id=1RvrtpFCoMaSAN2grInabaISf5ECi4vts&sz=w500"></a>
+            <a href="https://www.instagram.com/ei8ht.plants/" class="ig-btn" target="_blank"><img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w500"></a>
+            <a href="https://www.instagram.com/hue_by.ei8ht.plants/" class="ig-btn" target="_blank"><img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w500"></a>
+        </div>
+    </div>
+</div>
+{% endblock %}

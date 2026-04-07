@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import create_event_card %}
+
+{% block title %}ei8ht plants | {% if is_past %}Past Events{% else %}Events{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-link-container { text-align: center; margin-top: 60px; }
+    .btn-past { display: inline-block; padding: 12px 30px; background-color: var(--color-card-bg); border: 1px solid var(--color-border); color: var(--color-text-sub); text-decoration: none; border-radius: var(--radius-card); font-size: var(--font-info); letter-spacing: 2px; transition: 0.3s; }
+    .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 40px 20px; background-color: #fff; border-bottom: 1px solid #eaeaea;">
+    <h1 style="margin: 0; font-size: 20px; font-weight: 300; letter-spacing: 3px; text-transform: uppercase;">
+        {% if is_past %}Past Events{% else %}Events{% endif %}
+    </h1>
+</div>
+
+<div class="container">
+    {% if is_past %}
+        {% if scheduled_events %}
+            <div class="events-grid">
+                {% for item in scheduled_events %}
+                    {{ create_event_card(item) }}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="text-align:center; padding: 100px 0; color: #888;">過去のイベントはありません。</p>
+        {% endif %}
+
+        <div class="admin-link-container">
+            <a href="/events" class="btn-past">現在のイベントを見る</a>
+        </div>
+
+    {% else %}
+        {% if pinned_event %}
+            <h2 class="section-header">Next Event</h2>
+            {{ create_event_card(pinned_event, is_next=True) }}
+
+            {% if scheduled_events %}
+            <h2 class="section-header">Events Schedule</h2>
+            <div class="events-grid">
+                {% for item in scheduled_events %}
+                    {{ create_event_card(item) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% else %}
+            <p style="text-align:center; padding: 100px 0; color: #888;">予定されているイベントはありません。</p>
+        {% endif %}
+
+        <div class="admin-link-container">
+            <a href="/events?page=past" class="btn-past">過去のイベントを見る</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
