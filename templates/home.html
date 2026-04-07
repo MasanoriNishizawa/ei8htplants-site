@@ -17,14 +17,13 @@
   .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
   .ig-grid { display: flex; justify-content: center; align-items: center; gap: 20px; max-width: 500px; margin: 0 auto; }
   
-  /* アイコンの「枠」の設定（ここで大きさと形を完全に統一する） */
+  /* アイコンの「枠」の設定 */
   .ig-btn { 
       display: flex; justify-content: center; align-items: center;
       width: 80px; height: 80px; 
-      border-radius: 18%; 
+      border-radius: 18%; /* ★ 線は引かずに、角の丸みだけを復活させました */
       background: #fff; 
-      overflow: hidden; /* 拡大してはみ出た部分を隠す */
-      border: 1px solid var(--color-border); /* 薄い枠線で統一感を出す */
+      overflow: hidden; 
       transition: 0.3s;
   }
   
@@ -32,14 +31,14 @@
   .ig-btn img { transition: 0.3s; }
   .ig-btn:hover img { opacity: 0.6; transform: scale(1.05); }
 
-  /* ★個別の拡大率設定（ファイル自体の余白を打ち消す） */
-  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; } /* 写真はそのまま */
-  .ig-img-ei8ht { width: 140%; height: auto; } /* 中央のロゴは余白が多いので140%に拡大 */
-  .ig-img-hue { width: 115%; height: auto; }   /* 右のロゴも少し拡大 */
+  /* 個別の拡大率設定 */
+  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; }
+  .ig-img-ei8ht { width: 140%; height: auto; }
+  .ig-img-hue { width: 115%; height: auto; }
 
   @media (min-width: 768px) {
     .home-logo { max-width: 500px; }
-    .ig-btn { width: 120px; height: 120px; } /* PCサイズでも枠でコントロール */
+    .ig-btn { width: 120px; height: 120px; } 
   }
 </style>
 {% endblock %}
