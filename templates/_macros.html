@@ -1,5 +1,7 @@
 {% macro create_event_card(event, is_next=False, is_home=False) %}
 <div class="event-card {% if is_next %}next-card{% endif %}">
+    
+    {% if event['画像'] and event['画像'] | trim != '' %}
     <div class="image-wrap">
         {% if is_home %}<a href="/events">{% endif %}
         {% set img_url = event['画像'] | string %}
@@ -7,6 +9,7 @@
         <img src="https://drive.google.com/uc?export=view&id={{ f_id }}" class="event-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';" referrerpolicy="no-referrer">
         {% if is_home %}</a>{% endif %}
     </div>
+    {% endif %}
 
     <div class="event-content">
         {% if event['販売ブランド'] %}
