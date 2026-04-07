@@ -13,14 +13,33 @@
   .nav-btn { display: flex; align-items: center; justify-content: center; padding: 18px; background: var(--color-card-bg); border: 1px solid #ddd; border-radius: var(--radius-card); color: var(--color-text-main); text-decoration: none; font-size: var(--font-info); letter-spacing: 2px; font-weight: bold; transition: 0.3s; }
   .nav-btn:hover { background: var(--color-text-main); color: #fff; }
   
+  /* --- Instagram セクション --- */
   .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
   .ig-grid { display: flex; justify-content: center; align-items: center; gap: 20px; max-width: 500px; margin: 0 auto; }
-  .ig-btn img { width: 80px; height: 80px; border-radius: 18%; transition: 0.3s; object-fit: contain; background: #fff; }
+  
+  /* アイコンの「枠」の設定（ここで大きさと形を完全に統一する） */
+  .ig-btn { 
+      display: flex; justify-content: center; align-items: center;
+      width: 80px; height: 80px; 
+      border-radius: 18%; 
+      background: #fff; 
+      overflow: hidden; /* 拡大してはみ出た部分を隠す */
+      border: 1px solid var(--color-border); /* 薄い枠線で統一感を出す */
+      transition: 0.3s;
+  }
+  
+  /* 中の画像に対するホバー時の動き */
+  .ig-btn img { transition: 0.3s; }
   .ig-btn:hover img { opacity: 0.6; transform: scale(1.05); }
+
+  /* ★個別の拡大率設定（ファイル自体の余白を打ち消す） */
+  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; } /* 写真はそのまま */
+  .ig-img-ei8ht { width: 140%; height: auto; } /* 中央のロゴは余白が多いので140%に拡大 */
+  .ig-img-hue { width: 115%; height: auto; }   /* 右のロゴも少し拡大 */
 
   @media (min-width: 768px) {
     .home-logo { max-width: 500px; }
-    .ig-btn img { width: 120px; height: 120px; }
+    .ig-btn { width: 120px; height: 120px; } /* PCサイズでも枠でコントロール */
   }
 </style>
 {% endblock %}
@@ -43,11 +62,19 @@
     
     <div class="ig-section">
         <div style="font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 4px; margin-bottom: 30px; text-transform: uppercase;">Instagram</div>
+        
         <div class="ig-grid">
-            <a href="https://www.instagram.com/habitatoides/" class="ig-btn" target="_blank"><img src="https://drive.google.com/thumbnail?id=1RvrtpFCoMaSAN2grInabaISf5ECi4vts&sz=w500"></a>
-            <a href="https://www.instagram.com/ei8ht.plants/" class="ig-btn" target="_blank"><img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w500"></a>
-            <a href="https://www.instagram.com/hue_by.ei8ht.plants/" class="ig-btn" target="_blank"><img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w500"></a>
+            <a href="https://www.instagram.com/habitatoides/" class="ig-btn" target="_blank">
+                <img src="https://drive.google.com/thumbnail?id=1RvrtpFCoMaSAN2grInabaISf5ECi4vts&sz=w500" class="ig-img-habitat">
+            </a>
+            <a href="https://www.instagram.com/ei8ht.plants/" class="ig-btn" target="_blank">
+                <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w500" class="ig-img-ei8ht">
+            </a>
+            <a href="https://www.instagram.com/hue_by.ei8ht.plants/" class="ig-btn" target="_blank">
+                <img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w500" class="ig-img-hue">
+            </a>
         </div>
+        
     </div>
 </div>
 {% endblock %}
