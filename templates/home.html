@@ -6,66 +6,114 @@
 {% block extra_css %}
 <style>
   /* =========================================
-     1. トップのヒーローセクション（ロゴがある部分）
+     1. トップのヒーローセクション（自動スライドショー）
      ========================================= */
   /* ロゴ周りの背景や余白の設定 */
   .home-hero { text-align: center; padding: 60px 20px; background: var(--color-card-bg); border-bottom: 1px solid var(--color-border); margin-bottom: 40px; }
-  /* ロゴ画像の大きさ。スマホでもはみ出さないように width: 85% を設定 */
-  .home-logo { max-width: 400px; width: 85%; height: auto; margin-bottom: 20px; }
+  
+  /* スライドショー全体を囲む枠 */
+  .hero-slider { 
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      max-width: 400px; 
+      width: 85%; 
+      margin: 0 auto 20px auto; 
+      /* 下の要素を確実に押し下げるための最小の高さ */
+      min-height: 300px; 
+  }
+  
+  /* スライドする各画像（3つのロゴ）の共通設定 */
+  .hero-slider .slide-img { 
+      position: absolute; /* 画像を重ねる */
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%); /* 真ん中に配置 */
+      width: 100%; 
+      height: auto; 
+      object-fit: contain;
+      opacity: 0; 
+      animation: hero-fade 12s infinite; 
+      filter: drop-shadow(0 0 15px #fff) drop-shadow(0 0 10px #fff);
+      border-radius: 12px;
+  }
+
+  /* ★【重要】1枚目だけを「浮かさない(relative)」ことで高さを確保し、下の文字が被るのを防ぎます */
+  .hero-slider .slide-img:nth-child(1) { 
+      position: relative; 
+      top: 0; left: 0;
+      transform: scale(1.4); /* メインロゴの拡大率 */
+      animation-delay: 0s; 
+  }
+
+  /* 2枚目以降のタイミングと個別の拡大率設定（transform: translate(-50%, -50%) を維持しながら拡大） */
+  .hero-slider .slide-img:nth-child(2) { 
+      animation-delay: 4s; 
+      transform: translate(-50%, -50%) scale(1.0); /* 写真はそのまま */
+  }
+  .hero-slider .slide-img:nth-child(3) { 
+      animation-delay: 8s; 
+      transform: translate(-50%, -50%) scale(1.15); /* HUEロゴの拡大率 */
+  }
+
+  /* ★ ふわっと切り替わるクロスフェードの設計図 */
+  @keyframes hero-fade {
+      0%   { opacity: 0; }
+      8%   { opacity: 1; }
+      25%  { opacity: 1; }
+      33%  { opacity: 0; }
+      100% { opacity: 0; }
+  }
+
   /* ロゴの下のサブタイトル（Bizarre Plants...）の文字設定 */
-  .home-subtitle { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 0;}
+  .home-subtitle { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 30px;}
   
   /* =========================================
      2. ボタン部分（ALL EVENTSへのリンク）
      ========================================= */
-  /* ボタンを中央に配置するための枠組み */
   .nav-grid { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 400px; margin: 0 auto 40px auto; }
-  /* ボタン自体のデザイン（文字サイズ、角丸、枠線など） */
   .nav-btn { display: flex; align-items: center; justify-content: center; padding: 18px; background: var(--color-card-bg); border: 1px solid #ddd; border-radius: var(--radius-card); color: var(--color-text-main); text-decoration: none; font-size: var(--font-info); letter-spacing: 2px; font-weight: bold; transition: 0.3s; }
-  /* マウスを乗せた時（ホバー時）に背景を黒、文字を白にする動き */
   .nav-btn:hover { background: var(--color-text-main); color: #fff; }
   
   /* =========================================
      3. Instagramセクション
      ========================================= */
-  /* インスタエリア全体の上部の余白と、区切り線（border-top）の設定 */
   .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
-  
-  /* 3つのアイコンを横に並べる設定（gap: 80px でアイコン同士の隙間を大きく空けています） */
   .ig-grid { display: flex; justify-content: center; align-items: center; gap: 80px; max-width: 500px; margin: 0 auto; }
   
-  /* アイコンの「外側の枠（マスク）」の設定 */
   .ig-btn { 
       display: flex; justify-content: center; align-items: center;
-      width: 80px; height: 80px;  /* ここで大きさを80pxの正方形に固定 */
-      border-radius: 18%;         /* ここで角を丸く削っています */
+      width: 80px; height: 80px; 
+      border-radius: 18%; 
       background: #fff; 
-      overflow: hidden;           /* 枠からハミ出た画像を隠す（切り取る）ための超重要設定 */
+      overflow: hidden; 
       transition: 0.3s;
   }
   
-  /* アイコンにマウスを乗せた時（ホバー時）の動きの設定 */
-  .ig-btn img { transition: 0.3s; } /* 0.3秒かけてフワッと変化させる */
-  .ig-btn:hover img { opacity: 0.6; transform: scale(1.05); } /* 少し透けさせて、1.05倍にズームさせる */
+  .ig-btn img { transition: 0.3s; }
+  .ig-btn:hover img { opacity: 0.6; transform: scale(1.05); }
 
-  /* ★元画像の余白の違いを吸収するための、個別の拡大率設定 */
-  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; } /* 余白がない写真はそのままのサイズで枠を埋める */
-  .ig-img-ei8ht { width: 140%; height: auto; } /* 中央ロゴは余白が多いので140%に拡大して見栄えを揃える */
-  .ig-img-hue { width: 115%; height: auto; }   /* 右のロゴは少しだけ余白があるので115%に拡大 */
+  /* インスタ用アイコンの個別拡大設定（スライドショーとは別個に定義） */
+  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; } 
+  .ig-img-ei8ht { width: 140%; height: auto; } 
+  .ig-img-hue { width: 115%; height: auto; }   
 
-  /* =========================================
-     4. PC・タブレットサイズ用の設定（画面幅が768px以上の時だけ適用）
-     ========================================= */
+  /* PC・タブレットサイズ用の設定 */
   @media (min-width: 768px) {
-    .home-logo { max-width: 500px; } /* PCではメインロゴを少し大きくする */
-    .ig-btn { width: 120px; height: 120px; } /* PCではインスタのアイコン枠も大きくする */
+    .hero-slider { max-width: 500px; min-height: 350px; } 
+    .ig-btn { width: 120px; height: 120px; } 
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="home-hero">
-    <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w1000" class="home-logo" alt="ei8ht plants">
+    <div class="hero-slider">
+        <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w1000" class="slide-img" alt="ei8ht plants">
+        <img src="https://drive.google.com/thumbnail?id=1RvrtpFCoMaSAN2grInabaISf5ECi4vts&sz=w1000" class="slide-img" alt="Habitat Oides">
+        <img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w1000" class="slide-img" alt="HUE by ei8ht plants">
+    </div>
     <div class="home-subtitle">Bizarre Plants & Habitat Style</div>
 </div>
 
