@@ -1,17 +1,22 @@
 {% macro create_event_card(event, is_next=False, is_home=False) %}
+
 <div class="event-card {% if is_next %}next-card{% endif %}">
     
     {% if event['画像'] and event['画像'] | trim != '' %}
     <div class="image-wrap">
         {% if is_home %}<a href="/events">{% endif %}
+        
         {% set img_url = event['画像'] | string %}
         {% set f_id = img_url.split('id=')[-1].split('&')[0] if 'id=' in img_url else img_url.split('/d/')[-1].split('/')[0] if '/d/' in img_url else '' %}
+        
         <img src="https://drive.google.com/uc?export=view&id={{ f_id }}" class="event-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';" referrerpolicy="no-referrer">
+        
         {% if is_home %}</a>{% endif %}
     </div>
     {% endif %}
 
     <div class="event-content">
+        
         {% if event['販売ブランド'] %}
         <div class="brand-tags">
             {% for n in event['販売ブランド'].split(', ') %}
@@ -29,16 +34,21 @@
 
         <div class="event-info">
             <div class="info-row"><span class="info-icon">🗓</span><span>{{ event['display_date'] }}</span></div>
+            
             {% if event['開始時間'] or event['終了時間'] %}
             <div class="info-row"><span class="info-icon">🕒</span><span>{{ event['開始時間'] }} - {{ event['終了時間'] }}</span></div>
             {% endif %}
+            
             <div class="info-row"><span class="info-icon">📍</span><span style="font-weight:bold;">{{ event['場所'] }}</span></div>
+            
             {% if event['ブース番号'] %}
             <div class="info-row"><span class="info-icon">🏷️</span><span style="font-weight:bold;">ブース: {{ event['ブース番号'] }}</span></div>
             {% endif %}
+            
             {% if event['住所'] %}
             <div class="info-row"><span class="info-icon">🗺</span><a href="{{ event['map_url'] }}" class="info-link" target="_blank" rel="noopener noreferrer">{{ event['住所'] }}</a></div>
             {% endif %}
+            
             {% if event['公式サイトURL'] %}
             <div class="info-row"><span class="info-icon">🔗</span><a href="{{ event['公式サイトURL'] }}" class="info-link" target="_blank" rel="noopener noreferrer">公式サイト</a></div>
             {% endif %}
@@ -48,12 +58,15 @@
         <div class="ws-box">
             <span class="ws-title">🌿 Habitat Style Workshop</span>
             <span class="ws-desc">現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。</span>
+            
             {% if event['WS予約URL'] %}
             <a href="{{ event['WS予約URL'] }}" class="ws-link" target="_blank" rel="noopener noreferrer">ワークショップを予約する</a>
             {% endif %}
+            
             <span class="ws-credit">※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! の登録商標です。</span>
         </div>
         {% endif %}
+
     </div>
 </div>
 {% endmacro %}

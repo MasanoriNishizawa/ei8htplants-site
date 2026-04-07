@@ -1,12 +1,29 @@
 {% extends "base.html" %}
+
 {% from "_macros.html" import create_event_card %}
 
 {% block title %}ei8ht plants | {% if is_past %}Past Events{% else %}Events{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
+    /* =========================================
+       ページ下部にある「過去のイベントを見る」
+       「現在のイベントを見る」ボタンのデザイン
+       ========================================= */
     .admin-link-container { text-align: center; margin-top: 60px; }
-    .btn-past { display: inline-block; padding: 12px 30px; background-color: var(--color-card-bg); border: 1px solid var(--color-border); color: var(--color-text-sub); text-decoration: none; border-radius: var(--radius-card); font-size: var(--font-info); letter-spacing: 2px; transition: 0.3s; }
+    .btn-past { 
+        display: inline-block; 
+        padding: 12px 30px; 
+        background-color: var(--color-card-bg); 
+        border: 1px solid var(--color-border); 
+        color: var(--color-text-sub); 
+        text-decoration: none; 
+        border-radius: var(--radius-card); 
+        font-size: var(--font-info); 
+        letter-spacing: 2px; 
+        transition: 0.3s; 
+    }
+    /* ボタンにマウスを乗せた時は背景を黒にして目立たせる */
     .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
 </style>
 {% endblock %}
@@ -47,6 +64,7 @@
                 {% endfor %}
             </div>
             {% endif %}
+            
         {% else %}
             <p style="text-align:center; padding: 100px 0; color: #888;">予定されているイベントはありません。</p>
         {% endif %}

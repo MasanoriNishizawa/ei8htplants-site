@@ -3,56 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <title>{% block title %}ei8ht plants{% endblock %}</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Kosugi&display=swap" rel="stylesheet">
+    
     <style>
         /* =========================================================
-           一括設定エリア（CSS変数）
+           【超重要】 一括設定エリア（CSS変数）
+           ここで色や文字の大きさを定義しておき、下で使い回します。
+           将来「ブランドカラーを変えたい」「文字を全体的に大きくしたい」という時は、
+           ここの数値だけを変えればサイト全体が一瞬で切り替わります。
            ========================================================= */
         :root {
-            --font-title-lg: 28px;
-            --font-title-md: 22px;
-            --font-info: 14px;
-            --font-tag: 11px;
-            --font-section: 11px;
-            --font-nav: 12px;
-            --font-small: 10px;
+            /* --- 文字の大きさ --- */
+            --font-title-lg: 28px;   /* PCでの大きなタイトル用 */
+            --font-title-md: 22px;   /* スマホでのタイトルや、PCでの中タイトル用 */
+            --font-info: 14px;       /* 日付や場所などの基本テキスト用 */
+            --font-tag: 11px;        /* ブランドタグ（黒いボタン）の文字用 */
+            --font-section: 11px;    /* 「NEXT EVENT」などの見出し用 */
+            --font-nav: 12px;        /* ヘッダーのメニュー文字用 */
+            --font-small: 10px;      /* フッターのコピーライトなど小さな文字用 */
 
-            --color-bg: #fafafa;
-            --color-card-bg: #ffffff;
-            --color-text-main: #333333;
-            --color-text-sub: #555555;
-            --color-text-muted: #888888;
-            --color-border: #eaeaea;
-            --color-link: #333333;
+            /* --- サイトのカラー設定 --- */
+            --color-bg: #fafafa;         /* サイト全体の背景色（真っ白ではなく、少し優しいオフホワイト） */
+            --color-card-bg: #ffffff;    /* イベントカードの背景色（真っ白） */
+            --color-text-main: #333333;  /* メインの文字色（真っ黒より少し柔らかい黒） */
+            --color-text-sub: #555555;   /* サブの文字色（濃いグレー） */
+            --color-text-muted: #888888; /* 目立たせない文字色（薄いグレー） */
+            --color-border: #eaeaea;     /* カードの枠線などの色 */
+            --color-link: #333333;       /* リンク文字の色 */
             
-            --color-ws-bg: #fff8e1;
-            --color-ws-border: #ffe082;
-            --color-ws-text: #795548;
+            /* --- ワークショップ（WS）枠の特別カラー --- */
+            --color-ws-bg: #fff8e1;      /* WS枠の背景（薄い黄色） */
+            --color-ws-border: #ffe082;  /* WS枠の線（濃い黄色） */
+            --color-ws-text: #795548;    /* WS枠の文字やボタン（茶色） */
 
-            --max-width: 900px;
-            --radius-card: 6px;
-            --radius-tag: 3px;
+            /* --- その他の設定 --- */
+            --max-width: 900px;  /* サイトの最大横幅（これ以上は横に広がらない） */
+            --radius-card: 6px;  /* カードの角の丸み */
+            --radius-tag: 3px;   /* ブランドタグの角の丸み */
         }
         /* ========================================================= */
 
+        /* --- サイト全体の基本スタイル --- */
         body { font-family: 'Helvetica Neue', Arial, 'Kosugi', sans-serif; color: var(--color-text-main); background-color: var(--color-bg); margin: 0; padding: 0; }
         
+        /* --- ヘッダー（上のナビゲーションバー） --- */
+        /* position: fixed で画面上部に固定し、backdrop-filter で背景を少しすりガラスのようにぼかしています */
         .site-header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px); border-bottom: 1px solid var(--color-border); z-index: 1000; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-sizing: border-box; }
         .header-brand { font-size: 16px; font-weight: bold; letter-spacing: 3px; color: var(--color-text-main); text-decoration: none; text-transform: uppercase; }
         .header-nav { display: flex; gap: 25px; }
         .header-nav a { font-size: var(--font-nav); color: var(--color-text-muted); font-weight: bold; letter-spacing: 2px; text-decoration: none; transition: 0.3s; }
         .header-nav a:hover { color: var(--color-text-main); }
         
-        .site-main { padding-top: 60px; min-height: 100vh; display: flex; flex-direction: column; }
+        /* --- メインコンテンツとフッター --- */
+        .site-main { padding-top: 60px; min-height: 100vh; display: flex; flex-direction: column; } /* ヘッダーが被らないように上に60pxの余白を設ける */
         .footer-copy { text-align: center; font-size: var(--font-small); color: #ccc; padding: 60px 0; margin-top: auto; }
         
+        /* --- 共通のレイアウト枠 --- */
         .container { max-width: var(--max-width); margin: 40px auto; padding: 0 20px; width: 100%; box-sizing: border-box;}
         .section-header { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 60px 0 20px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
         .section-header:first-child { margin-top: 0; }
         
+        /* =========================================
+           イベントカード（_macros.htmlで使われるデザイン）
+           ========================================= */
         .event-card { background: var(--color-card-bg); margin-bottom: 60px; overflow: hidden; border: 1px solid var(--color-border); display: flex; flex-direction: column; border-radius: var(--radius-card); }
-        .image-wrap { width: 100%; min-height: 200px; background-color: #f9f9f9; }
+        .image-wrap { width: 100%; min-height: 200px; background-color: #f9f9f9; } /* 画像が読み込まれるまでのグレーのプレースホルダー */
         .event-image { width: 100%; height: auto; display: block; opacity: 1; transition: opacity 0.4s ease; }
         .event-content { padding: 40px; }
         .event-title { font-size: var(--font-title-lg); margin: 0 0 20px 0; font-weight: normal; line-height: 1.4; }
@@ -67,6 +85,7 @@
         .info-icon { margin-right: 8px; font-size: var(--font-info); opacity: 0.8;}
         .info-link { color: var(--color-link); text-decoration: underline; text-underline-offset: 3px;}
         
+        /* --- ワークショップ（WS）の特別枠 --- */
         .ws-box { background: var(--color-ws-bg); border: 1px solid var(--color-ws-border); padding: 20px; margin-top: 20px; border-radius: var(--radius-card); }
         .ws-title { display: block; font-weight: bold; color: var(--color-ws-text); font-size: var(--font-info); margin-bottom: 5px; }
         .ws-desc { font-size: 13px; color: #8d6e63; line-height: 1.5; display: block; }
@@ -74,25 +93,36 @@
         .ws-link:hover { background: #5d4037; }
         .ws-credit { display: block; margin-top: 15px; font-size: var(--font-small); color: #a1887f; line-height: 1.4; }
     
+        /* --- 2列に並べるためのグリッド設定 --- */
         .events-grid { display: grid; grid-template-columns: 1fr; gap: 30px; margin-bottom: 60px; }
         .events-grid .event-card { margin-bottom: 0; height: 100%; }
     
+        /* =========================================
+           レスポンシブ（スマホとPCの表示切り替え）
+           ========================================= */
+        /* --- 画面幅が600px以下（スマホ）の時の設定 --- */
         @media (max-width: 600px) { 
-            .site-header { padding: 0 15px; }
+            .site-header { padding: 0 15px; } /* ヘッダーの左右の余白を狭くする */
             .header-brand { font-size: 14px; }
-            .event-content { padding: 25px; } 
-            .event-title { font-size: var(--font-title-md); } 
+            .event-content { padding: 25px; } /* カード内の余白を少し狭くする */
+            .event-title { font-size: var(--font-title-md); } /* タイトルの文字を少し小さくする */
         }
+        
+        /* --- 画面幅が601px以上（タブレット・PC）の時の設定 --- */
         @media (min-width: 601px) {
+            /* スケジュール一覧を2列に分ける */
             .events-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
             .events-grid .event-content { padding: 30px; }
             .events-grid .event-title { font-size: var(--font-title-md); }
+            
+            /* 「NEXT EVENT」の大きなカードは、画像(左)とテキスト(右)の横並びにする */
             .next-card { flex-direction: row; }
             .next-card .image-wrap { width: 45%; }
             .next-card .event-content { width: 55%; padding: 40px; }
             .next-card .event-title { font-size: var(--font-title-lg); }
         }
     </style>
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
