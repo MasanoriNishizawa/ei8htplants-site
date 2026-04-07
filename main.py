@@ -49,9 +49,9 @@ def get_events_data(is_past=False):
         
         # 過去か未来かでフィルタリング
         if is_past:
-            if end_date >= today: continue # 過去ページなら未来のイベントはスキップ
+            if end_date >= today: continue 
         else:
-            if end_date < today: continue  # 通常ページなら過去のイベントはスキップ
+            if end_date < today: continue  
 
         # 日付フォーマット
         if end_date > start_date:
@@ -77,7 +77,13 @@ async def read_home(request: Request):
     try:
         active_events = get_events_data(is_past=False)
         next_event = active_events[0] if active_events else None
-        return templates.TemplateResponse("home.html", {"request": request, "next_event": next_event})
+        
+        # ⚠️ ここを修正しました (request=request, name=... を追加)
+        return templates.TemplateResponse(
+            request=request, 
+            name="home.html", 
+            context={"request": request, "next_event": next_event}
+        )
     except Exception as e:
         return HTMLResponse(content=f"Home Error: {str(e)}", status_code=500)
 
@@ -89,23 +95,32 @@ async def read_events(request: Request, page: str = None):
         events_list = get_events_data(is_past=is_past)
         
         if is_past:
-            # 過去イベント時
-            return templates.TemplateResponse("events.html", {
-                "request": request,
-                "pinned_event": None,
-                "scheduled_events": events_list,
-                "is_past": True
-            })
+            # ⚠️ ここを修正しました
+            return templates.TemplateResponse(
+                request=request, 
+                name="events.html", 
+                context={
+                    "request": request,
+                    "pinned_event": None,
+                    "scheduled_events": events_list,
+                    "is_past": True
+                }
+            )
         else:
-            # 通常時
             pinned_event = events_list[0] if events_list else None
             scheduled_events = events_list[1:] if len(events_list) > 1 else []
-            return templates.TemplateResponse("events.html", {
-                "request": request, 
-                "pinned_event": pinned_event, 
-                "scheduled_events": scheduled_events,
-                "is_past": False
-            })
+            
+            # ⚠️ ここを修正しました
+            return templates.TemplateResponse(
+                request=request, 
+                name="events.html", 
+                context={
+                    "request": request, 
+                    "pinned_event": pinned_event, 
+                    "scheduled_events": scheduled_events,
+                    "is_past": False
+                }
+            )
     except Exception as e:
         return HTMLResponse(content=f"Events Error: {str(e)}", status_code=500)
 
