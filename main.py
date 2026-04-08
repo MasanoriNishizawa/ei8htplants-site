@@ -179,7 +179,19 @@ async def read_events(request: Request, page: str = None):
             )
     except Exception as e:
         return HTMLResponse(content=f"Events Error: {str(e)}", status_code=500)
-
+    
+# --- CONCEPT (コンセプトページ) ---
+@app.get("/concept", response_class=HTMLResponse)
+async def read_concept(request: Request):
+    try:
+        return templates.TemplateResponse(
+            request=request, 
+            name="concept.html", 
+            context={"request": request}
+        )
+    except Exception as e:
+        return HTMLResponse(content=f"Concept Error: {str(e)}", status_code=500)
+    
 # =========================================================
 # ローカルテスト用の起動コマンド
 # =========================================================

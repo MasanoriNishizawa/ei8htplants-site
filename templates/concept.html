@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}ei8ht plants | CONCEPT{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =========================================
+     コンセプトページの独自スタイル
+     ========================================= */
+  .concept-hero {
+      text-align: center;
+      padding: 100px 20px;
+      background: #fff;
+      border-bottom: 1px solid var(--color-border);
+  }
+  
+  .concept-main-title {
+      font-size: 28px;
+      letter-spacing: 5px;
+      font-weight: 300;
+      margin-bottom: 20px;
+      color: var(--color-text-main);
+  }
+
+  .concept-lead {
+      max-width: 750px;
+      margin: 0 auto;
+      line-height: 2.2;
+      font-size: 15px;
+      color: var(--color-text-sub);
+      text-align: justify;
+      text-justify: inter-character;
+  }
+
+  .concept-section {
+      margin-top: 80px;
+  }
+
+  .brand-line-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 30px;
+      margin-top: 40px;
+  }
+
+  .line-item {
+      padding: 40px;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-card);
+  }
+
+  .line-name {
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+      display: block;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+  }
+
+  .line-text {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--color-text-sub);
+  }
+
+  @media (min-width: 768px) {
+      .brand-line-grid { grid-template-columns: 1fr 1fr; } /* 2つのラインを並べる */
+      .concept-main-title { font-size: 36px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="concept-hero">
+    <h1 class="concept-main-title">ei8ht plants</h1>
+    <p class="concept-lead">
+        <strong>「育てることに、純粋に向き合う。」</strong><br><br>
+        植物が持つ本来の姿、その力強さを引き出すためには、何よりも「正しく育てること」が欠かせません。<br>
+        <strong>ei8ht plants</strong> は、アガベやコーデックスといった植物それぞれの特性を深く理解し、適切な環境と管理によって、一株一株のポテンシャルを最大限に引き出すことを常に追求しています。
+    </p>
+</div>
+
+<div class="container">
+    <div class="concept-section">
+        <h2 class="section-header">Philosophy</h2>
+        <div class="concept-lead">
+            私たちが提案するスタイルはすべて、健やかに育つ植物という土台の上に成り立っています。<br>
+            光、風、水。日々の観察を通じて植物が求める声に応え、時間をかけて作り上げられた「姿」こそが、私たちの基準です。<br>
+            この「育てる」という揺るぎない軸を大切にしながら、さらに表現を深める二つのラインを展開しています。
+        </div>
+    </div>
+
+    <div class="concept-section">
+        <h2 class="section-header">Specialized Lines</h2>
+        <div class="brand-line-grid">
+            <div class="line-item">
+                <span class="line-name">Habitat Oides</span>
+                <p class="line-text">
+                    <strong>ハビタットスタイル特化ライン</strong><br>
+                    健やかに育った植物を、その自生地の記憶を呼び起こす風景の中に落とし込みます。石や砂と調和させ、「景色としての植物」を構築する、ハビタットスタイルに特化したラインです。
+                </p>
+            </div>
+            <div class="line-item">
+                <span class="line-name">HUE by ei8ht plants</span>
+                <p class="line-text">
+                    <strong>オーナメントプランツライン</strong><br>
+                    フィロデンドロンやカラテアなど、葉の色彩（HUE）や造形が美しい植物を提案するラインです。ei8ht plantsの育成技術に基づいた、日々の暮らしに溶け込む洗練されたインドアグリーンを届けます。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
