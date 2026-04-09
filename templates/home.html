@@ -8,10 +8,8 @@
   /* =========================================
      1. トップのヒーローセクション（自動スライドショー）
      ========================================= */
-  /* ロゴ周りの背景や余白の設定 */
   .home-hero { text-align: center; padding: 60px 20px; background: var(--color-card-bg); border-bottom: 1px solid var(--color-border); margin-bottom: 40px; }
   
-  /* スライドショー全体を囲む枠 */
   .hero-slider { 
       position: relative;
       display: flex;
@@ -20,16 +18,14 @@
       max-width: 400px; 
       width: 85%; 
       margin: 0 auto 20px auto; 
-      /* 下の要素を確実に押し下げるための最小の高さ */
       min-height: 300px; 
   }
   
-  /* スライドする各画像（3つのロゴ）の共通設定 */
   .hero-slider .slide-img { 
-      position: absolute; /* 画像を重ねる */
+      position: absolute; 
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%); /* 真ん中に配置 */
+      transform: translate(-50%, -50%); 
       width: 100%; 
       height: auto; 
       object-fit: contain;
@@ -39,25 +35,15 @@
       border-radius: 12px;
   }
 
-  /* ★【重要】1枚目だけを「浮かさない(relative)」ことで高さを確保し、下の文字が被るのを防ぎます */
   .hero-slider .slide-img:nth-child(1) { 
       position: relative; 
       top: 0; left: 0;
-      transform: scale(1.4); /* メインロゴの拡大率 */
+      transform: scale(1.4); 
       animation-delay: 0s; 
   }
+  .hero-slider .slide-img:nth-child(2) { animation-delay: 4s; transform: translate(-50%, -50%) scale(1.0); }
+  .hero-slider .slide-img:nth-child(3) { animation-delay: 8s; transform: translate(-50%, -50%) scale(1.15); }
 
-  /* 2枚目以降のタイミングと個別の拡大率設定（transform: translate(-50%, -50%) を維持しながら拡大） */
-  .hero-slider .slide-img:nth-child(2) { 
-      animation-delay: 4s; 
-      transform: translate(-50%, -50%) scale(1.0); /* 写真はそのまま */
-  }
-  .hero-slider .slide-img:nth-child(3) { 
-      animation-delay: 8s; 
-      transform: translate(-50%, -50%) scale(1.15); /* HUEロゴの拡大率 */
-  }
-
-  /* ★ ふわっと切り替わるクロスフェードの設計図 */
   @keyframes hero-fade {
       0%   { opacity: 0; }
       8%   { opacity: 1; }
@@ -66,21 +52,48 @@
       100% { opacity: 0; }
   }
 
-  /* ロゴの下のサブタイトル（Bizarre Plants...）の文字設定 */
   .home-subtitle { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 30px;}
   
   /* =========================================
-     2. ボタン部分（ALL EVENTSへのリンク）
+     2. HOME専用：NEXT EVENTのコンパクト化
+     ========================================= */
+  /* PC版のみ、HOMEのNEXT EVENT画像を小さく調整 */
+  @media (min-width: 601px) {
+      .home-next-wrapper .next-card {
+          flex-direction: row;
+          align-items: center; /* 縦方向を中央揃えに */
+      }
+      .home-next-wrapper .next-card .image-wrap {
+          width: 35% !important; /* ★画像の幅を35%に縮小 */
+          min-height: 250px !important; /* ★高さも控えめに */
+          height: auto;
+      }
+      .home-next-wrapper .next-card .event-content {
+          width: 65% !important; /* ★テキストエリアを広く */
+          padding: 30px 40px !important;
+      }
+      .home-next-wrapper .next-card .event-title {
+          font-size: 22px !important; /* 文字サイズも少し控えめに */
+      }
+      .home-next-wrapper .next-card .event-info {
+          font-size: 13px !important;
+      }
+  }
+
+  /* =========================================
+     3. ボタン部分（ALL EVENTSへのリンク）
      ========================================= */
   .nav-grid { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 400px; margin: 0 auto 40px auto; }
   .nav-btn { display: flex; align-items: center; justify-content: center; padding: 18px; background: var(--color-card-bg); border: 1px solid #ddd; border-radius: var(--radius-card); color: var(--color-text-main); text-decoration: none; font-size: var(--font-info); letter-spacing: 2px; font-weight: bold; transition: 0.3s; }
   .nav-btn:hover { background: var(--color-text-main); color: #fff; }
   
   /* =========================================
-     3. Instagramセクション
+     4. Instagramセクション
      ========================================= */
   .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
-  .ig-grid { display: flex; justify-content: center; align-items: center; gap: 80px; max-width: 500px; margin: 0 auto; }
+  
+  /* ★変更点：スマホ時の間隔（gap）を 80px から 15px に縮小しました */
+  .ig-grid { display: flex; justify-content: center; align-items: center; gap: 15px; max-width: 500px; margin: 0 auto; }
   
   .ig-btn { 
       display: flex; justify-content: center; align-items: center;
@@ -94,15 +107,15 @@
   .ig-btn img { transition: 0.3s; }
   .ig-btn:hover img { opacity: 0.6; transform: scale(1.05); }
 
-  /* インスタ用アイコンの個別拡大設定（スライドショーとは別個に定義） */
   .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; } 
   .ig-img-ei8ht { width: 140%; height: auto; } 
   .ig-img-hue { width: 115%; height: auto; }   
 
-  /* PC・タブレットサイズ用の設定 */
   @media (min-width: 768px) {
     .hero-slider { max-width: 500px; min-height: 350px; } 
     .ig-btn { width: 120px; height: 120px; } 
+    /* ★変更点：PC版は画面が広いため、間隔を元の 80px に戻します */
+    .ig-grid { gap: 80px; }
   }
 </style>
 {% endblock %}
@@ -111,7 +124,7 @@
 <div class="home-hero">
     <div class="hero-slider">
         <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w1000" class="slide-img" alt="ei8ht plants">
-        <img src="https://drive.google.com/thumbnail?id=1RvrtpFCoMaSAN2grInabaISf5ECi4vts&sz=w1000" class="slide-img" alt="Habitat Oides">
+        <img src="https://drive.google.com/thumbnail?id=1LKGtMjURROL6xkNpW7esWzXA25qrYj7-&sz=w1000" class="slide-img" alt="Habitat Oides">
         <img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w1000" class="slide-img" alt="HUE by ei8ht plants">
     </div>
     <div class="home-subtitle">Bizarre Plants & Habitat Style</div>
@@ -120,11 +133,14 @@
 <div class="container">
     {% if next_event %}
         <h2 class="section-header">NEXT EVENT</h2>
-        {{ create_event_card(next_event, is_next=True, is_home=True) }}
+        <div class="home-next-wrapper">
+            {{ create_event_card(next_event, is_next=True, is_home=True) }}
+        </div>
     {% endif %}
 
     <div class="nav-grid">
-        <a href="/events" class="nav-btn">🌿 ALL EVENTS</a>
+        <a href="/events" class="nav-btn">ALL EVENTS</a>
+        <a href="/concept" class="nav-btn">CONCEPT</a>
     </div>
     
     <div class="ig-section">
@@ -132,7 +148,7 @@
         
         <div class="ig-grid">
             <a href="https://www.instagram.com/habitatoides/" class="ig-btn" target="_blank">
-                <img src="https://drive.google.com/thumbnail?id=1RvrtpFCoMaSAN2grInabaISf5ECi4vts&sz=w500" class="ig-img-habitat">
+                <img src="https://drive.google.com/thumbnail?id=1LKGtMjURROL6xkNpW7esWzXA25qrYj7-&sz=w500" class="ig-img-habitat">
             </a>
             <a href="https://www.instagram.com/ei8ht.plants/" class="ig-btn" target="_blank">
                 <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w500" class="ig-img-ei8ht">
