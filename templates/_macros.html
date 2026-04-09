@@ -1,22 +1,46 @@
 {% macro create_event_card(event, is_next=False, is_home=False) %}
-
 <div class="event-card {% if is_next %}next-card{% endif %}">
     
-    {% if event['画像'] and event['画像'] | trim != '' %}
-    <div class="image-wrap">
-        {% if is_home %}<a href="/events">{% endif %}
-        
-        {% set img_url = event['画像'] | string %}
-        {% set f_id = img_url.split('id=')[-1].split('&')[0] if 'id=' in img_url else img_url.split('/d/')[-1].split('/')[0] if '/d/' in img_url else '' %}
-        
-        <img src="https://drive.google.com/uc?export=view&id={{ f_id }}" class="event-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';" referrerpolicy="no-referrer">
-        
-        {% if is_home %}</a>{% endif %}
-    </div>
+    {% if event['image_urls'] %}
+        {% if event['image_urls']|length > 1 %}
+            <div class="image-wrap slideshow-container" style="position: relative;">
+                {% if is_home %}<a href="/events" style="display: block;">{% endif %}
+                
+                {% for img_url in event['image_urls'] %}
+                    {% set f_id = img_url.split('id=')[-1].split('&')[0] if 'id=' in img_url else img_url.split('/d/')[-1].split('/')[0] if '/d/' in img_url else '' %}
+                    <img src="https://drive.google.com/uc?export=view&id={{ f_id }}" 
+                         class="event-image slide-item" 
+                         onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';" 
+                         referrerpolicy="no-referrer"
+                         style="{% if not loop.first %}display: none;{% else %}display: block;{% endif %} width: 100%; height: auto;">
+                {% endfor %}
+                
+                {% if is_home %}</a>{% endif %}
+
+                <div class="slide-prev" 
+                     onclick="var s=this.closest('.slideshow-container').querySelectorAll('.slide-item'); var cur=0; for(var i=0;i<s.length;i++){if(s[i].style.display!=='none')cur=i; s[i].style.display='none';} s[(cur-1+s.length)%s.length].style.display='block'; if(typeof event !== 'undefined'){event.preventDefault(); event.stopPropagation();}" 
+                     style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: #fff; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; font-size: 14px; font-weight: bold; user-select: none; z-index: 10; transition: 0.2s;">
+                     ❮
+                </div>
+                
+                <div class="slide-next" 
+                     onclick="var s=this.closest('.slideshow-container').querySelectorAll('.slide-item'); var cur=0; for(var i=0;i<s.length;i++){if(s[i].style.display!=='none')cur=i; s[i].style.display='none';} s[(cur+1)%s.length].style.display='block'; if(typeof event !== 'undefined'){event.preventDefault(); event.stopPropagation();}" 
+                     style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: #fff; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; font-size: 14px; font-weight: bold; user-select: none; z-index: 10; transition: 0.2s;">
+                     ❯
+                </div>
+            </div>
+        {% else %}
+            {% set img_url = event['image_urls'][0] %}
+            <div class="image-wrap">
+                {% if is_home %}<a href="/events">{% endif %}
+                {% set f_id = img_url.split('id=')[-1].split('&')[0] if 'id=' in img_url else img_url.split('/d/')[-1].split('/')[0] if '/d/' in img_url else '' %}
+                <img src="https://drive.google.com/uc?export=view&id={{ f_id }}" class="event-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';" referrerpolicy="no-referrer">
+                {% if is_home %}</a>{% endif %}
+            </div>
+        {% endif %}
     {% endif %}
 
     <div class="event-content">
-        
         {% if event['販売ブランド'] %}
         <div class="brand-tags">
             {% for n in event['販売ブランド'].split(', ') %}
@@ -33,38 +57,35 @@
         </h2>
 
         <div class="event-info">
-            <div class="info-row"><span class="info-icon">🗓</span><span>{{ event['display_date'] }}</span></div>
+            <div class="info-row"><span>{{ event['display_date'] }}</span></div>
             
-            {% if event['開始時間'] or event['終了時間'] %}
-            <div class="info-row"><span class="info-icon">🕒</span><span>{{ event['開始時間'] }} - {{ event['終了時間'] }}</span></div>
+            {% if event['開催時間'] %}
+            <div class="info-row">
+                <span style="white-space: pre-wrap; line-height: 1.5;">{{ event['開催時間'] }}</span>
+            </div>
             {% endif %}
             
-            <div class="info-row"><span class="info-icon">📍</span><span style="font-weight:bold;">{{ event['場所'] }}</span></div>
-            
+            <div class="info-row"><span style="font-weight:bold;">{{ event['場所'] }}</span></div>
             {% if event['ブース番号'] %}
-            <div class="info-row"><span class="info-icon">🏷️</span><span style="font-weight:bold;">ブース: {{ event['ブース番号'] }}</span></div>
+            <div class="info-row"><span style="font-weight:bold;">ブース: {{ event['ブース番号'] }}</span></div>
             {% endif %}
-            
             {% if event['住所'] %}
-            <div class="info-row"><span class="info-icon">🗺</span><a href="{{ event['map_url'] }}" class="info-link" target="_blank" rel="noopener noreferrer">{{ event['住所'] }}</a></div>
+            <div class="info-row"><a href="{{ event['map_url'] }}" class="info-link" target="_blank" rel="noopener noreferrer">{{ event['住所'] }}</a></div>
             {% endif %}
-            
             {% if event['公式サイトURL'] %}
-            <div class="info-row"><span class="info-icon">🔗</span><a href="{{ event['公式サイトURL'] }}" class="info-link" target="_blank" rel="noopener noreferrer">公式サイト</a></div>
+            <div class="info-row"><a href="{{ event['公式サイトURL'] }}" class="info-link" target="_blank" rel="noopener noreferrer">公式サイト</a></div>
             {% endif %}
         </div>
 
         {% if event['WSフラグ']|string|upper == 'TRUE' %}
         <div class="ws-box">
-            <span class="ws-title">🌿 Habitat Style Workshop</span>
+            <span class="ws-title">Habitat Style Workshop</span>
             <span class="ws-desc">現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。</span>
-            
             {% if event['WS予約URL'] %}
             <a href="{{ event['WS予約URL'] }}" class="ws-link" target="_blank" rel="noopener noreferrer">ワークショップを予約する</a>
             {% endif %}
         </div>
         {% endif %}
-
     </div>
 </div>
 {% endmacro %}

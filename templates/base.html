@@ -33,7 +33,7 @@
             --color-ws-border: #ffe082;
             --color-ws-text: #795548;
 
-            --max-width: 900px;
+            --max-width: 1000px;
             --radius-card: 6px;
             --radius-tag: 3px;
         }
@@ -53,7 +53,6 @@
             padding: 0 30px; box-sizing: border-box; 
         }
 
-        /* ヘッダーのブランドロゴエリア（テキストを削除し、画像のみに調整） */
         .header-brand { 
             display: flex;
             align-items: center;
@@ -61,16 +60,13 @@
             text-decoration: none; 
         }
 
-        /* ★新しい横長ロゴ画像（ei8htplants_logo2.jpeg）の設定 */
         .header-logo-img {
-            height: 32px; /* ヘッダーの高さ(60px)の中でバランスの良いサイズ */
+            height: 32px; 
             width: auto;
             object-fit: contain;
-            /* 画像の余白に合わせた微調整 */
             transform: scale(1.1); 
         }
 
-        /* 右側のナビゲーションメニュー */
         .header-nav { display: flex; gap: 25px; }
         .header-nav a { font-size: var(--font-nav); color: var(--color-text-muted); font-weight: bold; letter-spacing: 2px; text-decoration: none; transition: 0.3s; }
         .header-nav a:hover { color: var(--color-text-main); }
@@ -108,7 +104,15 @@
         .ws-link:hover { background: #5d4037; }
         .ws-credit { display: block; margin-top: 15px; font-size: var(--font-small); color: #a1887f; line-height: 1.4; }
     
-        .events-grid { display: grid; grid-template-columns: 1fr; gap: 30px; margin-bottom: 60px; }
+        /* ▼▼▼ ここからグリッド幅の調整 ▼▼▼ */
+        .events-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 30px; 
+            /* 幅を制限し、中央寄せにしてカード全体を小さくする */
+            max-width: var(--max-width);
+            margin: 0 auto 60px auto; 
+        }
         .events-grid .event-card { margin-bottom: 0; height: 100%; }
         
         .footer-copy { text-align: center; font-size: var(--font-small); color: #ccc; padding: 60px 0; margin-top: auto; }
@@ -118,24 +122,69 @@
            ========================================= */
         @media (max-width: 600px) { 
             .site-header { padding: 0 15px; }
-            /* スマホ用ロゴサイズ調整 */
             .header-logo-img { height: 26px; } 
             .event-content { padding: 25px; } 
             .event-title { font-size: var(--font-title-md); } 
+            /* スマホ時のグリッド内文字サイズ微調整 */
+            .events-grid .event-title { font-size: 18px; }
         }
         @media (min-width: 601px) {
-            .events-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
-            .events-grid .event-content { padding: 30px; }
-            .events-grid .event-title { font-size: var(--font-title-md); }
+            /* グリッドカードのコンパクト化 */
+            .events-grid { grid-template-columns: 1fr 1fr; gap: 30px; }
+            .events-grid .event-content { padding: 25px; } /* 余白を小さく */
+            .events-grid .event-title { font-size: 18px; margin-bottom: 15px; } /* タイトルを小さく */
+            .events-grid .brand-tag { font-size: 10px; padding: 4px 8px; } /* タグを小さく */
+            .events-grid .event-info { font-size: 12px; padding: 12px; } /* 情報エリアを小さく */
+            
+            /* NEXT EVENT用のカード設定 */
             .next-card { flex-direction: row; }
-            .next-card .image-wrap { width: 45%; }
-            .next-card .event-content { width: 55%; padding: 40px; }
+            .next-card .image-wrap { width: 100%; }
+            .next-card .event-content { width: 80%; padding: 40px; }
             .next-card .event-title { font-size: var(--font-title-lg); }
         }
+        
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <script>
+        function moveSlide(btn, step) {
+            const container = btn.closest('.event-slideshow');
+            const slides = container.querySelectorAll('.slide');
+            const dots = container.querySelectorAll('.dot');
+            let current = parseInt(container.getAttribute('data-current-slide') || '0');
+
+            slides[current].style.opacity = '0';
+            slides[current].style.zIndex = '1';
+            if(dots.length) dots[current].style.background = 'rgba(255,255,255,0.5)';
+
+            current = (current + step + slides.length) % slides.length;
+
+            slides[current].style.opacity = '1';
+            slides[current].style.zIndex = '2';
+            if(dots.length) dots[current].style.background = '#fff';
+            
+            container.setAttribute('data-current-slide', current);
+        }
+
+        function setSlide(dotElement, index) {
+            const container = dotElement.closest('.event-slideshow');
+            const slides = container.querySelectorAll('.slide');
+            const dots = container.querySelectorAll('.dot');
+            let current = parseInt(container.getAttribute('data-current-slide') || '0');
+
+            slides[current].style.opacity = '0';
+            slides[current].style.zIndex = '1';
+            if(dots.length) dots[current].style.background = 'rgba(255,255,255,0.5)';
+
+            slides[index].style.opacity = '1';
+            slides[index].style.zIndex = '2';
+            if(dots.length) dots[index].style.background = '#fff';
+            
+            container.setAttribute('data-current-slide', index);
+        }
+    </script>
+
     <header class="site-header">
         <a href="/" class="header-brand">
             <img src="https://drive.google.com/thumbnail?id=1DZ7SiynuB-dVLsV_v08g_EdV-LsDPREa&sz=w500" class="header-logo-img" alt="ei8ht plants">
