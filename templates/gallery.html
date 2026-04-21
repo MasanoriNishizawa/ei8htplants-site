@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}ei8ht plants | GALLERY{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================
+       ギャラリー・基本レイアウト
+       ========================================= */
+    .gallery-header {
+        text-align: center;
+        padding: 60px 20px 40px 20px;
+    }
+
+    .gallery-title {
+        font-size: var(--font-title-md);
+        font-weight: 300;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .gallery-container {
+        max-width: var(--max-width);
+        margin: 0 auto 100px auto;
+        padding: 0 20px;
+        box-sizing: border-box;
+    }
+
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 15px;
+    }
+
+    .gallery-item {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+        background-color: #f9f9f9;
+        cursor: zoom-in; /* クリックできることを示すカーソル */
+    }
+
+    .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.4s ease;
+        display: block;
+    }
+
+    .gallery-item:hover img {
+        transform: scale(1.08);
+        filter: brightness(0.9);
+    }
+
+    /* =========================================
+       拡大表示（ライトボックス）のスタイル
+       ========================================= */
+    .lightbox {
+        display: none; /* 初期状態は非表示 */
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.95);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        cursor: zoom-out;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .lightbox.active {
+        display: flex;
+        opacity: 1;
+    }
+
+    .lightbox-img {
+        max-width: 90%;
+        max-height: 85%;
+        object-fit: contain;
+        box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+
+    .lightbox.active .lightbox-img {
+        transform: scale(1);
+    }
+
+    .close-btn {
+        position: absolute;
+        top: 20px; right: 30px;
+        color: #fff;
+        font-size: 35px;
+        font-weight: 200;
+        cursor: pointer;
+        z-index: 2001;
+    }
+
+    @media (max-width: 600px) {
+        .gallery-grid {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .close-btn { right: 20px; top: 15px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gallery-header">
+    <h1 class="gallery-title">Gallery</h1>
+</div>
+
+<div class="gallery-container">
+    {% if images %}
+        <div class="gallery-grid">
+            {% for img_url in images %}
+            <div class="gallery-item" onclick="openLightbox('{{ img_url }}')">
+                <img src="{{ img_url }}" alt="ei8ht plants gallery" loading="lazy">
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 100px 0; color: var(--color-text-muted); font-size: 13px;">
+            <p>No photos available.</p>
+        </div>
+    {% endif %}
+</div>
+
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="close-btn">&times;</span>
+    <img id="lightbox-img" class="lightbox-img" src="" alt="Enlarged view">
+</div>
+
+<script>
+    function openLightbox(src) {
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        
+        // ローディング中のチラつき防止のため、先にsrcを入れてから表示
+        lightboxImg.src = src;
+        lightbox.classList.add('active');
+        
+        // 背面のスクロールを禁止にする（UX向上）
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        const lightbox = document.getElementById('lightbox');
+        lightbox.classList.remove('active');
+        
+        // スクロール禁止を解除
+        document.body.style.overflow = '';
+    }
+
+    // Escキーでも閉じれるように設定
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLightbox();
+    });
+</script>
+{% endblock %}

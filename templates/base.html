@@ -44,13 +44,16 @@
            1. ヘッダー（画面上部のナビゲーションバー）
            ========================================= */
         .site-header { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 60px; 
+            position: fixed; top: 0; left: 0; width: 100%; 
+            min-height: 60px; /* heightからmin-heightに変更し、折り返しに対応 */
             background: rgba(255, 255, 255, 0.95); 
             backdrop-filter: blur(5px);
             border-bottom: 1px solid var(--color-border); 
             z-index: 1000;
             display: flex; align-items: center; justify-content: space-between; 
-            padding: 0 30px; box-sizing: border-box; 
+            padding: 10px 30px; box-sizing: border-box; 
+            flex-wrap: wrap; /* 画面が狭いときにロゴとメニューの重なりを防ぐ */
+            gap: 15px;
         }
 
         .header-brand { 
@@ -67,14 +70,39 @@
             transform: scale(1.1); 
         }
 
-        .header-nav { display: flex; gap: 25px; }
-        .header-nav a { font-size: var(--font-nav); color: var(--color-text-muted); font-weight: bold; letter-spacing: 2px; text-decoration: none; transition: 0.3s; }
-        .header-nav a:hover { color: var(--color-text-main); }
+        .header-nav { 
+            display: flex; 
+            gap: 20px; 
+            flex-wrap: wrap; /* メニュー項目の折り返しを許可 */
+            align-items: center; 
+            justify-content: flex-end;
+        }
+        
+        .header-nav a { 
+            font-size: var(--font-nav); 
+            color: var(--color-text-muted); 
+            font-weight: bold; 
+            letter-spacing: 2px; 
+            text-decoration: none; 
+            transition: 0.3s; 
+            white-space: nowrap; /* リンク文字の途中で改行させない */
+        }
+        
+        .header-nav a:hover { 
+            color: var(--color-text-main); 
+        }
+
+        /* ONLINE STORE用のアクティブなデザイン */
+        .header-nav a.nav-store {
+            color: var(--color-text-main);
+            border-bottom: 1px solid var(--color-text-main);
+            padding-bottom: 2px;
+        }
         
         /* =========================================
            2. メインコンテンツ・共通レイアウト
            ========================================= */
-        .site-main { padding-top: 60px; min-height: 100vh; display: flex; flex-direction: column; } 
+        .site-main { padding-top: 80px; min-height: 100vh; display: flex; flex-direction: column; } 
         .container { max-width: var(--max-width); margin: 40px auto; padding: 0 20px; width: 100%; box-sizing: border-box;}
         .section-header { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 60px 0 20px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
         .section-header:first-child { margin-top: 0; }
@@ -104,12 +132,11 @@
         .ws-link:hover { background: #5d4037; }
         .ws-credit { display: block; margin-top: 15px; font-size: var(--font-small); color: #a1887f; line-height: 1.4; }
     
-        /* ▼▼▼ ここからグリッド幅の調整 ▼▼▼ */
+        /* ▼▼▼ グリッド幅の調整 ▼▼▼ */
         .events-grid { 
             display: grid; 
             grid-template-columns: 1fr; 
             gap: 30px; 
-            /* 幅を制限し、中央寄せにしてカード全体を小さくする */
             max-width: var(--max-width);
             margin: 0 auto 60px auto; 
         }
@@ -120,23 +147,37 @@
         /* =========================================
            4. レスポンシブ（スマホ・PCの切り替え）
            ========================================= */
-        @media (max-width: 600px) { 
-            .site-header { padding: 0 15px; }
-            .header-logo-img { height: 26px; } 
+        @media (max-width: 768px) { 
+            /* スマホ・タブレット時はヘッダーを縦並びにし、崩れを防止 */
+            .site-header { 
+                flex-direction: column; 
+                justify-content: center; 
+                padding: 15px; 
+            }
+            .header-logo-img { height: 26px; margin-bottom: 5px; } 
+            
+            .header-nav { 
+                justify-content: center; 
+                gap: 12px; 
+            }
+            .header-nav a { 
+                font-size: 10px; 
+                letter-spacing: 1px; 
+            }
+            
+            .site-main { padding-top: 100px; } /* ヘッダーが縦になる分の余白調整 */
+            
             .event-content { padding: 25px; } 
             .event-title { font-size: var(--font-title-md); } 
-            /* スマホ時のグリッド内文字サイズ微調整 */
             .events-grid .event-title { font-size: 18px; }
         }
-        @media (min-width: 601px) {
-            /* グリッドカードのコンパクト化 */
+        @media (min-width: 769px) {
             .events-grid { grid-template-columns: 1fr 1fr; gap: 30px; }
-            .events-grid .event-content { padding: 25px; } /* 余白を小さく */
-            .events-grid .event-title { font-size: 18px; margin-bottom: 15px; } /* タイトルを小さく */
-            .events-grid .brand-tag { font-size: 10px; padding: 4px 8px; } /* タグを小さく */
-            .events-grid .event-info { font-size: 12px; padding: 12px; } /* 情報エリアを小さく */
+            .events-grid .event-content { padding: 25px; } 
+            .events-grid .event-title { font-size: 18px; margin-bottom: 15px; } 
+            .events-grid .brand-tag { font-size: 10px; padding: 4px 8px; } 
+            .events-grid .event-info { font-size: 12px; padding: 12px; } 
             
-            /* NEXT EVENT用のカード設定 */
             .next-card { flex-direction: row; }
             .next-card .image-wrap { width: 100%; }
             .next-card .event-content { width: 80%; padding: 40px; }
@@ -193,7 +234,8 @@
             <a href="/">HOME</a>
             <a href="/events">EVENT</a>
             <a href="/concept">CONCEPT</a>
-            <a href="https://ei8htplants.square.site/s/shop" target="_blank" rel="noopener noreferrer">ONLINE STORE</a>
+            <a href="/gallery">GALLERY</a>
+            <a href="https://ei8htplants.square.site/s/shop" target="_blank" rel="noopener noreferrer" class="nav-store">ONLINE STORE</a>
         </nav>
     </header>
 
