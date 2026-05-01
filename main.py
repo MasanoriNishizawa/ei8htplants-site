@@ -1,5 +1,7 @@
 import os
 import json
+import re
+import random # ▼ランダム表示のために追加
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -12,6 +14,19 @@ from urllib.parse import quote
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+
+# ▼▼▼ カスタムフィルターの追加（URLをリンク化する） ▼▼▼
+def urlize_filter(text):
+    if not text:
+        return ""
+    # URLのパターン（httpまたはhttpsから始まる文字列）を探す
+    url_pattern = re.compile(r'(https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?)')
+    # 見つけたURLを、クリックできる <a> タグに置き換える
+    return url_pattern.sub(r'<a href="\1" target="_blank" rel="noopener noreferrer" style="color: var(--color-link); text-decoration: underline; text-underline-offset: 3px;">\1</a>', str(text))
+
+# テンプレートエンジンに作成したフィルターを登録する
+templates.env.filters['urlize'] = urlize_filter
+
 
 # --- Google Spreadsheet & Drive 設定 ---
 SPREADSHEET_ID = '1_18mozgallwxSZ_u9d5iCdP9CftT7nZ9lgo-v3jbzwU'
@@ -96,12 +111,44 @@ def get_events_data(is_past=False):
     target_events.sort(key=lambda x: x['start_obj'], reverse=is_past)
     return target_events
 
+# ▼▼▼ HOME（トップページ）の処理 ▼▼▼
 @app.get("/", response_class=HTMLResponse)
 async def read_home(request: Request):
     try:
         active_events = get_events_data(is_past=False)
         next_event = active_events[0] if active_events else None
-        return templates.TemplateResponse(request=request, name="home.html", context={"request": request, "next_event": next_event})
+        
+        # ▼ HOME用のギャラリー画像取得処理（各ブランドからランダムに） ▼
+        folders = {
+            'ei8ht_plants': '10Weyg4NpTuj6PEMLHtWteFXNg9awj-WE',
+            'habitat_oides': '1XqKysJZ8A4NTRzj_YG2TyeZnSvPiW8cW',
+            'hue': '128gck2ApACIFuEdGEExnDR48-3Roy-Mb'
+        }
+        
+        all_gallery_images = []
+        # 各フォルダから画像を少しずつ取得（制限付き）
+        for brand, folder_id in folders.items():
+            query = f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false"
+            results = drive_service.files().list(
+                q=query,
+                fields="files(id, name)",
+                pageSize=10 # 読み込みを軽くするため、各ブランド10枚に制限
+            ).execute()
+            items = results.get('files', [])
+            all_gallery_images.extend([get_display_url(item['id']) for item in items])
+        
+        # 取得した画像をランダムにシャッフル
+        random.shuffle(all_gallery_images)
+
+        return templates.TemplateResponse(
+            request=request, 
+            name="home.html", 
+            context={
+                "request": request, 
+                "next_event": next_event, 
+                "gallery_images": all_gallery_images # ▼テンプレートに画像を渡す
+            }
+        )
     except Exception as e:
         return HTMLResponse(content=f"Home Error: {str(e)}", status_code=500)
 
@@ -126,11 +173,37 @@ async def read_concept(request: Request):
     except Exception as e:
         return HTMLResponse(content=f"Concept Error: {str(e)}", status_code=500)
 
+# ▼▼▼ COLLABORATION（コラボ一覧ページ） ▼▼▼
+@app.get("/collaborations", response_class=HTMLResponse)
+async def read_collaborations(request: Request):
+    try:
+        sh = gc.open_by_key(SPREADSHEET_ID)
+        # 「PROJECTS」シートを開く
+        worksheet = sh.worksheet("PROJECTS")
+        projects_data = worksheet.get_all_records()
+
+        for item in projects_data:
+            # 画像URLをサムネイル用の安定した形式に変換
+            images_str = str(item.get('画像', '')).strip()
+            if images_str:
+                raw_urls = [url.strip() for url in images_str.split(',')]
+                item['image_urls'] = [get_display_url(u) for u in raw_urls if u]
+            else:
+                item['image_urls'] = []
+
+        return templates.TemplateResponse(
+            request=request, 
+            name="collaborations.html", 
+            context={"request": request, "projects": projects_data}
+        )
+    except Exception as e:
+        return HTMLResponse(content=f"Collaborations Error: {str(e)}", status_code=500)
+
 # ▼▼▼ ギャラリー表示処理（ブランド別タブ対応） ▼▼▼
 @app.get("/gallery", response_class=HTMLResponse)
 async def read_gallery(request: Request, brand: str = 'ei8ht_plants'):
     try:
-        # ご指定いただいたブランドとフォルダIDの紐付け
+        # ブランドとフォルダIDの紐付け
         folders = {
             'ei8ht_plants': '10Weyg4NpTuj6PEMLHtWteFXNg9awj-WE',
             'habitat_oides': '1XqKysJZ8A4NTRzj_YG2TyeZnSvPiW8cW',

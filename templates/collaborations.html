@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}ei8ht plants | COLLABORATION{% endblock %}
+
+{% block extra_css %}
+<style>
+    .collab-header {
+        text-align: center;
+        padding: 60px 20px 40px 20px;
+    }
+
+    .collab-title {
+        font-size: var(--font-title-md);
+        font-weight: 300;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .collab-container {
+        max-width: var(--max-width);
+        margin: 0 auto 100px auto;
+        padding: 0 20px;
+        box-sizing: border-box;
+    }
+
+    .collab-card {
+        display: flex;
+        flex-direction: column;
+        background: var(--color-card-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        overflow: hidden;
+        margin-bottom: 40px;
+    }
+
+    .collab-image-wrap {
+        width: 100%;
+        background-color: #f9f9f9;
+        /* 画像を横長にトリミングしてスタイリッシュに見せる */
+        aspect-ratio: 16 / 9; 
+        overflow: hidden;
+    }
+
+    .collab-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.6s ease;
+    }
+
+    .collab-card:hover .collab-image {
+        transform: scale(1.03);
+    }
+
+    .collab-content {
+        padding: 30px 40px;
+    }
+
+    .collab-meta {
+        font-size: 11px;
+        color: var(--color-text-muted);
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        display: flex;
+        gap: 15px;
+    }
+
+    .collab-heading {
+        font-size: var(--font-title-md);
+        margin: 0 0 20px 0;
+        font-weight: 300;
+        line-height: 1.4;
+    }
+
+    .collab-desc {
+        font-size: 13px;
+        color: var(--color-text-sub);
+        line-height: 1.8;
+        white-space: pre-wrap; /* スプレッドシートの改行をそのまま反映 */
+        margin: 0;
+    }
+
+    /* URLが長い場合は折り返す設定を追加 */
+    .collab-desc a {
+        word-break: break-all;
+    }
+
+    /* PC表示用のレイアウト（画像とテキストを横並びにする） */
+    @media (min-width: 769px) {
+        .collab-card {
+            flex-direction: row;
+            align-items: stretch;
+        }
+        .collab-image-wrap {
+            width: 50%;
+            aspect-ratio: auto; /* 高さはコンテンツに合わせる */
+        }
+        .collab-content {
+            width: 50%;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .collab-content {
+            padding: 25px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="collab-header">
+    <h1 class="collab-title">Collaboration</h1>
+</div>
+
+<div class="collab-container">
+    {% if projects %}
+        {% for p in projects %}
+        <div class="collab-card">
+            <div class="collab-image-wrap">
+                {% if p.image_urls %}
+                    <img src="{{ p.image_urls[0] }}" alt="{{ p['タイトル'] }}" class="collab-image" loading="lazy">
+                {% else %}
+                    <!-- 画像がない場合のダミー背景 -->
+                    <div style="width:100%; height:100%; background:#eaeaea;"></div>
+                {% endif %}
+            </div>
+            
+            <div class="collab-content">
+                <div class="collab-meta">
+                    <span>{{ p['日付'] }}</span>
+                    {% if p['コラボ先'] %}
+                    <span>With: <strong>{{ p['コラボ先'] }}</strong></span>
+                    {% endif %}
+                </div>
+                <h2 class="collab-heading">{{ p['タイトル'] }}</h2>
+                <!-- ▼▼ 変更箇所：urlizeフィルターとsafeを追加 ▼▼ -->
+                <p class="collab-desc">{{ p['コラボ内容'] | urlize | safe }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 80px 0; color: var(--color-text-muted); font-size: 13px;">
+            <p>現在準備中です。</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
