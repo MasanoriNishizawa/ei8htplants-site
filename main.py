@@ -126,10 +126,23 @@ async def read_concept(request: Request):
     except Exception as e:
         return HTMLResponse(content=f"Concept Error: {str(e)}", status_code=500)
 
+# ▼▼▼ ギャラリー表示処理（ブランド別タブ対応） ▼▼▼
 @app.get("/gallery", response_class=HTMLResponse)
-async def read_gallery(request: Request):
+async def read_gallery(request: Request, brand: str = 'ei8ht_plants'):
     try:
-        folder_id = '12LHiPz4tyUK9UHVcOqgZQ3ltjk9rlLP_'
+        # ご指定いただいたブランドとフォルダIDの紐付け
+        folders = {
+            'ei8ht_plants': '10Weyg4NpTuj6PEMLHtWteFXNg9awj-WE',
+            'habitat_oides': '1XqKysJZ8A4NTRzj_YG2TyeZnSvPiW8cW',
+            'hue': '128gck2ApACIFuEdGEExnDR48-3Roy-Mb'
+        }
+        
+        # もし不正なブランド名が指定されたら、デフォルトで ei8ht_plants を表示
+        if brand not in folders:
+            brand = 'ei8ht_plants'
+            
+        folder_id = folders[brand]
+        
         query = f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false"
         
         results = drive_service.files().list(
@@ -143,7 +156,11 @@ async def read_gallery(request: Request):
         # 🌟GALLERYもEVENTSと同じ変換ロジックを使用
         gallery_images = [get_display_url(item['id']) for item in items]
         
-        return templates.TemplateResponse(request=request, name="gallery.html", context={"request": request, "images": gallery_images})
+        return templates.TemplateResponse(
+            request=request, 
+            name="gallery.html", 
+            context={"request": request, "images": gallery_images, "current_brand": brand}
+        )
     except Exception as e:
         return HTMLResponse(content=f"Gallery Error: {str(e)}", status_code=500)
 

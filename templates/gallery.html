@@ -9,7 +9,7 @@
        ========================================= */
     .gallery-header {
         text-align: center;
-        padding: 60px 20px 40px 20px;
+        padding: 60px 20px 20px 20px;
     }
 
     .gallery-title {
@@ -19,6 +19,37 @@
         text-transform: uppercase;
         margin: 0;
     }
+
+    /* ▼▼ タブナビゲーションのスタイル ▼▼ */
+    .gallery-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+        padding: 0 15px;
+    }
+
+    .gallery-tab {
+        text-decoration: none;
+        color: var(--color-text-muted);
+        font-size: 12px;
+        letter-spacing: 1px;
+        padding-bottom: 4px;
+        transition: color 0.3s ease;
+        border-bottom: 1px solid transparent;
+    }
+
+    .gallery-tab:hover {
+        color: var(--color-text-main);
+    }
+
+    .gallery-tab.active {
+        color: var(--color-text-main);
+        font-weight: bold;
+        border-bottom: 1px solid var(--color-text-main);
+    }
+    /* ▲▲ タブナビゲーションのスタイル ▲▲ */
 
     .gallery-container {
         max-width: var(--max-width);
@@ -38,7 +69,7 @@
         aspect-ratio: 1 / 1;
         overflow: hidden;
         background-color: #f9f9f9;
-        cursor: zoom-in; /* クリックできることを示すカーソル */
+        cursor: zoom-in;
     }
 
     .gallery-item img {
@@ -58,7 +89,7 @@
        拡大表示（ライトボックス）のスタイル
        ========================================= */
     .lightbox {
-        display: none; /* 初期状態は非表示 */
+        display: none;
         position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
@@ -104,6 +135,12 @@
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 10px;
         }
+        .gallery-tabs {
+            gap: 15px;
+        }
+        .gallery-tab {
+            font-size: 11px;
+        }
         .close-btn { right: 20px; top: 15px; }
     }
 </style>
@@ -113,6 +150,14 @@
 <div class="gallery-header">
     <h1 class="gallery-title">Gallery</h1>
 </div>
+
+<!-- ▼▼ タブの追加部分 ▼▼ -->
+<div class="gallery-tabs">
+    <a href="/gallery?brand=ei8ht_plants" class="gallery-tab {% if current_brand == 'ei8ht_plants' %}active{% endif %}">ei8ht plants</a>
+    <a href="/gallery?brand=habitat_oides" class="gallery-tab {% if current_brand == 'habitat_oides' %}active{% endif %}">Habitat Oides</a>
+    <a href="/gallery?brand=hue" class="gallery-tab {% if current_brand == 'hue' %}active{% endif %}">HUE by ei8ht plants</a>
+</div>
+<!-- ▲▲ タブの追加部分 ▲▲ -->
 
 <div class="gallery-container">
     {% if images %}
@@ -125,7 +170,7 @@
         </div>
     {% else %}
         <div style="text-align: center; padding: 100px 0; color: var(--color-text-muted); font-size: 13px;">
-            <p>No photos available.</p>
+            <p>まだ写真が追加されていません。</p>
         </div>
     {% endif %}
 </div>
@@ -140,23 +185,17 @@
         const lightbox = document.getElementById('lightbox');
         const lightboxImg = document.getElementById('lightbox-img');
         
-        // ローディング中のチラつき防止のため、先にsrcを入れてから表示
         lightboxImg.src = src;
         lightbox.classList.add('active');
-        
-        // 背面のスクロールを禁止にする（UX向上）
         document.body.style.overflow = 'hidden';
     }
 
     function closeLightbox() {
         const lightbox = document.getElementById('lightbox');
         lightbox.classList.remove('active');
-        
-        // スクロール禁止を解除
         document.body.style.overflow = '';
     }
 
-    // Escキーでも閉じれるように設定
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeLightbox();
     });
