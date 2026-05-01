@@ -6,7 +6,8 @@
     
     <title>{% block title %}ei8ht plants{% endblock %}</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Kosugi&display=swap" rel="stylesheet">
+    <!-- 400(標準)と500(中太)をメインに読み込み、視認性を確保 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
         /* =========================================================
@@ -15,17 +16,17 @@
         :root {
             --font-title-lg: 32px;
             --font-title-md: 24px;
-            --font-info: 16px;
-            --font-tag: 12px;
-            --font-section: 20px;
-            --font-nav: 16px;
+            --font-info: 16px; 
+            --font-tag: 12px;  
+            --font-section: 20px; 
+            --font-nav: 16px;  
             --font-small: 12px;
 
             --color-bg: #fafafa;
             --color-card-bg: #ffffff;
             --color-text-main: #333333;
-            --color-text-sub: #555555;
-            --color-text-muted: #888888;
+            --color-text-sub: #444444; /* 視認性向上のため少し濃く */
+            --color-text-muted: #777777; /* 視認性向上のため少し濃く */
             --color-border: #eaeaea;
             --color-link: #333333;
             
@@ -38,21 +39,30 @@
             --radius-tag: 3px;
         }
 
-        body { font-family: 'Helvetica Neue', Arial, 'Kosugi', sans-serif; color: var(--color-text-main); background-color: var(--color-bg); margin: 0; padding: 0; }
+        body { 
+            /* 標準的な太さ(400)をベースに、システムフォントとNoto Sansを統合 */
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Noto Sans JP", sans-serif; 
+            color: var(--color-text-main); 
+            background-color: var(--color-bg); 
+            margin: 0; 
+            padding: 0; 
+            font-weight: 400; 
+            -webkit-font-smoothing: antialiased; 
+        }
         
         /* =========================================
            1. ヘッダー（画面上部のナビゲーションバー）
            ========================================= */
         .site-header { 
             position: fixed; top: 0; left: 0; width: 100%; 
-            min-height: 60px; /* heightからmin-heightに変更し、折り返しに対応 */
-            background: rgba(255, 255, 255, 0.95); 
-            backdrop-filter: blur(5px);
+            min-height: 60px;
+            background: rgba(255, 255, 255, 0.98); 
+            backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--color-border); 
             z-index: 1000;
             display: flex; align-items: center; justify-content: space-between; 
             padding: 10px 30px; box-sizing: border-box; 
-            flex-wrap: wrap; /* 画面が狭いときにロゴとメニューの重なりを防ぐ */
+            flex-wrap: wrap; 
             gap: 15px;
         }
 
@@ -73,7 +83,7 @@
         .header-nav { 
             display: flex; 
             gap: 20px; 
-            flex-wrap: wrap; /* メニュー項目の折り返しを許可 */
+            flex-wrap: wrap; 
             align-items: center; 
             justify-content: flex-end;
         }
@@ -81,43 +91,58 @@
         .header-nav a { 
             font-size: var(--font-nav); 
             color: var(--color-text-muted); 
-            font-weight: 500; 
-            letter-spacing: 2px; 
+            font-weight: 500; /* ナビは少し太めにして見やすく */
+            letter-spacing: 1.5px;
             text-decoration: none; 
             transition: 0.3s; 
-            white-space: nowrap; /* リンク文字の途中で改行させない */
+            white-space: nowrap; 
         }
         
         .header-nav a:hover { 
             color: var(--color-text-main); 
         }
 
-        /* ONLINE STORE用のアクティブなデザイン */
         .header-nav a.nav-store {
             color: var(--color-text-main);
-            border-bottom: 1px solid var(--color-text-main);
+            border-bottom: 2px solid var(--color-text-main);
             padding-bottom: 2px;
         }
         
         /* =========================================
-           2. メインコンテンツ・共通レイアウト
+           2. 共通ページヘッダー（一括修正用）
+           ========================================= */
+        .page-header {
+            text-align: center;
+            padding: 50px 20px;
+            background-color: var(--color-bg);
+        }
+        
+        .page-title {
+            font-size: var(--font-title-lg);
+            font-weight: 400; /* 適度な太さに設定 */
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin: 0;
+            color: var(--color-text-main);
+        }
+
+        /* =========================================
+           3. メインコンテンツ・共通レイアウト
            ========================================= */
         .site-main { padding-top: 80px; min-height: 100vh; display: flex; flex-direction: column; } 
         .container { max-width: var(--max-width); margin: 40px auto; padding: 0 20px; width: 100%; box-sizing: border-box;}
-        .section-header { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 60px 0 20px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .section-header { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 60px 0 20px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; font-weight: 500; }
         .section-header:first-child { margin-top: 0; }
         
-        /* =========================================
-           3. イベントカードのデザイン（全ページ共通）
-           ========================================= */
+        /* イベントカードのデザイン */
         .event-card { background: var(--color-card-bg); margin-bottom: 60px; overflow: hidden; border: 1px solid var(--color-border); display: flex; flex-direction: column; border-radius: var(--radius-card); }
         .image-wrap { width: 100%; min-height: 200px; background-color: #f9f9f9; }
         .event-image { width: 100%; height: auto; display: block; }
         .event-content { padding: 40px; }
-        .event-title { font-size: var(--font-title-md); margin: 0 0 20px 0; font-weight: normal; line-height: 1.4; }
+        .event-title { font-size: var(--font-title-md); margin: 0 0 20px 0; font-weight: 500; line-height: 1.4; }
         
         .brand-tags { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
-        .brand-tag { font-size: var(--font-tag); background: var(--color-text-main); color: #fff; padding: 6px 12px; border-radius: var(--radius-tag); letter-spacing: 1px; text-decoration: none; transition: 0.2s; }
+        .brand-tag { font-size: var(--font-tag); background: var(--color-text-main); color: #fff; padding: 6px 12px; border-radius: var(--radius-tag); letter-spacing: 1px; text-decoration: none; transition: 0.2s; font-weight: 500; }
         .brand-tag:hover { background: var(--color-text-sub); }
         
         .event-info { font-size: var(--font-info); color: var(--color-text-sub); background: #fdfdfd; padding: 15px; border-radius: var(--radius-card); border: 1px solid #f0f0f0; margin-bottom: 0;}
@@ -132,7 +157,7 @@
         .ws-link:hover { background: #5d4037; }
         .ws-credit { display: block; margin-top: 15px; font-size: var(--font-small); color: #a1887f; line-height: 1.4; }
     
-        /* ▼▼▼ グリッド幅の調整 ▼▼▼ */
+        /* グリッド幅の調整 */
         .events-grid { 
             display: grid; 
             grid-template-columns: 1fr; 
@@ -142,13 +167,12 @@
         }
         .events-grid .event-card { margin-bottom: 0; height: 100%; }
         
-        .footer-copy { text-align: center; font-size: var(--font-small); color: #ccc; padding: 60px 0; margin-top: auto; }
+        .footer-copy { text-align: center; font-size: var(--font-small); color: #888; padding: 60px 0; margin-top: auto; }
     
         /* =========================================
            4. レスポンシブ（スマホ・PCの切り替え）
            ========================================= */
         @media (max-width: 768px) { 
-            /* スマホ・タブレット時はヘッダーを縦並びにし、崩れを防止 */
             .site-header { 
                 flex-direction: column; 
                 justify-content: center; 
@@ -161,51 +185,32 @@
                 gap: 12px; 
             }
             .header-nav a { 
-                font-size: 10px; 
+                font-size: 11px; 
+                font-weight: 600; 
                 letter-spacing: 1px; 
             }
             
-            .site-main { padding-top: 100px; } /* ヘッダーが縦になる分の余白調整 */
+            .site-main { padding-top: 100px; } 
             
             .event-content { padding: 25px; } 
-            .event-title { font-size: var(--font-title-md); } 
+            .event-title { font-size: 20px; } 
             .events-grid .event-title { font-size: 18px; }
+            .page-title { font-size: 24px; }
         }
         @media (min-width: 769px) {
             .events-grid { grid-template-columns: 1fr 1fr; gap: 30px; }
             .events-grid .event-content { padding: 25px; } 
-            /* .events-grid .event-title { font-size: 18px; margin-bottom: 15px; } 
-            .events-grid .brand-tag { font-size: 10px; padding: 4px 8px; } 
-            .events-grid .event-info { font-size: 12px; padding: 12px; }  */
             
             .next-card { flex-direction: row; }
             .next-card .image-wrap { width: 100%; }
             .next-card .event-content { width: 80%; padding: 40px; }
             .next-card .event-title { font-size: var(--font-title-md); }
         }
-
-        /* =========================================
-           共通ページヘッダー（一括修正用）
-           ========================================= */
-        .page-header {
-            text-align: center;
-            padding: 40px 20px;
-            background-color: var(--color-bg);
-        }
-        
-        .page-title {
-            font-size: var(--font-title-lg);
-            font-weight: 300;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin: 0;
-            color: var(--color-text-main);
-        }
-        
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- JavaScript スライドショー機能の完全復元 -->
     <script>
         function moveSlide(btn, step) {
             const container = btn.closest('.event-slideshow');
@@ -267,8 +272,7 @@
             <p style="font-size: 12px; margin-bottom: 12px; color: #777; line-height: 1.6; letter-spacing: 0.5px;">
                 ※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! (および THE SUCCULENTIST) の登録商標です。
             </p>
-            
-            <div style="color: #ccc; font-size: 12px;">
+            <div style="color: #999; font-size: 12px;">
                 © 2026 ei8ht plants. All Rights Reserved.
             </div>
         </div>
