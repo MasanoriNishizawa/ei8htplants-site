@@ -9,11 +9,39 @@
      1. トップのヒーローセクション
      ========================================= */
   .home-hero { text-align: center; padding: 60px 20px; background: var(--color-card-bg); border-bottom: 1px solid var(--color-border); margin-bottom: 40px; }
-  .hero-slider { position: relative; display: flex; justify-content: center; align-items: center; max-width: 400px; width: 85%; margin: 0 auto 20px auto; min-height: 300px; }
-  .hero-slider .slide-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: auto; object-fit: contain; opacity: 0; animation: hero-fade 12s infinite; filter: drop-shadow(0 0 15px #fff) drop-shadow(0 0 10px #fff); border-radius: 12px; }
-  .hero-slider .slide-img:nth-child(1) { position: relative; transform: scale(1.4); animation-delay: 0s; }
+  
+  .hero-slider { 
+      position: relative; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      max-width: 400px; 
+      width: 85%; 
+      margin: 0 auto 20px auto; 
+      /* 修正ポイント：アスペクト比を指定して高さを確保する */
+      aspect-ratio: 1 / 1; 
+  }
+  
+  .hero-slider .slide-img { 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      width: 100%; 
+      height: 100%; /* コンテナいっぱいに広げる */
+      object-fit: contain; 
+      opacity: 0; 
+      animation: hero-fade 12s infinite; 
+      filter: drop-shadow(0 0 15px #fff) drop-shadow(0 0 10px #fff); 
+      border-radius: 12px;
+      pointer-events: none;
+  }
+
+  /* 個別のスケール調整（中央基準を維持） */
+  .hero-slider .slide-img:nth-child(1) { animation-delay: 0s; transform: translate(-50%, -50%) scale(1.4); }
   .hero-slider .slide-img:nth-child(2) { animation-delay: 4s; transform: translate(-50%, -50%) scale(1.0); }
   .hero-slider .slide-img:nth-child(3) { animation-delay: 8s; transform: translate(-50%, -50%) scale(1.15); }
+
   @keyframes hero-fade { 0%{opacity:0;} 8%{opacity:1;} 25%{opacity:1;} 33%{opacity:0;} 100%{opacity:0;} }
   .home-subtitle { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 30px;}
   
@@ -49,25 +77,21 @@
   input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--color-text-main); border-radius: 50%; }
 
   /* =========================================
-     5. Instagramセクション（透過＆馴染ませ加工）
+     5. Instagramセクション
      ========================================= */
   .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
   .ig-grid { display: flex; justify-content: center; align-items: center; gap: 40px; max-width: 600px; margin: 0 auto; }
   
-  /* 背景と枠を削除し、透過設定に変更 */
-  .ig-btn { display: flex; justify-content: center; align-items: center; width: 120px; height: 120px; background: transparent; overflow: hidden; transition: 0.3s; }
-  
-  /* 初期状態で少し薄く（opacity: 0.7）し、マウスホバーで鮮明にする */
+  .ig-btn { display: flex; justify-content: center; align-items: center; width: 150px; height: 150px; background: transparent; overflow: hidden; transition: 0.3s; }
   .ig-btn img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s ease; }
   .ig-btn:hover img { opacity: 1; transform: scale(1.08); }
 
-  /* 各ブランドロゴの個別微調整 */
-  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; border-radius: 20%; } /* Habitatロゴのみ少し角を丸く */
+  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; border-radius: 20%; } 
   .ig-img-ei8ht { width: 140%; height: auto; } 
   .ig-img-hue { width: 115%; height: auto; }   
 
   @media (max-width: 600px) {
-    .ig-btn { width: 90px; height: 90px; } 
+    .ig-btn { width: 90px; height: 90px; }
     .ig-grid { gap: 20px; }
   }
 
@@ -76,7 +100,6 @@
      ========================================= */
   .marquee-section { width: 100%; overflow: hidden; margin-bottom: 60px; padding: 20px 0; -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); }
   .marquee-content { display: flex; width: fit-content; animation: marquee 80s linear infinite; }
-  .marquee-content:hover { animation-play-state: paused; }
   .marquee-item { width: 250px; height: 250px; margin-right: 15px; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
   .marquee-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
   @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 7.5px)); } }
@@ -114,7 +137,6 @@
     <div style="max-width: var(--max-width); margin: 0 auto; padding: 0 20px;">
         <h2 class="section-header" style="margin-top: 60px;">GALLERY</h2>
     </div>
-    
     {% if gallery_images %}
     <div class="marquee-section">
         <div class="marquee-content">
@@ -146,7 +168,6 @@
         
         <div class="ig-section">
             <div style="font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 4px; margin-bottom: 30px; text-transform: uppercase;">Instagram</div>
-            
             <div class="ig-grid">
                 <a href="https://www.instagram.com/habitatoides/" class="ig-btn" target="_blank">
                     <img src="https://drive.google.com/thumbnail?id=1LKGtMjURROL6xkNpW7esWzXA25qrYj7-&sz=w500" class="ig-img-habitat">
