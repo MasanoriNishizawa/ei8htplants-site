@@ -15,10 +15,10 @@
         :root {
             --font-title-lg: 32px;
             --font-title-md: 24px;
-            --font-info: 14px;
-            --font-tag: 14px;
-            --font-section: 14px;
-            --font-nav: 14px;
+            --font-info: 16px;
+            --font-tag: 12px;
+            --font-section: 20px;
+            --font-nav: 16px;
             --font-small: 12px;
 
             --color-bg: #fafafa;
@@ -114,7 +114,7 @@
         .image-wrap { width: 100%; min-height: 200px; background-color: #f9f9f9; }
         .event-image { width: 100%; height: auto; display: block; }
         .event-content { padding: 40px; }
-        .event-title { font-size: var(--font-title-lg); margin: 0 0 20px 0; font-weight: normal; line-height: 1.4; }
+        .event-title { font-size: var(--font-title-md); margin: 0 0 20px 0; font-weight: normal; line-height: 1.4; }
         
         .brand-tags { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
         .brand-tag { font-size: var(--font-tag); background: var(--color-text-main); color: #fff; padding: 6px 12px; border-radius: var(--radius-tag); letter-spacing: 1px; text-decoration: none; transition: 0.2s; }
@@ -181,7 +181,25 @@
             .next-card { flex-direction: row; }
             .next-card .image-wrap { width: 100%; }
             .next-card .event-content { width: 80%; padding: 40px; }
-            .next-card .event-title { font-size: var(--font-title-lg); }
+            .next-card .event-title { font-size: var(--font-title-md); }
+        }
+
+        /* =========================================
+           共通ページヘッダー（一括修正用）
+           ========================================= */
+        .page-header {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: var(--color-bg);
+        }
+        
+        .page-title {
+            font-size: var(--font-title-lg);
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin: 0;
+            color: var(--color-text-main);
         }
         
     </style>
@@ -246,11 +264,11 @@
 
     <footer class="site-footer">
         <div class="footer-copy">
-            <p style="font-size: 10px; margin-bottom: 12px; color: #777; line-height: 1.6; letter-spacing: 0.5px;">
+            <p style="font-size: 12px; margin-bottom: 12px; color: #777; line-height: 1.6; letter-spacing: 0.5px;">
                 ※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! (および THE SUCCULENTIST) の登録商標です。
             </p>
             
-            <div style="color: #ccc; font-size: 10px;">
+            <div style="color: #ccc; font-size: 12px;">
                 © 2026 ei8ht plants. All Rights Reserved.
             </div>
         </div>

@@ -4,19 +4,9 @@
 
 {% block extra_css %}
 <style>
-    .collab-header {
-        text-align: center;
-        padding: 60px 20px 40px 20px;
-    }
-
-    .collab-title {
-        font-size: var(--font-title-md);
-        font-weight: 300;
-        letter-spacing: 4px;
-        text-transform: uppercase;
-        margin: 0;
-    }
-
+    /* =========================================
+       1. コンテンツレイアウト
+       ========================================= */
     .collab-container {
         max-width: var(--max-width);
         margin: 0 auto 100px auto;
@@ -115,8 +105,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="collab-header">
-    <h1 class="collab-title">Collaboration</h1>
+<!-- 一括修正用の共通クラスを使用 -->
+<div class="page-header">
+    <h1 class="page-title">Collaboration</h1>
 </div>
 
 <div class="collab-container">
@@ -140,7 +131,7 @@
                     {% endif %}
                 </div>
                 <h2 class="collab-heading">{{ p['タイトル'] }}</h2>
-                <!-- ▼▼ 変更箇所：urlizeフィルターとsafeを追加 ▼▼ -->
+                <!-- urlizeフィルターとsafeを追加 -->
                 <p class="collab-desc">{{ p['コラボ内容'] | urlize | safe }}</p>
             </div>
         </div>

@@ -7,21 +7,6 @@
   /* =========================================
      コンセプトページの独自スタイル
      ========================================= */
-  .concept-hero {
-      text-align: center;
-      padding: 100px 20px;
-      background: #fff;
-      border-bottom: 1px solid var(--color-border);
-  }
-  
-  .concept-main-title {
-      font-size: 28px;
-      letter-spacing: 5px;
-      font-weight: 300;
-      margin-bottom: 20px;
-      color: var(--color-text-main);
-  }
-
   .concept-lead {
       max-width: 750px;
       margin: 0 auto;
@@ -32,10 +17,28 @@
       text-justify: inter-character;
   }
 
+  /* 冒頭のブランドステートメントエリア */
+  .concept-intro {
+      text-align: center;
+      padding: 80px 20px;
+      background: #fff;
+      border-bottom: 1px solid var(--color-border);
+  }
+
+  .brand-statement-title {
+      font-size: 24px;
+      letter-spacing: 4px;
+      font-weight: 400;
+      margin-bottom: 30px;
+      color: var(--color-text-main);
+      display: block;
+  }
+
   .concept-section {
       margin-top: 80px;
   }
 
+  /* ブランドラインのデザイン */
   .brand-line-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -48,6 +51,11 @@
       background: #fff;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-card);
+      transition: transform 0.3s ease;
+  }
+  
+  .line-item:hover {
+      transform: translateY(-5px);
   }
 
   .line-name {
@@ -67,48 +75,57 @@
   }
 
   @media (min-width: 768px) {
-      .brand-line-grid { grid-template-columns: 1fr 1fr; } /* 2つのラインを並べる */
-      .concept-main-title { font-size: 36px; }
+      .brand-line-grid { grid-template-columns: 1fr 1fr; } 
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="concept-hero">
-    <h1 class="concept-main-title">ei8ht plants</h1>
+<!-- タイトル -->
+<div class="page-header">
+    <h1 class="page-title">Concept</h1>
+</div>
+
+<!-- ei8ht plants メインコンセプト -->
+<div class="concept-intro">
+    <span class="brand-statement-title">ei8ht plants</span>
     <p class="concept-lead">
         <strong>「育てることに、純粋に向き合う。」</strong><br><br>
         植物が持つ本来の姿、その力強さを引き出すためには、何よりも「正しく育てること」が欠かせません。<br>
-        <strong>ei8ht plants</strong> は、アガベやコーデックスといった植物それぞれの特性を深く理解し、適切な環境と管理によって、一株一株のポテンシャルを最大限に引き出すことを常に追求しています。
+        <strong>ei8ht plants</strong> は、アガベやコーデックスといった植物それぞれの特性を深く理解し、適切な環境と管理によって、一株一株のポテンシャルを最大限に引き出すことを追求しています。
     </p>
 </div>
 
 <div class="container">
+    <!-- フィロソフィー -->
     <div class="concept-section">
         <h2 class="section-header">Philosophy</h2>
         <div class="concept-lead">
-            私たちが提案するスタイルはすべて、健やかに育つ植物という土台の上に成り立っています。<br><br>
-            ei8ht plants のベースにあるのは、国内環境のもと「種（実生）」や「子株」から時間をかけて作り込むというアプローチです。日本の気候に適応させながら、光、風、水との対話を通じて引き出された、植物本来の力強さと「姿」。それが私たちの基準です。<br><br>
-            同時に、国内外からセレクトした輸入株においても、そのアプローチが変わることはありません。国内の環境下で適切な発根・順化のプロセスを徹底し、一株ごとの状態とポテンシャルを確実に見極めた個体のみをリリースしています。<br><br>
-            この「自らの手で管理し、作り込む」というプロセスを軸に、さらに表現を深める二つのラインを提案します。
+            国内環境のもと「種（実生）」や「子株」から時間をかけて作り込むというアプローチが私たちのベースです。日本の気候に適応させながら、光、風、水との対話を通じて引き出された植物本来の力強さと「姿」。それが私たちの基準です。<br><br>
+            輸入株においても、国内環境下での適切な発根・順化プロセスを徹底し、状態とポテンシャルを見極めた個体のみをリリースしています。<br><br>
+            この「自らの手で管理し、作り込む」プロセスを軸に、さらに表現を深める二つのラインを展開します。
         </div>
     </div>
 
+    <!-- ブランドライン -->
     <div class="concept-section">
         <h2 class="section-header">Specialized Lines</h2>
         <div class="brand-line-grid">
+            <!-- Habitat Oides -->
             <div class="line-item">
                 <span class="line-name">Habitat Oides</span>
                 <p class="line-text">
                     <strong>ハビタットスタイル特化ライン</strong><br>
-                    健やかに育った植物を、その自生地の記憶を呼び起こす風景の中に落とし込みます。石や砂と調和させ、「景色としての植物」を構築する、ハビタットスタイルに特化したラインです。
+                    「原生地の風景」をテーマに、自生地の記憶を呼び起こす風景の中に植物を落とし込みます。石や砂と調和させ、「景色としての植物」を構築する、ハビタットスタイルに特化したブランドラインです。
                 </p>
             </div>
+            
+            <!-- HUE -->
             <div class="line-item">
                 <span class="line-name">HUE by ei8ht plants</span>
                 <p class="line-text">
                     <strong>オーナメントプランツライン</strong><br>
-                    フィロデンドロンやカラテアなど、葉の色彩（HUE）や造形が美しい植物を提案するラインです。ei8ht plantsの育成技術に基づいた、日々の暮らしに溶け込む洗練されたインドアグリーンを届けます。
+                    フィロデンドロンやカラテアなど、葉の色彩（HUE）や造形が美しい植物を提案します。育成技術に基づいた、日々の暮らしに溶け込む洗練されたインドアグリーンを届けるラインです。
                 </p>
             </div>
         </div>

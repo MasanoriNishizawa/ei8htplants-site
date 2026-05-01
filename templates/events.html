@@ -7,8 +7,7 @@
 {% block extra_css %}
 <style>
     /* =========================================
-       ページ下部にある「過去のイベントを見る」
-       「現在のイベントを見る」ボタンのデザイン
+       1. ページ下部の切り替えボタン
        ========================================= */
     .admin-link-container { text-align: center; margin-top: 60px; }
     .btn-past { 
@@ -23,14 +22,14 @@
         letter-spacing: 2px; 
         transition: 0.3s; 
     }
-    /* ボタンにマウスを乗せた時は背景を黒にして目立たせる */
     .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="text-align: center; padding: 40px 20px; background-color: #fff; border-bottom: 1px solid #eaeaea;">
-    <h1 style="margin: 0; font-size: 20px; font-weight: 300; letter-spacing: 3px; text-transform: uppercase;">
+<!-- 一括修正用の共通クラスを使用 -->
+<div class="page-header">
+    <h1 class="page-title">
         {% if is_past %}Past Events{% else %}Events{% endif %}
     </h1>
 </div>
