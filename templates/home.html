@@ -5,7 +5,9 @@
 
 {% block extra_css %}
 <style>
-  /* --- 既存のスタイル --- */
+  /* =========================================
+     1. トップのヒーローセクション
+     ========================================= */
   .home-hero { text-align: center; padding: 60px 20px; background: var(--color-card-bg); border-bottom: 1px solid var(--color-border); margin-bottom: 40px; }
   .hero-slider { position: relative; display: flex; justify-content: center; align-items: center; max-width: 400px; width: 85%; margin: 0 auto 20px auto; min-height: 300px; }
   .hero-slider .slide-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: auto; object-fit: contain; opacity: 0; animation: hero-fade 12s infinite; filter: drop-shadow(0 0 15px #fff) drop-shadow(0 0 10px #fff); border-radius: 12px; }
@@ -14,44 +16,75 @@
   .hero-slider .slide-img:nth-child(3) { animation-delay: 8s; transform: translate(-50%, -50%) scale(1.15); }
   @keyframes hero-fade { 0%{opacity:0;} 8%{opacity:1;} 25%{opacity:1;} 33%{opacity:0;} 100%{opacity:0;} }
   .home-subtitle { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 30px;}
-
-  /* --- 動画セクションのスタイル --- */
-  .video-section { margin: 60px auto 0 auto; max-width: 400px; width: 100%; }
-  .video-container {
-      position: relative; width: 100%; aspect-ratio: 9 / 16; overflow: hidden;
-      border-radius: var(--radius-card); border: 1px solid var(--color-border); background-color: #000;
+  
+  /* =========================================
+     2. HOME専用：NEXT EVENTのコンパクト化
+     ========================================= */
+  @media (min-width: 601px) {
+      .home-next-wrapper .next-card { flex-direction: row; align-items: center; }
+      .home-next-wrapper .next-card .image-wrap { width: 35% !important; min-height: 250px !important; height: auto; }
+      .home-next-wrapper .next-card .event-content { width: 65% !important; padding: 30px 40px !important; }
+      .home-next-wrapper .next-card .event-title { font-size: 22px !important; }
+      .home-next-wrapper .next-card .event-info { font-size: 13px !important; }
   }
+
+  /* =========================================
+     3. ボタン部分（統一デザイン）
+     ========================================= */
+  .nav-grid { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 400px; margin: 0 auto 40px auto; }
+  .nav-btn { display: flex; align-items: center; justify-content: center; text-align: center; padding: 18px; background: var(--color-card-bg); border: 1px solid #ddd; border-radius: var(--radius-card); color: var(--color-text-main); text-decoration: none; font-size: var(--font-info); letter-spacing: 2px; font-weight: bold; transition: 0.3s; }
+  .nav-btn:hover { background: var(--color-text-main); color: #fff; }
+  
+  /* =========================================
+     4. 動画埋め込みセクション
+     ========================================= */
+  .video-section { margin: 60px auto 0 auto; max-width: 400px; width: 100%; }
+  .video-container { position: relative; width: 100%; aspect-ratio: 9 / 16; overflow: hidden; border-radius: var(--radius-card); border: 1px solid var(--color-border); background-color: #000; }
   .video-container video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 
-  /* --- オリジナル音量スライダーのスタイル --- */
+  /* オリジナル音量スライダー */
   .volume-control { text-align: center; margin-top: 20px; padding: 10px; }
   .volume-label { font-size: 10px; color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; display: block; }
+  input[type="range"] { -webkit-appearance: none; width: 180px; height: 2px; background: #ddd; border-radius: 2px; outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--color-text-main); border-radius: 50%; }
+
+  /* =========================================
+     5. Instagramセクション（透過＆馴染ませ加工）
+     ========================================= */
+  .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
+  .ig-grid { display: flex; justify-content: center; align-items: center; gap: 40px; max-width: 600px; margin: 0 auto; }
   
-  /* スライダー本体の見た目カスタマイズ */
-  input[type="range"] {
-      -webkit-appearance: none; width: 180px; height: 2px; background: #ddd; border-radius: 2px; outline: none; cursor: pointer;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 12px; height: 12px; background: var(--color-text-main); border-radius: 50%; transition: 0.2s;
-  }
-  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  /* 背景と枠を削除し、透過設定に変更 */
+  .ig-btn { display: flex; justify-content: center; align-items: center; width: 120px; height: 120px; background: transparent; overflow: hidden; transition: 0.3s; }
+  
+  /* 初期状態で少し薄く（opacity: 0.7）し、マウスホバーで鮮明にする */
+  .ig-btn img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s ease; }
+  .ig-btn:hover img { opacity: 1; transform: scale(1.08); }
 
-  /* --- その他共通パーツ --- */
-  .nav-grid { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 400px; margin: 20px auto 40px auto; }
-  .nav-btn { display: flex; align-items: center; justify-content: center; padding: 18px; background: var(--color-card-bg); border: 1px solid #ddd; border-radius: var(--radius-card); color: var(--color-text-main); text-decoration: none; font-size: var(--font-info); letter-spacing: 2px; font-weight: bold; transition: 0.3s; }
-  .nav-btn:hover { background: var(--color-text-main); color: #fff; }
+  /* 各ブランドロゴの個別微調整 */
+  .ig-img-habitat { width: 100%; height: 100%; object-fit: cover; border-radius: 20%; } /* Habitatロゴのみ少し角を丸く */
+  .ig-img-ei8ht { width: 140%; height: auto; } 
+  .ig-img-hue { width: 115%; height: auto; }   
 
-  /* ギャラリー・マーキー */
-  .marquee-section { width: 100%; overflow: hidden; margin-bottom: 60px; padding: 20px 0; -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); }
+  @media (max-width: 600px) {
+    .ig-btn { width: 90px; height: 90px; } 
+    .ig-grid { gap: 20px; }
+  }
+
+  /* =========================================
+     6. ギャラリー・マーキー
+     ========================================= */
+  .marquee-section { width: 100%; overflow: hidden; margin-bottom: 60px; padding: 20px 0; -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); }
   .marquee-content { display: flex; width: fit-content; animation: marquee 80s linear infinite; }
-  .marquee-item { width: 250px; height: 250px; margin-right: 15px; flex-shrink: 0; }
-  .marquee-item img { width: 100%; height: 100%; object-fit: cover; }
+  .marquee-content:hover { animation-play-state: paused; }
+  .marquee-item { width: 250px; height: 250px; margin-right: 15px; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+  .marquee-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
   @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 7.5px)); } }
 
-  .ig-section { text-align: center; margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--color-border); }
-  .ig-grid { display: flex; justify-content: center; gap: 15px; margin: 0 auto; }
-  .ig-btn { width: 80px; height: 80px; border-radius: 18%; overflow: hidden; }
-  .ig-btn img { width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 600px) {
+      .marquee-item { width: 150px; height: 150px; margin-right: 10px; }
+      @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 5px)); } }
+  }
 </style>
 {% endblock %}
 
@@ -65,16 +98,23 @@
     <div class="home-subtitle">Bizarre Plants & Habitat Style</div>
 </div>
 
-<div class="container">
-    {% if next_event %}
-        <h2 class="section-header">NEXT EVENT</h2>
-        {{ create_event_card(next_event, is_next=True, is_home=True) }}
-        <div class="nav-grid">
-            <a href="/events" class="nav-btn">VIEW ALL EVENTS</a>
-        </div>
-    {% endif %}
+<div class="container" style="max-width: 100%; padding: 0;">
+    <div style="max-width: var(--max-width); margin: 0 auto; padding: 0 20px;">
+        {% if next_event %}
+            <h2 class="section-header">NEXT EVENT</h2>
+            <div class="home-next-wrapper">
+                {{ create_event_card(next_event, is_next=True, is_home=True) }}
+            </div>
+            <div class="nav-grid">
+                <a href="/events" class="nav-btn">VIEW ALL EVENTS</a>
+            </div>
+        {% endif %}
+    </div>
 
-    <h2 class="section-header" style="margin-top: 60px;">GALLERY</h2>
+    <div style="max-width: var(--max-width); margin: 0 auto; padding: 0 20px;">
+        <h2 class="section-header" style="margin-top: 60px;">GALLERY</h2>
+    </div>
+    
     {% if gallery_images %}
     <div class="marquee-section">
         <div class="marquee-content">
@@ -82,39 +122,42 @@
             {% for img_url in gallery_images %}<div class="marquee-item"><img src="{{ img_url }}" loading="lazy"></div>{% endfor %}
         </div>
     </div>
-    <div class="nav-grid" style="margin-top: -20px;">
-        <a href="/gallery" class="nav-btn">VIEW ALL GALLERY</a>
+    <div style="max-width: var(--max-width); margin: 0 auto; padding: 0 20px;">
+        <div class="nav-grid" style="margin-top: -20px;">
+            <a href="/gallery" class="nav-btn">VIEW ALL GALLERY</a>
+        </div>
     </div>
     {% endif %}
 
-    <h2 class="section-header">COLLABORATION</h2>
-    <div class="video-section">
-        <div class="video-container">
-            <video id="collabVideo" src="/static/collab.mp4" autoplay loop muted playsinline></video>
-        </div>
-
-        <div class="volume-control">
-            <span class="volume-label">Volume: <span id="volDisplay">0</span>%</span>
-            <input type="range" id="volSlider" min="0" max="100" value="0">
+    <div style="max-width: var(--max-width); margin: 0 auto; padding: 0 20px;">
+        <h2 class="section-header">COLLABORATION</h2>
+        <div class="video-section"> 
+            <div class="video-container">
+                <video id="collabVideo" src="/static/collab.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div class="volume-control">
+                <span class="volume-label">Volume: <span id="volDisplay">0</span>%</span>
+                <input type="range" id="volSlider" min="0" max="100" value="0">
+            </div>
+            <div class="nav-grid">
+                <a href="/collaborations" class="nav-btn">VIEW ALL COLLABORATIONS</a>
+            </div>
         </div>
         
-        <div class="nav-grid">
-            <a href="/collaborations" class="nav-btn">VIEW ALL COLLABORATIONS</a>
-        </div>
-    </div>
-
-    <div class="ig-section">
-        <div class="home-subtitle" style="margin-bottom:30px;">Instagram</div>
-        <div class="ig-grid">
-            <a href="https://www.instagram.com/habitatoides/" class="ig-btn" target="_blank">
-                <img src="https://drive.google.com/thumbnail?id=1LKGtMjURROL6xkNpW7esWzXA25qrYj7-&sz=w500">
-            </a>
-            <a href="https://www.instagram.com/ei8ht.plants/" class="ig-btn" target="_blank">
-                <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w500">
-            </a>
-            <a href="https://www.instagram.com/hue_by.ei8ht.plants/" class="ig-btn" target="_blank">
-                <img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w500">
-            </a>
+        <div class="ig-section">
+            <div style="font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 4px; margin-bottom: 30px; text-transform: uppercase;">Instagram</div>
+            
+            <div class="ig-grid">
+                <a href="https://www.instagram.com/habitatoides/" class="ig-btn" target="_blank">
+                    <img src="https://drive.google.com/thumbnail?id=1LKGtMjURROL6xkNpW7esWzXA25qrYj7-&sz=w500" class="ig-img-habitat">
+                </a>
+                <a href="https://www.instagram.com/ei8ht.plants/" class="ig-btn" target="_blank">
+                    <img src="https://drive.google.com/thumbnail?id=1moQXoFi1LMc_2QXqlL66B9FSg6oNsIAY&sz=w500" class="ig-img-ei8ht">
+                </a>
+                <a href="https://www.instagram.com/hue_by.ei8ht.plants/" class="ig-btn" target="_blank">
+                    <img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w500" class="ig-img-hue">
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -124,22 +167,12 @@
         const video = document.getElementById('collabVideo');
         const slider = document.getElementById('volSlider');
         const display = document.getElementById('volDisplay');
-
-        // あらかじめ内部の音量を20%(0.2)にセットしておく
-        // (ただし最初はmutedなので音は出ません)
         video.volume = 0.2;
-
         slider.addEventListener('input', function() {
             const val = this.value;
             display.textContent = val;
             video.volume = val / 100;
-
-            // スライダーを動かした瞬間にミュートを解除する
-            if (val > 0) {
-                video.muted = false;
-            } else {
-                video.muted = true;
-            }
+            if (val > 0) { video.muted = false; } else { video.muted = true; }
         });
     });
 </script>
