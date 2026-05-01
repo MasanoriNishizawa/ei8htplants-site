@@ -6,12 +6,12 @@
     
     <title>{% block title %}ei8ht plants{% endblock %}</title>
     
-    <!-- 400(標準)と500(中太)をメインに読み込み、視認性を確保 -->
+    <!-- 400(標準)と500(中太)をメインに読み込み -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
         /* =========================================================
-           【デザイン・コントロールパネル】 一括設定エリア（CSS変数）
+            【デザイン・コントロールパネル】 一括設定エリア（CSS変数）
            ========================================================= */
         :root {
             --font-title-lg: 32px;
@@ -25,8 +25,8 @@
             --color-bg: #fafafa;
             --color-card-bg: #ffffff;
             --color-text-main: #333333;
-            --color-text-sub: #444444; /* 視認性向上のため少し濃く */
-            --color-text-muted: #777777; /* 視認性向上のため少し濃く */
+            --color-text-sub: #444444; 
+            --color-text-muted: #777777; 
             --color-border: #eaeaea;
             --color-link: #333333;
             
@@ -40,7 +40,6 @@
         }
 
         body { 
-            /* 標準的な太さ(400)をベースに、システムフォントとNoto Sansを統合 */
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Noto Sans JP", sans-serif; 
             color: var(--color-text-main); 
             background-color: var(--color-bg); 
@@ -51,7 +50,7 @@
         }
         
         /* =========================================
-           1. ヘッダー（画面上部のナビゲーションバー）
+            1. ヘッダー（共通・PC・スマホ統合）
            ========================================= */
         .site-header { 
             position: fixed; top: 0; left: 0; width: 100%; 
@@ -62,79 +61,63 @@
             z-index: 1000;
             display: flex; align-items: center; justify-content: space-between; 
             padding: 10px 30px; box-sizing: border-box; 
-            flex-wrap: wrap; 
-            gap: 15px;
         }
 
-        .header-brand { 
-            display: flex;
-            align-items: center;
-            height: 100%;
-            text-decoration: none; 
+        .header-brand { display: flex; align-items: center; height: 100%; text-decoration: none; }
+        .header-logo-img { height: 32px; width: auto; object-fit: contain; transform: scale(1.1); }
+
+        /* ハンバーガーボタン */
+        .menu-btn {
+            display: none;
+            cursor: pointer;
+            z-index: 1100;
+            padding: 5px;
+        }
+        .menu-btn span {
+            display: block;
+            width: 25px;
+            height: 2px;
+            background: var(--color-text-main);
+            margin: 5px 0;
+            transition: 0.3s;
         }
 
-        .header-logo-img {
-            height: 32px; 
-            width: auto;
-            object-fit: contain;
-            transform: scale(1.1); 
-        }
-
-        .header-nav { 
-            display: flex; 
-            gap: 20px; 
-            flex-wrap: wrap; 
-            align-items: center; 
-            justify-content: flex-end;
-        }
+        .header-nav { display: flex; gap: 20px; align-items: center; justify-content: flex-end; }
         
         .header-nav a { 
             font-size: var(--font-nav); 
             color: var(--color-text-muted); 
-            font-weight: 500; /* ナビは少し太めにして見やすく */
+            font-weight: 500;
             letter-spacing: 1.5px;
             text-decoration: none; 
             transition: 0.3s; 
-            white-space: nowrap; 
+            white-space: nowrap;
+            padding-bottom: 4px;
+            border-bottom: 2px solid transparent;
         }
         
-        .header-nav a:hover { 
-            color: var(--color-text-main); 
-        }
+        .header-nav a:hover { color: var(--color-text-main); }
 
-        .header-nav a.nav-store {
+        /* ナビ強調表示（activeクラス） */
+        .header-nav a.active {
             color: var(--color-text-main);
             border-bottom: 2px solid var(--color-text-main);
-            padding-bottom: 2px;
         }
         
         /* =========================================
-           2. 共通ページヘッダー（一括修正用）
+            2. 共通ページヘッダー
            ========================================= */
-        .page-header {
-            text-align: center;
-            padding: 50px 20px;
-            background-color: var(--color-bg);
-        }
-        
-        .page-title {
-            font-size: var(--font-title-lg);
-            font-weight: 400; /* 適度な太さに設定 */
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin: 0;
-            color: var(--color-text-main);
-        }
+        .page-header { text-align: center; padding: 50px 20px; background-color: var(--color-bg); }
+        .page-title { font-size: var(--font-title-lg); font-weight: 400; letter-spacing: 4px; text-transform: uppercase; margin: 0; color: var(--color-text-main); }
 
         /* =========================================
-           3. メインコンテンツ・共通レイアウト
+            3. メインコンテンツ・共通レイアウト（元の要素を維持）
            ========================================= */
         .site-main { padding-top: 80px; min-height: 100vh; display: flex; flex-direction: column; } 
         .container { max-width: var(--max-width); margin: 40px auto; padding: 0 20px; width: 100%; box-sizing: border-box;}
         .section-header { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 60px 0 20px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; font-weight: 500; }
         .section-header:first-child { margin-top: 0; }
         
-        /* イベントカードのデザイン */
         .event-card { background: var(--color-card-bg); margin-bottom: 60px; overflow: hidden; border: 1px solid var(--color-border); display: flex; flex-direction: column; border-radius: var(--radius-card); }
         .image-wrap { width: 100%; min-height: 200px; background-color: #f9f9f9; }
         .event-image { width: 100%; height: auto; display: block; }
@@ -157,50 +140,43 @@
         .ws-link:hover { background: #5d4037; }
         .ws-credit { display: block; margin-top: 15px; font-size: var(--font-small); color: #a1887f; line-height: 1.4; }
     
-        /* グリッド幅の調整 */
-        .events-grid { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 30px; 
-            max-width: var(--max-width);
-            margin: 0 auto 60px auto; 
-        }
+        .events-grid { display: grid; grid-template-columns: 1fr; gap: 30px; max-width: var(--max-width); margin: 0 auto 60px auto; }
         .events-grid .event-card { margin-bottom: 0; height: 100%; }
         
         .footer-copy { text-align: center; font-size: var(--font-small); color: #888; padding: 60px 0; margin-top: auto; }
     
         /* =========================================
-           4. レスポンシブ（スマホ・PCの切り替え）
+            4. レスポンシブ
            ========================================= */
         @media (max-width: 768px) { 
-            .site-header { 
-                flex-direction: column; 
-                justify-content: center; 
-                padding: 15px; 
+            .site-header { padding: 10px 20px; min-height: 60px; }
+            .header-logo-img { height: 26px; } 
+
+            .menu-btn { display: block; }
+
+            .header-nav {
+                position: fixed; top: 0; right: -100%; width: 75%; height: 100vh;
+                background: rgba(255, 255, 255, 0.98); flex-direction: column;
+                justify-content: center; align-items: center; gap: 30px;
+                transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1050;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.05);
             }
-            .header-logo-img { height: 26px; margin-bottom: 5px; } 
-            
-            .header-nav { 
-                justify-content: center; 
-                gap: 12px; 
-            }
-            .header-nav a { 
-                font-size: 11px; 
-                font-weight: 600; 
-                letter-spacing: 1px; 
-            }
-            
-            .site-main { padding-top: 100px; } 
-            
+            .header-nav.nav-open { right: 0; }
+
+            .menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+            .menu-btn.open span:nth-child(2) { opacity: 0; }
+            .menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+            .site-main { padding-top: 70px; }
             .event-content { padding: 25px; } 
             .event-title { font-size: 20px; } 
             .events-grid .event-title { font-size: 18px; }
             .page-title { font-size: 24px; }
         }
+        
         @media (min-width: 769px) {
             .events-grid { grid-template-columns: 1fr 1fr; gap: 30px; }
             .events-grid .event-content { padding: 25px; } 
-            
             .next-card { flex-direction: row; }
             .next-card .image-wrap { width: 100%; }
             .next-card .event-content { width: 80%; padding: 40px; }
@@ -210,42 +186,43 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- JavaScript スライドショー機能の完全復元 -->
     <script>
+        /* スライドショー制御（完全維持） */
         function moveSlide(btn, step) {
             const container = btn.closest('.event-slideshow');
             const slides = container.querySelectorAll('.slide');
             const dots = container.querySelectorAll('.dot');
             let current = parseInt(container.getAttribute('data-current-slide') || '0');
-
             slides[current].style.opacity = '0';
             slides[current].style.zIndex = '1';
             if(dots.length) dots[current].style.background = 'rgba(255,255,255,0.5)';
-
             current = (current + step + slides.length) % slides.length;
-
             slides[current].style.opacity = '1';
             slides[current].style.zIndex = '2';
             if(dots.length) dots[current].style.background = '#fff';
-            
             container.setAttribute('data-current-slide', current);
         }
-
         function setSlide(dotElement, index) {
             const container = dotElement.closest('.event-slideshow');
             const slides = container.querySelectorAll('.slide');
             const dots = container.querySelectorAll('.dot');
             let current = parseInt(container.getAttribute('data-current-slide') || '0');
-
             slides[current].style.opacity = '0';
             slides[current].style.zIndex = '1';
             if(dots.length) dots[current].style.background = 'rgba(255,255,255,0.5)';
-
             slides[index].style.opacity = '1';
             slides[index].style.zIndex = '2';
             if(dots.length) dots[index].style.background = '#fff';
-            
             container.setAttribute('data-current-slide', index);
+        }
+
+        /* ハンバーガーメニュー制御 */
+        function toggleMenu() {
+            const nav = document.getElementById('headerNav');
+            const btn = document.querySelector('.menu-btn');
+            nav.classList.toggle('nav-open');
+            btn.classList.toggle('open');
+            document.body.style.overflow = nav.classList.contains('nav-open') ? 'hidden' : '';
         }
     </script>
 
@@ -253,13 +230,20 @@
         <a href="/" class="header-brand">
             <img src="https://drive.google.com/thumbnail?id=1DZ7SiynuB-dVLsV_v08g_EdV-LsDPREa&sz=w500" class="header-logo-img" alt="ei8ht plants">
         </a>
-        <nav class="header-nav">
-            <a href="/">HOME</a>
-            <a href="/events">EVENT</a>
-            <a href="/gallery">GALLERY</a>
-            <a href="/collaborations">COLLABORATION</a>
-            <a href="/concept">CONCEPT</a>
-            <a href="https://ei8htplants.square.site/s/shop" target="_blank" rel="noopener noreferrer" class="nav-store">ONLINE STORE</a>
+
+        <div class="menu-btn" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <nav class="header-nav" id="headerNav">
+            <a href="/" class="{{ 'active' if request.path == '/' }}">HOME</a>
+            <a href="/events" class="{{ 'active' if request.path.startswith('/events') }}">EVENT</a>
+            <a href="/gallery" class="{{ 'active' if request.path.startswith('/gallery') }}">GALLERY</a>
+            <a href="/collaborations" class="{{ 'active' if request.path.startswith('/collaborations') }}">COLLABORATION</a>
+            <a href="/concept" class="{{ 'active' if request.path == '/concept' }}">CONCEPT</a>
+            <a href="https://ei8htplants.square.site/s/shop" target="_blank" rel="noopener noreferrer">ONLINE STORE</a>
         </nav>
     </header>
 
