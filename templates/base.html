@@ -1,9 +1,19 @@
+<!--
+  templates/base.html
+  ====================
+  全ページ共通のベーステンプレート。
+
+  提供するブロック:
+    block title     : <title> タグの中身（デフォルト: "ei8ht plants"）
+    block extra_css : ページ固有の <style> を <head> 内に追加
+    block content   : <main> タグ内のページ本体
+-->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <title>{% block title %}ei8ht plants{% endblock %}</title>
     
     <!-- 400(標準)と500(中太)をメインに読み込み -->
@@ -14,13 +24,21 @@
             【デザイン・コントロールパネル】 一括設定エリア（CSS変数）
            ========================================================= */
         :root {
+            /* ── フォントスケール（全ページ統一） ──
+               --font-nav  : 16px → ボタン・サブナビ・見出しラベル
+               --fs-body   : 15px → 本文・説明文
+               --font-small: 12px → 補足・hint
+               --fs-micro  : 10px → バッジ・装飾テキスト          */
+            --fs-body:  16px;
+            --fs-micro: 11px;
+
             --font-title-lg: 32px;
             --font-title-md: 24px;
-            --font-info: 16px; 
-            --font-tag: 12px;  
-            --font-section: 20px; 
-            --font-nav: 16px;  
-            --font-small: 12px;
+            --font-info: 16px;
+            --font-tag: 12px;
+            --font-section: 20px;
+            --font-nav: 16px;
+            --font-small: 13px;
 
             --color-bg: #fafafa;
             --color-card-bg: #ffffff;
@@ -84,24 +102,119 @@
 
         .header-nav { display: flex; gap: 20px; align-items: center; justify-content: flex-end; }
         
-        .header-nav a { 
-            font-size: var(--font-nav); 
-            color: var(--color-text-muted); 
+        .header-nav a {
+            font-size: var(--font-nav);
+            color: var(--color-text-muted);
             font-weight: 500;
             letter-spacing: 1.5px;
-            text-decoration: none; 
-            transition: 0.3s; 
+            text-decoration: none;
+            transition: 0.3s;
             white-space: nowrap;
             padding-bottom: 4px;
             border-bottom: 2px solid transparent;
         }
-        
+
         .header-nav a:hover { color: var(--color-text-main); }
 
         /* ナビ強調表示（activeクラス） */
         .header-nav a.active {
             color: var(--color-text-main);
             border-bottom: 2px solid var(--color-text-main);
+        }
+
+        /* =========================================
+           ドロップダウン（BRAND）
+           ========================================= */
+        .nav-dropdown {
+            position: relative;
+            /* ホバー判定領域をメニューまで延ばす */
+            padding-bottom: 16px;
+            margin-bottom: -16px;
+        }
+        .nav-dropdown-trigger {
+            font-size: var(--font-nav);
+            color: var(--color-text-muted);
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            text-decoration: none;
+            transition: 0.3s;
+            white-space: nowrap;
+            padding-bottom: 4px;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+        .nav-dropdown-trigger::after {
+            content: '';
+            display: inline-block;
+            width: 5px; height: 5px;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
+            transform: rotate(45deg) translateY(-2px);
+            transition: transform 0.2s;
+        }
+        .nav-dropdown:hover .nav-dropdown-trigger,
+        .nav-dropdown.open .nav-dropdown-trigger {
+            color: var(--color-text-main);
+        }
+        .nav-dropdown-trigger.active { color: var(--color-text-main); border-bottom: 2px solid var(--color-text-main); }
+
+        .nav-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.98);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            min-width: 200px;
+            z-index: 200;
+            padding: 8px 0;
+            /* 隙間なしでホバーエリアを繋げる */
+            margin-top: 0;
+        }
+        .nav-dropdown:hover .nav-dropdown-menu,
+        .nav-dropdown.open .nav-dropdown-menu {
+            display: block;
+        }
+        .nav-dropdown-menu a {
+            display: block;
+            padding: 11px 20px;
+            font-size: 12px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            text-decoration: none;
+            border-bottom: none;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .nav-dropdown-menu a:hover { color: var(--color-text-main); background: #f9f9f9; }
+        .nav-dropdown-menu a.active { color: var(--color-text-main); font-weight: 600; }
+
+        /* モバイル: ドロップダウンをインライン展開 */
+        @media (max-width: 768px) {
+            .nav-dropdown-menu {
+                position: static;
+                transform: none;
+                box-shadow: none;
+                border: none;
+                border-top: 1px solid var(--color-border);
+                border-bottom: 1px solid var(--color-border);
+                background: #f9f9f9;
+                margin: 8px 0;
+                padding: 4px 0;
+                width: 100%;
+            }
+            .nav-dropdown-menu a {
+                text-align: center;
+                padding: 12px 20px;
+            }
+            .nav-dropdown-trigger::after { display: none; }
         }
         
         /* =========================================
@@ -135,8 +248,8 @@
         
         .ws-box { background: var(--color-ws-bg); border: 1px solid var(--color-ws-border); padding: 20px; margin-top: 20px; border-radius: var(--radius-card); }
         .ws-title { display: block; font-weight: 500; color: var(--color-ws-text); font-size: var(--font-info); margin-bottom: 5px; }
-        .ws-desc { font-size: 13px; color: #8d6e63; line-height: 1.5; display: block; }
-        .ws-link { display: inline-block; margin-top: 12px; background: var(--color-ws-text); color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; font-weight: bold; transition: 0.3s; }
+        .ws-desc { font-size: 15px; color: #8d6e63; line-height: 1.5; display: block; }
+        .ws-link { display: inline-block; margin-top: 12px; background: var(--color-ws-text); color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-size: 14px; font-weight: bold; transition: 0.3s; }
         .ws-link:hover { background: #5d4037; }
         .ws-credit { display: block; margin-top: 15px; font-size: var(--font-small); color: #a1887f; line-height: 1.4; }
     
@@ -183,11 +296,26 @@
             .next-card .event-title { font-size: var(--font-title-md); }
         }
     </style>
+    <!-- ページ固有の <style> を差し込む領域 -->
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <script>
-        /* スライドショー制御（完全維持） */
+        /*
+         * ===================================================
+         * スライドショー制御
+         * ===================================================
+         * イベントカードのマルチ画像をスライド表示するための関数群。
+         * _macros.html の create_event_card マクロから呼び出す。
+         *
+         * 実装方針:
+         *   スライドは opacity + z-index で切り替える（CSSアニメーション不使用）。
+         *   スタイル操作を JavaScript で直接行うため、<script> をページ先頭に置く。
+         *   （DOMContentLoaded 不要なのは onclick から呼ばれる方式のため）
+         * ===================================================
+         */
+
+        /* 前後ボタン押下時に呼ばれる。step = +1（次） or -1（前） */
         function moveSlide(btn, step) {
             const container = btn.closest('.event-slideshow');
             const slides = container.querySelectorAll('.slide');
@@ -216,7 +344,14 @@
             container.setAttribute('data-current-slide', index);
         }
 
-        /* ハンバーガーメニュー制御 */
+        /*
+         * ===================================================
+         * ハンバーガーメニュー制御（スマホ用サイドナビ）
+         * ===================================================
+         * .header-nav を right: -100% → right: 0 でスライドイン。
+         * body の scroll を止めてメニュー外スクロールを防ぐ。
+         * ===================================================
+         */
         function toggleMenu() {
             const nav = document.getElementById('headerNav');
             const btn = document.querySelector('.menu-btn');
@@ -224,6 +359,19 @@
             btn.classList.toggle('open');
             document.body.style.overflow = nav.classList.contains('nav-open') ? 'hidden' : '';
         }
+
+        /* モバイルのドロップダウン開閉（PCはCSSホバーで動作） */
+        function toggleDropdown() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('brandDropdown').classList.toggle('open');
+            }
+        }
+
+        /* ドロップダウン外クリックで閉じる */
+        document.addEventListener('click', function(e) {
+            const dd = document.getElementById('brandDropdown');
+            if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+        });
     </script>
 
     <header class="site-header">
@@ -237,16 +385,32 @@
             <span></span>
         </div>
 
+        <!--
+            ナビゲーションリンク。
+            request.path と照合して現在のページのリンクに active クラスを付与し、
+            CSS でアンダーラインを表示して現在地を視覚的に示す。
+        -->
         <nav class="header-nav" id="headerNav">
             <a href="/" class="{{ 'active' if request.path == '/' }}">HOME</a>
-            <a href="/events" class="{{ 'active' if request.path.startswith('/events') }}">EVENT</a>
-            <a href="/gallery" class="{{ 'active' if request.path.startswith('/gallery') }}">GALLERY</a>
-            <a href="/collaborations" class="{{ 'active' if request.path.startswith('/collaborations') }}">COLLABORATION</a>
+            <a href="/events" class="{{ 'active' if request.path.startswith('/events') or request.path.startswith('/reserve') }}">EVENT</a>
+
+            {% set brand_active = request.path.startswith('/ei8htplants') or request.path.startswith('/habitatoides') or request.path.startswith('/hue') %}
+            <div class="nav-dropdown" id="brandDropdown">
+                <span class="nav-dropdown-trigger {{ 'active' if brand_active }}"
+                      onclick="toggleDropdown()">BRAND</span>
+                <div class="nav-dropdown-menu">
+                    <a href="/ei8htplants"  class="{{ 'active' if request.path.startswith('/ei8htplants') }}">ei8ht plants</a>
+                    <a href="/habitatoides" class="{{ 'active' if request.path.startswith('/habitatoides') }}">Habitat Oides</a>
+                    <a href="/hue"          class="{{ 'active' if request.path.startswith('/hue') }}">HUE by ei8ht plants</a>
+                </div>
+            </div>
+
             <a href="/concept" class="{{ 'active' if request.path == '/concept' }}">CONCEPT</a>
             <a href="https://ei8htplants.square.site/s/shop" target="_blank" rel="noopener noreferrer">ONLINE STORE</a>
         </nav>
     </header>
 
+    <!-- ページ本体。各テンプレートの block content が展開される -->
     <main class="site-main">
         {% block content %}{% endblock %}
     </main>

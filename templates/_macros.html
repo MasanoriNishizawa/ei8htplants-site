@@ -1,35 +1,85 @@
+<!--
+  templates/_macros.html
+  =======================
+  Jinja2 マクロ集。base.html を継承する全ページから import して使う。
+
+  使い方（テンプレート側）:
+    from "_macros.html" import create_event_card
+
+  マクロ一覧:
+    create_event_card(event, is_next=False, is_home=False)
+      - 1 件のイベントを HTML カードとして描画する。
+      - is_next=True  : NEXT EVENT としてピン留め表示（横幅広め）
+      - is_home=True  : トップページ用（画像・タイトルをクリックで /events に遷移）
+-->
+
+{# ================================================================
+   create_event_card マクロ
+   イベント辞書からカード HTML を生成する。
+
+   event dict に期待するキー（sheets.py の _enrich_event 参照）:
+     image_urls   : list[str]  - Drive サムネイル URL のリスト
+     販売ブランド  : str        - カンマ区切りのブランド名
+     イベント名   : str        - イベント名
+     display_date : str        - 表示用日付文字列（_enrich_event で生成）
+     開催時間     : str        - 時間帯（省略可）
+     場所         : str        - 会場名
+     ブース番号   : str        - ブース番号（省略可）
+     住所         : str        - 住所（省略可）
+     公式サイトURL : str        - 公式サイト URL（省略可）
+     WSフラグ     : str        - "TRUE" のときワークショップ枠を表示
+     WS予約URL    : str        - ワークショップ予約 URL（省略可）
+     map_url      : str        - Google マップ検索 URL（_enrich_event で生成）
+   ================================================================ #}
 {% macro create_event_card(event, is_next=False, is_home=False) %}
 <div class="event-card {% if is_next %}next-card{% endif %}">
-    
+
+    <!-- ===== 画像エリア ===== -->
     {% if event['image_urls'] %}
         {% if event['image_urls']|length > 1 %}
+            <!--
+                複数画像のとき: スライドショーコンテナ
+                .slideshow-container 内の .slide-item を 1 枚だけ block 表示し、
+                前後ボタンの onclick で切り替える。
+                base.html の JavaScript（moveSlide / setSlide）は使わず、
+                インライン onclick で完結させることでマクロの独立性を維持している。
+            -->
             <div class="image-wrap slideshow-container" style="position: relative;">
                 {% if is_home %}<a href="/events" style="display: block;">{% endif %}
-                
+
                 {% for img_url in event['image_urls'] %}
                     {% set f_id = img_url.split('id=')[-1].split('&')[0] if 'id=' in img_url else img_url.split('/d/')[-1].split('/')[0] if '/d/' in img_url else '' %}
-                    <img src="https://drive.google.com/uc?export=view&id={{ f_id }}" 
-                         class="event-image slide-item" 
-                         onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';" 
+                    <!--
+                        Drive の thumbnail API が 403 を返す場合の fallback:
+                        onerror で lh3.googleusercontent.com/d/<ID> に切り替える。
+                        referrerpolicy="no-referrer" は Drive の画像が
+                        Referer ヘッダーで弾かれるケースを回避するため。
+                    -->
+                    <img src="https://drive.google.com/uc?export=view&id={{ f_id }}"
+                         class="event-image slide-item"
+                         onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';"
                          referrerpolicy="no-referrer"
                          style="{% if not loop.first %}display: none;{% else %}display: block;{% endif %} width: 100%; height: auto;">
                 {% endfor %}
-                
+
                 {% if is_home %}</a>{% endif %}
 
-                <div class="slide-prev" 
-                     onclick="var s=this.closest('.slideshow-container').querySelectorAll('.slide-item'); var cur=0; for(var i=0;i<s.length;i++){if(s[i].style.display!=='none')cur=i; s[i].style.display='none';} s[(cur-1+s.length)%s.length].style.display='block'; if(typeof event !== 'undefined'){event.preventDefault(); event.stopPropagation();}" 
+                <!-- 前へボタン -->
+                <div class="slide-prev"
+                     onclick="var s=this.closest('.slideshow-container').querySelectorAll('.slide-item'); var cur=0; for(var i=0;i<s.length;i++){if(s[i].style.display!=='none')cur=i; s[i].style.display='none';} s[(cur-1+s.length)%s.length].style.display='block'; if(typeof event !== 'undefined'){event.preventDefault(); event.stopPropagation();}"
                      style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: #fff; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; font-size: 14px; font-weight: bold; user-select: none; z-index: 10; transition: 0.2s;">
                      ❮
                 </div>
-                
-                <div class="slide-next" 
-                     onclick="var s=this.closest('.slideshow-container').querySelectorAll('.slide-item'); var cur=0; for(var i=0;i<s.length;i++){if(s[i].style.display!=='none')cur=i; s[i].style.display='none';} s[(cur+1)%s.length].style.display='block'; if(typeof event !== 'undefined'){event.preventDefault(); event.stopPropagation();}" 
+
+                <!-- 次へボタン -->
+                <div class="slide-next"
+                     onclick="var s=this.closest('.slideshow-container').querySelectorAll('.slide-item'); var cur=0; for(var i=0;i<s.length;i++){if(s[i].style.display!=='none')cur=i; s[i].style.display='none';} s[(cur+1)%s.length].style.display='block'; if(typeof event !== 'undefined'){event.preventDefault(); event.stopPropagation();}"
                      style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: #fff; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; font-size: 14px; font-weight: bold; user-select: none; z-index: 10; transition: 0.2s;">
                      ❯
                 </div>
             </div>
         {% else %}
+            <!-- 画像が 1 枚のとき: スライドショー不要、単純な img タグ -->
             {% set img_url = event['image_urls'][0] %}
             <div class="image-wrap">
                 {% if is_home %}<a href="/events">{% endif %}
@@ -39,53 +89,76 @@
             </div>
         {% endif %}
     {% endif %}
+    <!-- 画像がない場合はカード上部が空白になる（スプレッドシートで画像なしの場合） -->
 
+    <!-- ===== テキストコンテンツエリア ===== -->
     <div class="event-content">
+
+        <!-- 販売ブランドタグ: カンマ区切りの文字列をループして各ブランドのタグを生成 -->
         {% if event['販売ブランド'] %}
         <div class="brand-tags">
             {% for n in event['販売ブランド'].split(', ') %}
+                <!-- ブランド名から Instagram URL を決定 -->
                 {% set u = "https://www.instagram.com/habitatoides/" if n=="Habitat Oides" else "https://www.instagram.com/ei8ht.plants/" if n=="ei8ht plants" else "https://www.instagram.com/hue_by.ei8ht.plants/" if "HUE" in n else "#" %}
                 <a href="{{ u }}" class="brand-tag" target="_blank" rel="noopener noreferrer">{{ n }}</a>
             {% endfor %}
         </div>
         {% endif %}
 
+        <!-- イベント名（トップページではクリックで /events に遷移） -->
         <h2 class="event-title">
             {% if is_home %}<a href="/events" style="color:inherit; text-decoration:none; transition:0.3s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">{% endif %}
             {{ event['イベント名'] }}
             {% if is_home %}</a>{% endif %}
         </h2>
 
+        <!-- イベント詳細情報 -->
         <div class="event-info">
+            <!-- 日付（_enrich_event で整形済み） -->
             <div class="info-row"><span>{{ event['display_date'] }}</span></div>
-            
+
+            <!-- 開催時間（複数行対応のため pre-wrap） -->
             {% if event['開催時間'] %}
             <div class="info-row">
                 <span style="white-space: pre-wrap; line-height: 1.5;">{{ event['開催時間'] }}</span>
             </div>
             {% endif %}
-            
+
+            <!-- 場所（太字） -->
             <div class="info-row"><span style="font-weight:bold;">{{ event['場所'] }}</span></div>
+
             {% if event['ブース番号'] %}
             <div class="info-row"><span style="font-weight:bold;">ブース: {{ event['ブース番号'] }}</span></div>
             {% endif %}
+
+            <!-- 住所: Google マップへのリンク（map_url は _enrich_event で生成） -->
             {% if event['住所'] %}
             <div class="info-row"><a href="{{ event['map_url'] }}" class="info-link" target="_blank" rel="noopener noreferrer">{{ event['住所'] }}</a></div>
             {% endif %}
+
             {% if event['公式サイトURL'] %}
             <div class="info-row"><a href="{{ event['公式サイトURL'] }}" class="info-link" target="_blank" rel="noopener noreferrer">公式サイト</a></div>
             {% endif %}
         </div>
 
+        <!--
+            ワークショップ枠:
+            スプレッドシートの WSフラグ 列が "TRUE" のときのみ表示する。
+            string フィルターで文字列化してから upper で大文字比較することで、
+            True / "true" / "TRUE" など異なる型・大文字小文字に対応。
+        -->
         {% if event['WSフラグ']|string|upper == 'TRUE' %}
         <div class="ws-box">
             <span class="ws-title">Habitat Style Workshop</span>
+            {% if event.get('is_past') %}
+            <span class="ws-desc">ワークショップを開催いたしました。ご参加いただいた皆様、ありがとうございました。</span>
+            {% else %}
             <span class="ws-desc">現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。</span>
-            {% if event['WS予約URL'] %}
-            <a href="{{ event['WS予約URL'] }}" class="ws-link" target="_blank" rel="noopener noreferrer">ワークショップを予約する</a>
+            <a href="/reserve?row={{ event['_row'] }}" class="ws-link">ワークショップを予約する</a>
             {% endif %}
         </div>
         {% endif %}
+
     </div>
 </div>
 {% endmacro %}

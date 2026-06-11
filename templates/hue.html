@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% from "_macros.html" import create_event_card %}
+
+{% block title %}HUE by ei8ht plants{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Hero ─────────────────────────────────────── */
+  .hue-hero {
+    background: #fdf8f3;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 60px 20px;
+    position: relative; overflow: hidden;
+  }
+  .hue-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(253,248,243,.45);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .hue-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(72px);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .hue-blob-1 { width: 320px; height: 320px; background: #ffb5c8; top: -60px; left: -60px; animation: hueBlob1 11s ease-in-out infinite; }
+  .hue-blob-2 { width: 260px; height: 260px; background: #c8a8e8; top: 15%; right: -50px; animation: hueBlob2 13s ease-in-out infinite; }
+  .hue-blob-3 { width: 220px; height: 220px; background: #a8e4c4; bottom: -40px; left: 25%; animation: hueBlob3 10s ease-in-out infinite; }
+  .hue-blob-4 { width: 240px; height: 240px; background: #ffe07a; top: 5%; left: 38%; animation: hueBlob4 14s ease-in-out infinite; }
+  .hue-blob-5 { width: 200px; height: 200px; background: #ffaa80; bottom: 5%; right: 15%; animation: hueBlob5 12s ease-in-out infinite; }
+  @keyframes hueBlob1 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(80px,60px) scale(1.1);} 66%{transform:translate(20px,-50px) scale(0.9);} }
+  @keyframes hueBlob2 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(-70px,55px) scale(0.9);} 66%{transform:translate(-10px,-65px) scale(1.2);} }
+  @keyframes hueBlob3 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-55px,-80px) scale(1.15);} }
+  @keyframes hueBlob4 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(55px,65px) scale(0.85);} 66%{transform:translate(-45px,25px) scale(1.1);} }
+  @keyframes hueBlob5 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(65px,-55px) scale(1.2);} }
+  .hue-hero-eyebrow {
+    font-size: 14px; letter-spacing: 4px; text-transform: uppercase;
+    color: #a07840; margin-bottom: 32px; position: relative; z-index: 2;
+  }
+  .hue-hero-logo-wrap {
+    position: relative;
+    max-width: 400px;
+    width: 85%;
+    aspect-ratio: 1/1;
+    margin: 0 auto 20px;
+    z-index: 2;
+  }
+  .hue-hero-logo {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 100%; height: 100%;
+    object-fit: contain;
+    opacity: .9;
+  }
+  .hue-scroll-hint {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    z-index: 2;
+  }
+  .hue-scroll-hint span { font-size: var(--fs-micro); letter-spacing: 3px; color: #c4a882; text-transform: uppercase; }
+  .hue-scroll-line {
+    width: 1px; height: 38px;
+    background: linear-gradient(to bottom, #c4a882, transparent);
+    animation: hueScroll 2s ease-in-out infinite;
+  }
+  @keyframes hueScroll { 0%,100%{opacity:0;transform:scaleY(0);transform-origin:top;} 60%{opacity:1;transform:scaleY(1);transform-origin:top;} }
+
+  /* ── Layout ───────────────────────────────────── */
+  .hue-divider { border: none; border-top: 1px solid var(--color-border); margin: 0; }
+  .hue-section { padding: 72px 20px; max-width: var(--max-width); margin: 0 auto; }
+  /* ── Concept ──────────────────────────────────── */
+  .hue-concept-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+  }
+  .hue-concept-logo {
+    width: 100%; max-width: 300px;
+    display: block; margin: 0 auto;
+  }
+  .hue-concept-text h2 {
+    font-size: clamp(20px, 2.8vw, 30px); font-weight: 300; letter-spacing: .08em;
+    color: var(--color-text-main); margin: 0 0 20px; line-height: 1.4;
+  }
+  .hue-concept-text p {
+    font-size: var(--fs-body); color: var(--color-text-sub); line-height: 2.1;
+    letter-spacing: .03em; margin: 0;
+  }
+  @media (max-width: 680px) {
+    .hue-concept-grid { grid-template-columns: 1fr; gap: 16px; }
+    .hue-concept-num { font-size: 70px; }
+  }
+
+  /* ── Color Palette ────────────────────────────── */
+  .hue-palette {
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    padding: 40px 0;
+  }
+  .hue-swatch {
+    width: 60px; height: 60px; border-radius: 50%;
+    border: 1px solid rgba(0,0,0,.08);
+    flex-shrink: 0;
+  }
+  @media (max-width: 600px) { .hue-swatch { width: 44px; height: 44px; } }
+
+  /* ── Event ────────────────────────────────────── */
+  .hue-event-frame {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card); overflow: hidden;
+  }
+  .hue-event-topbar {
+    padding: 18px 24px; border-bottom: 1px solid var(--color-border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--color-card-bg);
+  }
+  .hue-event-badge {
+    font-size: var(--fs-micro); letter-spacing: 3px; text-transform: uppercase;
+    background: var(--color-text-main); color: #fff;
+    padding: 5px 12px; border-radius: 2px;
+  }
+  .hue-view-all {
+    font-size: var(--font-small); letter-spacing: 2px; text-transform: uppercase;
+    color: var(--color-text-muted); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; transition: color .2s, gap .2s;
+  }
+  .hue-view-all::after { content: '→'; }
+  .hue-view-all:hover { color: var(--color-text-main); gap: 14px; }
+
+  /* ── Gallery Marquee ─────────────────────────── */
+  .marquee-section { width: 100%; overflow: hidden; padding: 20px 0; -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
+  .marquee-content { display: flex; width: fit-content; animation: marquee 60s linear infinite; }
+  .marquee-item { width: 220px; height: 220px; margin-right: 12px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+  .marquee-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 6px)); } }
+  @media (max-width: 600px) { .marquee-item { width: 150px; height: 150px; margin-right: 10px; } }
+
+  /* ── CTA ──────────────────────────────────────── */
+  .hue-cta-center { text-align: center; }
+  .hue-cta-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: var(--font-nav); letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--color-text-main); text-decoration: none;
+    border: 1px solid var(--color-border);
+    padding: 15px 28px; border-radius: 2px;
+    transition: background .2s, color .2s, gap .2s;
+  }
+  .hue-cta-btn::after { content: '→'; }
+  .hue-cta-btn:hover { background: var(--color-text-main); color: #fff; gap: 16px; }
+
+  /* ── Footer CTA ───────────────────────────────── */
+  .hue-footer-cta {
+    background: #2a1a08; color: #f8f4ee;
+    text-align: center; padding: 88px 20px;
+  }
+  .hue-footer-cta h2 {
+    font-size: clamp(24px, 4vw, 48px); font-weight: 200;
+    letter-spacing: .15em; text-transform: uppercase; margin: 0 0 14px;
+  }
+  .hue-footer-cta p {
+    font-size: var(--font-small); letter-spacing: 2px; color: #9a7a5a;
+    text-transform: uppercase; margin: 0 0 40px;
+  }
+  .hue-ig-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: var(--font-nav); letter-spacing: 1.5px; text-transform: uppercase;
+    color: #f8f4ee; text-decoration: none;
+    border: 1px solid #5a3a18; padding: 16px 36px; border-radius: 2px;
+    transition: background .2s, gap .2s;
+  }
+  .hue-ig-btn::after { content: '→'; }
+  .hue-ig-btn:hover { background: #3a2a0e; gap: 16px; }
+
+  /* ── Brand Sub-Nav ────────────────────────────── */
+  .brand-subnav {
+    position: sticky; top: 60px; z-index: 90;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .brand-subnav-inner {
+    display: flex; align-items: center; justify-content: center;
+    max-width: var(--max-width); margin: 0 auto; padding: 0 20px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .brand-subnav-inner::-webkit-scrollbar { display: none; }
+  .brand-subnav-inner a {
+    font-size: var(--font-nav); letter-spacing: 1px; text-transform: uppercase;
+    color: var(--color-text-muted); text-decoration: none;
+    padding: 15px 18px; white-space: nowrap;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color .2s, border-color .2s;
+  }
+  .brand-subnav-inner a:hover { color: var(--color-text-main); }
+  .brand-subnav-inner a.active { color: var(--color-text-main); border-bottom-color: var(--color-text-main); }
+  section[id] { scroll-margin-top: 116px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<nav class="brand-subnav">
+  <div class="brand-subnav-inner">
+    <a href="#concept">Concept</a>
+    {% if gallery_preview %}<a href="#gallery">Gallery</a>{% endif %}
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hue-hero">
+  <div class="hue-blob hue-blob-1"></div>
+  <div class="hue-blob hue-blob-2"></div>
+  <div class="hue-blob hue-blob-3"></div>
+  <div class="hue-blob hue-blob-4"></div>
+  <div class="hue-blob hue-blob-5"></div>
+  <p class="hue-hero-eyebrow">Color Plants Selection</p>
+  <div class="hue-hero-logo-wrap">
+    <img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w600"
+         class="hue-hero-logo" alt="HUE by ei8ht plants">
+  </div>
+  <div class="hue-scroll-hint">
+    <div class="hue-scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<hr class="hue-divider">
+
+<!-- Concept -->
+<section id="concept">
+  <div class="hue-section">
+    <h2 class="section-header">Concept</h2>
+    <div class="hue-concept-grid">
+      <img src="https://drive.google.com/thumbnail?id=1IBoYiugKRW5eWJcccOy_Jot5mJMOjygl&sz=w600"
+           class="hue-concept-logo" alt="HUE by ei8ht plants">
+      <div class="hue-concept-text">
+        <h2>Color &amp; Form<br>as Expression</h2>
+        <p>
+          色と形が主役の植物セレクション。<br>
+          鮮やかな色彩を持つ多肉植物・観葉植物を中心に、<br>
+          空間に彩りを加える一鉢をご提案します。
+        </p>
+      </div>
+    </div>
+    <!-- Color palette accents -->
+    <div class="hue-palette">
+      <div class="hue-swatch" style="background:#d4a878;"></div>
+      <div class="hue-swatch" style="background:#a8c4a0;"></div>
+      <div class="hue-swatch" style="background:#e8b4b0;"></div>
+      <div class="hue-swatch" style="background:#c4d4c8;"></div>
+      <div class="hue-swatch" style="background:#e0c890;"></div>
+      <div class="hue-swatch" style="background:#b8a8d4;"></div>
+      <div class="hue-swatch" style="background:#f0d4b8;"></div>
+    </div>
+  </div>
+</section>
+
+{% if gallery_preview %}
+<hr class="hue-divider">
+
+<!-- Gallery Marquee -->
+<section id="gallery">
+  <div class="hue-section" style="padding-bottom:32px;">
+    <h2 class="section-header">Gallery</h2>
+  </div>
+  <div class="marquee-section">
+    <div class="marquee-content">
+      {% for img in gallery_preview %}<div class="marquee-item"><img src="{{ img }}" alt="HUE by ei8ht plants" loading="lazy"></div>{% endfor %}
+      {% for img in gallery_preview %}<div class="marquee-item"><img src="{{ img }}" alt="HUE by ei8ht plants" loading="lazy"></div>{% endfor %}
+    </div>
+  </div>
+  <div class="hue-section" style="padding-top:32px; padding-bottom:72px; text-align:center;">
+    <a href="/gallery" class="hue-cta-btn">View all gallery</a>
+  </div>
+</section>
+{% endif %}
+
+<!-- Footer CTA -->
+<section class="hue-footer-cta">
+  <h2>Follow Us</h2>
+  <p>Instagram</p>
+  <a href="https://www.instagram.com/hue_by.ei8ht.plants/" target="_blank" rel="noopener noreferrer" class="hue-ig-btn">@hue_by.ei8ht.plants</a>
+</section>
+
+<script>
+  (function() {
+    const links = document.querySelectorAll('.brand-subnav-inner a[href^="#"]');
+    const sections = Array.from(document.querySelectorAll('section[id]'));
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+        }
+      });
+    }, { rootMargin: '-55% 0px -45% 0px' });
+    sections.forEach(s => obs.observe(s));
+    links.forEach(l => l.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    }));
+  })();
+</script>
+{% endblock %}

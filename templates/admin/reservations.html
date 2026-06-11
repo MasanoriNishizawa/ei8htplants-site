@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WS予約 | Admin</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 30px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 32px; }
+        .topbar-brand {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #333;
+            text-decoration: none;
+        }
+        .topbar-nav { display: flex; gap: 0; }
+        .nav-link {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            text-decoration: none;
+            padding: 0 16px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+        .nav-link:hover { color: #333; }
+        .nav-link.active { color: #333; border-bottom-color: #333; }
+        .topbar-logout {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .topbar-logout:hover { color: #333; }
+
+        .main { max-width: 1200px; margin: 40px auto; padding: 0 30px 80px; }
+
+        .page-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-title {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #777;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* サマリーカード */
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .summary-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 16px 24px;
+            min-width: 180px;
+        }
+        .summary-label {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+        .summary-value {
+            font-size: 22px;
+            font-weight: 500;
+            color: #333;
+        }
+        .summary-sub {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+
+        /* フィルター */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-label {
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #999;
+        }
+        select.filter-select {
+            padding: 8px 32px 8px 12px;
+            border: 1px solid #ddd;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            border-radius: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") no-repeat right 12px center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            min-width: 240px;
+        }
+        select.filter-select:focus { border-color: #333; }
+        .filter-count {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        /* テーブル */
+        .table-wrap { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+        th {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            font-weight: 500;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            white-space: nowrap;
+        }
+        td {
+            padding: 13px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+            font-size: 13px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .td-ts { color: #aaa; font-size: 11px; white-space: nowrap; }
+        .td-event { font-weight: 500; white-space: nowrap; }
+        .td-name { white-space: nowrap; }
+        .td-contact { color: #666; font-size: 12px; }
+        .td-date { white-space: nowrap; color: #555; }
+        .td-time { white-space: nowrap; color: #555; }
+        .td-num {
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+        .td-note { color: #888; font-size: 12px; max-width: 200px; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #f0f0f0;
+            font-size: 11px;
+            color: #666;
+            border-radius: 2px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 80px 0;
+            color: #aaa;
+            font-size: 13px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar-left">
+        <span class="topbar-brand">ei8ht plants — Admin</span>
+        <nav class="topbar-nav">
+            <a href="/admin/events" class="nav-link">Events</a>
+            <a href="/admin/reservations" class="nav-link active">WS予約</a>
+        </nav>
+    </div>
+    <a href="/admin/logout" class="topbar-logout">Logout</a>
+</header>
+
+<main class="main">
+
+    <div class="page-head">
+        <h1 class="page-title">Habitat Style Workshop — 予約一覧</h1>
+    </div>
+
+    <!-- イベント別合計サマリー -->
+    {% if totals %}
+    <div class="summary">
+        {% for event_name, total in totals.items() %}
+        <div class="summary-card">
+            <div class="summary-label">{{ event_name }}</div>
+            <div class="summary-value">{{ total }}<span style="font-size:14px; font-weight:400; color:#aaa;"> 名</span></div>
+            <div class="summary-sub">予約合計</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- イベント絞り込み -->
+    <div class="filter-bar">
+        <span class="filter-label">絞り込み</span>
+        <select class="filter-select" onchange="location.href='/admin/reservations' + (this.value ? '?event=' + encodeURIComponent(this.value) : '')">
+            <option value="">すべてのイベント</option>
+            {% for name in event_names %}
+            <option value="{{ name }}" {% if name == selected_event %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+        <span class="filter-count">{{ reservations | length }} 件</span>
+    </div>
+
+    {% if reservations %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>受付日時</th>
+                    <th>イベント名</th>
+                    <th>お名前</th>
+                    <th>連絡先</th>
+                    <th>希望日</th>
+                    <th>時間帯</th>
+                    <th>人数</th>
+                    <th>お持ち込み</th>
+                    <th>備考</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reservations %}
+                <tr>
+                    <td class="td-ts">{{ r.get('タイムスタンプ', '') }}</td>
+                    <td class="td-event">{{ r.get('イベント名', '') }}</td>
+                    <td class="td-name">{{ r.get('お名前', '') }}</td>
+                    <td class="td-contact">
+                        {{ r.get('メール', '') }}
+                        {% if r.get('電話番号') %}
+                        <br>{{ r.get('電話番号', '') }}
+                        {% endif %}
+                    </td>
+                    <td class="td-date">{{ r.get('希望日', '') }}</td>
+                    <td class="td-time">{{ r.get('希望時間帯', '') }}</td>
+                    <td class="td-num">{{ r.get('参加人数', '') }}</td>
+                    <td>
+                        {% if r.get('お持ち込み') %}
+                        <span class="badge">{{ r.get('お持ち込み', '') }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-note">{{ r.get('備考', '') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">予約はまだありません</div>
+    {% endif %}
+
+</main>
+</body>
+</html>

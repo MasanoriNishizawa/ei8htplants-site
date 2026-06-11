@@ -17,7 +17,7 @@
     .gallery-tab {
         text-decoration: none;
         color: var(--color-text-muted);
-        font-size: 16px;
+        font-size: var(--font-info);
         letter-spacing: 1px;
         padding-bottom: 4px;
         transition: color 0.3s ease;
@@ -28,7 +28,7 @@
 
     .gallery-tab.active {
         color: var(--color-text-main);
-        font-weight: bold;
+        font-weight: 500;
         border-bottom: 1px solid var(--color-text-main);
     }
 
@@ -52,6 +52,7 @@
         overflow: hidden;
         background-color: #f9f9f9;
         cursor: zoom-in;
+        border-radius: 8px;
     }
 
     .gallery-item img {

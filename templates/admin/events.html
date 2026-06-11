@@ -1,0 +1,290 @@
+<!--
+  templates/admin/events.html
+  ============================
+  管理画面 - イベント一覧ページ
+
+  全イベント（過去・未来）を開始日の降順で表形式に表示する。
+  書き込み操作後のフラッシュメッセージ表示エリアを持つ。
+
+  Jinja2 変数:
+    events  : list[dict] - _row フィールド付きのイベント辞書リスト
+    flash   : str | None - 1 度だけ表示する成功・エラーメッセージ
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events | Admin</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        /* =========================================
+           ベーススタイル
+           ========================================= */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        /* =========================================
+           上部固定バー
+           ========================================= */
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 30px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            /* スクロール時も常に上部に固定 */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar-brand {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #333;
+            text-decoration: none;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 32px; }
+        .topbar-nav { display: flex; }
+        .nav-link {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            text-decoration: none;
+            padding: 0 16px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+        .nav-link:hover { color: #333; }
+        .nav-link.active { color: #333; border-bottom-color: #333; }
+        .topbar-logout {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .topbar-logout:hover { color: #333; }
+
+        /* =========================================
+           メインコンテンツエリア
+           ========================================= */
+        .main { max-width: 1100px; margin: 40px auto; padding: 0 30px; }
+
+        /* ページタイトル行（タイトル + 新規追加ボタン） */
+        .page-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .page-title {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #777;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* 新規追加ボタン */
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: #333;
+            color: #fff;
+            text-decoration: none;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+        .btn-add:hover { background: #555; }
+
+        /* =========================================
+           フラッシュメッセージ
+           書き込み成功・失敗を 1 度だけ表示する
+           ========================================= */
+        .flash {
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            background: #f0faf4;
+            border: 1px solid #b2dfdb;
+            color: #2e7d32;
+        }
+
+        /* =========================================
+           イベント一覧テーブル
+           横スクロール対応のラッパー付き
+           ========================================= */
+        .table-wrap { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+        th {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            font-weight: 500;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            white-space: nowrap;
+        }
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        /* テーブルセルごとのスタイル */
+        .td-date { white-space: nowrap; color: #777; font-size: 12px; }
+        .td-name { font-weight: 500; }
+        .td-brand { font-size: 12px; color: #777; }
+        .td-actions { white-space: nowrap; text-align: right; }
+
+        /* 編集ボタン */
+        .btn-edit {
+            display: inline-block;
+            padding: 6px 14px;
+            border: 1px solid #ccc;
+            color: #555;
+            text-decoration: none;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: 0.2s;
+            margin-right: 6px;
+        }
+        .btn-edit:hover { border-color: #333; color: #333; }
+
+        /* 削除ボタン（赤系、ホバーで塗りつぶし） */
+        .btn-delete {
+            display: inline-block;
+            padding: 6px 14px;
+            border: 1px solid #fcc;
+            color: #c0392b;
+            background: transparent;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        .btn-delete:hover { background: #c0392b; color: #fff; border-color: #c0392b; }
+
+        /* イベントが 0 件のとき */
+        .empty {
+            text-align: center;
+            padding: 80px 0;
+            color: #aaa;
+            font-size: 13px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 上部固定バー -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <span class="topbar-brand">ei8ht plants — Admin</span>
+            <nav class="topbar-nav">
+                <a href="/admin/events" class="nav-link active">Events</a>
+                <a href="/admin/reservations" class="nav-link">WS予約</a>
+            </nav>
+        </div>
+        <a href="/admin/logout" class="topbar-logout">Logout</a>
+    </header>
+
+    <main class="main">
+
+        <!-- ページヘッダー（タイトル + 新規追加ボタン） -->
+        <div class="page-head">
+            <h1 class="page-title">Events</h1>
+            <a href="/admin/events/new" class="btn-add">＋ 新規追加</a>
+        </div>
+
+        <!-- フラッシュメッセージ（書き込み操作後のみ表示） -->
+        {% if flash %}
+        <div class="flash">{{ flash }}</div>
+        {% endif %}
+
+        <!-- イベントが 1 件以上あれば一覧テーブルを表示 -->
+        {% if events %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>開始日</th>
+                        <th>終了日</th>
+                        <th>イベント名</th>
+                        <th>ブランド</th>
+                        <th>場所</th>
+                        <th></th><!-- 操作ボタン列（ヘッダーテキストなし） -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ev in events %}
+                    <tr>
+                        <td class="td-date">{{ ev.get('開始日', '') }}</td>
+                        <td class="td-date">{{ ev.get('終了日', '') }}</td>
+                        <td class="td-name">{{ ev.get('イベント名', '') }}</td>
+                        <td class="td-brand">{{ ev.get('販売ブランド', '') }}</td>
+                        <td class="td-brand">{{ ev.get('場所', '') }}</td>
+                        <td class="td-actions">
+                            <!-- 編集: ev._row（シート行番号）を URL に渡す -->
+                            <a href="/admin/events/{{ ev._row }}" class="btn-edit">編集</a>
+
+                            <!--
+                                削除フォーム:
+                                - GET ではなく POST にすることで誤クリックや先読みによる
+                                  意図しない削除を防ぐ
+                                - onclick の confirm() で二重確認を行う
+                            -->
+                            <form method="post" action="/admin/events/{{ ev._row }}/delete" style="display:inline;">
+                                <button type="submit" class="btn-delete"
+                                    onclick="return confirm('「{{ ev.get("イベント名", "このイベント") }}」を削除しますか？')">
+                                    削除
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <!-- イベントが 0 件のとき -->
+        <div class="empty">イベントがありません</div>
+        {% endif %}
+
+    </main>
+</body>
+</html>

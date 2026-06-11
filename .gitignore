@@ -1,2 +1,5 @@
 secret_key.json
 __pycache__/
+.env
+venv/
+.DS_Store
