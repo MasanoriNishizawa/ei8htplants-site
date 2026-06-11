@@ -15,6 +15,7 @@
     padding: 60px 20px 140px;
     position: relative; overflow: hidden;
   }
+  .ep-hero-bg { display: none; }
   .ep-hero-eyebrow {
     font-size: 14px;
     letter-spacing: 4px;
@@ -34,6 +35,36 @@
     display: block;
     opacity: .9;
     mix-blend-mode: multiply;
+  }
+
+  @media (max-width: 768px) {
+    .ep-hero {
+      background-image: none;
+      min-height: unset;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    .ep-hero > * { grid-area: 1/1; }
+    .ep-hero-bg {
+      display: block;
+      width: 100%; height: auto;
+      align-self: start;
+      z-index: 0;
+    }
+    .ep-hero-eyebrow {
+      align-self: start;
+      justify-self: center;
+      margin: 24px 0 0;
+    }
+    .ep-hero-logo-wrap {
+      align-self: start;
+      justify-self: center;
+      margin: 54px auto 0;
+      max-width: 200px;
+      width: 50%;
+    }
+    .ep-hero-logo { mix-blend-mode: normal; }
   }
   .ep-scroll-hint {
     position: absolute;
@@ -205,6 +236,7 @@
 
 <!-- Hero -->
 <section class="ep-hero">
+  <img class="ep-hero-bg" src="https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0" alt="">
   <p class="ep-hero-eyebrow">Agave Specialist</p>
   <div class="ep-hero-logo-wrap">
     <img src="https://lh3.googleusercontent.com/d/1DZ7SiynuB-dVLsV_v08g_EdV-LsDPREa"

@@ -6,6 +6,7 @@
 {% block extra_css %}
 <style>
   /* ── Hero ─────────────────────────────────────── */
+  .ho-hero-bg { display: none; }
   .ho-hero {
     background: #1e3272 url('https://lh3.googleusercontent.com/d/13Ml-NbMaYimYhKuppnj6KGZ4rrx3Abz4') center/cover no-repeat;
     min-height: 60vh;
@@ -15,6 +16,23 @@
     position: relative; overflow: hidden;
   }
   .ho-hero::before { display: none; }
+
+  @media (max-width: 768px) {
+    .ho-hero {
+      background-image: none;
+      min-height: unset;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    .ho-hero > * { grid-area: 1/1; }
+    .ho-hero-bg {
+      display: block;
+      width: 100%; height: auto;
+      align-self: start;
+      z-index: 0;
+    }
+  }
   .ho-hero-eyebrow {
     font-size: var(--font-small); letter-spacing: 4px; text-transform: uppercase;
     color: rgba(200,168,210,.80); margin-bottom: 32px; position: relative; z-index: 2;
@@ -243,6 +261,7 @@
 
 <!-- Hero -->
 <section class="ho-hero">
+  <img class="ho-hero-bg" src="https://lh3.googleusercontent.com/d/13Ml-NbMaYimYhKuppnj6KGZ4rrx3Abz4" alt="">
   <div class="ho-scroll-hint">
     <div class="ho-scroll-line"></div>
     <span>Scroll</span>

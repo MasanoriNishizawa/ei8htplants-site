@@ -55,9 +55,8 @@
                         referrerpolicy="no-referrer" は Drive の画像が
                         Referer ヘッダーで弾かれるケースを回避するため。
                     -->
-                    <img src="https://drive.google.com/uc?export=view&id={{ f_id }}"
+                    <img src="https://lh3.googleusercontent.com/d/{{ f_id }}"
                          class="event-image slide-item"
-                         onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';"
                          referrerpolicy="no-referrer"
                          style="{% if not loop.first %}display: none;{% else %}display: block;{% endif %} width: 100%; height: auto;">
                 {% endfor %}
@@ -84,7 +83,7 @@
             <div class="image-wrap">
                 {% if is_home %}<a href="/events">{% endif %}
                 {% set f_id = img_url.split('id=')[-1].split('&')[0] if 'id=' in img_url else img_url.split('/d/')[-1].split('/')[0] if '/d/' in img_url else '' %}
-                <img src="https://drive.google.com/uc?export=view&id={{ f_id }}" class="event-image" onerror="this.onerror=null; this.src='https://lh3.googleusercontent.com/d/{{ f_id }}';" referrerpolicy="no-referrer">
+                <img src="https://lh3.googleusercontent.com/d/{{ f_id }}" class="event-image" referrerpolicy="no-referrer">
                 {% if is_home %}</a>{% endif %}
             </div>
         {% endif %}
