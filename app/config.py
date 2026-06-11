@@ -89,6 +89,15 @@ class Settings:
         return os.environ.get("GMAIL_APP_PASSWORD", "")
 
     @property
+    def contact_gmail_app_password(self) -> str:
+        """
+        ei8htplants@gmail.com のアプリパスワード（16 桁）。
+        コンタクトフォームのメール送信に使用する。
+        未設定の場合はコンタクトメール送信をスキップする。
+        """
+        return os.environ.get("CONTACT_GMAIL_APP_PASSWORD", "")
+
+    @property
     def admin_user(self) -> str:
         """管理画面のログインユーザー名。未設定時は "admin"。"""
         return os.environ.get("ADMIN_USER", "admin")

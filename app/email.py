@@ -63,6 +63,104 @@ def send_reservation_confirmation(data: dict) -> None:
         logger.error("確認メール送信エラー: %s", e)
 
 
+_CONTACT_RECIPIENT = "ei8htplants@gmail.com"
+
+
+def send_contact_confirmation(data: dict) -> None:
+    """
+    問い合わせ者のメールアドレスに受付確認メールを送信する。
+    送信元: ei8ht plants <ei8htplants@gmail.com>
+    """
+    app_password = settings.contact_gmail_app_password
+
+    if not app_password:
+        logger.warning("CONTACT_GMAIL_APP_PASSWORD が未設定のため確認メールをスキップします")
+        return
+
+    recipient = data.get("email", "")
+    if not recipient:
+        return
+
+    try:
+        subject = f"【お問い合わせ受付】{data.get('subject', 'お問い合わせ')} — ei8ht plants"
+        lines = [
+            f"{data.get('name', '')} 様",
+            "",
+            "この度は ei8ht plants へのお問い合わせありがとうございます。",
+            "以下の内容でお問い合わせを受け付けました。",
+            "内容を確認次第、ご連絡いたします。",
+            "",
+            "━━━━━━━━━━━━━━━━━━",
+            f"件名：{data.get('subject', '')}",
+            "",
+            "【内容】",
+            data.get("message", ""),
+            "━━━━━━━━━━━━━━━━━━",
+            "",
+            "ei8ht plants",
+            "@ei8ht.plants  |  @habitatoides",
+            f"{SITE_URL}/contact",
+        ]
+        body = "\n".join(lines)
+        _send(
+            sender=_CONTACT_RECIPIENT,
+            app_password=app_password,
+            to=recipient,
+            subject=subject,
+            body=body,
+            sender_name="ei8ht plants",
+        )
+        logger.info("お問い合わせ確認メール送信完了: %s", recipient)
+    except Exception as e:
+        logger.error("お問い合わせ確認メール送信エラー: %s", e)
+
+
+def send_contact_notification(data: dict) -> None:
+    """
+    お問い合わせ内容を ei8htplants@gmail.com に通知メールで送信する。
+    送信元・送信先ともに ei8htplants@gmail.com（自己送信）。
+    CONTACT_GMAIL_APP_PASSWORD が未設定の場合はスキップする。
+    """
+    app_password = settings.contact_gmail_app_password
+
+    if not app_password:
+        logger.warning("CONTACT_GMAIL_APP_PASSWORD が未設定のため通知メールをスキップします")
+        return
+
+    try:
+        subject = f"【お問い合わせ】{data.get('subject', '件名なし')} — {data.get('name', '')}"
+        body = _build_contact_body(data)
+        _send(
+            sender=_CONTACT_RECIPIENT,
+            app_password=app_password,
+            to=_CONTACT_RECIPIENT,
+            subject=subject,
+            body=body,
+            sender_name="ei8ht plants 新規問合せ",
+        )
+        logger.info("お問い合わせ通知メール送信完了")
+    except Exception as e:
+        logger.error("お問い合わせ通知メール送信エラー: %s", e)
+
+
+def _build_contact_body(data: dict) -> str:
+    lines = [
+        "新しいお問い合わせが届きました。",
+        "",
+        "━━━━━━━━━━━━━━━━━━",
+        f"お名前：{data.get('name', '')}",
+        f"メール：{data.get('email', '')}",
+        f"件名　：{data.get('subject', '')}",
+        "",
+        "【内容】",
+        data.get("message", ""),
+        "━━━━━━━━━━━━━━━━━━",
+        "",
+        "※このメールは ei8ht plants サイトから自動送信されています。",
+    ]
+    return "\n".join(lines)
+
+
 def _build_body(data: dict) -> str:
     """メール本文を組み立てて返す。"""
     date_text = data.get("希望日", "").replace("-", "/")
@@ -98,14 +196,15 @@ def _build_body(data: dict) -> str:
     return "\n".join(lines)
 
 
-def _send(sender: str, app_password: str, to: str, subject: str, body: str) -> None:
+def _send(sender: str, app_password: str, to: str, subject: str, body: str,
+          sender_name: str = None) -> None:
     """Gmail SMTP（TLS / ポート 587）でメールを 1 通送信する。"""
-    sender_name = settings.gmail_sender_name
+    name = sender_name or settings.gmail_sender_name
 
     msg = MIMEText(body, "plain", "utf-8")
     msg["To"] = to
-    msg["From"] = formataddr((sender_name, sender))  # 例: Habitat Oides <habitatoides@gmail.com>
-    msg["Reply-To"] = formataddr((sender_name, sender))
+    msg["From"] = formataddr((name, sender))
+    msg["Reply-To"] = formataddr((name, sender))
     msg["Subject"] = subject
 
     with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT) as smtp:

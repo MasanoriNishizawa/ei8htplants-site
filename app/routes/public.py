@@ -17,9 +17,11 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from ..config import SPREADSHEET_ID
 from ..drive import get_gallery_images, get_home_gallery_images
 from ..google_client import get_gc
+from ..email import send_contact_confirmation, send_contact_notification
 from ..sheets import (
     WS_MAX_PARTICIPANTS,
     _enrich_event,
+    create_contact,
     get_display_url,
     get_event_row,
     get_events_data,
@@ -487,3 +489,29 @@ async def read_specimen(request: Request):
         )
     except Exception as e:
         return HTMLResponse(content=f"Error: {str(e)}", status_code=500)
+
+
+@router.get("/contact", response_class=HTMLResponse)
+async def contact_form(request: Request, sent: str = None):
+    return templates.TemplateResponse("contact.html", {
+        "request": request,
+        "sent": sent == "1",
+    })
+
+
+@router.post("/contact", response_class=HTMLResponse)
+async def contact_submit(request: Request):
+    form = await request.form()
+    data = {
+        "name":    str(form.get("name", "")).strip(),
+        "email":   str(form.get("email", "")).strip(),
+        "subject": str(form.get("subject", "")).strip(),
+        "message": str(form.get("message", "")).strip(),
+    }
+    try:
+        create_contact(data)
+        send_contact_notification(data)
+        send_contact_confirmation(data)
+    except Exception as e:
+        return HTMLResponse(content=f"Error: {str(e)}", status_code=500)
+    return RedirectResponse("/contact?sent=1", status_code=303)

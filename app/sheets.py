@@ -423,6 +423,41 @@ def get_ws_reservation_count(event_name: str, date: str, time_slot: str) -> int:
 
 
 # ================================================================
+# お問い合わせ（お問い合わせシート）
+# ================================================================
+
+CONTACT_SHEET_NAME = "お問い合わせ"
+
+
+def create_contact(data: dict) -> None:
+    """
+    「お問い合わせ」シートに問い合わせデータを 1 行追記する。
+    シートが存在しない場合は自動作成してヘッダー行を挿入する。
+    """
+    sh = get_gc().open_by_key(SPREADSHEET_ID)
+    try:
+        ws = sh.worksheet(CONTACT_SHEET_NAME)
+    except Exception:
+        ws = sh.add_worksheet(title=CONTACT_SHEET_NAME, rows=1000, cols=5)
+        ws.append_row(
+            ["タイムスタンプ", "お名前", "メール", "件名", "内容"],
+            value_input_option="RAW",
+        )
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ws.append_row(
+        [
+            timestamp,
+            data.get("name", ""),
+            data.get("email", ""),
+            data.get("subject", ""),
+            data.get("message", ""),
+        ],
+        value_input_option="RAW",
+    )
+
+
+# ================================================================
 # 内部ヘルパー
 # ================================================================
 
