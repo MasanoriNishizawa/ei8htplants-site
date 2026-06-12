@@ -1,7 +1,7 @@
 # ei8ht plants サイト — 詳細設計書
 
-**バージョン**: 1.0  
-**最終更新**: 2026-06-10  
+**バージョン**: 1.1  
+**最終更新**: 2026-06-12  
 **対象リポジトリ**: ei8htplants-site
 
 ---
@@ -93,6 +93,7 @@ FastAPI (uvicorn)
 | F-07 | PROJECTS シートからコラボ案件を取得して一覧表示する |
 | F-08 | ブランドごとに独立したランディングページを提供する（ei8htplants / habitatoides / hue） |
 | F-09 | Habitat Oides のワークショップ紹介・予約導線を提供する |
+| F-10 | お問い合わせフォームからの送信をスプレッドシートに記録し、通知メールと受付確認メールを自動送信する |
 
 #### 管理画面
 
@@ -138,11 +139,12 @@ app/
 ├── google_client.py     get_gc()    → gspread.Client（シングルトン）
 │                        get_drive() → googleapiclient.discovery（シングルトン）
 │
-├── sheets.py            イベント・WS予約の読み書きロジック
+├── sheets.py            イベント・WS予約・お問い合わせの読み書きロジック
 │                          get_events_data / get_all_events_for_admin / get_event_row
 │                          create_event / update_event / delete_event
 │                          create_ws_reservation / get_ws_reservation_count
 │                          get_all_ws_reservations
+│                          create_contact
 │
 ├── drive.py             get_gallery_images(brand, page_size) → list[str]
 │                        get_home_gallery_images()             → list[str]
@@ -153,6 +155,11 @@ app/
 │
 ├── templates.py         Jinja2Templates インスタンス
 │                          カスタムフィルター: urlize
+│
+├── email.py             Gmail SMTP メール送信
+│                          send_reservation_confirmation  (WS予約確認 → 申込者)
+│                          send_contact_notification      (問い合わせ通知 → ei8htplants@gmail.com)
+│                          send_contact_confirmation      (問い合わせ受付確認 → 送信者)
 │
 └── routes/
     ├── public.py        公開ルーター（全エンドポイント）
@@ -243,6 +250,20 @@ app/
 | 画像 | 文字列 | Drive URL をカンマ区切りで複数指定 |
 
 - テンプレートには `image_urls` リストとして展開して渡す
+
+### 4.5 お問い合わせシート（`お問い合わせ`）
+
+FastAPI の `create_contact()` が自動作成・追記する。
+
+| 列 | 列名 | 型 | 説明 |
+|---|---|---|---|
+| A | タイムスタンプ | 日時文字列 | `YYYY-MM-DD HH:MM:SS` 形式 |
+| B | お名前 | 文字列 | — |
+| C | メール | 文字列 | 受付確認メールの送信先 |
+| D | 件名 | 文字列 | 任意 |
+| E | 内容 | 文字列 | 問い合わせ本文 |
+
+---
 
 ### 4.4 WS予約シート（`WS予約`）
 
@@ -762,6 +783,44 @@ get_gallery_images(brand="hue")
 
 ---
 
+### 6.13 お問い合わせ（`/contact`）
+
+**ルート**: `GET /contact?sent=1` / `POST /contact`  
+**関数**: `public.contact_form` / `public.contact_submit`  
+**テンプレート**: `templates/contact.html`
+
+#### フォームフィールド
+
+| フィールド | name 属性 | 必須 |
+|---|---|---|
+| お名前 | `name` | ✓ |
+| メールアドレス | `email` | ✓ |
+| 件名 | `subject` | — |
+| 内容 | `message` | ✓ |
+
+#### POST フロー
+
+```
+form データ取得 → create_contact(data)
+  → 「お問い合わせ」シートに 1 行追記（シートがなければ自動作成）
+
+send_contact_notification(data)
+  → FROM: ei8ht plants 新規問合せ <ei8htplants@gmail.com>
+  → TO: ei8htplants@gmail.com
+  → 認証: CONTACT_GMAIL_APP_PASSWORD
+
+send_contact_confirmation(data)
+  → FROM: ei8ht plants <ei8htplants@gmail.com>
+  → TO: フォームに入力されたメールアドレス
+  → 認証: CONTACT_GMAIL_APP_PASSWORD
+
+→ RedirectResponse("/contact?sent=1", 303)
+```
+
+送信完了後は `?sent=1` パラメータで完了メッセージを表示（セッション不使用）。
+
+---
+
 ## 7. 管理画面
 
 **URL プレフィックス**: `/admin`（`app/__init__.py` でルーター登録時に付与）
@@ -891,11 +950,14 @@ totals = イベント名ごとの参加人数合計
 | 変数 | 値 | 用途 |
 |---|---|---|
 | `--max-width` | `1000px` | コンテンツ最大幅 |
+| `--fs-body` | `16px` | 本文 |
+| `--fs-micro` | `11px` | バッジ・装飾テキスト |
 | `--font-section` | `20px` | セクションタイトル |
 | `--font-title-md` | `24px` | 中見出し |
-| `--font-info` | `16px` | 本文・情報テキスト |
+| `--font-info` | `16px` | イベント詳細テキスト |
+| `--font-nav` | `16px` | ナビ・ボタン |
 | `--font-tag` | `12px` | タグ・ラベル |
-| `--font-small` | `12px` | 補足テキスト |
+| `--font-small` | `13px` | 補足テキスト |
 | `--color-bg` | ライトモード対応 | ページ背景 |
 | `--color-card-bg` | ライトモード対応 | カード背景 |
 | `--color-border` | ライトモード対応 | ボーダー色 |
@@ -910,7 +972,7 @@ totals = イベント名ごとの参加人数合計
 ```
 <header>  ← sticky, z-index: 100
   <nav>   ← ハンバーガーメニュー付き（JS でトグル）
-    Home / Events / Brands▼ / Gallery / Specimen / Concept / Collaborations
+    Home / Events / Brands▼ / Concept / Contact / Online Store
                      └─ ei8ht plants
                         Habitat Oides
                         HUE by ei8ht plants
@@ -958,7 +1020,13 @@ VS Code の JS 言語サーバーが `{{ }}` を構文エラーとして警告�
 | `SECRET_KEY` | ◎ | セッション Cookie 署名キー。長いランダム文字列を設定 |
 | `ADMIN_USER` | ◎ | 管理画面ログイン ID |
 | `ADMIN_PASS` | ◎ | 管理画面ログインパスワード（空文字は不可） |
-| `GOOGLE_CREDENTIALS` | ◎ | `secret_key.json` の内容を JSON 文字列としてそのまま設定 |
+| `GOOGLE_CREDENTIALS` | ◎ | `secret_key.json` の内容を JSON 文字列としてそのまま設定（1行JSON推奨） |
+| `GMAIL_SENDER` | △ | WS予約確認メールの送信元アドレス（例: `habitatoides@gmail.com`） |
+| `GMAIL_APP_PASSWORD` | △ | `GMAIL_SENDER` アカウントのGoogleアプリパスワード（16桁） |
+| `GMAIL_SENDER_NAME` | — | WS予約確認メールの送信者表示名（デフォルト: `Habitat Oides`） |
+| `CONTACT_GMAIL_APP_PASSWORD` | △ | `ei8htplants@gmail.com` のGoogleアプリパスワード（お問い合わせメール用） |
+
+△: 未設定時はメール送信をスキップ（他の機能は正常動作）
 
 `SECRET_KEY` の生成:
 ```bash

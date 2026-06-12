@@ -34,7 +34,8 @@ Google スプレッドシートをデータベースとして活用し、最新�
 - **イベント自動更新**: Google スプレッドシートを更新するだけで NEXT EVENT・イベント一覧が即時反映
 - **TTL キャッシュ**: Google API のレスポンスを 5〜10 分キャッシュして表示を高速化し API レート制限を回避
 - **管理画面**: `/admin` からイベントの追加・編集・削除・WS 予約一覧の確認が可能（サイトのナビには表示されない隠しページ）
-- **ワークショップ予約フォーム**: `WSフラグ=TRUE` のイベントに予約フォーム（`/reserve?row=N`）を自動生成。FastAPI が直接「WS予約」シートに書き込む
+- **ワークショップ予約フォーム**: `WSフラグ=TRUE` のイベントに予約フォーム（`/reserve?row=N`）を自動生成。FastAPI が直接「WS予約」シートに書き込み、申込者へ Gmail で確認メールを自動送信
+- **お問い合わせフォーム**: `/contact` からフォーム送信 → スプレッドシート記録 + ei8htplants@gmail.com に通知 + 送信者に受付確認メールを自動返信
 - **ギャラリーマーキー**: トップページに全ブランドの画像をランダム順で流れるアニメーション表示
 - **レスポンシブ対応**: スマートフォン・PC 両対応（ハンバーガーメニュー付き）
 - **過去イベント自動アーカイブ**: 終了日を過ぎたイベントを自動的に「過去のイベント」へ振り分け
@@ -82,6 +83,7 @@ ei8htplants-site/
     ├── habitatoides.html          # Habitat Oides ブランドページ
     ├── habitatoides_workshop.html # Habitat Oides ワークショップ紹介ページ
     ├── hue.html                   # HUE by ei8ht plants ブランドページ
+    ├── contact.html               # お問い合わせフォーム
     └── admin/
         ├── login.html             # 管理画面ログイン
         ├── events.html            # 管理画面イベント一覧
@@ -100,7 +102,8 @@ ei8htplants-site/
 | シート1（index=0） | イベント情報 | 開始日, 終了日, イベント名, 販売ブランド, 場所, 住所, 画像, WSフラグ, 開催時間 など |
 | Specimen | 植物標本 | 品種名, 画像1, 画像2, 画像3 |
 | PROJECTS | コラボ案件 | タイトル, 日付, コラボ先, コラボ内容, 画像 |
-| WS予約 | ワークショップ予約データ | タイムスタンプ, イベント名, お名前, メールアドレス, 電話番号, 希望日, 希望時間帯, 参加人数, 植木鉢持参, 植物持参, 備考 |
+| WS予約 | ワークショップ予約データ | タイムスタンプ, イベント名, お名前, メール, 電話番号, 希望日, 希望時間帯, 参加人数, お持ち込み, 備考 |
+| お問い合わせ | お問い合わせフォーム送信データ | タイムスタンプ, お名前, メール, 件名, 内容 |
 
 ---
 
@@ -174,10 +177,14 @@ Render ダッシュボードの「Environment」に以下を追加してくだ�
 
 | 変数名 | 値 | 説明 |
 |---|---|---|
-| `GOOGLE_CREDENTIALS` | `secret_key.json` の中身をそのままコピー | Google API 認証情報 |
+| `GOOGLE_CREDENTIALS` | `secret_key.json` の中身をそのままコピー（1行JSON推奨） | Google API 認証情報 |
 | `ADMIN_USER` | 任意のユーザー名 | 管理画面ログイン ID |
 | `ADMIN_PASS` | 任意のパスワード | 管理画面ログインパスワード |
 | `SECRET_KEY` | ランダムな長い文字列 | セッション Cookie 署名キー |
+| `GMAIL_SENDER` | `habitatoides@gmail.com` | WS予約確認メールの送信元アドレス |
+| `GMAIL_APP_PASSWORD` | Gmailアプリパスワード（16桁） | `GMAIL_SENDER` アカウントのアプリパスワード |
+| `GMAIL_SENDER_NAME` | `Habitat Oides`（デフォルト） | WS予約確認メールの送信者表示名 |
+| `CONTACT_GMAIL_APP_PASSWORD` | Gmailアプリパスワード（16桁） | `ei8htplants@gmail.com` のアプリパスワード（お問い合わせメール用） |
 
 `SECRET_KEY` の生成:
 ```bash
@@ -211,7 +218,7 @@ uvicorn main:app --host 0.0.0.0 --port $PORT
 | 満席チェック | `/api/reserve/availability` で同一イベント×日付×時間帯の参加人数合計を確認。残席 0 の場合は参加人数選択を無効化 |
 | 時間スロット | 「開催時間」列（例: `10:00〜17:00`）から 1 時間単位で自動生成 |
 | 複数日イベント | 開始日〜終了日の全日を日付セレクトボックスで選択可能 |
-| 確認メール | 自動送信なし。スタッフが WS予約シートを確認して個別に連絡する |
+| 確認メール | `GMAIL_SENDER` / `GMAIL_APP_PASSWORD` が設定されていれば申込者へ自動送信（送信者名: `GMAIL_SENDER_NAME`） |
 | 予約データ管理 | `/admin/reservations` でイベント別絞り込み・参加人数集計が可能 |
 
 ---
