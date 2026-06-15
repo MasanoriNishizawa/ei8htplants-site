@@ -12,6 +12,16 @@ import asyncio
 import re
 from datetime import timedelta
 
+# asyncio.create_task で生成したタスクの参照を保持するセット。
+# 参照がなくなるとGCに回収されて実行中でも消えるため、完了まで保持する。
+_task_refs: set = set()
+
+
+def _fire(coro) -> None:
+    task = asyncio.create_task(coro)
+    _task_refs.add(task)
+    task.add_done_callback(_task_refs.discard)
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
@@ -338,7 +348,7 @@ async def reserve_submit(request: Request):
         }
 
         await asyncio.to_thread(create_ws_reservation, reservation_data)
-        asyncio.create_task(asyncio.to_thread(send_reservation_confirmation, reservation_data))
+        _fire(asyncio.to_thread(send_reservation_confirmation, reservation_data))
 
         if hasattr(request, "session"):
             request.session["reserve_flash"] = "ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。<br>メールが届かない場合は迷惑メールフォルダをご確認ください。"
@@ -511,8 +521,8 @@ async def contact_submit(request: Request):
     }
     try:
         await asyncio.to_thread(create_contact, data)
-        asyncio.create_task(asyncio.to_thread(send_contact_notification, data))
-        asyncio.create_task(asyncio.to_thread(send_contact_confirmation, data))
+        _fire(asyncio.to_thread(send_contact_notification, data))
+        _fire(asyncio.to_thread(send_contact_confirmation, data))
     except Exception as e:
         return HTMLResponse(content=f"Error: {str(e)}", status_code=500)
     return RedirectResponse("/contact?sent=1", status_code=303)
