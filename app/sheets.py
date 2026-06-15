@@ -457,6 +457,16 @@ def create_contact(data: dict) -> None:
     )
 
 
+def get_all_contacts() -> list[dict]:
+    sh = get_gc().open_by_key(SPREADSHEET_ID)
+    try:
+        ws = sh.worksheet(CONTACT_SHEET_NAME)
+    except Exception:
+        return []
+    rows = ws.get_all_records()
+    return list(reversed(rows))
+
+
 # ================================================================
 # 内部ヘルパー
 # ================================================================

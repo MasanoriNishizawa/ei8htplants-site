@@ -34,6 +34,7 @@ from ..auth import is_authenticated, login, logout
 from ..sheets import (
     create_event,
     delete_event,
+    get_all_contacts,
     get_all_events_for_admin,
     get_all_ws_reservations,
     get_event_row,
@@ -317,3 +318,16 @@ async def admin_events_delete(request: Request, row: int):
     except Exception as e:
         request.session["flash"] = f"エラー: {e}"
     return RedirectResponse(url="/admin/events", status_code=302)
+
+
+@router.get("/contacts", response_class=HTMLResponse)
+async def admin_contacts(request: Request):
+    redir = _check_auth(request)
+    if redir:
+        return redir
+    contacts = get_all_contacts()
+    return templates.TemplateResponse(
+        request,
+        "admin/contacts.html",
+        {"contacts": contacts},
+    )
