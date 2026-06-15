@@ -210,7 +210,7 @@ def _send(sender: str, app_password: str, to: str, subject: str, body: str,
     msg["Reply-To"] = formataddr((name, sender))
     msg["Subject"] = subject
 
-    with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT) as smtp:
+    with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=15) as smtp:
         smtp.ehlo()
         smtp.starttls()
         smtp.login(sender, app_password)
