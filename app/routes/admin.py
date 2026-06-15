@@ -102,7 +102,7 @@ async def admin_login_get(request: Request):
     if is_authenticated(request):
         return RedirectResponse(url="/admin/events", status_code=302)
     return templates.TemplateResponse(
-        "admin/login.html", {"request": request, "error": None}
+        "admin/admin_login.html", {"request": request, "error": None}
     )
 
 
@@ -117,7 +117,7 @@ async def admin_login_post(request: Request):
     if login(request, str(form.get("username", "")), str(form.get("password", ""))):
         return RedirectResponse(url="/admin/events", status_code=302)
     return templates.TemplateResponse(
-        "admin/login.html",
+        "admin/admin_login.html",
         {"request": request, "error": "IDまたはパスワードが違います"},
     )
 
@@ -161,7 +161,7 @@ async def admin_reservations(request: Request, event: str = ""):
             except (ValueError, TypeError):
                 pass
         return templates.TemplateResponse(
-            "admin/reservations.html",
+            "admin/admin_reservations.html",
             {
                 "request": request,
                 "reservations": filtered,
@@ -194,7 +194,7 @@ async def admin_events_list(request: Request):
     try:
         _, events = get_all_events_for_admin()
         return templates.TemplateResponse(
-            "admin/events.html",
+            "admin/admin_events.html",
             {"request": request, "events": events, "flash": flash},
         )
     except Exception as e:
@@ -216,7 +216,7 @@ async def admin_events_new(request: Request):
     if redir:
         return redir
     return templates.TemplateResponse(
-        "admin/event_form.html",
+        "admin/admin_event_form.html",
         {
             "request": request,
             "event": {},       # 全フィールドを空で表示
@@ -267,7 +267,7 @@ async def admin_events_edit(request: Request, row: int):
     try:
         _, event = get_event_row(row)
         return templates.TemplateResponse(
-            "admin/event_form.html",
+            "admin/admin_event_form.html",
             {
                 "request": request,
                 "event": event,
@@ -328,6 +328,6 @@ async def admin_contacts(request: Request):
     contacts = get_all_contacts()
     return templates.TemplateResponse(
         request,
-        "admin/contacts.html",
+        "admin/admin_contacts.html",
         {"contacts": contacts},
     )
