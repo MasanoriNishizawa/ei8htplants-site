@@ -337,10 +337,8 @@ async def reserve_submit(request: Request):
             "備考":         str(form.get("message", "")),
         }
 
-        await asyncio.gather(
-            asyncio.to_thread(create_ws_reservation, reservation_data),
-            asyncio.to_thread(send_reservation_confirmation, reservation_data),
-        )
+        await asyncio.to_thread(create_ws_reservation, reservation_data)
+        asyncio.create_task(asyncio.to_thread(send_reservation_confirmation, reservation_data))
 
         if hasattr(request, "session"):
             request.session["reserve_flash"] = "ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。<br>メールが届かない場合は迷惑メールフォルダをご確認ください。"
@@ -512,11 +510,9 @@ async def contact_submit(request: Request):
         "message": str(form.get("message", "")).strip(),
     }
     try:
-        await asyncio.gather(
-            asyncio.to_thread(create_contact, data),
-            asyncio.to_thread(send_contact_notification, data),
-            asyncio.to_thread(send_contact_confirmation, data),
-        )
+        await asyncio.to_thread(create_contact, data)
+        asyncio.create_task(asyncio.to_thread(send_contact_notification, data))
+        asyncio.create_task(asyncio.to_thread(send_contact_confirmation, data))
     except Exception as e:
         return HTMLResponse(content=f"Error: {str(e)}", status_code=500)
     return RedirectResponse("/contact?sent=1", status_code=303)
