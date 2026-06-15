@@ -15,7 +15,9 @@ Google Sheets との読み書きを担うモジュール。
 書き込み後はキャッシュを無効化して表示が即反映されるようにする。
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_JST = timezone(timedelta(hours=9))
 from urllib.parse import quote
 
 from .cache import cache
@@ -162,7 +164,7 @@ def get_events_data(is_past: bool = False) -> list[dict]:
         return []
 
     headers = all_values[0]
-    today = datetime.now().date()
+    today = datetime.now(_JST).date()
     result = []
 
     for i, row in enumerate(all_values[1:], start=2):  # データ行は row=2 から
@@ -362,7 +364,7 @@ def create_ws_reservation(data: dict) -> None:
             value_input_option="RAW",
         )
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(_JST).strftime("%Y-%m-%d %H:%M:%S")
     ws.append_row(
         [
             timestamp,
@@ -444,7 +446,7 @@ def create_contact(data: dict) -> None:
             value_input_option="RAW",
         )
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(_JST).strftime("%Y-%m-%d %H:%M:%S")
     ws.append_row(
         [
             timestamp,
