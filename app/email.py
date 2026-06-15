@@ -46,21 +46,22 @@ def send_reservation_confirmation(data: dict) -> None:
     app_password = settings.gmail_app_password
 
     if not sender or not app_password:
-        logger.warning("GMAIL_SENDER または GMAIL_APP_PASSWORD が未設定のため確認メールをスキップします")
+        print("[email] SKIP: GMAIL_SENDER or GMAIL_APP_PASSWORD not set")
         return
 
     recipient = data.get("メール", "")
     if not recipient:
-        logger.warning("送信先メールアドレスが空のため確認メールをスキップします")
+        print("[email] SKIP: recipient address is empty")
         return
 
     try:
         subject = f"【ワークショップご予約確認】{data.get('イベント名', '')} — ei8ht plants"
         body = _build_body(data)
+        print(f"[email] sending reservation confirmation to {recipient}")
         _send(sender=sender, app_password=app_password, to=recipient, subject=subject, body=body)
-        logger.info("確認メール送信完了: %s", recipient)
+        print(f"[email] reservation confirmation sent to {recipient}")
     except Exception as e:
-        logger.error("確認メール送信エラー: %s", e)
+        print(f"[email] ERROR sending reservation confirmation: {e}")
 
 
 _CONTACT_RECIPIENT = "ei8htplants@gmail.com"
@@ -74,11 +75,12 @@ def send_contact_confirmation(data: dict) -> None:
     app_password = settings.contact_gmail_app_password
 
     if not app_password:
-        logger.warning("CONTACT_GMAIL_APP_PASSWORD が未設定のため確認メールをスキップします")
+        print("[email] SKIP: CONTACT_GMAIL_APP_PASSWORD not set")
         return
 
     recipient = data.get("email", "")
     if not recipient:
+        print("[email] SKIP: contact recipient address is empty")
         return
 
     try:
@@ -110,9 +112,9 @@ def send_contact_confirmation(data: dict) -> None:
             body=body,
             sender_name="ei8ht plants",
         )
-        logger.info("お問い合わせ確認メール送信完了: %s", recipient)
+        print(f"[email] contact confirmation sent to {recipient}")
     except Exception as e:
-        logger.error("お問い合わせ確認メール送信エラー: %s", e)
+        print(f"[email] ERROR sending contact confirmation: {e}")
 
 
 def send_contact_notification(data: dict) -> None:
@@ -124,12 +126,13 @@ def send_contact_notification(data: dict) -> None:
     app_password = settings.contact_gmail_app_password
 
     if not app_password:
-        logger.warning("CONTACT_GMAIL_APP_PASSWORD が未設定のため通知メールをスキップします")
+        print("[email] SKIP: CONTACT_GMAIL_APP_PASSWORD not set (notification)")
         return
 
     try:
         subject = f"【お問い合わせ】{data.get('subject', '件名なし')} — {data.get('name', '')}"
         body = _build_contact_body(data)
+        print("[email] sending contact notification to ei8htplants@gmail.com")
         _send(
             sender=_CONTACT_RECIPIENT,
             app_password=app_password,
@@ -138,9 +141,9 @@ def send_contact_notification(data: dict) -> None:
             body=body,
             sender_name="ei8ht plants 新規問合せ",
         )
-        logger.info("お問い合わせ通知メール送信完了")
+        print("[email] contact notification sent")
     except Exception as e:
-        logger.error("お問い合わせ通知メール送信エラー: %s", e)
+        print(f"[email] ERROR sending contact notification: {e}")
 
 
 def _build_contact_body(data: dict) -> str:
