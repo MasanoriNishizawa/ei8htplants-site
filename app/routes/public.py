@@ -8,10 +8,11 @@ app/routes/public.py
 エラー時は 500 レスポンスとしてエラー内容を返す（開発中の視認性優先）。
 """
 
+import asyncio
 import re
 from datetime import timedelta
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from ..config import SPREADSHEET_ID
@@ -311,7 +312,7 @@ async def reserve_form(request: Request, row: int = None):
 
 
 @router.post("/reserve", response_class=HTMLResponse)
-async def reserve_submit(request: Request):
+async def reserve_submit(request: Request, background_tasks: BackgroundTasks):
     """
     ワークショップ予約フォームの送信を受け取り、WS予約シートに書き込んで確認メールを送る。
     メール送信が失敗しても予約自体は成立する（email.py 内でエラーをログ記録して握りつぶす）。
@@ -336,8 +337,8 @@ async def reserve_submit(request: Request):
             "備考":         str(form.get("message", "")),
         }
 
-        create_ws_reservation(reservation_data)
-        send_reservation_confirmation(reservation_data)
+        await asyncio.to_thread(create_ws_reservation, reservation_data)
+        background_tasks.add_task(send_reservation_confirmation, reservation_data)
 
         if hasattr(request, "session"):
             request.session["reserve_flash"] = "ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。<br>メールが届かない場合は迷惑メールフォルダをご確認ください。"
@@ -500,7 +501,7 @@ async def contact_form(request: Request, sent: str = None):
 
 
 @router.post("/contact", response_class=HTMLResponse)
-async def contact_submit(request: Request):
+async def contact_submit(request: Request, background_tasks: BackgroundTasks):
     form = await request.form()
     data = {
         "name":    str(form.get("name", "")).strip(),
@@ -509,9 +510,9 @@ async def contact_submit(request: Request):
         "message": str(form.get("message", "")).strip(),
     }
     try:
-        create_contact(data)
-        send_contact_notification(data)
-        send_contact_confirmation(data)
+        await asyncio.to_thread(create_contact, data)
+        background_tasks.add_task(send_contact_notification, data)
+        background_tasks.add_task(send_contact_confirmation, data)
     except Exception as e:
         return HTMLResponse(content=f"Error: {str(e)}", status_code=500)
     return RedirectResponse("/contact?sent=1", status_code=303)
