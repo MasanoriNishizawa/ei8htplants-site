@@ -197,7 +197,22 @@
     margin-top: 32px;
     border-radius: 4px;
   }
-  .btn-submit:hover { background: #5d4037; }
+  .btn-submit:hover:not(:disabled) { background: #5d4037; }
+  .btn-submit:disabled { background: #bcaaa4; cursor: not-allowed; }
+  .btn-submit.loading { position: relative; color: transparent; }
+  .btn-submit.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btnSpin .7s linear infinite;
+  }
+  @keyframes btnSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  .form-submitting { pointer-events: none; opacity: .6; }
 
   /* フォーム下部の注意書き */
   .notice {
@@ -425,5 +440,14 @@
       h.style.color = '#888'; h.textContent = '';
     }
   }
+
+  /* 二重送信防止 */
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const btn = document.getElementById('btn-submit');
+    if (btn.disabled) { e.preventDefault(); return; }
+    btn.disabled = true;
+    btn.classList.add('loading');
+    this.classList.add('form-submitting');
+  });
 </script>
 {% endblock %}
