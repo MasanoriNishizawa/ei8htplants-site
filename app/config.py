@@ -90,12 +90,25 @@ class Settings:
 
     @property
     def contact_gmail_app_password(self) -> str:
-        """
-        ei8htplants@gmail.com のアプリパスワード（16 桁）。
-        コンタクトフォームのメール送信に使用する。
-        未設定の場合はコンタクトメール送信をスキップする。
-        """
         return os.environ.get("CONTACT_GMAIL_APP_PASSWORD", "")
+
+    @property
+    def gmail_client_id(self) -> str:
+        return os.environ.get("GMAIL_CLIENT_ID", "")
+
+    @property
+    def gmail_client_secret(self) -> str:
+        return os.environ.get("GMAIL_CLIENT_SECRET", "")
+
+    @property
+    def gmail_refresh_token(self) -> str:
+        """habitatoides@gmail.com の OAuth2 リフレッシュトークン"""
+        return os.environ.get("GMAIL_REFRESH_TOKEN", "")
+
+    @property
+    def contact_gmail_refresh_token(self) -> str:
+        """ei8htplants@gmail.com の OAuth2 リフレッシュトークン"""
+        return os.environ.get("CONTACT_GMAIL_REFRESH_TOKEN", "")
 
     @property
     def admin_user(self) -> str:
