@@ -34,9 +34,9 @@ from ..auth import is_authenticated, login, logout
 from ..sheets import (
     create_event,
     delete_event,
-    get_all_contacts,
+    get_all_contacts_for_admin,
     get_all_events_for_admin,
-    get_all_ws_reservations,
+    get_all_ws_reservations_for_admin,
     get_event_row,
     update_event,
 )
@@ -147,7 +147,7 @@ async def admin_reservations(request: Request, event: str = ""):
     if redir:
         return redir
     try:
-        reservations = get_all_ws_reservations()
+        reservations = get_all_ws_reservations_for_admin()
         # イベント名の選択肢（重複除去・順序保持）
         event_names = list(dict.fromkeys(r.get("イベント名", "") for r in reservations if r.get("イベント名")))
         # 絞り込み
@@ -325,7 +325,7 @@ async def admin_contacts(request: Request):
     redir = _check_auth(request)
     if redir:
         return redir
-    contacts = get_all_contacts()
+    contacts = get_all_contacts_for_admin()
     return templates.TemplateResponse(
         request,
         "admin/admin_contacts.html",

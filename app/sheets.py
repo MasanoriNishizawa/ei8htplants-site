@@ -319,7 +319,7 @@ WS_SHEET_NAME = "WS予約"
 WS_MAX_PARTICIPANTS = 4  # gas/workshop_reservation.gs の MAX_PARTICIPANTS と合わせる
 
 
-def get_all_ws_reservations() -> list[dict]:
+def get_all_ws_reservations_for_admin() -> list[dict]:
     """
     「WS予約」シートの全予約データを返す。
 
@@ -457,7 +457,7 @@ def create_contact(data: dict) -> None:
     )
 
 
-def get_all_contacts() -> list[dict]:
+def get_all_contacts_for_admin() -> list[dict]:
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(CONTACT_SHEET_NAME)
