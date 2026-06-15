@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 SITE_URL = "https://ei8htplants.onrender.com"
 
 _SMTP_HOST = "smtp.gmail.com"
-_SMTP_PORT = 587
+_SMTP_PORT = 465
 
 
 def send_reservation_confirmation(data: dict) -> None:
@@ -210,8 +210,6 @@ def _send(sender: str, app_password: str, to: str, subject: str, body: str,
     msg["Reply-To"] = formataddr((name, sender))
     msg["Subject"] = subject
 
-    with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=15) as smtp:
-        smtp.ehlo()
-        smtp.starttls()
+    with smtplib.SMTP_SSL(_SMTP_HOST, _SMTP_PORT, timeout=15) as smtp:
         smtp.login(sender, app_password)
         smtp.send_message(msg)
