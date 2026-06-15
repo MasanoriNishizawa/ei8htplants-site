@@ -281,6 +281,18 @@
       </div>
     </div>
 
+    <div class="field">
+      <label for="participants">参加人数<span class="required">*</span></label>
+      <!--
+        日付・時間帯が両方選択されるまで disabled。
+        選択後に /api/reserve/availability を呼んで残席数分の選択肢を動的生成する。
+      -->
+      <select id="participants" name="participants" required disabled>
+        <option value="" disabled selected>日付・時間帯を先に選択してください</option>
+      </select>
+      <p class="hint" id="availability-hint"></p>
+    </div>
+
     <!-- ========== お申し込み者情報 ========== -->
     <p class="section-label">お申し込み者情報</p>
 
@@ -299,18 +311,6 @@
 
     <!-- ========== 参加内容 ========== -->
     <p class="section-label">参加内容</p>
-
-    <div class="field">
-      <label for="participants">参加人数<span class="required">*</span></label>
-      <!--
-        日付・時間帯が両方選択されるまで disabled。
-        選択後に /api/reserve/availability を呼んで残席数分の選択肢を動的生成する。
-      -->
-      <select id="participants" name="participants" required disabled>
-        <option value="" disabled selected>日付・時間帯を先に選択してください</option>
-      </select>
-      <p class="hint" id="availability-hint"></p>
-    </div>
 
     <div class="field">
       <label>お持ち込み（任意）</label>
