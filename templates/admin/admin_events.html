@@ -206,6 +206,56 @@
             background: #fff;
             border: 1px solid #e0e0e0;
         }
+
+        /* =========================================
+           レスポンシブ（スマホ）
+           ========================================= */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 12px; }
+            .topbar-brand { display: none; }
+            .topbar-left { gap: 0; }
+            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
+            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
+
+            .main { max-width: 100%; margin: 16px auto; padding: 0 12px 60px; }
+            .page-head { flex-wrap: wrap; gap: 10px; }
+            .btn-add { padding: 8px 16px; }
+
+            /* テーブル → カードレイアウト */
+            .table-wrap { overflow-x: visible; }
+            table { border: none; background: transparent; }
+            thead { display: none; }
+            tbody tr {
+                display: block;
+                background: #fff;
+                border: 1px solid #e0e0e0;
+                margin-bottom: 10px;
+                padding: 14px 16px;
+            }
+            tbody tr:hover td { background: transparent; }
+            tbody td {
+                display: flex;
+                gap: 8px;
+                padding: 3px 0;
+                border: none;
+                font-size: 13px;
+                align-items: flex-start;
+            }
+            tbody td::before {
+                content: attr(data-label);
+                font-size: 10px;
+                color: #aaa;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+                min-width: 44px;
+                flex-shrink: 0;
+                padding-top: 2px;
+            }
+            tbody td[data-label=""]::before { display: none; }
+            .td-name { font-weight: 500; font-size: 14px; }
+            .td-actions { text-align: left; margin-top: 8px; }
+            .btn-edit, .btn-delete { padding: 6px 16px; }
+        }
     </style>
 </head>
 <body>
@@ -253,21 +303,13 @@
                 <tbody>
                     {% for ev in events %}
                     <tr>
-                        <td class="td-date">{{ ev.get('開始日', '') }}</td>
-                        <td class="td-date">{{ ev.get('終了日', '') }}</td>
-                        <td class="td-name">{{ ev.get('イベント名', '') }}</td>
-                        <td class="td-brand">{{ ev.get('販売ブランド', '') }}</td>
-                        <td class="td-brand">{{ ev.get('場所', '') }}</td>
-                        <td class="td-actions">
-                            <!-- 編集: ev._row（シート行番号）を URL に渡す -->
+                        <td class="td-date" data-label="開始日">{{ ev.get('開始日', '') }}</td>
+                        <td class="td-date" data-label="終了日">{{ ev.get('終了日', '') }}</td>
+                        <td class="td-name" data-label="">{{ ev.get('イベント名', '') }}</td>
+                        <td class="td-brand" data-label="ブランド">{{ ev.get('販売ブランド', '') }}</td>
+                        <td class="td-brand" data-label="場所">{{ ev.get('場所', '') }}</td>
+                        <td class="td-actions" data-label="">
                             <a href="/admin/events/{{ ev._row }}" class="btn-edit">編集</a>
-
-                            <!--
-                                削除フォーム:
-                                - GET ではなく POST にすることで誤クリックや先読みによる
-                                  意図しない削除を防ぐ
-                                - onclick の confirm() で二重確認を行う
-                            -->
                             <form method="post" action="/admin/events/{{ ev._row }}/delete" style="display:inline;">
                                 <button type="submit" class="btn-delete"
                                     onclick="return confirm('「{{ ev.get("イベント名", "このイベント") }}」を削除しますか？')">

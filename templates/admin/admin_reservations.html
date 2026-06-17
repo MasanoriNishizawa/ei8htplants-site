@@ -322,6 +322,75 @@
             background: #fff;
             border: 1px solid #e0e0e0;
         }
+
+        /* =========================================
+           レスポンシブ（スマホ）
+           ========================================= */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 12px; }
+            .topbar-brand { display: none; }
+            .topbar-left { gap: 0; }
+            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
+            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
+
+            .main { margin: 16px auto; padding: 0 12px 60px; }
+            .page-head { margin-bottom: 16px; }
+
+            /* サマリーカード */
+            .summary { gap: 8px; }
+            .summary-card { min-width: calc(50% - 4px); padding: 12px 14px; }
+            .summary-value { font-size: 18px; }
+
+            /* フィルターバー */
+            .filter-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
+            select.filter-select { min-width: 100%; }
+
+            /* テーブル → カードレイアウト */
+            .table-wrap { overflow-x: visible; }
+            table { border: none; background: transparent; }
+            thead { display: none; }
+            tbody tr {
+                display: block;
+                background: #fff;
+                border: 1px solid #e0e0e0;
+                margin-bottom: 10px;
+                padding: 14px 16px;
+            }
+            tbody tr:hover td { background: transparent; }
+            .cancelled-row { opacity: .45; }
+            .cancelled-row td { opacity: 1; }
+            tbody td {
+                display: flex;
+                gap: 8px;
+                padding: 3px 0;
+                border: none;
+                font-size: 13px;
+                align-items: flex-start;
+                max-width: 100%;
+                overflow: visible;
+                text-overflow: clip;
+                white-space: normal;
+            }
+            tbody td::before {
+                content: attr(data-label);
+                font-size: 10px;
+                color: #aaa;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+                min-width: 52px;
+                flex-shrink: 0;
+                padding-top: 2px;
+            }
+            tbody td[data-label=""]::before { display: none; }
+            .td-event { font-weight: 500; }
+            .td-contact { font-size: 12px; word-break: break-all; }
+            .td-note { font-size: 12px; }
+            .td-num { text-align: left; }
+            .memo-cell { min-width: 0; max-width: 100%; width: 100%; }
+            .memo-wrap { flex-direction: column; }
+            .memo-input { min-height: 50px; width: 100%; }
+            .btn-memo-save { align-self: flex-end; margin-top: 4px; }
+        }
     </style>
 </head>
 <body>
@@ -420,25 +489,25 @@
                 {% for r in reservations %}
                 {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
                 <tr class="{{ 'cancelled-row' if cancelled else '' }}">
-                    <td class="td-ts">{{ r.get('タイムスタンプ', '')[:10] }}</td>
-                    <td class="td-event" title="{{ r.get('イベント名', '') }}">{{ r.get('イベント名', '') }}</td>
-                    <td class="td-name">
+                    <td class="td-ts" data-label="受付日時">{{ r.get('タイムスタンプ', '')[:10] }}</td>
+                    <td class="td-event" data-label="イベント" title="{{ r.get('イベント名', '') }}">{{ r.get('イベント名', '') }}</td>
+                    <td class="td-name" data-label="お名前">
                         <a href="/admin/reservations/history?email={{ r.get('メール', '') | urlencode }}"
                            style="color:inherit; text-decoration:none; border-bottom:1px solid #ddd;">
                             {{ r.get('お名前', '') }}
                         </a>
                     </td>
-                    <td class="td-contact" title="{{ r.get('メール', '') }}">{{ r.get('メール', '') }}</td>
-                    <td class="td-date">{{ r.get('希望日', '') }}</td>
-                    <td class="td-time">{{ r.get('希望時間帯', '') }}</td>
-                    <td class="td-num">{{ r.get('参加人数', '') }}</td>
-                    <td>
+                    <td class="td-contact" data-label="連絡先" title="{{ r.get('メール', '') }}">{{ r.get('メール', '') }}</td>
+                    <td class="td-date" data-label="希望日">{{ r.get('希望日', '') }}</td>
+                    <td class="td-time" data-label="時間帯">{{ r.get('希望時間帯', '') }}</td>
+                    <td class="td-num" data-label="人数">{{ r.get('参加人数', '') }}</td>
+                    <td data-label="持込み">
                         {% if r.get('お持ち込み') %}
                         <span class="badge">{{ r.get('お持ち込み', '') }}</span>
                         {% endif %}
                     </td>
-                    <td class="td-note" title="{{ r.get('備考', '') }}">{{ r.get('備考', '') }}</td>
-                    <td class="memo-cell">
+                    <td class="td-note" data-label="備考" title="{{ r.get('備考', '') }}">{{ r.get('備考', '') }}</td>
+                    <td class="memo-cell" data-label="メモ">
                         <div class="memo-wrap">
                             <textarea class="memo-input" rows="1"
                                 data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
@@ -446,7 +515,7 @@
                                 onclick="saveMemo(this)">保存</button>
                         </div>
                     </td>
-                    <td class="td-status">
+                    <td class="td-status" data-label="">
                         {% if cancelled %}
                         <span class="cancelled-badge">キャンセル済</span>
                         {% elif r.get('キャンセルトークン') %}

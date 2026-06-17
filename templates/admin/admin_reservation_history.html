@@ -168,6 +168,23 @@
             background: #fff;
             border: 1px solid #e0e0e0;
         }
+
+        /* =========================================
+           レスポンシブ（スマホ）
+           ========================================= */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 12px; }
+            .topbar-brand { display: none; }
+            .topbar-left { gap: 0; }
+            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
+            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
+
+            .main { max-width: 100%; margin: 16px auto; padding: 0 12px 60px; }
+            .page-head { gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+            .page-email { font-size: 13px; word-break: break-all; }
+            .history-item { padding: 14px 16px; }
+            .history-meta { gap: 8px; }
+        }
     </style>
 </head>
 <body>

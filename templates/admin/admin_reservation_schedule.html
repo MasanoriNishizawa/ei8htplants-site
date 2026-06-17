@@ -123,6 +123,51 @@
 
         .empty { color: #aaa; font-size: 13px; background: #fff; border: 1px solid #e0e0e0; padding: 40px; text-align: center; }
 
+        /* ── レスポンシブ（スマホ） ── */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 12px; }
+            .topbar-brand { display: none; }
+            .topbar-left { gap: 0; }
+            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
+            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
+
+            .main { max-width: 100%; margin: 16px auto; padding: 0 12px 60px; }
+            .page-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .head-left { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .btn-pdf { width: 100%; text-align: center; }
+
+            /* テーブル → カードレイアウト */
+            table { border: none; background: transparent; }
+            thead { display: none; }
+            tbody tr {
+                display: block;
+                background: #fff;
+                border: 1px solid #e0e0e0;
+                margin-bottom: 8px;
+                padding: 10px 14px;
+            }
+            tbody td {
+                display: flex;
+                gap: 8px;
+                padding: 3px 0;
+                border: none;
+                font-size: 13px;
+                align-items: flex-start;
+            }
+            tbody td::before {
+                content: attr(data-label);
+                font-size: 10px;
+                color: #aaa;
+                letter-spacing: 1px;
+                min-width: 36px;
+                flex-shrink: 0;
+                padding-top: 2px;
+            }
+            tbody td[data-label=""]::before { display: none; }
+            .summary-row { display: block; padding: 8px 14px; }
+            .summary-row td { display: inline; border: none; padding: 0; }
+        }
+
         /* ── 印刷スタイル ── */
         @media print {
             body { background: #fff; font-size: 12px; }
@@ -187,11 +232,11 @@
                 <tbody>
                     {% for r in rows %}
                     <tr>
-                        <td class="td-no">{{ loop.index }}</td>
-                        <td class="td-name">{{ r.get('お名前', '') }} 様</td>
-                        <td class="td-num">{{ r.get('参加人数', '') }}</td>
-                        <td class="td-bring">{{ r.get('お持ち込み', '') or '—' }}</td>
-                        <td class="td-note">{{ r.get('備考', '') }}</td>
+                        <td class="td-no" data-label="#">{{ loop.index }}</td>
+                        <td class="td-name" data-label="">{{ r.get('お名前', '') }} 様</td>
+                        <td class="td-num" data-label="人数">{{ r.get('参加人数', '') }}</td>
+                        <td class="td-bring" data-label="持込み">{{ r.get('お持ち込み', '') or '—' }}</td>
+                        <td class="td-note" data-label="備考">{{ r.get('備考', '') }}</td>
                     </tr>
                     {% endfor %}
                     <tr class="summary-row">

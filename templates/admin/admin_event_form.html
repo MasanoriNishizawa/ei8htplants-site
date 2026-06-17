@@ -226,6 +226,21 @@
             transition: 0.2s;
         }
         .btn-cancel:hover { color: #333; border-color: #333; }
+
+        /* =========================================
+           レスポンシブ（スマホ）
+           ========================================= */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 12px; }
+            .topbar-brand { display: none; }
+            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
+            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
+
+            .main { max-width: 100%; margin: 16px auto; padding: 0 12px 60px; }
+            .form-card { padding: 24px 16px; }
+            .form-actions { flex-direction: column; }
+            .btn-save, .btn-cancel { width: 100%; text-align: center; justify-content: center; padding: 14px; }
+        }
     </style>
 </head>
 <body>
