@@ -111,6 +111,46 @@
             margin-top: 2px;
         }
 
+        /* 過去イベント */
+        .btn-past {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            background: none;
+            border: 1px solid #ddd;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 2px;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-past:hover { color: #333; border-color: #999; }
+        .past-list {
+            display: none;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 28px;
+        }
+        .past-list.open { display: block; }
+        .past-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.15s;
+        }
+        .past-item:last-child { border-bottom: none; }
+        .past-item:hover { background: #fafafa; }
+        .past-item-name { font-size: 13px; color: #555; }
+        .past-item-meta { font-size: 11px; color: #bbb; }
+
         /* フィルター */
         .filter-bar {
             display: flex;
@@ -302,21 +342,40 @@
         <h1 class="page-title">Habitat Style Workshop — 予約一覧</h1>
     </div>
 
-    <!-- イベント別合計サマリー -->
-    {% if totals %}
+    <!-- 現在・今後のイベント別合計サマリー -->
+    {% if active_totals %}
     <div class="summary">
-        {% for event_name, total in totals.items() %}
+        {% for event_name, info in active_totals.items() %}
         <a href="/admin/reservations/schedule?event={{ event_name | urlencode }}"
            style="text-decoration:none; color:inherit;">
         <div class="summary-card" style="cursor:pointer; transition:box-shadow 0.15s;"
              onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'"
              onmouseout="this.style.boxShadow='none'">
             <div class="summary-label">{{ event_name }}</div>
-            <div class="summary-value">{{ total }}<span style="font-size:14px; font-weight:400; color:#aaa;"> 名</span></div>
+            <div class="summary-value">{{ info.total }}<span style="font-size:14px; font-weight:400; color:#aaa;"> 名</span></div>
             <div class="summary-sub">予約合計（有効）</div>
         </div>
         </a>
         {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 過去のWS予約 -->
+    {% if past_ws_events %}
+    <div style="margin-bottom: 20px;">
+        <button class="btn-past" onclick="togglePast(this)">
+            <span>過去のイベント</span>
+            <span class="past-arrow">▾</span>
+        </button>
+        <div class="past-list" id="past-list">
+            {% for ev in past_ws_events %}
+            <a class="past-item"
+               href="/admin/reservations/schedule?event={{ ev.name | urlencode }}">
+                <span class="past-item-name">{{ ev.name }}</span>
+                <span class="past-item-meta">{{ ev.total }} 名</span>
+            </a>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 
@@ -410,6 +469,13 @@
 </main>
 
 <script>
+function togglePast(btn) {
+    const list = document.getElementById('past-list');
+    const arrow = btn.querySelector('.past-arrow');
+    list.classList.toggle('open');
+    arrow.textContent = list.classList.contains('open') ? '▴' : '▾';
+}
+
 function applyFilters() {
     const event = document.getElementById('filter-event').value;
     const excludeCancelled = document.getElementById('filter-exclude-cancelled').checked;
