@@ -354,6 +354,28 @@ async def admin_contacts(request: Request):
     )
 
 
+@router.get("/reservations/schedule", response_class=HTMLResponse)
+async def admin_reservations_schedule(request: Request, event: str = ""):
+    redir = _check_auth(request)
+    if redir:
+        return redir
+    all_reservations = get_all_ws_reservations_for_admin()
+    active = [
+        r for r in all_reservations
+        if r.get("イベント名") == event and r.get("キャンセル済み") != "TRUE"
+    ]
+    # 時間帯でグループ化し、昇順ソート
+    from collections import defaultdict
+    groups: dict[str, list] = defaultdict(list)
+    for r in active:
+        groups[r.get("希望時間帯", "未定")].append(r)
+    sorted_groups = dict(sorted(groups.items()))
+    return templates.TemplateResponse(
+        "admin/admin_reservation_schedule.html",
+        {"request": request, "event": event, "groups": sorted_groups},
+    )
+
+
 @router.get("/reservations/history", response_class=HTMLResponse)
 async def admin_reservation_history(request: Request, email: str = ""):
     redir = _check_auth(request)

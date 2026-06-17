@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ event }}WS予約表</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        /* ── トップバー（印刷時非表示） ── */
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 30px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 32px; }
+        .topbar-brand { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #333; text-decoration: none; }
+        .topbar-nav { display: flex; gap: 0; }
+        .nav-link {
+            font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+            color: #999; text-decoration: none; padding: 0 16px; height: 56px;
+            display: flex; align-items: center; border-bottom: 2px solid transparent; transition: 0.2s;
+        }
+        .nav-link:hover { color: #333; }
+        .nav-link.active { color: #333; border-bottom-color: #333; }
+        .topbar-logout { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #999; text-decoration: none; transition: color 0.2s; }
+        .topbar-logout:hover { color: #333; }
+
+        .main { max-width: 900px; margin: 40px auto; padding: 0 30px 80px; }
+
+        .page-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        .head-left { display: flex; align-items: center; gap: 20px; }
+        .btn-back {
+            font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+            color: #999; text-decoration: none; border: 1px solid #ddd;
+            padding: 6px 14px; border-radius: 2px; transition: 0.2s; white-space: nowrap;
+        }
+        .btn-back:hover { color: #333; border-color: #999; }
+        .head-text {}
+        .page-title { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #777; margin: 0 0 4px; font-weight: 400; }
+        .page-event { font-size: 18px; font-weight: 500; color: #333; margin: 0; }
+
+        .btn-pdf {
+            font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+            background: #333; color: #fff; border: none; padding: 10px 20px;
+            cursor: pointer; font-family: inherit; border-radius: 2px; transition: background 0.2s;
+        }
+        .btn-pdf:hover { background: #555; }
+
+        /* ── 時間帯ブロック ── */
+        .time-block { margin-bottom: 32px; }
+
+        .time-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .time-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            letter-spacing: 0.05em;
+        }
+        .time-total {
+            font-size: 11px;
+            color: #aaa;
+            letter-spacing: 1px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+        th {
+            font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+            color: #999; font-weight: 500; padding: 10px 14px;
+            text-align: left; border-bottom: 1px solid #e0e0e0; white-space: nowrap;
+            background: #fafafa;
+        }
+        td {
+            padding: 11px 14px; border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle; font-size: 13px;
+        }
+        tr:last-child td { border-bottom: none; }
+        .td-no { color: #bbb; font-size: 11px; width: 36px; text-align: center; }
+        .td-name { font-weight: 500; white-space: nowrap; }
+        .td-num { text-align: center; font-weight: 600; }
+        .td-bring { color: #666; font-size: 12px; }
+        .td-note { color: #888; font-size: 12px; max-width: 200px; }
+
+        .summary-row {
+            background: #f9f9f9;
+            font-size: 12px;
+            color: #666;
+        }
+        .summary-row td { border-top: 1px solid #e8e8e8; padding: 8px 14px; }
+        .summary-row .summary-total { font-weight: 600; color: #333; text-align: center; }
+
+        .empty { color: #aaa; font-size: 13px; background: #fff; border: 1px solid #e0e0e0; padding: 40px; text-align: center; }
+
+        /* ── 印刷スタイル ── */
+        @media print {
+            body { background: #fff; font-size: 12px; }
+            .topbar, .btn-back, .btn-pdf { display: none !important; }
+            .main { max-width: 100%; margin: 0; padding: 16px; }
+            .page-head { margin-bottom: 20px; }
+            .page-event { font-size: 16px; }
+            .time-block { margin-bottom: 20px; page-break-inside: avoid; }
+            table { font-size: 11px; }
+            th { font-size: 9px; padding: 7px 10px; }
+            td { padding: 7px 10px; }
+            .td-note { max-width: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar-left">
+        <span class="topbar-brand">ei8ht plants — Admin</span>
+        <nav class="topbar-nav">
+            <a href="/admin/events" class="nav-link">Events</a>
+            <a href="/admin/reservations" class="nav-link active">WS予約</a>
+            <a href="/admin/contacts" class="nav-link">お問い合わせ</a>
+        </nav>
+    </div>
+    <a href="/admin/logout" class="topbar-logout">Logout</a>
+</header>
+
+<main class="main">
+
+    <div class="page-head">
+        <div class="head-left">
+            <a href="/admin/reservations" class="btn-back">← 一覧に戻る</a>
+            <div class="head-text">
+                <p class="page-title">WS 予約表</p>
+                <p class="page-event">{{ event }}</p>
+            </div>
+        </div>
+        <button class="btn-pdf" onclick="window.print()">PDF ダウンロード</button>
+    </div>
+
+    {% if groups %}
+        {% for time_slot, rows in groups.items() %}
+        {% set slot_total = namespace(n=0) %}
+        {% for r in rows %}{% set slot_total.n = slot_total.n + (r.get('参加人数', '0') | int) %}{% endfor %}
+        <div class="time-block">
+            <div class="time-header">
+                <span class="time-label">{{ time_slot }}</span>
+                <span class="time-total">計 {{ slot_total.n }} 名</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="td-no">#</th>
+                        <th>お名前</th>
+                        <th>人数</th>
+                        <th>お持ち込み</th>
+                        <th>備考</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rows %}
+                    <tr>
+                        <td class="td-no">{{ loop.index }}</td>
+                        <td class="td-name">{{ r.get('お名前', '') }} 様</td>
+                        <td class="td-num">{{ r.get('参加人数', '') }}</td>
+                        <td class="td-bring">{{ r.get('お持ち込み', '') or '—' }}</td>
+                        <td class="td-note">{{ r.get('備考', '') }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="summary-row">
+                        <td colspan="2" style="text-align:right; color:#aaa;">小計</td>
+                        <td class="summary-total">{{ slot_total.n }}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty">有効な予約がありません</div>
+    {% endif %}
+
+</main>
+</body>
+</html>
