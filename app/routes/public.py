@@ -28,7 +28,12 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from ..config import SPREADSHEET_ID
 from ..drive import get_gallery_images, get_home_gallery_images
 from ..google_client import get_gc
-from ..email import send_contact_confirmation, send_contact_notification
+from ..email import (
+    send_cancellation_confirmation,
+    send_contact_confirmation,
+    send_contact_notification,
+    send_reservation_notification,
+)
 from ..sheets import (
     WS_MAX_PARTICIPANTS,
     _enrich_event,
@@ -349,6 +354,7 @@ async def reserve_submit(request: Request):
 
         await asyncio.to_thread(create_ws_reservation, reservation_data)
         _fire(asyncio.to_thread(send_reservation_confirmation, reservation_data))
+        _fire(asyncio.to_thread(send_reservation_notification, reservation_data))
 
         if hasattr(request, "session"):
             request.session["reserve_flash"] = "ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。<br>メールが届かない場合は迷惑メールフォルダをご確認ください。"
@@ -551,5 +557,6 @@ async def cancel_submit(request: Request):
         reservation = await asyncio.to_thread(get_reservation_by_token, token)
         await asyncio.to_thread(cancel_reservation, token, reason)
         if reservation:
+            _fire(asyncio.to_thread(send_cancellation_confirmation, reservation, reason))
             _fire(asyncio.to_thread(send_cancellation_notification, reservation, reason))
     return RedirectResponse(f"/cancel?token={token}&done=1", status_code=303)

@@ -33,7 +33,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..auth import is_authenticated, login, logout
-from ..email import send_cancellation_notification
+from ..email import send_cancellation_confirmation, send_cancellation_notification
 from ..sheets import (
     cancel_reservation,
     create_event,
@@ -390,5 +390,6 @@ async def admin_reservations_cancel(request: Request):
         reservation = await asyncio.to_thread(get_reservation_by_token, token)
         await asyncio.to_thread(cancel_reservation, token, reason="管理者によるキャンセル処理")
         if reservation:
+            _fire(asyncio.to_thread(send_cancellation_confirmation, reservation, "管理者によるキャンセル処理"))
             _fire(asyncio.to_thread(send_cancellation_notification, reservation, "管理者によるキャンセル処理"))
     return RedirectResponse(url="/admin/reservations", status_code=302)
