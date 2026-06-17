@@ -237,10 +237,10 @@ def send_cancellation_confirmation(data: dict, reason: str = "") -> None:
             "━━━━━━━━━━━━━━━━━━",
             "",
             "またのご参加をお待ちしております。",
-            "ご不明な点がございましたら Instagram DM にてお問い合わせください。",
+            f"ご不明な点がございましたら公式ホームページ内「CONTACT」よりお問い合わせください。",
+            f"{SITE_URL}/contact",
             "",
             "ei8ht plants / Habitat Oides",
-            "@habitatoides  |  @ei8ht.plants",
             f"{SITE_URL}/events",
         ]
         print(f"[email] sending cancellation confirmation to {recipient}")
@@ -336,11 +336,11 @@ def _build_reservation_body(data: dict) -> str:
         "━━━━━━━━━━━━━━━━━━",
         "",
         "当日スタッフがご案内いたします。",
-        "ご不明な点がございましたら Instagram DM にてお問い合わせください。",
+        f"ご不明な点がございましたら公式ホームページ内「CONTACT」よりお問い合わせください。",
+        f"{SITE_URL}/contact",
     ] + cancel_section + [
         "",
         "ei8ht plants / Habitat Oides",
-        "@habitatoides  |  @ei8ht.plants",
         f"{SITE_URL}/events",
     ]
     return "\n".join(lines)
