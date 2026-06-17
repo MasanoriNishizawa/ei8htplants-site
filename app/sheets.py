@@ -425,12 +425,17 @@ def get_ws_reservation_count(event_name: str, date: str, time_slot: str) -> int:
     if len(rows) < 2:
         return 0
 
+    headers = rows[0]
+    cancel_col = headers.index("キャンセル済み") if "キャンセル済み" in headers else None
+
     # 比較用に日付を YYYY-MM-DD に正規化
     norm_date = str(date).replace("/", "-").split(" ")[0]
 
     count = 0
     for row in rows[1:]:  # ヘッダー行をスキップ
         if len(row) < 7:
+            continue
+        if cancel_col is not None and len(row) > cancel_col and row[cancel_col] == "TRUE":
             continue
         row_date = str(row[4]).replace("/", "-").split(" ")[0]
         if (str(row[1]) == str(event_name)
