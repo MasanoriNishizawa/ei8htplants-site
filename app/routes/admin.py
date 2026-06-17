@@ -348,6 +348,19 @@ async def admin_contacts(request: Request):
     )
 
 
+@router.get("/reservations/history", response_class=HTMLResponse)
+async def admin_reservation_history(request: Request, email: str = ""):
+    redir = _check_auth(request)
+    if redir:
+        return redir
+    all_reservations = get_all_ws_reservations_for_admin()
+    history = [r for r in all_reservations if r.get("メール") == email]
+    return templates.TemplateResponse(
+        "admin/admin_reservation_history.html",
+        {"request": request, "email": email, "history": history},
+    )
+
+
 @router.post("/reservations/cancel")
 async def admin_reservations_cancel(request: Request):
     redir = _check_auth(request)

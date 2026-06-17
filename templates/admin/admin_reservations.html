@@ -298,7 +298,12 @@
                 <tr class="{{ 'cancelled-row' if cancelled else '' }}">
                     <td class="td-ts">{{ r.get('タイムスタンプ', '') }}</td>
                     <td class="td-event">{{ r.get('イベント名', '') }}</td>
-                    <td class="td-name">{{ r.get('お名前', '') }}</td>
+                    <td class="td-name">
+                        <a href="/admin/reservations/history?email={{ r.get('メール', '') | urlencode }}"
+                           style="color:inherit; text-decoration:none; border-bottom:1px solid #ddd;">
+                            {{ r.get('お名前', '') }}
+                        </a>
+                    </td>
                     <td class="td-contact">{{ r.get('メール', '') }}</td>
                     <td class="td-date">{{ r.get('希望日', '') }}</td>
                     <td class="td-time">{{ r.get('希望時間帯', '') }}</td>
