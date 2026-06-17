@@ -350,16 +350,16 @@ def create_ws_reservation(data: dict) -> None:
     「WS予約」シートに予約データを 1 行追記する。
 
     シートが存在しない場合は自動作成し、ヘッダー行を挿入する。
-    列順: タイムスタンプ, イベント名, お名前, メール, 電話番号,
+    列順: タイムスタンプ, イベント名, お名前, メール,
           希望日, 希望時間帯, 参加人数, お持ち込み, 備考
     """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(WS_SHEET_NAME)
     except Exception:
-        ws = sh.add_worksheet(title=WS_SHEET_NAME, rows=1000, cols=10)
+        ws = sh.add_worksheet(title=WS_SHEET_NAME, rows=1000, cols=9)
         ws.append_row(
-            ["タイムスタンプ", "イベント名", "お名前", "メール", "電話番号",
+            ["タイムスタンプ", "イベント名", "お名前", "メール",
              "希望日", "希望時間帯", "参加人数", "お持ち込み", "備考"],
             value_input_option="RAW",
         )
@@ -371,7 +371,6 @@ def create_ws_reservation(data: dict) -> None:
             data.get("イベント名", ""),
             data.get("お名前", ""),
             data.get("メール", ""),
-            data.get("電話番号", ""),
             data.get("希望日", ""),
             data.get("希望時間帯", ""),
             data.get("参加人数", ""),
@@ -386,9 +385,9 @@ def get_ws_reservation_count(event_name: str, date: str, time_slot: str) -> int:
     """
     「WS予約」シートから指定イベント×日付×時間帯の予約済み参加人数合計を返す。
 
-    GAS が appendRow で書き込む列順:
+    列順:
       0: タイムスタンプ, 1: イベント名, 2: お名前, 3: メール,
-      4: 電話, 5: 希望日, 6: 希望時間帯, 7: 参加人数
+      4: 希望日, 5: 希望時間帯, 6: 参加人数
 
     Sheets が日付を自動フォーマットして "/" 区切りになる場合があるため
     どちらの形式も正規化して比較する。
@@ -411,14 +410,14 @@ def get_ws_reservation_count(event_name: str, date: str, time_slot: str) -> int:
 
     count = 0
     for row in rows[1:]:  # ヘッダー行をスキップ
-        if len(row) < 8:
+        if len(row) < 7:
             continue
-        row_date = str(row[5]).replace("/", "-").split(" ")[0]
+        row_date = str(row[4]).replace("/", "-").split(" ")[0]
         if (str(row[1]) == str(event_name)
                 and row_date == norm_date
-                and str(row[6]) == str(time_slot)):
+                and str(row[5]) == str(time_slot)):
             try:
-                count += int(row[7])
+                count += int(row[6])
             except (ValueError, TypeError):
                 pass
     return count
