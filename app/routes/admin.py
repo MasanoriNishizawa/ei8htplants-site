@@ -165,9 +165,11 @@ async def admin_reservations(request: Request, event: str = ""):
         event_names = list(dict.fromkeys(r.get("イベント名", "") for r in reservations if r.get("イベント名")))
         # 絞り込み
         filtered = [r for r in reservations if r.get("イベント名") == event] if event else reservations
-        # イベント別合計参加人数
+        # イベント別合計参加人数（キャンセル済み除外）
         totals: dict[str, int] = {}
         for r in reservations:
+            if r.get("キャンセル済み") == "TRUE":
+                continue
             name = r.get("イベント名", "")
             try:
                 totals[name] = totals.get(name, 0) + int(r.get("参加人数", 0))
