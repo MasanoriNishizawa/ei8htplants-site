@@ -27,10 +27,13 @@ URL 構成（/admin プレフィックスは app/__init__.py で付与）:
 直接 /admin/login にアクセスするか、URL を知っている人のみ使用可能。
 """
 
+import asyncio
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..auth import is_authenticated, login, logout
+from ..email import send_cancellation_notification
 from ..sheets import (
     cancel_reservation,
     create_event,
@@ -39,9 +42,18 @@ from ..sheets import (
     get_all_events_for_admin,
     get_all_ws_reservations_for_admin,
     get_event_row,
+    get_reservation_by_token,
     update_event,
 )
 from ..templates import templates
+
+_task_refs: set = set()
+
+
+def _fire(coro) -> None:
+    task = asyncio.create_task(coro)
+    _task_refs.add(task)
+    task.add_done_callback(_task_refs.discard)
 
 router = APIRouter()
 
@@ -342,5 +354,8 @@ async def admin_reservations_cancel(request: Request):
     form = await request.form()
     token = str(form.get("token", "")).strip()
     if token:
-        cancel_reservation(token, reason="管理者によるキャンセル処理")
+        reservation = await asyncio.to_thread(get_reservation_by_token, token)
+        await asyncio.to_thread(cancel_reservation, token, reason="管理者によるキャンセル処理")
+        if reservation:
+            _fire(asyncio.to_thread(send_cancellation_notification, reservation, "管理者によるキャンセル処理"))
     return RedirectResponse(url="/admin/reservations", status_code=302)

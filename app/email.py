@@ -163,6 +163,48 @@ def send_contact_notification(data: dict) -> None:
         print(f"[email] ERROR sending contact notification: {e}")
 
 
+def send_cancellation_notification(data: dict, reason: str = "") -> None:
+    refresh_token = settings.gmail_refresh_token
+    sender = settings.gmail_sender
+
+    if not refresh_token or not settings.gmail_client_id:
+        print("[email] SKIP: GMAIL_REFRESH_TOKEN or GMAIL_CLIENT_ID not set")
+        return
+
+    try:
+        event = data.get("イベント名", "")
+        name = data.get("お名前", "")
+        subject = f"【キャンセル通知】{event} — {name} 様"
+        lines = [
+            "ワークショップ予約がキャンセルされました。",
+            "",
+            "━━━━━━━━━━━━━━━━━━",
+            "【キャンセル対象予約】",
+            f"イベント　：{event}",
+            f"お名前　　：{name} 様",
+            f"ご希望日　：{data.get('希望日', '').replace('-', '/')}",
+            f"時間帯　　：{data.get('希望時間帯', '')}",
+            f"参加人数　：{data.get('参加人数', '')} 名",
+        ]
+        if reason:
+            lines.append(f"キャンセル理由：{reason}")
+        lines += [
+            "━━━━━━━━━━━━━━━━━━",
+        ]
+        print(f"[email] sending cancellation notification for {name}")
+        _send_via_api(
+            refresh_token=refresh_token,
+            sender_email=sender,
+            sender_name="ei8ht plants 予約システム",
+            to=sender,
+            subject=subject,
+            body="\n".join(lines),
+        )
+        print(f"[email] cancellation notification sent")
+    except Exception as e:
+        print(f"[email] ERROR sending cancellation notification: {e}")
+
+
 def _build_reservation_body(data: dict) -> str:
     date_text = data.get("希望日", "").replace("-", "/")
     bring = data.get("お持ち込み", "") or "なし"

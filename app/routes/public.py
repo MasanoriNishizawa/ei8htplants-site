@@ -542,10 +542,14 @@ async def cancel_form(request: Request, token: str = "", done: str = ""):
 
 @router.post("/cancel", response_class=HTMLResponse)
 async def cancel_submit(request: Request):
-    from ..sheets import cancel_reservation
+    from ..sheets import cancel_reservation, get_reservation_by_token
+    from ..email import send_cancellation_notification
     form = await request.form()
     token = str(form.get("token", "")).strip()
     reason = str(form.get("reason", "")).strip()
     if token:
+        reservation = await asyncio.to_thread(get_reservation_by_token, token)
         await asyncio.to_thread(cancel_reservation, token, reason)
+        if reservation:
+            _fire(asyncio.to_thread(send_cancellation_notification, reservation, reason))
     return RedirectResponse(f"/cancel?token={token}&done=1", status_code=303)
