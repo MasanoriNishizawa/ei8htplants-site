@@ -339,14 +339,16 @@ def get_all_ws_reservations_for_admin() -> list[dict]:
         return []
     headers = rows[0]
     result = []
-    for row in rows[1:]:
+    for sheet_row, row in enumerate(rows[1:], start=2):
         padded = row + [""] * (len(headers) - len(row))
-        result.append(dict(zip(headers, padded)))
+        d = dict(zip(headers, padded))
+        d["_row"] = sheet_row
+        result.append(d)
     result.sort(key=lambda x: x.get("タイムスタンプ", ""), reverse=True)
     return result
 
 
-_WS_CANCEL_COLS = ["キャンセルトークン", "キャンセル済み", "キャンセル理由", "キャンセル日時"]
+_WS_CANCEL_COLS = ["キャンセルトークン", "キャンセル済み", "キャンセル理由", "キャンセル日時", "メモ"]
 
 
 def _ensure_cancel_columns(ws) -> None:
@@ -365,18 +367,18 @@ def create_ws_reservation(data: dict) -> None:
     data にキャンセルトークンを書き込むことでメール送信側がリンクを生成できる。
     列順: タイムスタンプ, イベント名, お名前, メール,
           希望日, 希望時間帯, 参加人数, お持ち込み, 備考,
-          キャンセルトークン, キャンセル済み, キャンセル理由, キャンセル日時
+          キャンセルトークン, キャンセル済み, キャンセル理由, キャンセル日時, メモ
     """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(WS_SHEET_NAME)
         _ensure_cancel_columns(ws)
     except Exception:
-        ws = sh.add_worksheet(title=WS_SHEET_NAME, rows=1000, cols=13)
+        ws = sh.add_worksheet(title=WS_SHEET_NAME, rows=1000, cols=14)
         ws.append_row(
             ["タイムスタンプ", "イベント名", "お名前", "メール",
              "希望日", "希望時間帯", "参加人数", "お持ち込み", "備考",
-             "キャンセルトークン", "キャンセル済み", "キャンセル理由", "キャンセル日時"],
+             "キャンセルトークン", "キャンセル済み", "キャンセル理由", "キャンセル日時", "メモ"],
             value_input_option="RAW",
         )
 
@@ -395,7 +397,7 @@ def create_ws_reservation(data: dict) -> None:
             data.get("参加人数", ""),
             data.get("お持ち込み", ""),
             data.get("備考", ""),
-            token, "", "", "",
+            token, "", "", "", "",
         ],
         value_input_option="RAW",
     )
@@ -458,6 +460,17 @@ def get_reservation_by_token(token: str) -> dict | None:
         if r.get("キャンセルトークン") == token:
             return r
     return None
+
+
+def update_reservation_memo(row_num: int, memo: str) -> None:
+    sh = get_gc().open_by_key(SPREADSHEET_ID)
+    ws = sh.worksheet(WS_SHEET_NAME)
+    headers = ws.row_values(1)
+    if "メモ" not in headers:
+        _ensure_cancel_columns(ws)
+        headers = ws.row_values(1)
+    memo_col = headers.index("メモ") + 1
+    ws.update_cell(row_num, memo_col, memo)
 
 
 def cancel_reservation(token: str, reason: str = "") -> bool:

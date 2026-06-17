@@ -149,6 +149,16 @@
             border-radius: 2px;
             white-space: nowrap;
         }
+        .history-memo {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+            padding: 6px 10px;
+            background: #f9f9f9;
+            border-left: 2px solid #e0e0e0;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
 
         .empty {
             text-align: center;
@@ -198,6 +208,9 @@
                     <span>{{ r.get('希望時間帯', '') }}</span>
                     <span>{{ r.get('参加人数', '') }} 名</span>
                 </div>
+                {% if r.get('メモ') %}
+                <div class="history-memo">{{ r.get('メモ', '') }}</div>
+                {% endif %}
             </div>
             {% if cancelled %}
             <span class="cancelled-badge">キャンセル済</span>

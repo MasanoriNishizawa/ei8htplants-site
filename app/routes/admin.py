@@ -44,6 +44,7 @@ from ..sheets import (
     get_event_row,
     get_reservation_by_token,
     update_event,
+    update_reservation_memo,
 )
 from ..templates import templates
 
@@ -359,6 +360,23 @@ async def admin_reservation_history(request: Request, email: str = ""):
         "admin/admin_reservation_history.html",
         {"request": request, "email": email, "history": history},
     )
+
+
+@router.post("/reservations/memo")
+async def admin_reservations_memo(request: Request):
+    redir = _check_auth(request)
+    if redir:
+        return redir
+    form = await request.form()
+    try:
+        row_num = int(form.get("row", 0))
+        memo = str(form.get("memo", "")).strip()
+        if row_num:
+            await asyncio.to_thread(update_reservation_memo, row_num, memo)
+    except Exception:
+        pass
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"ok": True})
 
 
 @router.post("/reservations/cancel")

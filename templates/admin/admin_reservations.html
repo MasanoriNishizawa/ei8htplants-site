@@ -211,6 +211,43 @@
         }
         .btn-cancel-row:hover { color: #c62828; border-color: #c62828; }
 
+        .memo-cell { min-width: 180px; max-width: 260px; }
+        .memo-wrap { display: flex; gap: 6px; align-items: flex-start; }
+        textarea.memo-input {
+            flex: 1;
+            padding: 5px 8px;
+            border: 1px solid #e0e0e0;
+            font-size: 12px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 36px;
+            border-radius: 2px;
+            color: #333;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fafafa;
+        }
+        textarea.memo-input:focus { border-color: #999; background: #fff; }
+        .btn-memo-save {
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #999;
+            background: none;
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 2px;
+            transition: 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            align-self: flex-start;
+            margin-top: 1px;
+        }
+        .btn-memo-save:hover { color: #333; border-color: #999; }
+        .btn-memo-save.saved { color: #4caf50; border-color: #4caf50; }
+
         .badge {
             display: inline-block;
             padding: 2px 8px;
@@ -289,6 +326,7 @@
                     <th>人数</th>
                     <th>お持ち込み</th>
                     <th>備考</th>
+                    <th>メモ</th>
                     <th></th>
                 </tr>
             </thead>
@@ -314,6 +352,14 @@
                         {% endif %}
                     </td>
                     <td class="td-note">{{ r.get('備考', '') }}</td>
+                    <td class="memo-cell">
+                        <div class="memo-wrap">
+                            <textarea class="memo-input" rows="1"
+                                data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
+                            <button type="button" class="btn-memo-save"
+                                onclick="saveMemo(this)">保存</button>
+                        </div>
+                    </td>
                     <td class="td-status">
                         {% if cancelled %}
                         <span class="cancelled-badge">キャンセル済</span>
@@ -337,5 +383,31 @@
     {% endif %}
 
 </main>
+
+<script>
+function saveMemo(btn) {
+    const textarea = btn.closest('.memo-wrap').querySelector('.memo-input');
+    const row = textarea.dataset.row;
+    const memo = textarea.value;
+    const body = new URLSearchParams({ row, memo });
+    btn.textContent = '...';
+    btn.disabled = true;
+    fetch('/admin/reservations/memo', { method: 'POST', body })
+        .then(r => r.json())
+        .then(() => {
+            btn.textContent = '保存済';
+            btn.classList.add('saved');
+            setTimeout(() => {
+                btn.textContent = '保存';
+                btn.classList.remove('saved');
+                btn.disabled = false;
+            }, 2000);
+        })
+        .catch(() => {
+            btn.textContent = '保存';
+            btn.disabled = false;
+        });
+}
+</script>
 </body>
 </html>
