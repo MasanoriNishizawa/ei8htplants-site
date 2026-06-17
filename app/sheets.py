@@ -372,7 +372,6 @@ def create_ws_reservation(data: dict) -> None:
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(WS_SHEET_NAME)
-        _ensure_cancel_columns(ws)
     except Exception:
         ws = sh.add_worksheet(title=WS_SHEET_NAME, rows=1000, cols=14)
         ws.append_row(
@@ -381,6 +380,7 @@ def create_ws_reservation(data: dict) -> None:
              "キャンセルトークン", "キャンセル済み", "キャンセル理由", "キャンセル日時", "メモ"],
             value_input_option="RAW",
         )
+    _ensure_cancel_columns(ws)
 
     token = str(uuid.uuid4())
     data["キャンセルトークン"] = token  # メール送信側で参照する
