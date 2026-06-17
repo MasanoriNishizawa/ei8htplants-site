@@ -355,6 +355,9 @@ def _ensure_cancel_columns(ws) -> None:
     headers = ws.row_values(1)
     missing = [c for c in _WS_CANCEL_COLS if c not in headers]
     if missing:
+        needed_cols = len(headers) + len(missing)
+        if ws.col_count < needed_cols:
+            ws.resize(rows=ws.row_count, cols=needed_cols)
         start = len(headers) + 1
         for i, name in enumerate(missing):
             ws.update_cell(1, start + i, name)
