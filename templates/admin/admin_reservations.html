@@ -144,6 +144,21 @@
             font-size: 12px;
             color: #aaa;
         }
+        .filter-check {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            user-select: none;
+        }
+        .filter-check input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: #333;
+        }
 
         /* テーブル */
         .table-wrap { overflow-x: auto; }
@@ -303,12 +318,17 @@
     <!-- イベント絞り込み -->
     <div class="filter-bar">
         <span class="filter-label">絞り込み</span>
-        <select class="filter-select" onchange="location.href='/admin/reservations' + (this.value ? '?event=' + encodeURIComponent(this.value) : '')">
+        <select class="filter-select" id="filter-event">
             <option value="">すべてのイベント</option>
             {% for name in event_names %}
             <option value="{{ name }}" {% if name == selected_event %}selected{% endif %}>{{ name }}</option>
             {% endfor %}
         </select>
+        <label class="filter-check">
+            <input type="checkbox" id="filter-exclude-cancelled"
+                {% if exclude_cancelled %}checked{% endif %}>
+            キャンセル済を除く
+        </label>
         <span class="filter-count">{{ reservations | length }} 件</span>
     </div>
 
@@ -385,6 +405,18 @@
 </main>
 
 <script>
+function applyFilters() {
+    const event = document.getElementById('filter-event').value;
+    const excludeCancelled = document.getElementById('filter-exclude-cancelled').checked;
+    const params = new URLSearchParams();
+    if (event) params.set('event', event);
+    if (excludeCancelled) params.set('exclude_cancelled', '1');
+    const qs = params.toString();
+    location.href = '/admin/reservations' + (qs ? '?' + qs : '');
+}
+document.getElementById('filter-event').addEventListener('change', applyFilters);
+document.getElementById('filter-exclude-cancelled').addEventListener('change', applyFilters);
+
 function saveMemo(btn) {
     const textarea = btn.closest('.memo-wrap').querySelector('.memo-input');
     const row = textarea.dataset.row;

@@ -155,8 +155,8 @@ async def admin_root(request: Request):
 # ================================================================
 
 @router.get("/reservations", response_class=HTMLResponse)
-async def admin_reservations(request: Request, event: str = ""):
-    """WS予約シートの予約一覧を表示する。event クエリで絞り込み可能。"""
+async def admin_reservations(request: Request, event: str = "", exclude_cancelled: str = ""):
+    """WS予約シートの予約一覧を表示する。event・exclude_cancelled クエリで絞り込み可能。"""
     redir = _check_auth(request)
     if redir:
         return redir
@@ -165,7 +165,11 @@ async def admin_reservations(request: Request, event: str = ""):
         # イベント名の選択肢（重複除去・順序保持）
         event_names = list(dict.fromkeys(r.get("イベント名", "") for r in reservations if r.get("イベント名")))
         # 絞り込み
-        filtered = [r for r in reservations if r.get("イベント名") == event] if event else reservations
+        filtered = reservations
+        if event:
+            filtered = [r for r in filtered if r.get("イベント名") == event]
+        if exclude_cancelled == "1":
+            filtered = [r for r in filtered if r.get("キャンセル済み") != "TRUE"]
         # イベント別合計参加人数（キャンセル済み除外）
         totals: dict[str, int] = {}
         for r in reservations:
@@ -183,6 +187,7 @@ async def admin_reservations(request: Request, event: str = ""):
                 "reservations": filtered,
                 "event_names": event_names,
                 "selected_event": event,
+                "exclude_cancelled": exclude_cancelled == "1",
                 "totals": totals,
             },
         )
