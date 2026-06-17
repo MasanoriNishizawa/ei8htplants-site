@@ -526,3 +526,26 @@ async def contact_submit(request: Request):
     except Exception as e:
         return HTMLResponse(content=f"Error: {str(e)}", status_code=500)
     return RedirectResponse("/contact?sent=1", status_code=303)
+
+
+@router.get("/cancel", response_class=HTMLResponse)
+async def cancel_form(request: Request, token: str = "", done: str = ""):
+    from ..sheets import get_reservation_by_token
+    reservation = await asyncio.to_thread(get_reservation_by_token, token) if token else None
+    return templates.TemplateResponse("cancel.html", {
+        "request": request,
+        "reservation": reservation,
+        "token": token,
+        "done": done == "1",
+    })
+
+
+@router.post("/cancel", response_class=HTMLResponse)
+async def cancel_submit(request: Request):
+    from ..sheets import cancel_reservation
+    form = await request.form()
+    token = str(form.get("token", "")).strip()
+    reason = str(form.get("reason", "")).strip()
+    if token:
+        await asyncio.to_thread(cancel_reservation, token, reason)
+    return RedirectResponse(f"/cancel?token={token}&done=1", status_code=303)

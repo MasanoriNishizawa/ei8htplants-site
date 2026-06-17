@@ -32,6 +32,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..auth import is_authenticated, login, logout
 from ..sheets import (
+    cancel_reservation,
     create_event,
     delete_event,
     get_all_contacts_for_admin,
@@ -331,3 +332,15 @@ async def admin_contacts(request: Request):
         "admin/admin_contacts.html",
         {"contacts": contacts},
     )
+
+
+@router.post("/reservations/cancel")
+async def admin_reservations_cancel(request: Request):
+    redir = _check_auth(request)
+    if redir:
+        return redir
+    form = await request.form()
+    token = str(form.get("token", "")).strip()
+    if token:
+        cancel_reservation(token, reason="管理者によるキャンセル処理")
+    return RedirectResponse(url="/admin/reservations", status_code=302)

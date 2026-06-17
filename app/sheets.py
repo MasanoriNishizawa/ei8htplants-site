@@ -15,6 +15,7 @@ Google Sheets との読み書きを担うモジュール。
 書き込み後はキャッシュを無効化して表示が即反映されるようにする。
 """
 
+import uuid
 from datetime import datetime, timezone, timedelta
 
 _JST = timezone(timedelta(hours=9))
@@ -345,24 +346,42 @@ def get_all_ws_reservations_for_admin() -> list[dict]:
     return result
 
 
+_WS_CANCEL_COLS = ["キャンセルトークン", "キャンセル済み", "キャンセル理由", "キャンセル日時"]
+
+
+def _ensure_cancel_columns(ws) -> None:
+    headers = ws.row_values(1)
+    missing = [c for c in _WS_CANCEL_COLS if c not in headers]
+    if missing:
+        start = len(headers) + 1
+        for i, name in enumerate(missing):
+            ws.update_cell(1, start + i, name)
+
+
 def create_ws_reservation(data: dict) -> None:
     """
     「WS予約」シートに予約データを 1 行追記する。
 
-    シートが存在しない場合は自動作成し、ヘッダー行を挿入する。
+    data にキャンセルトークンを書き込むことでメール送信側がリンクを生成できる。
     列順: タイムスタンプ, イベント名, お名前, メール,
-          希望日, 希望時間帯, 参加人数, お持ち込み, 備考
+          希望日, 希望時間帯, 参加人数, お持ち込み, 備考,
+          キャンセルトークン, キャンセル済み, キャンセル理由, キャンセル日時
     """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(WS_SHEET_NAME)
+        _ensure_cancel_columns(ws)
     except Exception:
-        ws = sh.add_worksheet(title=WS_SHEET_NAME, rows=1000, cols=9)
+        ws = sh.add_worksheet(title=WS_SHEET_NAME, rows=1000, cols=13)
         ws.append_row(
             ["タイムスタンプ", "イベント名", "お名前", "メール",
-             "希望日", "希望時間帯", "参加人数", "お持ち込み", "備考"],
+             "希望日", "希望時間帯", "参加人数", "お持ち込み", "備考",
+             "キャンセルトークン", "キャンセル済み", "キャンセル理由", "キャンセル日時"],
             value_input_option="RAW",
         )
+
+    token = str(uuid.uuid4())
+    data["キャンセルトークン"] = token  # メール送信側で参照する
 
     timestamp = datetime.now(_JST).strftime("%Y-%m-%d %H:%M:%S")
     ws.append_row(
@@ -376,6 +395,7 @@ def create_ws_reservation(data: dict) -> None:
             data.get("参加人数", ""),
             data.get("お持ち込み", ""),
             data.get("備考", ""),
+            token, "", "", "",
         ],
         value_input_option="RAW",
     )
@@ -421,6 +441,45 @@ def get_ws_reservation_count(event_name: str, date: str, time_slot: str) -> int:
             except (ValueError, TypeError):
                 pass
     return count
+
+
+def get_reservation_by_token(token: str) -> dict | None:
+    sh = get_gc().open_by_key(SPREADSHEET_ID)
+    try:
+        ws = sh.worksheet(WS_SHEET_NAME)
+    except Exception:
+        return None
+    for r in ws.get_all_records():
+        if r.get("キャンセルトークン") == token:
+            return r
+    return None
+
+
+def cancel_reservation(token: str, reason: str = "") -> bool:
+    sh = get_gc().open_by_key(SPREADSHEET_ID)
+    try:
+        ws = sh.worksheet(WS_SHEET_NAME)
+    except Exception:
+        return False
+
+    headers = ws.row_values(1)
+    try:
+        token_col  = headers.index("キャンセルトークン") + 1
+        done_col   = headers.index("キャンセル済み") + 1
+        reason_col = headers.index("キャンセル理由") + 1
+        dt_col     = headers.index("キャンセル日時") + 1
+    except ValueError:
+        return False
+
+    col_vals = ws.col_values(token_col)
+    for i, val in enumerate(col_vals[1:], start=2):  # skip header, row is i
+        if val == token:
+            ts = datetime.now(_JST).strftime("%Y-%m-%d %H:%M:%S")
+            ws.update_cell(i, done_col, "TRUE")
+            ws.update_cell(i, reason_col, reason)
+            ws.update_cell(i, dt_col, ts)
+            return True
+    return False
 
 
 # ================================================================

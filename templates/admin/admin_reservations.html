@@ -185,6 +185,31 @@
             color: #333;
         }
         .td-note { color: #888; font-size: 12px; max-width: 200px; }
+        .td-status { white-space: nowrap; }
+        .cancelled-row td { opacity: .45; }
+        .cancelled-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #ffebee;
+            color: #c62828;
+            font-size: 10px;
+            letter-spacing: 1px;
+            border-radius: 2px;
+        }
+        .btn-cancel-row {
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #999;
+            background: none;
+            border: 1px solid #ddd;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 2px;
+            transition: 0.2s;
+        }
+        .btn-cancel-row:hover { color: #c62828; border-color: #c62828; }
 
         .badge {
             display: inline-block;
@@ -264,20 +289,17 @@
                     <th>人数</th>
                     <th>お持ち込み</th>
                     <th>備考</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for r in reservations %}
-                <tr>
+                {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
+                <tr class="{{ 'cancelled-row' if cancelled else '' }}">
                     <td class="td-ts">{{ r.get('タイムスタンプ', '') }}</td>
                     <td class="td-event">{{ r.get('イベント名', '') }}</td>
                     <td class="td-name">{{ r.get('お名前', '') }}</td>
-                    <td class="td-contact">
-                        {{ r.get('メール', '') }}
-                        {% if r.get('電話番号') %}
-                        <br>{{ r.get('電話番号', '') }}
-                        {% endif %}
-                    </td>
+                    <td class="td-contact">{{ r.get('メール', '') }}</td>
                     <td class="td-date">{{ r.get('希望日', '') }}</td>
                     <td class="td-time">{{ r.get('希望時間帯', '') }}</td>
                     <td class="td-num">{{ r.get('参加人数', '') }}</td>
@@ -287,6 +309,19 @@
                         {% endif %}
                     </td>
                     <td class="td-note">{{ r.get('備考', '') }}</td>
+                    <td class="td-status">
+                        {% if cancelled %}
+                        <span class="cancelled-badge">キャンセル済</span>
+                        {% elif r.get('キャンセルトークン') %}
+                        <form method="post" action="/admin/reservations/cancel" style="margin:0;">
+                            <input type="hidden" name="token" value="{{ r.get('キャンセルトークン', '') }}">
+                            <button type="button" class="btn-cancel-row"
+                                onclick="if(confirm('{{ r.get('お名前','') }} 様の予約をキャンセルしますか？')) this.form.submit()">
+                                キャンセル
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

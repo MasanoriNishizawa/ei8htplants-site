@@ -184,11 +184,24 @@ def _build_reservation_body(data: dict) -> str:
     if note:
         lines.append(f"備考　　　：{note}")
 
+    cancel_token = data.get("キャンセルトークン", "")
+    cancel_section = (
+        [
+            "",
+            "──────────────────",
+            "▼ キャンセルはこちら",
+            f"{SITE_URL}/cancel?token={cancel_token}",
+            "※ キャンセルの場合は上記リンクから手続きをお願いします。",
+        ]
+        if cancel_token else []
+    )
+
     lines += [
         "━━━━━━━━━━━━━━━━━━",
         "",
         "当日スタッフがご案内いたします。",
         "ご不明な点がございましたら Instagram DM にてお問い合わせください。",
+    ] + cancel_section + [
         "",
         "ei8ht plants / Habitat Oides",
         "@habitatoides  |  @ei8ht.plants",

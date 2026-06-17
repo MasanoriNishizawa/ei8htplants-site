@@ -3,4 +3,4 @@ __pycache__/
 .env
 venv/
 .DS_Store
-.claude/
+.claude/get_gmail_token.py
