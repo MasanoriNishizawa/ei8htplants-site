@@ -155,47 +155,53 @@ def get_events_data(is_past: bool = False) -> list[dict]:
     if cached is not None:
         return cached  # キャッシュヒット：API 呼び出しをスキップ
 
-    # キャッシュミス：Sheets API から取得
-    sh = get_gc().open_by_key(SPREADSHEET_ID)
-    worksheet = sh.get_worksheet(0)
-    # get_all_values() で取得することで行番号を確定できる
-    # (get_all_records() は行番号を返さないため)
-    all_values = worksheet.get_all_values()
-    if not all_values:
-        return []
+    try:
+        # キャッシュミス：Sheets API から取得
+        sh = get_gc().open_by_key(SPREADSHEET_ID)
+        worksheet = sh.get_worksheet(0)
+        # get_all_values() で取得することで行番号を確定できる
+        # (get_all_records() は行番号を返さないため)
+        all_values = worksheet.get_all_values()
+        if not all_values:
+            return []
 
-    headers = all_values[0]
-    today = datetime.now(_JST).date()
-    result = []
+        headers = all_values[0]
+        today = datetime.now(_JST).date()
+        result = []
 
-    for i, row in enumerate(all_values[1:], start=2):  # データ行は row=2 から
-        # 列数がヘッダーより少ない行は空文字でパディング
-        padded = row + [""] * (len(headers) - len(row))
-        item = dict(zip(headers, padded))
-        # 予約フォームリンク（/reserve?row=X）の生成に使うシート行番号を埋め込む
-        item["_row"] = i
+        for i, row in enumerate(all_values[1:], start=2):  # データ行は row=2 から
+            # 列数がヘッダーより少ない行は空文字でパディング
+            padded = row + [""] * (len(headers) - len(row))
+            item = dict(zip(headers, padded))
+            # 予約フォームリンク（/reserve?row=X）の生成に使うシート行番号を埋め込む
+            item["_row"] = i
 
-        start_date = parse_date(item.get("開始日"))
-        if not start_date:
-            # 開始日が空欄または不正な形式の行はスキップ
-            continue
-        end_date = parse_date(item.get("終了日")) or start_date
-
-        if is_past:
-            # 過去イベント: 終了日が今日より前のもの
-            if end_date >= today:
+            start_date = parse_date(item.get("開始日"))
+            if not start_date:
+                # 開始日が空欄または不正な形式の行はスキップ
                 continue
-        else:
-            # 現在・将来イベント: 終了日が今日以降のもの
-            if end_date < today:
-                continue
+            end_date = parse_date(item.get("終了日")) or start_date
 
-        result.append(_enrich_event(item))
+            if is_past:
+                # 過去イベント: 終了日が今日より前のもの
+                if end_date >= today:
+                    continue
+            else:
+                # 現在・将来イベント: 終了日が今日以降のもの
+                if end_date < today:
+                    continue
 
-    # 過去は新しい順、将来は古い順（直近が先頭）
-    result.sort(key=lambda x: x["start_obj"], reverse=is_past)
-    cache.set(cache_key, result)
-    return result
+            result.append(_enrich_event(item))
+
+        # 過去は新しい順、将来は古い順（直近が先頭）
+        result.sort(key=lambda x: x["start_obj"], reverse=is_past)
+        cache.set(cache_key, result)
+        return result
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Sheets API error in get_events_data: %s", e)
+        # 503 などの一時的エラー時は stale キャッシュを返す（なければ空リスト）
+        return cache.get_stale(cache_key) or []
 
 
 # ================================================================

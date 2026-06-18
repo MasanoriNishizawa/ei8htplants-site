@@ -157,20 +157,24 @@ async def read_home(request: Request):
     """
     try:
         active_events = get_events_data(is_past=False)
-        # イベントが 1 件以上あれば先頭（最も近い日付）を NEXT EVENT として表示
-        next_event = active_events[0] if active_events else None
+    except Exception:
+        active_events = []
+    try:
         gallery_images = get_home_gallery_images()
-        return templates.TemplateResponse(
-            request=request,
-            name="home.html",
-            context={
-                "request": request,
-                "next_event": next_event,
-                "gallery_images": gallery_images,
-            },
-        )
-    except Exception as e:
-        return HTMLResponse(content=f"Home Error: {str(e)}", status_code=500)
+    except Exception:
+        gallery_images = []
+
+    # イベントが 1 件以上あれば先頭（最も近い日付）を NEXT EVENT として表示
+    next_event = active_events[0] if active_events else None
+    return templates.TemplateResponse(
+        request=request,
+        name="home.html",
+        context={
+            "request": request,
+            "next_event": next_event,
+            "gallery_images": gallery_images,
+        },
+    )
 
 
 # ================================================================

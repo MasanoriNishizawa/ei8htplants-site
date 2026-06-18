@@ -55,6 +55,11 @@ class TTLCache:
         """
         self._store[key] = (value, time.monotonic() + (ttl or self._ttl))
 
+    def get_stale(self, key: str) -> Optional[Any]:
+        """TTL 切れでも値を返す。API エラー時のフォールバック用。"""
+        entry = self._store.get(key)
+        return entry[0] if entry else None
+
     def delete(self, key: str) -> None:
         """指定キーのキャッシュを即時削除する。"""
         self._store.pop(key, None)
