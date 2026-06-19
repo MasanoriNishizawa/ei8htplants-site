@@ -344,7 +344,7 @@ async def reserve_submit(request: Request):
 
         reservation_data = {
             "イベント名":   str(form.get("event_name", "")),
-            "お名前":       str(form.get("name", "")),
+            "お名前":       str(form.get("name", "")).replace("　", "").replace(" ", ""),
             "メール":       str(form.get("email", "")),
             "希望日":       str(form.get("date", "")),
             "希望時間帯":   str(form.get("time", "")),
