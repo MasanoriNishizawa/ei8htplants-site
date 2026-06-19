@@ -99,7 +99,67 @@ return None
 
 ---
 
-### 3.3 `set`
+### 3.3 `get_stale`
+
+```python
+def get_stale(self, key: str) -> Optional[Any]
+```
+
+#### 概要
+
+TTL が切れていても値を返す。Google API が一時的なエラーを返した際のフォールバック専用メソッド。
+
+#### 引数
+
+| 引数名 | 型 | 説明 |
+|---|---|---|
+| `key` | `str` | 取得するキャッシュキー |
+
+#### 戻り値
+
+| 値 | 条件 |
+|---|---|
+| キャッシュされた値 | キーが存在する（有効期限を問わない） |
+| `None` | キーが存在しない |
+
+#### 内部ロジック
+
+```python
+entry = self._store.get(key)
+return entry[0] if entry else None
+```
+
+#### `get` との違い
+
+| メソッド | 有効期限切れ時 | 副作用 |
+|---|---|---|
+| `get` | `None` を返し、エントリを削除 | 期限切れエントリをクリーンアップ |
+| `get_stale` | 期限切れ値を返す | なし（`_store` 不変） |
+
+#### 使用パターン（API エラーフォールバック）
+
+```python
+try:
+    data = api_call()           # 正常パス
+    cache.set(key, data)
+    return data
+except Exception:
+    logger.warning("API error, returning stale cache")
+    return cache.get_stale(key) or []   # フォールバック
+```
+
+3 段階フォールバック:
+1. `cache.get(key)` がヒット → 有効なキャッシュを返す（通常パス）
+2. API エラー → `cache.get_stale(key)` で期限切れの古いデータを返す
+3. キャッシュが一度も作られていない → `[]` を返す（空表示）
+
+#### 例外
+
+なし。
+
+---
+
+### 3.4 `set`
 
 ```python
 def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None

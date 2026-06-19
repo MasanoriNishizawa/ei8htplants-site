@@ -9,8 +9,8 @@
 
 ## 1. 画面概要
 
-特定のメールアドレスに紐づく全予約（キャンセル済み含む）を時系列で表示する画面。
-WS予約管理画面でお名前をクリックすることで遷移する（email クエリパラメータ渡し）。
+特定のお名前に紐づく全予約（キャンセル済み含む）を時系列で表示する画面。
+WS予約管理画面でお名前をクリックすることで遷移する（name クエリパラメータ渡し）。
 顧客の予約履歴・リピート状況を確認するための画面。
 
 ---
@@ -23,31 +23,32 @@ WS予約管理画面でお名前をクリックすることで遷移する（ema
 ```python
 async def admin_reservation_history(
     request: Request,
-    email: str = ""
+    name: str = ""
 ) -> HTMLResponse | RedirectResponse
 ```
 
 **クエリパラメータ:**
 | パラメータ | 型 | デフォルト | 説明 |
 |-----------|-----|-----------|------|
-| email | str | "" | 検索対象のメールアドレス |
+| name | str | "" | 検索対象のお名前（完全一致） |
 
 **処理フロー:**
 1. `_check_auth(request)` で認証確認
 2. `get_all_ws_reservations_for_admin()` で全予約取得（タイムスタンプ降順）
-3. メールアドレスで絞り込み:
+3. お名前で絞り込み:
    ```python
-   history = [r for r in all_reservations if r.get("メール") == email]
+   history = [r for r in all_reservations if r.get("お名前") == name]
    ```
    - 完全一致フィルター
-   - `email=""` の場合は空リストになる
+   - `name=""` の場合は空リストになる
+   - 予約送信時にスペース除去済みのため表記ゆれが少ない
 4. `admin_reservation_history.html` をレンダリング
 
 **テンプレート変数:**
 | 変数名 | 型 | 説明 |
 |--------|-----|------|
 | request | Request | Jinja2 リクエストオブジェクト |
-| email | str | 表示中のメールアドレス（ヘッダー部に表示） |
+| name | str | 表示中のお名前（ヘッダー部に表示） |
 | history | list[dict] | 絞り込み済み予約リスト（タイムスタンプ降順） |
 
 **戻り値:**
@@ -70,7 +71,7 @@ main.main (max-width: 800px)
 │   ├── a.btn-back href="/admin/reservations" "← 一覧に戻る"
 │   └── .head-text
 │       ├── p.page-title "参加履歴"
-│       └── p.page-email {{ email }}
+│       └── p.page-name {{ name }}
 │
 └── .history-list（{% if history %}）
     └── {% for r in history %}
@@ -132,13 +133,13 @@ main.main (max-width: 800px)
 ### WS予約管理画面からの遷移:
 ```html
 <!-- admin_reservations.html の名前列 -->
-<a href="/admin/reservations/history?email={{ r.get('メール', '') | urlencode }}"
+<a href="/admin/reservations/history?name={{ r.get('お名前', '') | urlencode }}"
    style="color:inherit; text-decoration:none; border-bottom:1px solid #ddd;">
     {{ r.get('お名前', '') }}
 </a>
 ```
-- Jinja2 の `urlencode` フィルターでメールアドレスをパーセントエンコード
-- 例: `test@example.com` → `test%40example.com`
+- Jinja2 の `urlencode` フィルターでお名前をパーセントエンコード
+- 例: `西澤政徳` → `%E8%A5%BF%E6%BE%A4%E6%94%BF%E5%BE%B3`
 
 ---
 
@@ -150,12 +151,12 @@ main.main (max-width: 800px)
 ブラウザ             FastAPI                  Google Sheets
   |                     |                           |
   |  (予約管理画面でお名前クリック)                 |
-  |--GET /admin/reservations/history?email=xxx@yyy-->
+  |--GET /admin/reservations/history?name=西澤政徳-->
   |                     |--_check_auth()            |
   |                     |--get_all_ws_reservations_for_admin()-->
   |                     |                           |--ws("WS予約").get_all_values()
   |                     |<--全予約データ（タイムスタンプ降順）--|
-  |                     |  r.get("メール") == "xxx@yyy" でフィルター
+  |                     |  r.get("お名前") == "西澤政徳" でフィルター
   |<--200 HTML---------|
   |  参加履歴リスト
 ```
@@ -169,7 +170,7 @@ main.main (max-width: 800px)
 | 正常: 履歴あり（有効のみ） | history に未キャンセル予約のみ | 全行が緑ドット、opacity:1 |
 | 正常: 履歴あり（混在） | キャンセル済みと有効が混在 | キャンセル済みは opacity:0.45 + 灰ドット + バッジ |
 | 正常: 履歴なし | history が空 | "履歴はありません" 表示 |
-| 正常: email="" | クエリパラメータなし | 空リスト→ "履歴はありません" |
+| 正常: name="" | クエリパラメータなし | 空リスト→ "履歴はありません" |
 | 正常: メモあり | r.get('メモ') が truthy | メモエリアを予約カード内に表示 |
 | 正常: メモなし | r.get('メモ') が falsy | メモエリアを非表示 |
 | 異常: 未認証 | セッションなし | 302 /admin/login |

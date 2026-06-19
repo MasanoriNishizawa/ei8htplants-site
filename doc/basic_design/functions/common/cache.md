@@ -24,6 +24,8 @@ Google Sheets / Drive API のレートリミット対策。
 class TTLCache:
     def get(self, key) → Any | None:
         # 期限切れなら None を返してエントリ削除
+    def get_stale(self, key) → Any | None:
+        # TTL 切れでも値を返す（API エラー時のフォールバック専用）
     def set(self, key, value, ttl=None):
         # (value, 有効期限) のタプルで保存
     def clear_prefix(self, prefix):
@@ -33,6 +35,16 @@ class TTLCache:
 
 cache = TTLCache(ttl=300)  # モジュールレベルのシングルトン
 ```
+
+### API エラー時のフォールバック戦略
+
+Google Drive / Sheets API が 503 などの一時的エラーを返した場合:
+
+1. `cache.get()` でキャッシュが有効なら → そのまま返す（通常パス）
+2. API 呼び出しが失敗したら → `cache.get_stale()` で期限切れの古いデータを返す
+3. キャッシュが一度も作られていなければ → `[]` を返す（空表示）
+
+これにより 503 エラーがユーザーに見えるエラー画面になることを防ぐ。
 
 ---
 

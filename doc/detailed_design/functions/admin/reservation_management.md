@@ -13,7 +13,7 @@ WS予約シートに対する以下の操作機能:
 2. 管理者メモの更新（Ajax）
 3. 管理者によるキャンセル処理（メール通知付き）
 4. 予約表（時間帯別一覧）表示
-5. 参加履歴（メールアドレス別）表示
+5. 参加履歴（お名前別）表示
 
 ---
 
@@ -272,11 +272,11 @@ sorted_groups = dict(sorted(groups.items()))  # 文字列昇順
 
 詳細は `doc/detailed_design/screens/admin/reservation_history.md` を参照。
 
-**キーロジック（メールフィルタリング）:**
+**キーロジック（お名前フィルタリング）:**
 ```python
-history = [r for r in all_reservations if r.get("メール") == email]
+history = [r for r in all_reservations if r.get("お名前") == name]
 ```
-完全一致フィルター。大文字小文字を区別する。
+完全一致フィルター。予約送信時にスペースを除去しているため、表記ゆれが抑えられ名前での突合精度が高い。
 
 ---
 

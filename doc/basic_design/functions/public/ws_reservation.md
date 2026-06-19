@@ -39,7 +39,7 @@ session["reserve_flash"] = "ご予約を受け付けました..."
 | キー | 値の出所 | 説明 |
 |---|---|---|
 | `イベント名` | `form["event_name"]` | |
-| `お名前` | `form["name"]` | |
+| `お名前` | `form["name"]` | 全角・半角スペースをすべて除去して保存 |
 | `メール` | `form["email"]` | |
 | `希望日` | `form["date"]` | YYYY-MM-DD |
 | `希望時間帯` | `form["time"]` | HH:MM-HH:MM |

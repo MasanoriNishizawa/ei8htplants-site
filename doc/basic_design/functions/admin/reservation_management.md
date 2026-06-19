@@ -69,12 +69,14 @@ POST /admin/reservations/cancel
 ## 参加履歴表示
 
 ```
-GET /admin/reservations/history?email=xxx
+GET /admin/reservations/history?name=xxx
 
 get_all_ws_reservations_for_admin()
-  → メールアドレスでフィルタ
+  → お名前でフィルタ（完全一致）
   → テンプレートにそのまま渡す（ソート順はタイムスタンプ降順のまま）
 ```
+
+> 検索キーをメールアドレスから名前に変更。予約送信時にスペースを除去しているため、表記ゆれが抑えられ名前での突合精度が高い。
 
 ---
 

@@ -32,7 +32,7 @@ async def reserve_submit(request: Request) -> RedirectResponse | HTMLResponse
 |------------|-----|------|------|
 | `row` | `int` | ◯ | スプレッドシートの行番号（リダイレクト先 URL に使用） |
 | `event_name` | `str` | ◯ | イベント名（`hidden` フィールド） |
-| `name` | `str` | ◯ | 申し込み者名 |
+| `name` | `str` | ◯ | 申し込み者名（全角・半角スペースをすべて除去して保存） |
 | `email` | `str` | ◯ | メールアドレス |
 | `date` | `str` | ◯ | 希望日（`YYYY-MM-DD` 形式） |
 | `time` | `str` | ◯ | 希望時間帯（例: `"13:00-14:00"`） |

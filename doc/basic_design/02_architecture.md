@@ -11,6 +11,7 @@
 | ファイルストレージ | Google Drive API | v3 |
 | メール送信 | Gmail API (OAuth2) | v1 |
 | 認証 | Starlette SessionMiddleware（署名付き Cookie） | - |
+| アクセス解析 | Google Analytics 4（GA4） | G-HCVVDNYL94 |
 | ホスティング | Render | - |
 | 言語 | Python | 3.x |
 
