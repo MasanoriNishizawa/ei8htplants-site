@@ -492,7 +492,7 @@
                     <td class="td-ts" data-label="受付日時">{{ r.get('タイムスタンプ', '')[:10] }}</td>
                     <td class="td-event" data-label="イベント" title="{{ r.get('イベント名', '') }}">{{ r.get('イベント名', '') }}</td>
                     <td class="td-name" data-label="お名前">
-                        <a href="/admin/reservations/history?email={{ r.get('メール', '') | urlencode }}"
+                        <a href="/admin/reservations/history?name={{ r.get('お名前', '') | urlencode }}"
                            style="color:inherit; text-decoration:none; border-bottom:1px solid #ddd;">
                             {{ r.get('お名前', '') }}
                         </a>

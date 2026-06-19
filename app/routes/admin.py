@@ -403,15 +403,15 @@ async def admin_reservations_schedule(request: Request, event: str = ""):
 
 
 @router.get("/reservations/history", response_class=HTMLResponse)
-async def admin_reservation_history(request: Request, email: str = ""):
+async def admin_reservation_history(request: Request, name: str = ""):
     redir = _check_auth(request)
     if redir:
         return redir
     all_reservations = get_all_ws_reservations_for_admin()
-    history = [r for r in all_reservations if r.get("メール") == email]
+    history = [r for r in all_reservations if r.get("お名前") == name]
     return templates.TemplateResponse(
         "admin/admin_reservation_history.html",
-        {"request": request, "email": email, "history": history},
+        {"request": request, "name": name, "history": history},
     )
 
 
