@@ -199,9 +199,7 @@ async def read_events(request: Request, page: str = None):
         # 過去イベントは全件をグリッドに表示（ピン留めなし）
         # 将来イベントは先頭を「NEXT EVENT」としてピン留め
         pinned_event = events_list[0] if not is_past and events_list else None
-        scheduled_events = (
-            events_list[1:] if not is_past and len(events_list) > 1 else events_list
-        )
+        scheduled_events = events_list[1:] if not is_past else events_list
         return templates.TemplateResponse(
             request=request,
             name="events.html",
