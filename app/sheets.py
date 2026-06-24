@@ -276,7 +276,7 @@ def create_event(data: dict) -> None:
     headers = worksheet.row_values(1)
     # ヘッダーに対応する値を順番通りに並べる（存在しないキーは空文字）
     row = [str(data.get(h, "")) for h in headers]
-    worksheet.append_row(row, value_input_option="RAW")
+    worksheet.append_row(row, value_input_option="RAW", insert_data_option="INSERT_ROWS")
     # 公開ページのキャッシュを無効化して次のアクセス時に最新データを返すようにする
     cache.clear_prefix("events:")
 
@@ -409,6 +409,7 @@ def create_ws_reservation(data: dict) -> None:
             token, "", "", "", "",
         ],
         value_input_option="RAW",
+        insert_data_option="INSERT_ROWS",
     )
 
 
@@ -541,6 +542,7 @@ def create_contact(data: dict) -> None:
             data.get("message", ""),
         ],
         value_input_option="RAW",
+        insert_data_option="INSERT_ROWS",
     )
 
 
