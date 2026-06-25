@@ -165,6 +165,8 @@ async def admin_reservations(request: Request, event: str = "", exclude_cancelle
     try:
         from datetime import date as _date
         reservations = get_all_ws_reservations_for_admin()
+        # 希望日昇順 → 希望時間帯昇順でソート
+        reservations.sort(key=lambda r: (r.get("希望日", ""), r.get("希望時間帯", "")))
         # イベント名の選択肢（重複除去・順序保持）
         event_names = list(dict.fromkeys(r.get("イベント名", "") for r in reservations if r.get("イベント名")))
         # 絞り込み
@@ -229,21 +231,39 @@ async def admin_reservations(request: Request, event: str = "", exclude_cancelle
 @router.get("/events", response_class=HTMLResponse)
 async def admin_events_list(request: Request):
     """
-    全イベントを開始日の降順で一覧表示する。
-    書き込み操作後にリダイレクトされてくる際にフラッシュメッセージを表示する。
-
-    session.pop() で取得することで 1 度だけ表示してセッションから削除する。
+    イベントをカレント（終了日 >= 今日）と過去（終了日 < 今日）に分けて表示する。
+    カレント: 開始日昇順（今日に近い順）
+    過去: 終了日降順（最近終わったものが上）
     """
     redir = _check_auth(request)
     if redir:
         return redir
-    # フラッシュメッセージを取得（存在すればセッションから削除）
     flash = request.session.pop("flash", None)
     try:
+        from datetime import date as _date
         _, events = get_all_events_for_admin()
+        today = _date.today()
+        current_events = []
+        past_events = []
+        for ev in events:
+            end = parse_date(ev.get("終了日") or ev.get("開始日", ""))
+            if end and end < today:
+                past_events.append(ev)
+            else:
+                current_events.append(ev)
+        current_events.sort(key=lambda e: parse_date(e.get("開始日", "")) or _date.max)
+        past_events.sort(
+            key=lambda e: parse_date(e.get("終了日") or e.get("開始日", "")) or _date.min,
+            reverse=True,
+        )
         return templates.TemplateResponse(
             "admin/admin_events.html",
-            {"request": request, "events": events, "flash": flash},
+            {
+                "request": request,
+                "current_events": current_events,
+                "past_events": past_events,
+                "flash": flash,
+            },
         )
     except Exception as e:
         return HTMLResponse(content=f"Error: {str(e)}", status_code=500)

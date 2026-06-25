@@ -198,6 +198,32 @@
         }
         .btn-delete:hover { background: #c0392b; color: #fff; border-color: #c0392b; }
 
+        /* タブ */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 24px;
+            gap: 0;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #999;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        .tab-btn:hover { color: #555; }
+        .tab-btn.active { color: #333; border-bottom-color: #333; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
         /* イベントが 0 件のとき */
         .empty {
             text-align: center;
@@ -287,47 +313,104 @@
         <div class="flash">{{ flash }}</div>
         {% endif %}
 
-        <!-- イベントが 1 件以上あれば一覧テーブルを表示 -->
-        {% if events %}
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>開始日</th>
-                        <th>終了日</th>
-                        <th>イベント名</th>
-                        <th>ブランド</th>
-                        <th>場所</th>
-                        <th></th><!-- 操作ボタン列（ヘッダーテキストなし） -->
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ev in events %}
-                    <tr>
-                        <td class="td-date" data-label="開始日">{{ ev.get('開始日', '') }}</td>
-                        <td class="td-date" data-label="終了日">{{ ev.get('終了日', '') }}</td>
-                        <td class="td-name" data-label="">{{ ev.get('イベント名', '') }}</td>
-                        <td class="td-brand" data-label="ブランド">{{ ev.get('販売ブランド', '') }}</td>
-                        <td class="td-brand" data-label="場所">{{ ev.get('場所', '') }}</td>
-                        <td class="td-actions" data-label="">
-                            <a href="/admin/events/{{ ev._row }}" class="btn-edit">編集</a>
-                            <form method="post" action="/admin/events/{{ ev._row }}/delete" style="display:inline;">
-                                <button type="submit" class="btn-delete"
-                                    onclick="return confirm('「{{ ev.get("イベント名", "このイベント") }}」を削除しますか？')">
-                                    削除
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- タブ切り替え -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('current', this)">イベント</button>
+            <button class="tab-btn" onclick="switchTab('past', this)">過去のイベント</button>
         </div>
 
-        {% else %}
-        <!-- イベントが 0 件のとき -->
-        <div class="empty">イベントがありません</div>
-        {% endif %}
+        <!-- カレントイベントタブ -->
+        <div id="tab-current" class="tab-pane active">
+            {% if current_events %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>開始日</th>
+                            <th>終了日</th>
+                            <th>イベント名</th>
+                            <th>ブランド</th>
+                            <th>場所</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ev in current_events %}
+                        <tr>
+                            <td class="td-date" data-label="開始日">{{ ev.get('開始日', '') }}</td>
+                            <td class="td-date" data-label="終了日">{{ ev.get('終了日', '') }}</td>
+                            <td class="td-name" data-label="">{{ ev.get('イベント名', '') }}</td>
+                            <td class="td-brand" data-label="ブランド">{{ ev.get('販売ブランド', '') }}</td>
+                            <td class="td-brand" data-label="場所">{{ ev.get('場所', '') }}</td>
+                            <td class="td-actions" data-label="">
+                                <a href="/admin/events/{{ ev._row }}" class="btn-edit">編集</a>
+                                <form method="post" action="/admin/events/{{ ev._row }}/delete" style="display:inline;">
+                                    <button type="submit" class="btn-delete"
+                                        onclick="return confirm('「{{ ev.get("イベント名", "このイベント") }}」を削除しますか？')">
+                                        削除
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty">イベントがありません</div>
+            {% endif %}
+        </div>
+
+        <!-- 過去のイベントタブ -->
+        <div id="tab-past" class="tab-pane">
+            {% if past_events %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>開始日</th>
+                            <th>終了日</th>
+                            <th>イベント名</th>
+                            <th>ブランド</th>
+                            <th>場所</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ev in past_events %}
+                        <tr>
+                            <td class="td-date" data-label="開始日">{{ ev.get('開始日', '') }}</td>
+                            <td class="td-date" data-label="終了日">{{ ev.get('終了日', '') }}</td>
+                            <td class="td-name" data-label="">{{ ev.get('イベント名', '') }}</td>
+                            <td class="td-brand" data-label="ブランド">{{ ev.get('販売ブランド', '') }}</td>
+                            <td class="td-brand" data-label="場所">{{ ev.get('場所', '') }}</td>
+                            <td class="td-actions" data-label="">
+                                <a href="/admin/events/{{ ev._row }}" class="btn-edit">編集</a>
+                                <form method="post" action="/admin/events/{{ ev._row }}/delete" style="display:inline;">
+                                    <button type="submit" class="btn-delete"
+                                        onclick="return confirm('「{{ ev.get("イベント名", "このイベント") }}」を削除しますか？')">
+                                        削除
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty">過去のイベントはありません</div>
+            {% endif %}
+        </div>
+
+        <script>
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            btn.classList.add('active');
+        }
+        </script>
 
     </main>
 </body>
