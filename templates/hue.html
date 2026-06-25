@@ -6,6 +6,10 @@
 
 {% block extra_css %}
 <style>
+  /* ── ヘッダー直下に隙間なし ───────────────────── */
+  .site-main { padding-top: 60px; }
+  @media (max-width: 768px) { .site-main { padding-top: 60px; } }
+
   /* ── Hero ─────────────────────────────────────── */
   .hue-hero {
     background: #fdf8f3;
@@ -237,11 +241,11 @@
       <img src="/static/img/logo-hue.png"
            class="hue-concept-logo" alt="HUE by ei8ht plants">
       <div class="hue-concept-text">
-        <h2>Color &amp; Form<br>as Expression</h2>
+        <h2>Color &amp; Form<br>as Living Art</h2>
         <p>
-          色と形が主役の植物セレクション。<br>
-          鮮やかな色彩を持つ多肉植物・観葉植物を中心に、<br>
-          空間に彩りを加える一鉢をご提案します。
+          色と形が語る、植物の美学。<br>
+          鮮やかな色彩と独特のフォルムを持つ多肉植物・観葉植物から、インテリアに溶け込む一鉢を厳選してご提案します。<br><br>
+          植物を「育てる」だけでなく、「飾る」という視点で—空間に彩りと生命感を。
         </p>
       </div>
     </div>

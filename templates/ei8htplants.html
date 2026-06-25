@@ -5,14 +5,18 @@
 
 {% block extra_css %}
 <style>
+  /* ── ヘッダー直下に隙間なし ───────────────────── */
+  .site-main { padding-top: 60px; }
+  @media (max-width: 768px) { .site-main { padding-top: 60px; } }
+
   /* ── Hero ─────────────────────────────────────── */
   .ep-hero {
     background: #eaeae6 url('https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0') center 65%/cover no-repeat;
     min-height: 60vh;
     display: flex; flex-direction: column;
-    align-items: center; justify-content: flex-start;
+    align-items: center; justify-content: center;
     text-align: center;
-    padding: 60px 20px 140px;
+    padding: 20px 20px 160px;
     position: relative; overflow: hidden;
   }
   .ep-hero-bg { display: none; }
@@ -260,8 +264,8 @@
       <div class="ep-concept-text">
         <h2>Agave<br>Specialist</h2>
         <p>
-          アガベを専門に生産・販売をしています。取り扱う株はすべて自社で丁寧に育成しています。<br><br>
-          初めての方からコレクターの方まで、幅広くお応えできる品揃えを大切にしています。
+          鋭利なフォルムと深みある色彩—アガベが持つ圧倒的な存在感に魅せられた。<br><br>
+          すべての株を自社で丁寧に育成し、初めての方からコレクターの方まで、一株一株の個性と美しさに寄り添います。
         </p>
       </div>
     </div>
