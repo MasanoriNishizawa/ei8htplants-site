@@ -111,6 +111,20 @@ ei8htplants-site/
 
 ---
 
+## Documentation
+
+詳細設計は `doc/` ディレクトリに格納されています。
+
+| ファイル | 内容 |
+|---|---|
+| [doc/01_requirements.md](doc/01_requirements.md) | 機能要件・非機能要件・制約 |
+| [doc/basic_design/02_architecture.md](doc/basic_design/02_architecture.md) | 技術スタック・構成図・データフロー |
+| [doc/basic_design/03_db_design.md](doc/basic_design/03_db_design.md) | Google Sheets シート構成・列定義 |
+| [doc/basic_design/04_api_design.md](doc/basic_design/04_api_design.md) | 残席確認 API・メモ保存 API |
+| [doc/basic_design/05_environment.md](doc/basic_design/05_environment.md) | 環境変数・Gmail 設定・デプロイ手順 |
+
+---
+
 ## Setup & Installation
 
 ### 1. リポジトリのクローン
