@@ -157,15 +157,15 @@ async def admin_root(request: Request):
 # ================================================================
 
 @router.get("/reservations", response_class=HTMLResponse)
-async def admin_reservations(request: Request, event: str = "", exclude_cancelled: str = ""):
-    """WS予約シートの予約一覧を表示する。event・exclude_cancelled クエリで絞り込み可能。"""
+async def admin_reservations(request: Request, event: str = "", exclude_cancelled: str = "", tab: str = "current"):
+    """WS予約シートの予約一覧を表示する。event・exclude_cancelled・tab クエリで絞り込み可能。"""
     redir = _check_auth(request)
     if redir:
         return redir
     try:
         from datetime import date as _date
         reservations = get_all_ws_reservations_for_admin()
-        # 希望日昇順 → 希望時間帯昇順でソート
+        # 予約日昇順 → 希望時間帯昇順でソート
         reservations.sort(key=lambda r: (r.get("希望日", ""), r.get("希望時間帯", "")))
         # イベント名の選択肢（重複除去・順序保持）
         event_names = list(dict.fromkeys(r.get("イベント名", "") for r in reservations if r.get("イベント名")))
@@ -175,9 +175,19 @@ async def admin_reservations(request: Request, event: str = "", exclude_cancelle
             filtered = [r for r in filtered if r.get("イベント名") == event]
         if exclude_cancelled == "1":
             filtered = [r for r in filtered if r.get("キャンセル済み") != "TRUE"]
-        # イベント別合計参加人数（キャンセル済み除外）
+        # 予約日（希望日）を基準に現在・過去に分割
+        today = _date.today()
+        current_reservations = []
+        past_reservations = []
+        for r in filtered:
+            d = parse_date(r.get("希望日", ""))
+            if d and d < today:
+                past_reservations.append(r)
+            else:
+                current_reservations.append(r)
+        # イベント別合計参加人数（キャンセル済み除外・現在の予約のみ）
         totals: dict[str, int] = {}
-        for r in reservations:
+        for r in current_reservations:
             if r.get("キャンセル済み") == "TRUE":
                 continue
             name = r.get("イベント名", "")
@@ -185,39 +195,18 @@ async def admin_reservations(request: Request, event: str = "", exclude_cancelle
                 totals[name] = totals.get(name, 0) + int(r.get("参加人数", 0))
             except (ValueError, TypeError):
                 pass
-        # イベントの終了日マップを作成し、現在・過去を分類
-        _, all_events = get_all_events_for_admin()
-        event_end_dates: dict[str, _date] = {}
-        for e in all_events:
-            name = e.get("イベント名", "")
-            end = parse_date(e.get("終了日") or e.get("開始日", ""))
-            if name and end:
-                event_end_dates[name] = end
-        today = _date.today()
-        active_totals = {}
-        past_ws_events: list[dict] = []
-        for name, total in totals.items():
-            end = event_end_dates.get(name)
-            if end is None or end >= today:
-                active_totals[name] = {"total": total, "end": end}
-            else:
-                past_ws_events.append({"name": name, "end": end, "total": total})
-        # 終了日昇順（近い順に左）でソート
-        active_totals = dict(
-            sorted(active_totals.items(), key=lambda kv: kv[1]["end"] or _date.max)
-        )
-        # 過去イベントは終了日降順（新しい順）
-        past_ws_events.sort(key=lambda x: x["end"], reverse=True)
+        active_totals = dict(sorted(totals.items()))
         return templates.TemplateResponse(
             "admin/admin_reservations.html",
             {
                 "request": request,
-                "reservations": filtered,
+                "current_reservations": current_reservations,
+                "past_reservations": past_reservations,
                 "event_names": event_names,
                 "selected_event": event,
                 "exclude_cancelled": exclude_cancelled == "1",
                 "active_totals": active_totals,
-                "past_ws_events": past_ws_events,
+                "active_tab": tab,
             },
         )
     except Exception as e:
