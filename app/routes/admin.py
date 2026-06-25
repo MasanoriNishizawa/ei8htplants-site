@@ -85,7 +85,7 @@ async def _parse_event_form(request: Request) -> dict:
       同じ name で複数の値が送信される。form[key] では最後の 1 つしか取れないため
       form.getlist() で全選択値を取得してカンマ区切りの文字列に結合する。
 
-      「WSフラグ」は未チェック時に POST データに含まれないため、
+      「WSフラグ」「予約フラグ」は未チェック時に POST データに含まれないため、
       存在確認してから "TRUE" / "FALSE" を明示的に設定する。
     """
     form = await request.form()
@@ -95,7 +95,7 @@ async def _parse_event_form(request: Request) -> dict:
 
     # 特殊処理が必要なキーを除いて通常のフィールドを辞書化
     # dict.fromkeys() で重複キーを排除してから処理する
-    skip = {"販売ブランド", "WSフラグ"}
+    skip = {"販売ブランド", "WSフラグ", "予約フラグ"}
     data = {k: form[k] for k in dict.fromkeys(form.keys()) if k not in skip}
 
     # ブランドをカンマ区切りに結合（例: "ei8ht plants, Habitat Oides"）
@@ -103,6 +103,7 @@ async def _parse_event_form(request: Request) -> dict:
 
     # チェックボックスは未チェック時に送信されないため、存在確認して明示的に設定
     data["WSフラグ"] = "TRUE" if form.get("WSフラグ") else "FALSE"
+    data["予約フラグ"] = "TRUE" if form.get("予約フラグ") else "FALSE"
 
     return data
 
