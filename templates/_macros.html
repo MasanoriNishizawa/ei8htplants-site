@@ -116,7 +116,7 @@
             {% if event.get('schedule_rows') %}
                 <!-- 複数時間帯: 日付+時間を1行ずつ表示（display_date は非表示） -->
                 {% for row in event['schedule_rows'] %}
-                <div class="info-row"><span>{{ row.label }}{{ row.date }}&nbsp;&nbsp;{{ row.time }}</span></div>
+                <div class="info-row"><span>{{ row.date }}&nbsp;&nbsp;{{ row.time }}</span></div>
                 {% endfor %}
             {% else %}
                 <!-- 単一時間帯または時間なし: 日付と時間を別行表示 -->
