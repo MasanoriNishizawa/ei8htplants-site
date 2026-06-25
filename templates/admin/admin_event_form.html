@@ -336,8 +336,8 @@
                     <div class="field">
                         <label for="time">開催時間</label>
                         <input type="text" id="time" name="開催時間"
-                               value="{{ event.get('開催時間', '') }}" placeholder="例: 10:00〜17:00 / 11:00〜18:00">
-                        <p class="hint">複数日で時間が異なる場合は「/」で区切って日付順に入力。例: 10:00〜17:00 / 11:00〜18:00</p>
+                               value="{{ event.get('開催時間', '') }}" placeholder="例: 10:00-16:00,10:00-15:00">
+                        <p class="hint">複数日で時間が異なる場合は「,」で区切って日付順に入力。例: 10:00-16:00,10:00-15:00</p>
                     </div>
                 </div>
 

@@ -126,6 +126,25 @@ def _enrich_event(item: dict) -> dict:
         if images_str
         else []
     )
+
+    # 開催時間をカンマで分割し、複数ある場合は日付ごとの行データを生成
+    times_raw = str(item.get("開催時間", "")).strip()
+    time_parts = [t.strip() for t in times_raw.split(",") if t.strip()] if times_raw else []
+
+    if len(time_parts) >= 2:
+        rows = []
+        for i, t in enumerate(time_parts):
+            day = start_date + timedelta(days=i)
+            label = "開催日" if i == 0 else ("終了日" if i == len(time_parts) - 1 else "")
+            rows.append({
+                "label": label,
+                "date": f"{day.month}/{day.day}",
+                "time": t,
+            })
+        item["schedule_rows"] = rows
+    else:
+        item["schedule_rows"] = None
+
     return item
 
 
