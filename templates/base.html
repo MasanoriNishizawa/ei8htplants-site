@@ -17,8 +17,7 @@
     <title>{% block title %}ei8ht plants{% endblock %}</title>
     {% block favicon %}<link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants-dark.png" media="(prefers-color-scheme: dark)">{% endblock %}
 
-    <!-- 400(標準)と500(中太)をメインに読み込み -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
     
     <style>
         /* =========================================================
@@ -41,45 +40,45 @@
             --font-nav: 16px;
             --font-small: 13px;
 
-            --color-bg: #fafafa;
-            --color-card-bg: #ffffff;
-            --color-text-main: #333333;
-            --color-text-sub: #444444; 
-            --color-text-muted: #777777; 
-            --color-border: #eaeaea;
-            --color-link: #333333;
-            
-            --color-ws-bg: #fff8e1;
-            --color-ws-border: #ffe082;
-            --color-ws-text: #795548;
+            --color-bg: #f7f3ec;
+            --color-card-bg: #fffcf6;
+            --color-text-main: #1c2417;
+            --color-text-sub: #3a4535;
+            --color-text-muted: #8a9a7e;
+            --color-border: #ddd4c0;
+            --color-link: #4a6741;
+
+            --color-ws-bg: #f2ede2;
+            --color-ws-border: #c8b49a;
+            --color-ws-text: #5c3d22;
 
             --max-width: 1000px;
-            --radius-card: 6px;
-            --radius-tag: 3px;
+            --radius-card: 14px;
+            --radius-tag: 20px;
         }
 
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Noto Sans JP", sans-serif; 
-            color: var(--color-text-main); 
-            background-color: var(--color-bg); 
-            margin: 0; 
-            padding: 0; 
-            font-weight: 400; 
-            -webkit-font-smoothing: antialiased; 
+        body {
+            font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            color: var(--color-text-main);
+            background-color: var(--color-bg);
+            margin: 0;
+            padding: 0;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
         }
         
         /* =========================================
             1. ヘッダー（共通・PC・スマホ統合）
            ========================================= */
-        .site-header { 
-            position: fixed; top: 0; left: 0; width: 100%; 
+        .site-header {
+            position: fixed; top: 0; left: 0; width: 100%;
             min-height: 60px;
-            background: rgba(255, 255, 255, 0.98); 
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--color-border); 
+            background: rgba(247, 243, 236, 0.97);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--color-border);
             z-index: 1000;
-            display: flex; align-items: center; justify-content: space-between; 
-            padding: 10px 30px; box-sizing: border-box; 
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 30px; box-sizing: border-box;
         }
 
         .header-brand { display: flex; align-items: center; height: 100%; text-decoration: none; }
@@ -169,14 +168,14 @@
             top: 100%;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255,255,255,0.98);
+            background: rgba(247, 243, 236, 0.98);
             border: 1px solid var(--color-border);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            box-shadow: 0 8px 32px rgba(40, 35, 20, 0.10);
             min-width: 200px;
             z-index: 200;
             padding: 8px 0;
-            /* 隙間なしでホバーエリアを繋げる */
             margin-top: 0;
+            border-radius: 8px;
         }
         .nav-dropdown:hover .nav-dropdown-menu,
         .nav-dropdown.open .nav-dropdown-menu {
@@ -194,7 +193,7 @@
             transition: 0.2s;
             white-space: nowrap;
         }
-        .nav-dropdown-menu a:hover { color: var(--color-text-main); background: #f9f9f9; }
+        .nav-dropdown-menu a:hover { color: var(--color-text-main); background: #ede8de; }
         .nav-dropdown-menu a.active { color: var(--color-text-main); font-weight: 600; }
 
         /* モバイル: ドロップダウンをインライン展開 */
@@ -206,10 +205,11 @@
                 border: none;
                 border-top: 1px solid var(--color-border);
                 border-bottom: 1px solid var(--color-border);
-                background: #f9f9f9;
+                background: #ede8de;
                 margin: 8px 0;
                 padding: 4px 0;
                 width: 100%;
+                border-radius: 0;
             }
             .nav-dropdown-menu a {
                 text-align: center;
@@ -222,18 +222,18 @@
             2. 共通ページヘッダー
            ========================================= */
         .page-header { text-align: center; padding: 50px 20px; background-color: var(--color-bg); }
-        .page-title { font-size: var(--font-title-lg); font-weight: 400; letter-spacing: 4px; text-transform: uppercase; margin: 0; color: var(--color-text-main); }
+        .page-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 40px; font-weight: 300; letter-spacing: 6px; text-transform: uppercase; margin: 0; color: var(--color-text-main); }
 
         /* =========================================
             3. メインコンテンツ・共通レイアウト（元の要素を維持）
            ========================================= */
         .site-main { padding-top: 80px; min-height: 100vh; display: flex; flex-direction: column; } 
         .container { max-width: var(--max-width); margin: 40px auto; padding: 0 20px; width: 100%; box-sizing: border-box;}
-        .section-header { font-size: var(--font-section); color: var(--color-text-muted); letter-spacing: 2px; text-transform: uppercase; margin: 60px 0 20px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; font-weight: 500; }
+        .section-header { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 26px; font-weight: 300; font-style: italic; color: var(--color-text-main); letter-spacing: 2px; margin: 60px 0 24px 0; border-bottom: 1px solid var(--color-border); padding-bottom: 12px; }
         .section-header:first-child { margin-top: 0; }
         
-        .event-card { background: var(--color-card-bg); margin-bottom: 60px; overflow: hidden; border: 1px solid var(--color-border); display: flex; flex-direction: column; border-radius: var(--radius-card); }
-        .image-wrap { width: 100%; min-height: 200px; background-color: #f9f9f9; }
+        .event-card { background: var(--color-card-bg); margin-bottom: 60px; overflow: hidden; border: none; box-shadow: 0 2px 24px rgba(40, 35, 20, 0.08), 0 1px 4px rgba(40, 35, 20, 0.04); display: flex; flex-direction: column; border-radius: var(--radius-card); }
+        .image-wrap { width: 100%; min-height: 200px; background-color: #ede7dc; }
         .event-image { width: 100%; height: auto; display: block; }
         .event-content { padding: 40px; }
         .event-title { font-size: var(--font-title-md); margin: 0 0 20px 0; font-weight: 500; line-height: 1.4; }
@@ -242,22 +242,22 @@
         .brand-tag { font-size: var(--font-tag); background: var(--color-text-main); color: #fff; padding: 6px 12px; border-radius: var(--radius-tag); letter-spacing: 1px; text-decoration: none; transition: 0.2s; font-weight: 500; }
         .brand-tag:hover { background: var(--color-text-sub); }
         
-        .event-info { font-size: var(--font-info); color: var(--color-text-sub); background: #fdfdfd; padding: 15px; border-radius: var(--radius-card); border: 1px solid #f0f0f0; margin-bottom: 0;}
+        .event-info { font-size: var(--font-info); color: var(--color-text-sub); background: #f2ede4; padding: 15px 18px; border-radius: calc(var(--radius-card) - 4px); border: 1px solid var(--color-border); margin-bottom: 0; }
         .info-row { display: flex; align-items: flex-start; margin-bottom: 8px; line-height: 1.6;}
         .info-icon { margin-right: 8px; font-size: var(--font-info); opacity: 0.8;}
         .info-link { color: var(--color-link); text-decoration: underline; text-underline-offset: 3px;}
         
         .ws-box { background: var(--color-ws-bg); border: 1px solid var(--color-ws-border); padding: 20px; margin-top: 20px; border-radius: var(--radius-card); }
         .ws-title { display: block; font-weight: 500; color: var(--color-ws-text); font-size: var(--font-info); margin-bottom: 5px; }
-        .ws-desc { font-size: 15px; color: #8d6e63; line-height: 1.5; display: block; }
-        .ws-link { display: inline-block; margin-top: 12px; background: var(--color-ws-text); color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-size: 14px; font-weight: bold; transition: 0.3s; }
-        .ws-link:hover { background: #5d4037; }
+        .ws-desc { font-size: 15px; color: #7a5a3a; line-height: 1.6; display: block; }
+        .ws-link { display: inline-block; margin-top: 12px; background: var(--color-ws-text); color: #fff; text-decoration: none; padding: 9px 20px; border-radius: var(--radius-tag); font-size: 13px; font-weight: 500; letter-spacing: 1px; transition: 0.3s; }
+        .ws-link:hover { background: #3e2610; }
         .ws-credit { display: block; margin-top: 15px; font-size: var(--font-small); color: #a1887f; line-height: 1.4; }
     
         .events-grid { display: grid; grid-template-columns: 1fr; gap: 30px; max-width: var(--max-width); margin: 0 auto 60px auto; }
         .events-grid .event-card { margin-bottom: 0; height: 100%; }
         
-        .footer-copy { text-align: center; font-size: var(--font-small); color: #888; padding: 60px 0; margin-top: auto; }
+        .footer-copy { text-align: center; font-size: var(--font-small); color: var(--color-text-muted); padding: 60px 0; margin-top: auto; letter-spacing: 1px; }
     
         /* =========================================
             4. レスポンシブ
@@ -270,10 +270,10 @@
 
             .header-nav {
                 position: fixed; top: 0; right: -100%; width: 75%; height: 100vh;
-                background: rgba(255, 255, 255, 0.98); flex-direction: column;
+                background: rgba(247, 243, 236, 0.99); flex-direction: column;
                 justify-content: center; align-items: center; gap: 30px;
                 transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1050;
-                box-shadow: -5px 0 15px rgba(0,0,0,0.05);
+                box-shadow: -5px 0 30px rgba(40, 35, 20, 0.10);
             }
             .header-nav.nav-open { right: 0; }
 
