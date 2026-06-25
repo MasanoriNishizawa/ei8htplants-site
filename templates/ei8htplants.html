@@ -12,11 +12,11 @@
   /* ── Hero ─────────────────────────────────────── */
   .ep-hero {
     background: #eaeae6 url('https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0') center 65%/cover no-repeat;
-    min-height: 60vh;
+    height: calc(100vh - 60px);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     text-align: center;
-    padding: 20px 20px 160px;
+    padding: 20px 20px 80px;
     position: relative; overflow: hidden;
   }
   .ep-hero-bg { display: none; }
@@ -44,7 +44,7 @@
   @media (max-width: 768px) {
     .ep-hero {
       background-image: none;
-      min-height: unset;
+      height: auto; min-height: unset;
       padding: 0;
       display: grid;
       grid-template-columns: 1fr;
