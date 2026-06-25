@@ -10,10 +10,17 @@
   .site-main { padding-top: 60px; }
   @media (max-width: 768px) { .site-main { padding-top: 60px; } }
 
+  /* ── Hero wrapper ──────────────────────────────── */
+  .hero-wrapper {
+    height: calc(100vh - 60px);
+    display: flex; flex-direction: column;
+  }
+  @media (max-width: 768px) { .hero-wrapper { height: auto; } }
+
   /* ── Hero ─────────────────────────────────────── */
   .hue-hero {
     background: #fdf8f3;
-    height: calc(100vh - 116px);
+    flex: 1;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     text-align: center; padding: 40px 20px 60px;
@@ -207,6 +214,7 @@
 
 {% block content %}
 
+<div class="hero-wrapper">
 <nav class="brand-subnav">
   <div class="brand-subnav-inner">
     <a href="#concept">Concept</a>
@@ -231,6 +239,7 @@
     <span>Scroll</span>
   </div>
 </section>
+</div>
 
 <hr class="hue-divider">
 

@@ -10,11 +10,17 @@
   .site-main { padding-top: 60px; }
   @media (max-width: 768px) { .site-main { padding-top: 60px; } }
 
+  /* ── Hero wrapper ──────────────────────────────── */
+  .hero-wrapper {
+    height: calc(100vh - 60px);
+    display: flex; flex-direction: column;
+  }
+
   /* ── Hero ─────────────────────────────────────── */
   .ho-hero-bg { display: none; }
   .ho-hero {
     background: #1e3272 url('https://lh3.googleusercontent.com/d/13Ml-NbMaYimYhKuppnj6KGZ4rrx3Abz4') center/cover no-repeat;
-    height: calc(100vh - 116px);
+    flex: 1;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     text-align: center; padding: 40px 20px 60px;
@@ -23,9 +29,10 @@
   .ho-hero::before { display: none; }
 
   @media (max-width: 768px) {
+    .hero-wrapper { height: auto; }
     .ho-hero {
       background-image: none;
-      height: auto; min-height: unset;
+      flex: none; height: auto; min-height: unset;
       padding: 0;
       display: grid;
       grid-template-columns: 1fr;
@@ -255,6 +262,7 @@
 
 {% block content %}
 
+<div class="hero-wrapper">
 <nav class="brand-subnav">
   <div class="brand-subnav-inner">
     <a href="#concept">Concept</a>
@@ -272,6 +280,7 @@
     <span>Scroll</span>
   </div>
 </section>
+</div>
 
 <hr class="ho-divider">
 

@@ -9,10 +9,16 @@
   .site-main { padding-top: 60px; }
   @media (max-width: 768px) { .site-main { padding-top: 60px; } }
 
+  /* ── Hero wrapper (subnav + hero = 100vh - header) ── */
+  .hero-wrapper {
+    height: calc(100vh - 60px);
+    display: flex; flex-direction: column;
+  }
+
   /* ── Hero ─────────────────────────────────────── */
   .ep-hero {
     background: #eaeae6 url('https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0') center 65%/cover no-repeat;
-    height: calc(100vh - 116px);
+    flex: 1;
     display: flex; flex-direction: column;
     align-items: center; justify-content: flex-start;
     text-align: center;
@@ -43,9 +49,10 @@
   }
 
   @media (max-width: 768px) {
+    .hero-wrapper { height: auto; }
     .ep-hero {
       background-image: none;
-      height: auto; min-height: unset;
+      flex: none; height: auto; min-height: unset;
       padding: 0;
       display: grid;
       grid-template-columns: 1fr;
@@ -230,6 +237,7 @@
 
 {% block content %}
 
+<div class="hero-wrapper">
 <nav class="brand-subnav">
   <div class="brand-subnav-inner">
     <a href="#concept">Concept</a>
@@ -252,6 +260,7 @@
     <span>Scroll</span>
   </div>
 </section>
+</div>
 
 <hr class="ep-divider">
 
