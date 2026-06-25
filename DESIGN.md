@@ -1,7 +1,7 @@
 # ei8ht plants サイト — 詳細設計書
 
-**バージョン**: 1.1  
-**最終更新**: 2026-06-12  
+**バージョン**: 1.2  
+**最終更新**: 2026-06-26  
 **対象リポジトリ**: ei8htplants-site
 
 ---
@@ -103,6 +103,7 @@ FastAPI (uvicorn)
 | A-02 | イベントを Google Sheets に追加・編集・削除できる |
 | A-03 | WS 予約一覧をイベント別に絞り込み・集計して表示する |
 | A-04 | 書き込み操作後にキャッシュを即時無効化してサイトへ即反映する |
+| A-05 | 管理画面のイベント一覧・WS予約一覧を「現在」「過去」の 2 タブで切り替えて表示する |
 
 ### 2.2 非機能要件
 
@@ -207,12 +208,13 @@ app/
 | 終了日 | 日付 | 開催終了日（単日なら開始日と同じ） | `2026/06/15` |
 | イベント名 | 文字列 | イベント正式名称 | `Habitat Style Workshop vol.3` |
 | 販売ブランド | 文字列 | カンマ区切り複数可 | `ei8ht plants, Habitat Oides` |
-| 開催時間 | 文字列 | WS 時間スロット生成に使用（後述） | `10:00〜17:00` |
+| 開催時間 | 文字列 | WS 時間スロット生成・複数日表示に使用。複数日で時間が異なる場合はカンマ区切り | `10:00〜17:00` / `10:00-16:00,10:00-15:00` |
 | 場所 | 文字列 | 会場名 | `○○ギャラリー` |
 | ブース番号 | 文字列 | ブース番号（任意） | `B-12` |
 | 住所 | 文字列 | Google マップリンク生成に使用 | `東京都渋谷区○○1-2-3` |
 | 公式サイトURL | 文字列 | イベント公式 URL（任意） | `https://example.com` |
-| WSフラグ | TRUE/FALSE | WS予約ボタンを表示するか | `TRUE` |
+| WSフラグ | TRUE/FALSE | WS枠（予約ボタンまたは予約不要メッセージ）を表示するか | `TRUE` |
+| 予約フラグ | TRUE/FALSE | WS予約を受け付けるか。FALSE の場合「予約不要・当日スタッフにお声がけ」と表示。WSフラグ=TRUE の場合のみ有効。`_ensure_event_columns()` が列を自動追加 | `TRUE` |
 | WS予約URL | 文字列 | 旧 GAS URL 列（現在未使用） | — |
 | 画像 | 文字列 | Drive URL またはファイル ID をカンマ区切りで複数指定 | `https://drive.google.com/file/d/XXX/view` |
 
@@ -226,6 +228,13 @@ app/
 | `is_past` | bool | 終了日が今日より前なら True |
 | `image_urls` | list[str] | Drive サムネイル URL のリスト |
 | `_row` | int | スプレッドシートの実際の行番号（`/reserve?row=N` 生成に使用） |
+| `schedule_rows` | list[dict] \| None | 開催時間がカンマ区切り複数の場合に生成。`[{"date": "7/11", "time": "10:00-16:00"}, ...]` の形式。単一時間の場合は None |
+
+**`schedule_rows` の生成ルール** (`_enrich_event()`):
+
+- `開催時間` をカンマ区切りで分割し、2 件以上あれば `schedule_rows` を生成
+- i 番目の時間 → 開始日 + i 日の日付と対応（0 始まり）
+- `schedule_rows` が存在する場合、テンプレートは `display_date` と `開催時間` を個別に表示せず、`schedule_rows` を 1 行ずつ展開して表示する
 
 ### 4.2 Specimen シート
 
@@ -435,11 +444,16 @@ get_events_data(is_past=True/False)
 `_macros.html::create_event_card()` がレンダリングする内容:
 
 - イベント名
-- `display_date`（`_enrich_event()` で生成）
+- 日付・時間:
+  - `schedule_rows` が存在する場合: 日付と時間を 1 行ずつ表示（例: `7/11  10:00-16:00` / `7/12  10:00-15:00`）
+  - `schedule_rows` が None の場合: `display_date` と `開催時間` を別行表示
 - 販売ブランド（タグ表示）
 - 場所・住所（`map_url` リンク付き）
-- 画像（`image_urls[0]` をサムネイルとして表示）
-- WSフラグ=TRUE のとき「ワークショップを予約する」ボタン（`/reserve?row={_row}` へのリンク）
+- 画像（複数枚の場合スライドショー表示）
+- WSフラグ=TRUE のとき WS 枠を表示:
+  - `is_past=True`: 「開催しました」メッセージ
+  - `予約フラグ=FALSE`: 「ご予約は不要です。当日、直接スタッフにお声がけください。」
+  - `予約フラグ=TRUE`（デフォルト）: 「ワークショップを予約する」ボタン（`/reserve?row={_row}` へのリンク）
 
 ---
 
@@ -847,12 +861,35 @@ username == settings.admin_user and password == settings.admin_pass
 #### イベント一覧
 
 **ルート**: `GET /admin/events`  
-**テンプレート**: `templates/admin/events.html`
+**テンプレート**: `templates/admin/admin_events.html`
 
 ```
 session.pop("flash", None) → 書き込み操作後の 1 回限りメッセージを取得・削除
-get_all_events_for_admin() → キャッシュなし・開始日降順
+get_all_events_for_admin() → キャッシュなし
+
+today = date.today()
+current_events = [ev for ev in events if parse_date(終了日 or 開始日) >= today]
+  → 開始日昇順（今日に近い順）
+past_events = [ev for ev in events if parse_date(終了日 or 開始日) < today]
+  → 終了日降順（最近終わったものが上）
 ```
+
+**タブ構成**:
+
+| タブ | 表示条件 | ソート |
+|---|---|---|
+| イベント（デフォルト） | 終了日 >= 今日 | 開始日昇順 |
+| 過去のイベント | 終了日 < 今日 | 終了日降順 |
+
+タブ切り替えは JS クライアントサイドで行う（ページ再読み込みなし）。
+
+**テンプレート変数**:
+
+| 変数 | 型 | 説明 |
+|---|---|---|
+| `current_events` | list[dict] | 現在・今後のイベント（開始日昇順） |
+| `past_events` | list[dict] | 過去のイベント（終了日降順） |
+| `flash` | str \| None | 書き込み操作後の 1 回限りメッセージ |
 
 #### 新規作成
 
@@ -861,13 +898,16 @@ get_all_events_for_admin() → キャッシュなし・開始日降順
 ```
 GET:
   event={}, row=None, title="新規イベント追加", brand_options=BRAND_OPTIONS
-  → admin/event_form.html（全フィールド空）
+  → admin/admin_event_form.html（全フィールド空）
 
 POST:
   _parse_event_form(request)
     → form.getlist("販売ブランド") → カンマ結合
-    → form.get("WSフラグ") → "TRUE" / "FALSE"
-  → create_event(data) → Sheets appendRow + cache.clear_prefix("events:")
+    → form.get("WSフラグ")  → "TRUE" / "FALSE"（未チェック時 POST に含まれないため明示設定）
+    → form.get("予約フラグ") → "TRUE" / "FALSE"（同上）
+  → create_event(data)
+       _ensure_event_columns() で「予約フラグ」列がなければ自動追加
+       → Sheets appendRow + cache.clear_prefix("events:")
   → session["flash"] = "イベントを作成しました" or f"エラー: {e}"
   → RedirectResponse("/admin/events")
 ```
@@ -914,32 +954,79 @@ BRAND_OPTIONS = ["ei8ht plants", "Habitat Oides", "HUE by ei8ht plants"]
 
 ### 7.3 WS 予約一覧
 
-**ルート**: `GET /admin/reservations?event=イベント名`  
-**関数**: `admin_reservations(request, event: str = "")`  
-**テンプレート**: `templates/admin/reservations.html`
+**ルート**: `GET /admin/reservations?event=イベント名&exclude_cancelled=1&tab=current`  
+**関数**: `admin_reservations(request, event: str = "", exclude_cancelled: str = "", tab: str = "current")`  
+**テンプレート**: `templates/admin/admin_reservations.html`
+
+#### クエリパラメータ
+
+| パラメータ | 説明 |
+|---|---|
+| `event` | イベント名で絞り込み（空文字でリセット） |
+| `exclude_cancelled` | `"1"` でキャンセル済みを除外 |
+| `tab` | `"current"`（デフォルト）または `"past"`。フィルター変更時にアクティブタブを保持するために使用 |
 
 #### データフロー
 
 ```
-get_all_ws_reservations()
-  → WS予約シートの全行（タイムスタンプ降順）
+get_all_ws_reservations_for_admin()
+  → WS予約シートの全行
 
-event_names = 重複除去・順序保持したイベント名一覧（絞り込みセレクトボックス用）
+ソート: 希望日昇順 → 希望時間帯昇順
 
-filtered = event クエリが指定されていれば同名のみ絞り込み
+event_names = 重複除去・順序保持したイベント名一覧
 
-totals = イベント名ごとの参加人数合計
-  {イベント名: 合計人数}
+絞り込み:
+  event          → 同名のみ
+  exclude_cancelled="1" → キャンセル済みを除外
+
+today = date.today()
+current_reservations = [r for r in filtered if parse_date(r["希望日"]) >= today]
+past_reservations    = [r for r in filtered if parse_date(r["希望日"]) < today]
+
+active_totals = current_reservations から キャンセル済み除外でイベント別合計
+  {イベント名: 合計参加人数}（イベント名昇順）
 ```
+
+**タブ構成**:
+
+| タブ | 表示条件 | 列表示での「予約日」 |
+|---|---|---|
+| 予約一覧（デフォルト） | 希望日 >= 今日 | 希望日（表示ラベルは「予約日」） |
+| 過去の予約 | 希望日 < 今日 | 同上 |
+
+- タブ切り替えは JS クライアントサイドで行う
+- フィルター変更時に `applyFilters()` が `tab` パラメータを URL に付加してタブ状態を維持
 
 #### テンプレート変数
 
 | 変数 | 型 | 説明 |
 |---|---|---|
-| `reservations` | list[dict] | 絞り込み済みの予約一覧 |
+| `current_reservations` | list[dict] | 現在・今後の予約（希望日 >= 今日） |
+| `past_reservations` | list[dict] | 過去の予約（希望日 < 今日） |
 | `event_names` | list[str] | 絞り込みセレクトの選択肢 |
 | `selected_event` | str | 現在の絞り込み値 |
-| `totals` | dict[str, int] | `{イベント名: 合計参加人数}` |
+| `exclude_cancelled` | bool | キャンセル済み除外フラグ |
+| `active_totals` | dict[str, int] | `{イベント名: 合計参加人数}`（現在予約・キャンセル除外） |
+| `active_tab` | str | 初期表示タブ（`"current"` or `"past"`） |
+
+#### テーブル列
+
+両タブ共通。「希望日」列のシート上の列名はそのままだが、画面上の表示ラベルは「予約日」。
+
+| 列 | 説明 |
+|---|---|
+| 受付日時 | タイムスタンプ（YYYY-MM-DD） |
+| イベント名 | — |
+| お名前 | クリックで予約履歴ページへ |
+| 連絡先 | メールアドレス |
+| **予約日** | スプレッドシートの「希望日」列（表示名のみ変更） |
+| 時間帯 | 希望時間帯 |
+| 人数 | 参加人数 |
+| お持ち込み | 植木鉢・植物など |
+| 備考 | — |
+| メモ | 管理者メモ（AJAX で即時保存） |
+| キャンセル | キャンセルボタン（未キャンセルのみ表示） |
 
 ---
 
