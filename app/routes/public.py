@@ -302,6 +302,8 @@ async def reserve_form(request: Request, row: int = None):
         _, event = get_event_row(row)
         if str(event.get("WSフラグ", "")).upper() != "TRUE":
             return RedirectResponse(url="/events")
+        if str(event.get("予約フラグ", "TRUE")).upper() == "FALSE":
+            return RedirectResponse(url="/events")
         _enrich_event(event)
         date_options = _generate_date_options(event.get("開始日", ""), event.get("終了日", ""))
         time_map = _generate_time_map(

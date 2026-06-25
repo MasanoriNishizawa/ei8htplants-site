@@ -359,13 +359,29 @@
 
                 <div class="field ws-toggle">
                     <label class="checkbox-label">
-                        <input type="checkbox" name="WSフラグ" value="TRUE"
+                        <input type="checkbox" id="ws-flag-cb" name="WSフラグ" value="TRUE"
                             {% if event.get('WSフラグ', '').upper() == 'TRUE' %}checked{% endif %}>
                         Habitat Style Workshop を開催する
                     </label>
                 </div>
 
+                <div class="field ws-toggle" id="reserve-flag-wrap"
+                     style="margin-left: 24px; {% if event.get('WSフラグ', '').upper() != 'TRUE' %}display: none;{% endif %}">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="予約フラグ" value="TRUE"
+                            {% if event.get('予約フラグ', 'TRUE')|upper != 'FALSE' %}checked{% endif %}>
+                        ワークショップの予約を受け付ける
+                    </label>
+                    <p class="hint">OFFの場合、イベントページに「予約不要・当日スタッフにお声がけください」と表示されます。</p>
+                </div>
+
                 <input type="hidden" name="WS予約URL" value="{{ event.get('WS予約URL', '') }}">
+
+                <script>
+                    document.getElementById('ws-flag-cb').addEventListener('change', function() {
+                        document.getElementById('reserve-flag-wrap').style.display = this.checked ? '' : 'none';
+                    });
+                </script>
 
                 <!-- ========== 画像 ========== -->
                 <p class="section-label">画像</p>

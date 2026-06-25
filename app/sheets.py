@@ -6,7 +6,7 @@ Google Sheets との読み書きを担うモジュール。
 スプレッドシートの構成:
   - シート0 (最初のシート) : イベント情報
       列: 開始日, 終了日, イベント名, 販売ブランド, 開催時間,
-          場所, ブース番号, 住所, 公式サイトURL, WSフラグ, WS予約URL, 画像
+          場所, ブース番号, 住所, 公式サイトURL, WSフラグ, WS予約URL, 予約フラグ, 画像
   - シート "Specimen"    : 植物標本データ
   - シート "PROJECTS"    : コラボレーション案件
 
@@ -261,6 +261,15 @@ def get_event_row(row_index: int) -> tuple[list[str], dict]:
 # 管理画面向け書き込み関数（書き込み後にキャッシュを無効化）
 # ================================================================
 
+def _ensure_event_columns(worksheet) -> None:
+    """必要な列がシートに存在しない場合のみヘッダー行に追加する。"""
+    headers = worksheet.row_values(1)
+    for col_name in ("予約フラグ",):
+        if col_name not in headers:
+            worksheet.update_cell(1, len(headers) + 1, col_name)
+            headers.append(col_name)
+
+
 def create_event(data: dict) -> None:
     """
     スプレッドシートの末尾に新しいイベント行を追加する。
@@ -273,6 +282,7 @@ def create_event(data: dict) -> None:
     """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     worksheet = sh.get_worksheet(0)
+    _ensure_event_columns(worksheet)
     headers = worksheet.row_values(1)
     # ヘッダーに対応する値を順番通りに並べる（存在しないキーは空文字）
     row = [str(data.get(h, "")) for h in headers]
@@ -294,6 +304,7 @@ def update_event(row_index: int, data: dict) -> None:
     """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     worksheet = sh.get_worksheet(0)
+    _ensure_event_columns(worksheet)
     headers = worksheet.row_values(1)
     row = [str(data.get(h, "")) for h in headers]
     # A 列から最終列まで一括更新（例: A5:L5）

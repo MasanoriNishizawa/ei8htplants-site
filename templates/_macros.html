@@ -151,6 +151,9 @@
             <span class="ws-title">Habitat Style Workshop</span>
             {% if event.get('is_past') %}
             <span class="ws-desc">ワークショップを開催いたしました。ご参加いただいた皆様、ありがとうございました。</span>
+            {% elif event.get('予約フラグ', 'TRUE')|string|upper == 'FALSE' %}
+            <span class="ws-desc">現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。</span>
+            <span class="ws-no-reserve">ご予約は不要です。当日、直接スタッフにお声がけください。</span>
             {% else %}
             <span class="ws-desc">現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。</span>
             <a href="/reserve?row={{ event['_row'] }}" class="ws-link">ワークショップを予約する</a>
