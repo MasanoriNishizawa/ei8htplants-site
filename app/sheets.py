@@ -490,7 +490,7 @@ def get_ws_reservation_count(event_name: str, date: str, time_slot: str) -> int:
     return count
 
 
-def get_reservation_by_token(token: str) -> dict | None:
+def get_reservation_by_token(token: str) -> "dict | None":
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(WS_SHEET_NAME)
