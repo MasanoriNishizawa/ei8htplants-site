@@ -422,7 +422,8 @@
         <span class="filter-label">絞り込み</span>
         <select class="filter-select" id="filter-event">
             <option value="">すべてのイベント</option>
-            {% for name in event_names %}
+            {% set tab_event_names = current_event_names if active_tab == 'current' else past_event_names %}
+            {% for name in tab_event_names %}
             <option value="{{ name }}" {% if name == selected_event %}selected{% endif %}>{{ name }}</option>
             {% endfor %}
         </select>
@@ -590,6 +591,24 @@
 
 <script>
 var currentTab = '{{ active_tab }}';
+var eventNamesByTab = {
+    current: {{ current_event_names | tojson }},
+    past:    {{ past_event_names | tojson }}
+};
+var selectedEvent = '{{ selected_event }}';
+
+function updateEventFilter() {
+    var names = eventNamesByTab[currentTab] || [];
+    var select = document.getElementById('filter-event');
+    select.innerHTML = '<option value="">すべてのイベント</option>';
+    names.forEach(function(name) {
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === selectedEvent) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
 
 function switchTab(id) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -597,6 +616,7 @@ function switchTab(id) {
     document.getElementById('tab-' + id).classList.add('active');
     document.getElementById('tab-btn-' + id).classList.add('active');
     currentTab = id;
+    updateEventFilter();
     updateCount();
 }
 

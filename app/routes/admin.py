@@ -167,8 +167,16 @@ async def admin_reservations(request: Request, event: str = "", exclude_cancelle
         reservations = get_all_ws_reservations_for_admin()
         # 予約日昇順 → 希望時間帯昇順でソート
         reservations.sort(key=lambda r: (r.get("希望日", ""), r.get("希望時間帯", "")))
-        # イベント名の選択肢（重複除去・順序保持）
-        event_names = list(dict.fromkeys(r.get("イベント名", "") for r in reservations if r.get("イベント名")))
+        today = _date.today()
+        # タブごとのイベント名選択肢（重複除去・順序保持）
+        current_event_names = list(dict.fromkeys(
+            r.get("イベント名", "") for r in reservations
+            if r.get("イベント名") and not (parse_date(r.get("希望日", "")) and parse_date(r.get("希望日", "")) < today)
+        ))
+        past_event_names = list(dict.fromkeys(
+            r.get("イベント名", "") for r in reservations
+            if r.get("イベント名") and parse_date(r.get("希望日", "")) and parse_date(r.get("希望日", "")) < today
+        ))
         # 絞り込み
         filtered = reservations
         if event:
@@ -176,7 +184,6 @@ async def admin_reservations(request: Request, event: str = "", exclude_cancelle
         if exclude_cancelled == "1":
             filtered = [r for r in filtered if r.get("キャンセル済み") != "TRUE"]
         # 予約日（希望日）を基準に現在・過去に分割
-        today = _date.today()
         current_reservations = []
         past_reservations = []
         for r in filtered:
@@ -202,7 +209,8 @@ async def admin_reservations(request: Request, event: str = "", exclude_cancelle
                 "request": request,
                 "current_reservations": current_reservations,
                 "past_reservations": past_reservations,
-                "event_names": event_names,
+                "current_event_names": current_event_names,
+                "past_event_names": past_event_names,
                 "selected_event": event,
                 "exclude_cancelled": exclude_cancelled == "1",
                 "active_totals": active_totals,
