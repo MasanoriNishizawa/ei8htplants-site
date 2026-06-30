@@ -21,9 +21,25 @@
     <meta property="og:title" content="{{ self.title() }}">
     <meta property="og:description" content="{{ self.meta_description() }}">
     <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:image" content="{{ request.base_url }}static/img/logo-ei8htplants.png">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="{{ self.title() }}">
     <meta name="twitter:description" content="{{ self.meta_description() }}">
+    <link rel="canonical" href="{{ request.url }}">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ei8ht plants",
+      "url": "https://ei8htplants.com",
+      "logo": "https://ei8htplants.com/static/img/logo-ei8htplants.png",
+      "sameAs": [
+        "https://www.instagram.com/ei8ht.plants/",
+        "https://www.instagram.com/habitatoides/",
+        "https://www.instagram.com/hue_by.ei8ht.plants/"
+      ]
+    }
+    </script>
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-HCVVDNYL94"></script>
     <script>
@@ -34,8 +50,9 @@
     </script>
     {% block favicon %}<link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants-dark.png" media="(prefers-color-scheme: dark)">{% endblock %}
 
+    {% block extra_head %}{% endblock %}
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
-    
+
     <style>
         /* =========================================================
             【デザイン・コントロールパネル】 一括設定エリア（CSS変数）
@@ -84,6 +101,8 @@
             -webkit-font-smoothing: antialiased;
         }
         
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
         /* =========================================
             1. ヘッダー（共通・PC・スマホ統合）
            ========================================= */

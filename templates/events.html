@@ -27,6 +27,29 @@
 </style>
 {% endblock %}
 
+{% block extra_head %}
+{% if not is_past and pinned_event %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "{{ pinned_event.get('イベント名', '') }}",
+  "startDate": "{{ pinned_event.get('開始日', '') }}",
+  "endDate": "{{ pinned_event.get('終了日') or pinned_event.get('開始日', '') }}",
+  "location": {
+    "@type": "Place",
+    "name": "{{ pinned_event.get('場所', '') }}"
+  },
+  "organizer": {
+    "@type": "Organization",
+    "name": "ei8ht plants",
+    "url": "https://ei8htplants.com"
+  }
+}
+</script>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <!-- 一括修正用の共通クラスを使用 -->
 <div class="page-header">
