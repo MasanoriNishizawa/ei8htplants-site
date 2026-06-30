@@ -24,6 +24,14 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="{{ self.title() }}">
     <meta name="twitter:description" content="{{ self.meta_description() }}">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HCVVDNYL94"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-HCVVDNYL94');
+    </script>
     {% block favicon %}<link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants-dark.png" media="(prefers-color-scheme: dark)">{% endblock %}
 
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
