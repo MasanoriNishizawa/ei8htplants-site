@@ -23,7 +23,7 @@ def _fire(coro) -> None:
     task.add_done_callback(_task_refs.discard)
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 
 from ..config import SPREADSHEET_ID
 from ..drive import get_gallery_images, get_home_gallery_images
@@ -564,3 +564,39 @@ async def cancel_submit(request: Request):
             _fire(asyncio.to_thread(send_cancellation_confirmation, reservation, reason))
             _fire(asyncio.to_thread(send_cancellation_notification, reservation, reason))
     return RedirectResponse(f"/cancel?token={token}&done=1", status_code=303)
+
+
+@router.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt(request: Request):
+    base = str(request.base_url).rstrip("/")
+    return f"User-agent: *\nAllow: /\nDisallow: /admin/\n\nSitemap: {base}/sitemap.xml\n"
+
+
+@router.get("/sitemap.xml")
+async def sitemap_xml(request: Request):
+    from datetime import date
+    base = str(request.base_url).rstrip("/")
+    today = date.today().isoformat()
+    pages = [
+        ("/",                      "1.0", "weekly"),
+        ("/events",                "0.9", "daily"),
+        ("/concept",               "0.8", "monthly"),
+        ("/ei8htplants",           "0.8", "monthly"),
+        ("/habitatoides",          "0.8", "monthly"),
+        ("/habitatoides/workshop", "0.7", "monthly"),
+        ("/hue",                   "0.8", "monthly"),
+        ("/gallery",               "0.7", "weekly"),
+        ("/contact",               "0.6", "monthly"),
+    ]
+    items = "\n".join(
+        f"  <url>\n    <loc>{base}{path}</loc>\n    <lastmod>{today}</lastmod>"
+        f"\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>"
+        for path, priority, freq in pages
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{items}\n"
+        "</urlset>"
+    )
+    return Response(content=xml, media_type="application/xml")
