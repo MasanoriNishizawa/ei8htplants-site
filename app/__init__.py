@@ -7,7 +7,7 @@ main.py はこの関数だけをインポートするため、テストや将来
 """
 
 from fastapi import FastAPI, Request
-from fastapi.responses import Response, RedirectResponse
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -19,23 +19,8 @@ from .templates import templates  # noqa: F401
 from .routes.public import router as public_router
 from .routes.admin import router as admin_router
 
-CUSTOM_DOMAIN = "ei8htplants.com"
-
 # キャッシュしない（フォーム・管理画面・API）パスのプレフィックス
 _NO_CACHE_PREFIXES = ("/admin", "/reserve", "/contact", "/api/")
-
-
-class RedirectToCustomDomainMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        host = request.headers.get("host", "")
-        if "onrender.com" in host:
-            path = request.url.path
-            query = ("?" + str(request.url.query)) if request.url.query else ""
-            return RedirectResponse(
-                url=f"https://{CUSTOM_DOMAIN}{path}{query}",
-                status_code=301
-            )
-        return await call_next(request)
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -79,7 +64,6 @@ def create_app() -> FastAPI:
     # 必ず本番環境では環境変数 SECRET_KEY を設定すること。
     app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
     app.add_middleware(CacheControlMiddleware)
-    app.add_middleware(RedirectToCustomDomainMiddleware)
 
     # /static → static/ ディレクトリをそのまま配信
     app.mount("/static", StaticFiles(directory="static"), name="static")
