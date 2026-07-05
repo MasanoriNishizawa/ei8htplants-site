@@ -92,6 +92,22 @@
             --radius-tag: 20px;
         }
 
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: #f7f3ec;
+                --color-card-bg: #fffcf6;
+                --color-text-main: #1c2417;
+                --color-text-sub: #3a4535;
+                --color-text-muted: #8a9a7e;
+                --color-border: #ddd4c0;
+                --color-link: #4a6741;
+                --color-ws-bg: #f2ede2;
+                --color-ws-border: #c8b49a;
+                --color-ws-text: #5c3d22;
+            }
+            body { background-color: #f7f3ec; color: #1c2417; }
+        }
+
         body {
             font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
             color: var(--color-text-main);
