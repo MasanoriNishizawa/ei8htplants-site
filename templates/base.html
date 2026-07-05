@@ -253,7 +253,15 @@
                 text-align: center;
                 padding: 12px 20px;
             }
-            .nav-dropdown-trigger::after { display: none; }
+            .nav-dropdown-trigger::after {
+                display: inline-block;
+                margin-left: 6px;
+                vertical-align: middle;
+                transform: rotate(45deg) translateY(-2px);
+            }
+            .nav-dropdown.open .nav-dropdown-trigger::after {
+                transform: rotate(225deg) translateY(2px);
+            }
         }
         
         /* =========================================
