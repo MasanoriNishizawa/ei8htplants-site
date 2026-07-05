@@ -483,12 +483,11 @@
         -->
         <nav class="header-nav" id="headerNav">
             <a href="/" class="{{ 'active' if request.path == '/' }}">HOME</a>
-            <a href="/events" class="{{ 'active' if request.path.startswith('/events') or request.path.startswith('/reserve') }}">EVENT</a>
 
             {% set brand_active = request.path.startswith('/ei8htplants') or request.path.startswith('/habitatoides') or request.path.startswith('/hue') %}
             <div class="nav-dropdown" id="brandDropdown">
                 <span class="nav-dropdown-trigger {{ 'active' if brand_active }}"
-                      onclick="toggleDropdown()">BRAND</span>
+                      onclick="toggleDropdown()">OUR BRANDS</span>
                 <div class="nav-dropdown-menu">
                     <a href="/ei8htplants"  class="{{ 'active' if request.path.startswith('/ei8htplants') }}">ei8ht plants</a>
                     <a href="/habitatoides" class="{{ 'active' if request.path.startswith('/habitatoides') }}">Habitat Oides</a>
@@ -496,7 +495,9 @@
                 </div>
             </div>
 
-            <a href="/concept" class="{{ 'active' if request.path == '/concept' }}">CONCEPT</a>
+            <a href="/concept" class="{{ 'active' if request.path == '/concept' }}">ABOUT US</a>
+            <a href="/events" class="{{ 'active' if request.path.startswith('/events') or request.path.startswith('/reserve') }}">SCHEDULE</a>
+            <a href="/stockists" class="{{ 'active' if request.path == '/stockists' }}">STOCKISTS</a>
             <a href="/contact" class="{{ 'active' if request.path == '/contact' }}">CONTACT</a>
             <a href="https://ei8htplants.square.site/s/shop" target="_blank" rel="noopener noreferrer">ONLINE STORE</a>
         </nav>

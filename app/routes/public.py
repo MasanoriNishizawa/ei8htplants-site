@@ -227,6 +227,18 @@ async def read_concept(request: Request):
 
 
 # ================================================================
+# ストアリスト（/stockists）
+# ================================================================
+
+@router.get("/stockists", response_class=HTMLResponse)
+async def read_stockists(request: Request):
+    """取扱店舗一覧ページ。静的コンテンツ。"""
+    return templates.TemplateResponse(
+        request=request, name="stockists.html", context={"request": request}
+    )
+
+
+# ================================================================
 # コラボレーション（/collaborations）
 # ================================================================
 
