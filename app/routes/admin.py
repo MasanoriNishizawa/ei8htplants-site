@@ -49,10 +49,19 @@ from ..sheets import (
 )
 from ..templates import templates
 
+# asyncio.create_task で生成したタスクの参照を保持するセット。
+# 参照がなくなると GC に回収されて実行中でも消えるため、完了まで保持する。
 _task_refs: set = set()
 
 
 def _fire(coro) -> None:
+    """
+    コルーチンをバックグラウンドタスクとして起動する（fire-and-forget）。
+
+    メール送信のようにレスポンスを返した後でよい処理に使用。
+    タスク参照を _task_refs に保持して GC による早期回収を防ぎ、
+    完了時に done_callback で自動的に解放する。
+    """
     task = asyncio.create_task(coro)
     _task_refs.add(task)
     task.add_done_callback(_task_refs.discard)
@@ -387,6 +396,7 @@ async def admin_events_delete(request: Request, row: int):
 
 @router.get("/contacts", response_class=HTMLResponse)
 async def admin_contacts(request: Request):
+    """お問い合わせ一覧を表示する（新しい順）。"""
     redir = _check_auth(request)
     if redir:
         return redir
@@ -400,6 +410,13 @@ async def admin_contacts(request: Request):
 
 @router.get("/reservations/schedule", response_class=HTMLResponse)
 async def admin_reservations_schedule(request: Request, event: str = ""):
+    """
+    指定イベントの予約表（時間帯別グループ）を表示する。
+
+    ?event=イベント名 で絞り込み。キャンセル済みは除外する。
+    時間帯（HH:MM-HH:MM 形式）の文字列昇順でグループをソートするため、
+    時間帯が "09:..." < "10:..." のように自然な順序になる。
+    """
     redir = _check_auth(request)
     if redir:
         return redir
@@ -422,6 +439,12 @@ async def admin_reservations_schedule(request: Request, event: str = ""):
 
 @router.get("/reservations/history", response_class=HTMLResponse)
 async def admin_reservation_history(request: Request, name: str = ""):
+    """
+    ?name=xxx で指定した顧客名の予約履歴を一覧表示する。
+
+    名前での完全一致フィルター。予約送信時（POST /reserve）にスペースを除去しているため、
+    表記ゆれが抑えられており名前での突合精度が高い。
+    """
     redir = _check_auth(request)
     if redir:
         return redir
@@ -435,6 +458,14 @@ async def admin_reservation_history(request: Request, name: str = ""):
 
 @router.post("/reservations/memo")
 async def admin_reservations_memo(request: Request):
+    """
+    管理画面から Ajax で呼ばれるメモ保存エンドポイント。
+
+    Sheets API 呼び出しは同期ブロッキングのため asyncio.to_thread() でスレッドに委譲する。
+    エラーが発生しても {"ok": True} を返す（サイレント失敗）。
+    フロントエンドはエラー判定を行わないため一貫してレスポンスを返す方が安定する。
+    row_num が 0 の場合（form.get 失敗）は書き込みをスキップする。
+    """
     redir = _check_auth(request)
     if redir:
         return redir
@@ -452,6 +483,16 @@ async def admin_reservations_memo(request: Request):
 
 @router.post("/reservations/cancel")
 async def admin_reservations_cancel(request: Request):
+    """
+    管理者による予約キャンセル処理。
+
+    cancel_reservation() は Sheets 書き込みを確実に行う必要があるため await で待つ。
+    メール送信（confirmation / notification）はレスポンス後でよいため _fire() でバックグラウンド実行。
+
+    reservation を先に取得してから cancel する順序にしているのは、
+    cancel 後に get_reservation_by_token() を呼ぶと「キャンセル済みフラグ」で
+    フィルターされてデータが取れなくなる可能性があるため。
+    """
     redir = _check_auth(request)
     if redir:
         return redir

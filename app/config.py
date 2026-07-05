@@ -90,14 +90,27 @@ class Settings:
 
     @property
     def contact_gmail_app_password(self) -> str:
+        """
+        ei8htplants@gmail.com のアプリパスワード（現在は OAuth2 方式に移行済みのため未使用）。
+        過去の SMTP 方式の名残として環境変数定義だけ残している。
+        """
         return os.environ.get("CONTACT_GMAIL_APP_PASSWORD", "")
 
     @property
     def gmail_client_id(self) -> str:
+        """
+        Gmail API 用 OAuth2 クライアント ID。
+        Google Cloud Console の「認証情報」から取得する。
+        habitatoides@gmail.com / ei8htplants@gmail.com の両アカウントで共有している。
+        """
         return os.environ.get("GMAIL_CLIENT_ID", "")
 
     @property
     def gmail_client_secret(self) -> str:
+        """
+        Gmail API 用 OAuth2 クライアントシークレット。
+        CLIENT_ID と対になる秘密情報。絶対に Git にコミットしないこと。
+        """
         return os.environ.get("GMAIL_CLIENT_SECRET", "")
 
     @property

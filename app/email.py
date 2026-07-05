@@ -28,6 +28,15 @@ _CONTACT_SENDER = "ei8htplants@gmail.com"
 
 
 def _get_gmail_service(refresh_token: str):
+    """
+    指定されたリフレッシュトークンで Gmail API クライアントを生成する。
+
+    token=None にしてから creds.refresh() を呼ぶことで、
+    毎回最新のアクセストークンを取得している。
+    アクセストークンは通常 1 時間で失効するため、都度リフレッシュが必要。
+    cache_discovery=False にしている理由: ファイルシステムへの Discovery キャッシュ書き込みを
+    無効にしてクラウド環境（読み取り専用 FS）でのエラーを防ぐ。
+    """
     creds = Credentials(
         token=None,
         refresh_token=refresh_token,
@@ -41,6 +50,13 @@ def _get_gmail_service(refresh_token: str):
 
 def _send_via_api(refresh_token: str, sender_email: str, sender_name: str,
                   to: str, subject: str, body: str) -> None:
+    """
+    Gmail API 経由でメールを 1 通送信する内部ヘルパー。
+
+    userId="me" は認証済みユーザー自身を表す Gmail API の慣習的な指定。
+    base64.urlsafe_b64encode を使う理由: RFC 2822 形式のメッセージを
+    URL セーフな Base64 に変換してから JSON ボディに埋め込む必要があるため。
+    """
     service = _get_gmail_service(refresh_token)
     msg = MIMEText(body, "plain", "utf-8")
     msg["To"] = to
@@ -51,6 +67,13 @@ def _send_via_api(refresh_token: str, sender_email: str, sender_name: str,
 
 
 def send_reservation_confirmation(data: dict) -> None:
+    """
+    WS予約完了時に予約者へ送る確認メール（habitatoides@gmail.com 送信）。
+
+    メール送信設定が未完了（環境変数未設定）または宛先が空の場合はスキップする。
+    例外はキャッチして print でログ出力するだけで呼び出し元には伝播させない。
+    （予約データの書き込みは既に完了しているため、メール失敗で予約をロールバックしない方針）
+    """
     refresh_token = settings.gmail_refresh_token
     sender = settings.gmail_sender
 
@@ -81,6 +104,12 @@ def send_reservation_confirmation(data: dict) -> None:
 
 
 def send_contact_confirmation(data: dict) -> None:
+    """
+    お問い合わせ受付時に問い合わせ者へ送る自動返信メール（ei8htplants@gmail.com 送信）。
+
+    CONTACT_GMAIL_REFRESH_TOKEN は ei8htplants@gmail.com 用のトークン。
+    WS予約メールとは別アカウントで送信するため、リフレッシュトークンも別管理。
+    """
     refresh_token = settings.contact_gmail_refresh_token
 
     if not refresh_token or not settings.gmail_client_id:
@@ -127,6 +156,10 @@ def send_contact_confirmation(data: dict) -> None:
 
 
 def send_contact_notification(data: dict) -> None:
+    """
+    お問い合わせ受信時に管理者（ei8htplants@gmail.com）へ送る通知メール。
+    送信元と宛先が同じアカウントになる（自分から自分への通知）。
+    """
     refresh_token = settings.contact_gmail_refresh_token
 
     if not refresh_token or not settings.gmail_client_id:
@@ -164,6 +197,10 @@ def send_contact_notification(data: dict) -> None:
 
 
 def send_reservation_notification(data: dict) -> None:
+    """
+    WS予約完了時に管理者（habitatoides@gmail.com）へ送る新規予約通知メール。
+    予約者への確認メールとは別に、運営側がすぐ把握できるよう送信する。
+    """
     refresh_token = settings.gmail_refresh_token
     sender = settings.gmail_sender
 
@@ -207,6 +244,14 @@ def send_reservation_notification(data: dict) -> None:
 
 
 def send_cancellation_confirmation(data: dict, reason: str = "") -> None:
+    """
+    予約キャンセル完了時に予約者へ送る確認メール（habitatoides@gmail.com 送信）。
+
+    ユーザー自身によるキャンセル（/cancel）および管理者によるキャンセル
+    （/admin/reservations/cancel）の両方から呼ばれる。
+    reason 引数は管理者キャンセル時に "管理者によるキャンセル処理" を渡す。
+    現時点のメール本文には reason を含めていないが、将来の拡張用に引数として保持している。
+    """
     refresh_token = settings.gmail_refresh_token
     sender = settings.gmail_sender
 
@@ -258,6 +303,10 @@ def send_cancellation_confirmation(data: dict, reason: str = "") -> None:
 
 
 def send_cancellation_notification(data: dict, reason: str = "") -> None:
+    """
+    予約キャンセル時に管理者（habitatoides@gmail.com）へ送るキャンセル通知メール。
+    reason が空でない場合のみ本文にキャンセル理由を追記する。
+    """
     refresh_token = settings.gmail_refresh_token
     sender = settings.gmail_sender
 
@@ -300,6 +349,15 @@ def send_cancellation_notification(data: dict, reason: str = "") -> None:
 
 
 def _build_reservation_body(data: dict) -> str:
+    """
+    予約確認メールの本文を組み立てて返す内部ヘルパー。
+
+    create_ws_reservation() でキャンセルトークンが data に追加された後に
+    呼び出されるため、data["キャンセルトークン"] が存在する前提。
+    ただし、念のため空文字の場合はキャンセルリンクセクションを省略する。
+
+    日付表示を "YYYY-MM-DD" → "YYYY/MM/DD" に変換して視認性を高めている。
+    """
     date_text = data.get("希望日", "").replace("-", "/")
     bring = data.get("お持ち込み", "") or "なし"
     note = data.get("備考", "")
@@ -321,6 +379,7 @@ def _build_reservation_body(data: dict) -> str:
         lines.append(f"備考　　　：{note}")
 
     cancel_token = data.get("キャンセルトークン", "")
+    # キャンセルトークンが発行されていない場合はキャンセルリンクを省略する
     cancel_section = (
         [
             "",

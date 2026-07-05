@@ -388,6 +388,14 @@ _WS_CANCEL_COLS = ["キャンセルトークン", "キャンセル済み", "キ�
 
 
 def _ensure_cancel_columns(ws) -> None:
+    """
+    キャンセル関連列がシートに存在しない場合のみヘッダー行に追加する。
+
+    既存のシートにはキャンセル列がない場合があるため、
+    予約作成時と cancel 処理時に呼ぶことで列の不足を自動補完する。
+    gspread はデフォルト列数内にしか書き込めないため、
+    列数が足りない場合は ws.resize() で拡張してから追加する。
+    """
     headers = ws.row_values(1)
     missing = [c for c in _WS_CANCEL_COLS if c not in headers]
     if missing:
@@ -491,6 +499,13 @@ def get_ws_reservation_count(event_name: str, date: str, time_slot: str) -> int:
 
 
 def get_reservation_by_token(token: str) -> "dict | None":
+    """
+    キャンセルトークンに一致する予約行を辞書で返す。
+    シートが存在しない場合や一致行がない場合は None を返す。
+
+    get_all_records() を使うことでヘッダーをキーとした辞書リストが得られるため、
+    列インデックスに依存しないトークン検索ができる。
+    """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(WS_SHEET_NAME)
@@ -503,6 +518,13 @@ def get_reservation_by_token(token: str) -> "dict | None":
 
 
 def update_reservation_memo(row_num: int, memo: str) -> None:
+    """
+    指定行の「メモ」列を更新する（管理画面の Ajax メモ保存に使用）。
+
+    「メモ」列が存在しない古いシートに対しても、
+    _ensure_cancel_columns() を呼ぶことで列を自動追加してから書き込む。
+    headers.index() は 0-based なので +1 して 1-based の列番号に変換する。
+    """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     ws = sh.worksheet(WS_SHEET_NAME)
     headers = ws.row_values(1)
@@ -514,6 +536,19 @@ def update_reservation_memo(row_num: int, memo: str) -> None:
 
 
 def cancel_reservation(token: str, reason: str = "") -> bool:
+    """
+    キャンセルトークンでキャンセル対象行を特定し、キャンセル情報を書き込む。
+
+    col_values() でトークン列全体を取得してから線形探索する方式を採用している。
+    行数が少ない（数百件以下）想定のため、Sheets API の呼び出し回数を最小化するこの方法が適切。
+
+    update_cell() を 3 回呼ぶため 3 API リクエストが発生する。
+    将来的に高頻度になる場合は batch_update() への変更を検討すること。
+
+    Returns:
+        True:  キャンセル処理成功（該当行を更新した）
+        False: シートが存在しない、列が見つからない、トークン不一致
+    """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(WS_SHEET_NAME)
@@ -527,10 +562,11 @@ def cancel_reservation(token: str, reason: str = "") -> bool:
         reason_col = headers.index("キャンセル理由") + 1
         dt_col     = headers.index("キャンセル日時") + 1
     except ValueError:
+        # 必要な列がヘッダーに存在しない場合（_ensure_cancel_columns() が未実行のシート等）
         return False
 
     col_vals = ws.col_values(token_col)
-    for i, val in enumerate(col_vals[1:], start=2):  # skip header, row is i
+    for i, val in enumerate(col_vals[1:], start=2):  # ヘッダー行をスキップ、row=i
         if val == token:
             ts = datetime.now(_JST).strftime("%Y-%m-%d %H:%M:%S")
             ws.update_cell(i, done_col, "TRUE")
@@ -577,6 +613,13 @@ def create_contact(data: dict) -> None:
 
 
 def get_all_contacts_for_admin() -> list[dict]:
+    """
+    「お問い合わせ」シートの全データを新しい順で返す。
+
+    get_all_records() はシートの挿入順（古い順）でデータを返すため、
+    reversed() で逆順にして最新の問い合わせが先頭になるようにしている。
+    シートが存在しない場合（問い合わせゼロ）は空リストを返す。
+    """
     sh = get_gc().open_by_key(SPREADSHEET_ID)
     try:
         ws = sh.worksheet(CONTACT_SHEET_NAME)

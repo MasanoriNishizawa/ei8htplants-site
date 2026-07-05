@@ -514,6 +514,10 @@ async def read_specimen(request: Request):
 
 @router.get("/contact", response_class=HTMLResponse)
 async def contact_form(request: Request, sent: str = None):
+    """
+    お問い合わせフォームを表示する。
+    ?sent=1 が付いている場合は送信完了メッセージをテンプレートで表示する。
+    """
     return templates.TemplateResponse("contact.html", {
         "request": request,
         "sent": sent == "1",
@@ -522,6 +526,13 @@ async def contact_form(request: Request, sent: str = None):
 
 @router.post("/contact", response_class=HTMLResponse)
 async def contact_submit(request: Request):
+    """
+    お問い合わせフォームの送信を受け取り、シートに保存してメールを送る。
+
+    create_contact() はシートへの書き込みのため await で確実に完了させる。
+    メール送信は _fire() でバックグラウンド実行（送信失敗でも送信完了ページに遷移）。
+    303 See Other でリダイレクトすることで、ブラウザの「戻る」→「再送信」を防ぐ。
+    """
     form = await request.form()
     data = {
         "name":    str(form.get("name", "")).strip(),
@@ -540,6 +551,14 @@ async def contact_submit(request: Request):
 
 @router.get("/cancel", response_class=HTMLResponse)
 async def cancel_form(request: Request, token: str = "", done: str = ""):
+    """
+    予約キャンセル確認ページ。
+
+    ?token=<UUID> でトークンを受け取り、対応する予約情報を表示する。
+    ?done=1 が付いている場合はキャンセル完了メッセージを表示する。
+    token が空または一致なしの場合は reservation=None を渡し、
+    テンプレート側で「予約が見つかりません」と表示する。
+    """
     from ..sheets import get_reservation_by_token
     reservation = await asyncio.to_thread(get_reservation_by_token, token) if token else None
     return templates.TemplateResponse("cancel.html", {
@@ -552,6 +571,14 @@ async def cancel_form(request: Request, token: str = "", done: str = ""):
 
 @router.post("/cancel", response_class=HTMLResponse)
 async def cancel_submit(request: Request):
+    """
+    ユーザー自身による予約キャンセルを処理する。
+
+    確認メール送信は _fire() でバックグラウンド実行。シートへの書き込みは await で待つ。
+    キャンセル完了後は同じ /cancel?token=...&done=1 ページにリダイレクトして
+    完了メッセージを表示する（303 で POST の再送信を防ぐ）。
+    reason はフォームの自由入力欄から取得（任意項目）。
+    """
     from ..sheets import cancel_reservation, get_reservation_by_token
     from ..email import send_cancellation_notification
     form = await request.form()
@@ -568,12 +595,26 @@ async def cancel_submit(request: Request):
 
 @router.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt(request: Request):
+    """
+    robots.txt を動的生成して返す。
+
+    /admin/ をクローラーから除外することで管理画面が検索インデックスに登録されないようにする。
+    Sitemap の URL をホスト名から動的生成することで、
+    ローカル・ステージング・本番で robots.txt の内容が正しくなる。
+    """
     base = str(request.base_url).rstrip("/")
     return f"User-agent: *\nAllow: /\nDisallow: /admin/\n\nSitemap: {base}/sitemap.xml\n"
 
 
 @router.get("/sitemap.xml")
 async def sitemap_xml(request: Request):
+    """
+    sitemap.xml を動的生成して返す。
+
+    lastmod を当日日付にすることで検索エンジンに定期クロールを促す。
+    ページ優先度（priority）と更新頻度（changefreq）は手動管理。
+    /admin/ や /api/ はサイトマップに含めない。
+    """
     from datetime import date
     base = str(request.base_url).rstrip("/")
     today = date.today().isoformat()
