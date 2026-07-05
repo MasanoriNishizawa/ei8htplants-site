@@ -1,461 +1,159 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WS予約 | Admin</title>
-    <link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants-dark.png" media="(prefers-color-scheme: dark)">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
+{% extends "admin/admin_base.html" %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
-            background: #f5f5f5;
-            margin: 0;
-            color: #333;
-            font-size: 14px;
-        }
+{% block title %}WS予約{% endblock %}
+{% block nav_reservations %}is-active{% endblock %}
+{% block page_heading %}WS 予約一覧{% endblock %}
 
-        .topbar {
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 30px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .topbar-left { display: flex; align-items: center; gap: 32px; }
-        .topbar-brand {
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #333;
-            text-decoration: none;
-        }
-        .topbar-nav { display: flex; gap: 0; }
-        .nav-link {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            padding: 0 16px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            border-bottom: 2px solid transparent;
-            transition: 0.2s;
-        }
-        .nav-link:hover { color: #333; }
-        .nav-link.active { color: #333; border-bottom-color: #333; }
-        .topbar-logout {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .topbar-logout:hover { color: #333; }
+{% block extra_head %}
+<style>
+    /* サマリーカード */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+        background: var(--card-bg, #fff);
+        border: 1px solid var(--border, #e0dbd0);
+        padding: 18px 20px;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: box-shadow .15s;
+    }
+    .stat-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+    .stat-card .s-label { font-size: 11px; color: var(--muted, #7a7168); margin-bottom: 8px; }
+    .stat-card .s-value { font-size: 26px; font-weight: 700; }
+    .stat-card .s-value span { font-size: 14px; font-weight: 400; color: var(--muted, #7a7168); }
+    .stat-card .s-sub { font-size: 11px; color: var(--muted, #7a7168); margin-top: 4px; }
 
-        .main { max-width: 1600px; margin: 40px auto; padding: 0 24px 80px; }
+    /* フィルター */
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+    .filter-label { font-size: 11px; color: var(--muted, #7a7168); letter-spacing: .05em; }
+    .filter-check { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+    .filter-count { font-size: 12px; color: var(--muted, #7a7168); margin-left: auto; }
 
-        .page-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .page-title {
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #777;
-            margin: 0;
-            font-weight: 400;
-        }
+    /* テーブル行：キャンセル済み */
+    .cancelled-row td { opacity: .45; text-decoration: line-through; }
+    .cancelled-row td.td-status { text-decoration: none; }
 
-        /* サマリーカード */
-        .summary {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 28px;
-        }
-        .summary-card {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 16px 24px;
-            min-width: 180px;
-        }
-        .summary-label {
-            font-size: 10px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #aaa;
-            margin-bottom: 6px;
-        }
-        .summary-value {
-            font-size: 22px;
-            font-weight: 500;
-            color: #333;
-        }
-        .summary-sub {
-            font-size: 11px;
-            color: #aaa;
-            margin-top: 2px;
-        }
+    /* バッジ・ステータス */
+    .badge-bring {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--warn-soft, #f3ece0);
+        color: var(--warn, #93692b);
+    }
 
-        /* タブ */
-        .tab-bar {
-            display: flex;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 20px;
-        }
-        .tab-btn {
-            padding: 10px 20px;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            background: none;
-            border: none;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -1px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: 0.2s;
-        }
-        .tab-btn:hover { color: #555; }
-        .tab-btn.active { color: #333; border-bottom-color: #333; }
-        .tab-pane { display: none; }
-        .tab-pane.active { display: block; }
+    /* メモセル */
+    .memo-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+    .memo-input {
+        border: 1px solid var(--border, #e0dbd0);
+        padding: 6px 8px;
+        font-size: 12px;
+        font-family: inherit;
+        resize: vertical;
+        width: 100%;
+        min-width: 120px;
+    }
+    .memo-input:focus { outline: none; border-color: var(--accent, #4a6741); }
+    .btn-memo-save {
+        align-self: flex-end;
+        padding: 4px 10px;
+        font-size: 11px;
+        background: var(--text, #1c2417);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        transition: opacity .15s;
+    }
+    .btn-memo-save:hover { opacity: .75; }
+    .btn-memo-save.saved { background: var(--accent, #4a6741); }
 
-        /* フィルター */
-        .filter-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .filter-label {
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: #999;
-        }
-        select.filter-select {
-            padding: 8px 32px 8px 12px;
-            border: 1px solid #ddd;
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            border-radius: 0;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") no-repeat right 12px center;
-            cursor: pointer;
-            transition: border-color 0.2s;
-            min-width: 240px;
-        }
-        select.filter-select:focus { border-color: #333; }
-        .filter-count {
-            font-size: 12px;
-            color: #aaa;
-        }
-        .filter-check {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            color: #666;
-            user-select: none;
-        }
-        .filter-check input[type="checkbox"] {
-            width: 14px;
-            height: 14px;
-            cursor: pointer;
-            accent-color: #333;
-        }
+    /* キャンセルボタン */
+    .btn-cancel-row {
+        padding: 5px 12px;
+        font-size: 11px;
+        border: 1px solid var(--danger, #b3462c);
+        color: var(--danger, #b3462c);
+        background: transparent;
+        cursor: pointer;
+        font-family: inherit;
+        white-space: nowrap;
+        transition: .15s;
+    }
+    .btn-cancel-row:hover { background: var(--danger, #b3462c); color: #fff; }
 
-        /* テーブル */
-        .table-wrap { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-        }
-        th {
-            font-size: 10px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: #999;
-            font-weight: 500;
-            padding: 9px 10px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-            white-space: nowrap;
-        }
-        td {
-            padding: 9px 10px;
-            border-bottom: 1px solid #f0f0f0;
-            vertical-align: middle;
-            font-size: 12px;
-        }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #fafafa; }
+    /* テーブル列幅調整 */
+    .td-event { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-contact { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .td-note { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 
-        .td-ts { color: #aaa; font-size: 11px; white-space: nowrap; }
-        .td-event {
-            font-weight: 500; max-width: 140px;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .td-name { white-space: nowrap; }
-        .td-contact {
-            color: #666; font-size: 11px;
-            max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .td-date { white-space: nowrap; color: #555; }
-        .td-time { white-space: nowrap; color: #555; font-size: 11px; }
-        .td-num { text-align: center; font-weight: 600; color: #333; }
-        .td-note { color: #888; font-size: 11px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .td-status { white-space: nowrap; }
-        .cancelled-row td { opacity: .45; }
-        .cancelled-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: #ffebee;
-            color: #c62828;
-            font-size: 10px;
-            letter-spacing: 1px;
-            border-radius: 2px;
-        }
-        .btn-cancel-row {
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: #999;
-            background: none;
-            border: 1px solid #ddd;
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: inherit;
-            border-radius: 2px;
-            transition: 0.2s;
-        }
-        .btn-cancel-row:hover { color: #c62828; border-color: #c62828; }
+    @media (max-width: 768px) {
+        .stat-grid { grid-template-columns: 1fr 1fr; }
+        .td-event, .td-contact, .td-note { max-width: none; white-space: normal; overflow: visible; text-overflow: clip; }
+    }
+</style>
+{% endblock %}
 
-        .memo-cell { min-width: 140px; max-width: 200px; }
-        .memo-wrap { display: flex; gap: 6px; align-items: flex-start; }
-        textarea.memo-input {
-            flex: 1;
-            padding: 5px 8px;
-            border: 1px solid #e0e0e0;
-            font-size: 12px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 36px;
-            border-radius: 2px;
-            color: #333;
-            outline: none;
-            transition: border-color 0.2s;
-            background: #fafafa;
-        }
-        textarea.memo-input:focus { border-color: #999; background: #fff; }
-        .btn-memo-save {
-            font-size: 10px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: #999;
-            background: none;
-            border: 1px solid #ddd;
-            padding: 4px 8px;
-            cursor: pointer;
-            font-family: inherit;
-            border-radius: 2px;
-            transition: 0.2s;
-            white-space: nowrap;
-            flex-shrink: 0;
-            align-self: flex-start;
-            margin-top: 1px;
-        }
-        .btn-memo-save:hover { color: #333; border-color: #999; }
-        .btn-memo-save.saved { color: #4caf50; border-color: #4caf50; }
+{% block content %}
 
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: #f0f0f0;
-            font-size: 11px;
-            color: #666;
-            border-radius: 2px;
-        }
+<!-- サマリーカード -->
+{% if active_totals %}
+<div class="stat-grid">
+    {% for event_name, total in active_totals.items() %}
+    <a class="stat-card" href="/admin/reservations/schedule?event={{ event_name | urlencode }}">
+        <div class="s-label">{{ event_name }}</div>
+        <div class="s-value">{{ total }}<span> 名</span></div>
+        <div class="s-sub">予約合計（有効）→ WS予約表</div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
 
-        .empty {
-            text-align: center;
-            padding: 80px 0;
-            color: #aaa;
-            font-size: 13px;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-        }
-
-        /* =========================================
-           レスポンシブ（スマホ）
-           ========================================= */
-        @media (max-width: 768px) {
-            .topbar { padding: 0 12px; }
-            .topbar-brand { display: none; }
-            .topbar-left { gap: 0; }
-            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
-            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
-
-            .main { margin: 16px auto; padding: 0 12px 60px; }
-            .page-head { margin-bottom: 16px; }
-
-            /* サマリーカード */
-            .summary { gap: 8px; }
-            .summary-card { min-width: calc(50% - 4px); padding: 12px 14px; }
-            .summary-value { font-size: 18px; }
-
-            /* フィルターバー */
-            .filter-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
-            select.filter-select { min-width: 100%; }
-
-            /* テーブル → カードレイアウト */
-            .table-wrap { overflow-x: visible; }
-            table { border: none; background: transparent; }
-            thead { display: none; }
-            tbody tr {
-                display: block;
-                background: #fff;
-                border: 1px solid #e0e0e0;
-                margin-bottom: 10px;
-                padding: 14px 16px;
-            }
-            tbody tr:hover td { background: transparent; }
-            .cancelled-row { opacity: .45; }
-            .cancelled-row td { opacity: 1; }
-            tbody td {
-                display: flex;
-                gap: 8px;
-                padding: 3px 0;
-                border: none;
-                font-size: 13px;
-                align-items: flex-start;
-                max-width: 100%;
-                overflow: visible;
-                text-overflow: clip;
-                white-space: normal;
-            }
-            tbody td::before {
-                content: attr(data-label);
-                font-size: 10px;
-                color: #aaa;
-                letter-spacing: 1px;
-                text-transform: uppercase;
-                min-width: 52px;
-                flex-shrink: 0;
-                padding-top: 2px;
-            }
-            tbody td[data-label=""]::before { display: none; }
-            .td-event { font-weight: 500; }
-            .td-contact { font-size: 12px; word-break: break-all; }
-            .td-note { font-size: 12px; }
-            .td-num { text-align: left; }
-            .memo-cell { min-width: 0; max-width: 100%; width: 100%; }
-            .memo-wrap { flex-direction: column; }
-            .memo-input { min-height: 50px; width: 100%; }
-            .btn-memo-save { align-self: flex-end; margin-top: 4px; }
-        }
-    </style>
-</head>
-<body>
-
-<header class="topbar">
-    <div class="topbar-left">
-        <span class="topbar-brand">ei8ht plants — Admin</span>
-        <nav class="topbar-nav">
-            <a href="/admin/events" class="nav-link">Events</a>
-            <a href="/admin/reservations" class="nav-link active">WS予約</a>
-            <a href="/admin/contacts" class="nav-link">お問い合わせ</a>
-        </nav>
-    </div>
-    <a href="/admin/logout" class="topbar-logout">Logout</a>
-</header>
-
-<main class="main">
-
-    <div class="page-head">
-        <h1 class="page-title">Habitat Style Workshop — 予約一覧</h1>
-    </div>
-
-    <!-- 現在・今後のイベント別合計サマリー -->
-    {% if active_totals %}
-    <div class="summary">
-        {% for event_name, total in active_totals.items() %}
-        <a href="/admin/reservations/schedule?event={{ event_name | urlencode }}"
-           style="text-decoration:none; color:inherit;">
-        <div class="summary-card" style="cursor:pointer; transition:box-shadow 0.15s;"
-             onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'"
-             onmouseout="this.style.boxShadow='none'">
-            <div class="summary-label">{{ event_name }}</div>
-            <div class="summary-value">{{ total }}<span style="font-size:14px; font-weight:400; color:#aaa;"> 名</span></div>
-            <div class="summary-sub">予約合計（有効）</div>
-        </div>
-        </a>
+<!-- フィルター -->
+<div class="filter-row">
+    <span class="filter-label">絞り込み</span>
+    <select class="toolbar-select" id="filter-event">
+        <option value="">すべてのイベント</option>
+        {% set tab_event_names = current_event_names if active_tab == 'current' else past_event_names %}
+        {% for name in tab_event_names %}
+        <option value="{{ name }}" {% if name == selected_event %}selected{% endif %}>{{ name }}</option>
         {% endfor %}
-    </div>
-    {% endif %}
+    </select>
+    <label class="filter-check">
+        <input type="checkbox" id="filter-exclude-cancelled" {% if exclude_cancelled %}checked{% endif %}>
+        キャンセル済を除く
+    </label>
+    <span class="filter-count" id="filter-count"></span>
+</div>
 
-    <!-- フィルター（タブ共通） -->
-    <div class="filter-bar">
-        <span class="filter-label">絞り込み</span>
-        <select class="filter-select" id="filter-event">
-            <option value="">すべてのイベント</option>
-            {% set tab_event_names = current_event_names if active_tab == 'current' else past_event_names %}
-            {% for name in tab_event_names %}
-            <option value="{{ name }}" {% if name == selected_event %}selected{% endif %}>{{ name }}</option>
-            {% endfor %}
-        </select>
-        <label class="filter-check">
-            <input type="checkbox" id="filter-exclude-cancelled"
-                {% if exclude_cancelled %}checked{% endif %}>
-            キャンセル済を除く
-        </label>
-        <span class="filter-count" id="filter-count"></span>
-    </div>
+<!-- タブ -->
+<div class="tab-bar">
+    <button class="tab-btn" id="tab-btn-current" onclick="switchTab('current')">予約一覧</button>
+    <button class="tab-btn" id="tab-btn-past" onclick="switchTab('past')">過去の予約</button>
+</div>
 
-    <!-- タブ -->
-    <div class="tab-bar">
-        <button class="tab-btn" id="tab-btn-current" onclick="switchTab('current')">予約一覧</button>
-        <button class="tab-btn" id="tab-btn-past" onclick="switchTab('past')">過去の予約</button>
-    </div>
-
-    <!-- 現在の予約タブ -->
-    <div id="tab-current" class="tab-pane">
-        {% if current_reservations %}
+<!-- 現在の予約 -->
+<div id="tab-current" class="tab-pane">
+    {% if current_reservations %}
+    <div class="admin-card" style="padding:0;">
         <div class="table-wrap">
-            <table>
+            <table class="admin-table">
                 <thead>
                     <tr>
-                        <th>受付日時</th>
+                        <th>受付日</th>
                         <th>イベント名</th>
                         <th>お名前</th>
                         <th>連絡先</th>
                         <th>予約日</th>
                         <th>時間帯</th>
                         <th>人数</th>
-                        <th>お持ち込み</th>
+                        <th>持込み</th>
                         <th>備考</th>
                         <th>メモ</th>
                         <th></th>
@@ -465,42 +163,34 @@
                     {% for r in current_reservations %}
                     {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
                     <tr class="{{ 'cancelled-row' if cancelled else '' }}">
-                        <td class="td-ts" data-label="受付日時">{{ r.get('タイムスタンプ', '')[:10] }}</td>
+                        <td class="td-muted td-nowrap" data-label="受付日">{{ r.get('タイムスタンプ', '')[:10] }}</td>
                         <td class="td-event" data-label="イベント" title="{{ r.get('イベント名', '') }}">{{ r.get('イベント名', '') }}</td>
-                        <td class="td-name" data-label="お名前">
+                        <td class="td-nowrap" data-label="お名前">
                             <a href="/admin/reservations/history?name={{ r.get('お名前', '') | urlencode }}"
-                               style="color:inherit; text-decoration:none; border-bottom:1px solid #ddd;">
-                                {{ r.get('お名前', '') }}
-                            </a>
+                               style="border-bottom:1px solid var(--border);">{{ r.get('お名前', '') }}</a>
                         </td>
                         <td class="td-contact" data-label="連絡先" title="{{ r.get('メール', '') }}">{{ r.get('メール', '') }}</td>
-                        <td class="td-date" data-label="予約日">{{ r.get('希望日', '') }}</td>
-                        <td class="td-time" data-label="時間帯">{{ r.get('希望時間帯', '') }}</td>
-                        <td class="td-num" data-label="人数">{{ r.get('参加人数', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="予約日">{{ r.get('希望日', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="時間帯">{{ r.get('希望時間帯', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="人数">{{ r.get('参加人数', '') }}</td>
                         <td data-label="持込み">
-                            {% if r.get('お持ち込み') %}
-                            <span class="badge">{{ r.get('お持ち込み', '') }}</span>
-                            {% endif %}
+                            {% if r.get('お持ち込み') %}<span class="badge-bring">{{ r.get('お持ち込み') }}</span>{% endif %}
                         </td>
                         <td class="td-note" data-label="備考" title="{{ r.get('備考', '') }}">{{ r.get('備考', '') }}</td>
-                        <td class="memo-cell" data-label="メモ">
+                        <td data-label="メモ">
                             <div class="memo-wrap">
-                                <textarea class="memo-input" rows="1"
-                                    data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
-                                <button type="button" class="btn-memo-save"
-                                    onclick="saveMemo(this)">保存</button>
+                                <textarea class="memo-input" rows="1" data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
+                                <button type="button" class="btn-memo-save" onclick="saveMemo(this)">保存</button>
                             </div>
                         </td>
-                        <td class="td-status" data-label="">
+                        <td class="td-status td-nowrap" data-label="">
                             {% if cancelled %}
-                            <span class="cancelled-badge">キャンセル済</span>
+                            <span class="pill pill--off">キャンセル済</span>
                             {% elif r.get('キャンセルトークン') %}
                             <form method="post" action="/admin/reservations/cancel" style="margin:0;">
                                 <input type="hidden" name="token" value="{{ r.get('キャンセルトークン', '') }}">
                                 <button type="button" class="btn-cancel-row"
-                                    onclick="if(confirm('{{ r.get('お名前','') }} 様の予約をキャンセルしますか？')) this.form.submit()">
-                                    キャンセル
-                                </button>
+                                    onclick="if(confirm('{{ r.get('お名前','') }} 様の予約をキャンセルしますか？')) this.form.submit()">キャンセル</button>
                             </form>
                             {% endif %}
                         </td>
@@ -509,26 +199,28 @@
                 </tbody>
             </table>
         </div>
-        {% else %}
-        <div class="empty">予約はまだありません</div>
-        {% endif %}
     </div>
+    {% else %}
+    <div class="admin-card"><div class="empty">予約はまだありません</div></div>
+    {% endif %}
+</div>
 
-    <!-- 過去の予約タブ -->
-    <div id="tab-past" class="tab-pane">
-        {% if past_reservations %}
+<!-- 過去の予約 -->
+<div id="tab-past" class="tab-pane">
+    {% if past_reservations %}
+    <div class="admin-card" style="padding:0;">
         <div class="table-wrap">
-            <table>
+            <table class="admin-table">
                 <thead>
                     <tr>
-                        <th>受付日時</th>
+                        <th>受付日</th>
                         <th>イベント名</th>
                         <th>お名前</th>
                         <th>連絡先</th>
                         <th>予約日</th>
                         <th>時間帯</th>
                         <th>人数</th>
-                        <th>お持ち込み</th>
+                        <th>持込み</th>
                         <th>備考</th>
                         <th>メモ</th>
                         <th></th>
@@ -538,42 +230,34 @@
                     {% for r in past_reservations %}
                     {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
                     <tr class="{{ 'cancelled-row' if cancelled else '' }}">
-                        <td class="td-ts" data-label="受付日時">{{ r.get('タイムスタンプ', '')[:10] }}</td>
+                        <td class="td-muted td-nowrap" data-label="受付日">{{ r.get('タイムスタンプ', '')[:10] }}</td>
                         <td class="td-event" data-label="イベント" title="{{ r.get('イベント名', '') }}">{{ r.get('イベント名', '') }}</td>
-                        <td class="td-name" data-label="お名前">
+                        <td class="td-nowrap" data-label="お名前">
                             <a href="/admin/reservations/history?name={{ r.get('お名前', '') | urlencode }}"
-                               style="color:inherit; text-decoration:none; border-bottom:1px solid #ddd;">
-                                {{ r.get('お名前', '') }}
-                            </a>
+                               style="border-bottom:1px solid var(--border);">{{ r.get('お名前', '') }}</a>
                         </td>
                         <td class="td-contact" data-label="連絡先" title="{{ r.get('メール', '') }}">{{ r.get('メール', '') }}</td>
-                        <td class="td-date" data-label="予約日">{{ r.get('希望日', '') }}</td>
-                        <td class="td-time" data-label="時間帯">{{ r.get('希望時間帯', '') }}</td>
-                        <td class="td-num" data-label="人数">{{ r.get('参加人数', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="予約日">{{ r.get('希望日', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="時間帯">{{ r.get('希望時間帯', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="人数">{{ r.get('参加人数', '') }}</td>
                         <td data-label="持込み">
-                            {% if r.get('お持ち込み') %}
-                            <span class="badge">{{ r.get('お持ち込み', '') }}</span>
-                            {% endif %}
+                            {% if r.get('お持ち込み') %}<span class="badge-bring">{{ r.get('お持ち込み') }}</span>{% endif %}
                         </td>
                         <td class="td-note" data-label="備考" title="{{ r.get('備考', '') }}">{{ r.get('備考', '') }}</td>
-                        <td class="memo-cell" data-label="メモ">
+                        <td data-label="メモ">
                             <div class="memo-wrap">
-                                <textarea class="memo-input" rows="1"
-                                    data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
-                                <button type="button" class="btn-memo-save"
-                                    onclick="saveMemo(this)">保存</button>
+                                <textarea class="memo-input" rows="1" data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
+                                <button type="button" class="btn-memo-save" onclick="saveMemo(this)">保存</button>
                             </div>
                         </td>
-                        <td class="td-status" data-label="">
+                        <td class="td-status td-nowrap" data-label="">
                             {% if cancelled %}
-                            <span class="cancelled-badge">キャンセル済</span>
+                            <span class="pill pill--off">キャンセル済</span>
                             {% elif r.get('キャンセルトークン') %}
                             <form method="post" action="/admin/reservations/cancel" style="margin:0;">
                                 <input type="hidden" name="token" value="{{ r.get('キャンセルトークン', '') }}">
                                 <button type="button" class="btn-cancel-row"
-                                    onclick="if(confirm('{{ r.get('お名前','') }} 様の予約をキャンセルしますか？')) this.form.submit()">
-                                    キャンセル
-                                </button>
+                                    onclick="if(confirm('{{ r.get('お名前','') }} 様の予約をキャンセルしますか？')) this.form.submit()">キャンセル</button>
                             </form>
                             {% endif %}
                         </td>
@@ -582,12 +266,11 @@
                 </tbody>
             </table>
         </div>
-        {% else %}
-        <div class="empty">過去の予約はありません</div>
-        {% endif %}
     </div>
-
-</main>
+    {% else %}
+    <div class="admin-card"><div class="empty">過去の予約はありません</div></div>
+    {% endif %}
+</div>
 
 <script>
 var currentTab = '{{ active_tab }}';
@@ -638,32 +321,22 @@ function applyFilters() {
 document.getElementById('filter-event').addEventListener('change', applyFilters);
 document.getElementById('filter-exclude-cancelled').addEventListener('change', applyFilters);
 
-// 初期タブ設定
 switchTab(currentTab);
 
 function saveMemo(btn) {
     const textarea = btn.closest('.memo-wrap').querySelector('.memo-input');
     const row = textarea.dataset.row;
     const memo = textarea.value;
-    const body = new URLSearchParams({ row, memo });
-    btn.textContent = '...';
+    btn.textContent = '…';
     btn.disabled = true;
-    fetch('/admin/reservations/memo', { method: 'POST', body })
+    fetch('/admin/reservations/memo', { method: 'POST', body: new URLSearchParams({ row, memo }) })
         .then(r => r.json())
         .then(() => {
             btn.textContent = '保存済';
             btn.classList.add('saved');
-            setTimeout(() => {
-                btn.textContent = '保存';
-                btn.classList.remove('saved');
-                btn.disabled = false;
-            }, 2000);
+            setTimeout(() => { btn.textContent = '保存'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
         })
-        .catch(() => {
-            btn.textContent = '保存';
-            btn.disabled = false;
-        });
+        .catch(() => { btn.textContent = '保存'; btn.disabled = false; });
 }
 </script>
-</body>
-</html>
+{% endblock %}

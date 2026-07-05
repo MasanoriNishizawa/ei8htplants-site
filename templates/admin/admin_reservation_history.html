@@ -1,245 +1,64 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>予約履歴 | Admin</title>
-    <link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants-dark.png" media="(prefers-color-scheme: dark)">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
+{% extends "admin/admin_base.html" %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
-            background: #f5f5f5;
-            margin: 0;
-            color: #333;
-            font-size: 14px;
-        }
+{% block title %}予約履歴 — {{ name }}{% endblock %}
+{% block nav_reservations %}is-active{% endblock %}
+{% block page_heading %}予約履歴 — {{ name }} 様{% endblock %}
 
-        .topbar {
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 30px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .topbar-left { display: flex; align-items: center; gap: 32px; }
-        .topbar-brand {
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #333;
-            text-decoration: none;
-        }
-        .topbar-nav { display: flex; gap: 0; }
-        .nav-link {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            padding: 0 16px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            border-bottom: 2px solid transparent;
-            transition: 0.2s;
-        }
-        .nav-link:hover { color: #333; }
-        .nav-link.active { color: #333; border-bottom-color: #333; }
-        .topbar-logout {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .topbar-logout:hover { color: #333; }
+{% block topbar_actions %}
+<a href="/admin/reservations" class="btn btn--sm btn--outline">← 一覧へ戻る</a>
+{% endblock %}
 
-        .main { max-width: 800px; margin: 40px auto; padding: 0 30px 80px; }
+{% block extra_head %}
+<style>
+    .history-list { display: flex; flex-direction: column; gap: 12px; max-width: 680px; }
+    .history-item {
+        background: var(--card-bg, #fff);
+        border: 1px solid var(--border, #e0dbd0);
+        padding: 18px 20px;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .history-item.cancelled { opacity: .5; }
+    .history-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent, #4a6741);
+        flex-shrink: 0;
+        margin-top: 5px;
+    }
+    .history-item.cancelled .history-dot { background: var(--muted, #7a7168); }
+    .history-body { flex: 1; }
+    .history-event { font-weight: 600; margin: 0 0 6px; font-size: 14px; }
+    .history-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted, #7a7168); }
+    .history-memo { margin-top: 10px; font-size: 12.5px; color: var(--muted, #7a7168); background: #f7f5f1; padding: 8px 10px; border-left: 2px solid var(--border, #e0dbd0); }
+</style>
+{% endblock %}
 
-        .page-head {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 28px;
-        }
-        .btn-back {
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            border: 1px solid #ddd;
-            padding: 6px 14px;
-            border-radius: 2px;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        .btn-back:hover { color: #333; border-color: #999; }
-
-        .head-text {}
-        .page-title {
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #777;
-            margin: 0 0 4px;
-            font-weight: 400;
-        }
-        .page-name {
-            font-size: 14px;
-            color: #333;
-            margin: 0;
-        }
-
-        .history-list {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-        }
-        .history-item {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px 20px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .history-item:last-child { border-bottom: none; }
-        .history-item.cancelled { opacity: 0.45; }
-
-        .history-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #ccc;
-            flex-shrink: 0;
-        }
-        .history-item:not(.cancelled) .history-dot { background: #4caf50; }
-
-        .history-body { flex: 1; min-width: 0; }
-        .history-event {
-            font-size: 14px;
-            font-weight: 500;
-            color: #333;
-            margin: 0 0 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .history-meta {
-            font-size: 11px;
-            color: #aaa;
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .cancelled-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: #ffebee;
-            color: #c62828;
-            font-size: 10px;
-            letter-spacing: 1px;
-            border-radius: 2px;
-            white-space: nowrap;
-        }
-        .history-memo {
-            font-size: 12px;
-            color: #888;
-            margin-top: 6px;
-            padding: 6px 10px;
-            background: #f9f9f9;
-            border-left: 2px solid #e0e0e0;
-            white-space: pre-wrap;
-            line-height: 1.6;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 60px 0;
-            color: #aaa;
-            font-size: 13px;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-        }
-
-        /* =========================================
-           レスポンシブ（スマホ）
-           ========================================= */
-        @media (max-width: 768px) {
-            .topbar { padding: 0 12px; }
-            .topbar-brand { display: none; }
-            .topbar-left { gap: 0; }
-            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
-            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
-
-            .main { max-width: 100%; margin: 16px auto; padding: 0 12px 60px; }
-            .page-head { gap: 12px; align-items: flex-start; flex-wrap: wrap; }
-            .page-name { font-size: 13px; word-break: break-all; }
-            .history-item { padding: 14px 16px; }
-            .history-meta { gap: 8px; }
-        }
-    </style>
-</head>
-<body>
-
-<header class="topbar">
-    <div class="topbar-left">
-        <span class="topbar-brand">ei8ht plants — Admin</span>
-        <nav class="topbar-nav">
-            <a href="/admin/events" class="nav-link">Events</a>
-            <a href="/admin/reservations" class="nav-link active">WS予約</a>
-            <a href="/admin/contacts" class="nav-link">お問い合わせ</a>
-        </nav>
-    </div>
-    <a href="/admin/logout" class="topbar-logout">Logout</a>
-</header>
-
-<main class="main">
-
-    <div class="page-head">
-        <a href="/admin/reservations" class="btn-back">← 一覧に戻る</a>
-        <div class="head-text">
-            <p class="page-title">予約履歴</p>
-            <p class="page-name">{{ name }} 様</p>
-        </div>
-    </div>
-
-    {% if history %}
-    <div class="history-list">
-        {% for r in history %}
-        {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
-        <div class="history-item {{ 'cancelled' if cancelled else '' }}">
-            <div class="history-dot"></div>
-            <div class="history-body">
-                <p class="history-event">{{ r.get('イベント名', '') }}</p>
-                <div class="history-meta">
-                    <span>{{ r.get('お名前', '') }} 様</span>
-                    <span>{{ r.get('希望日', '') }}</span>
-                    <span>{{ r.get('希望時間帯', '') }}</span>
-                    <span>{{ r.get('参加人数', '') }} 名</span>
-                </div>
-                {% if r.get('メモ') %}
-                <div class="history-memo">{{ r.get('メモ', '') }}</div>
-                {% endif %}
+{% block content %}
+{% if history %}
+<div class="history-list">
+    {% for r in history %}
+    {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
+    <div class="history-item {{ 'cancelled' if cancelled else '' }}">
+        <div class="history-dot"></div>
+        <div class="history-body">
+            <p class="history-event">{{ r.get('イベント名', '') }}</p>
+            <div class="history-meta">
+                <span>{{ r.get('希望日', '') }}</span>
+                <span>{{ r.get('希望時間帯', '') }}</span>
+                <span>{{ r.get('参加人数', '') }} 名</span>
+                {% if cancelled %}<span class="pill pill--off" style="margin-left:4px;">キャンセル済</span>{% endif %}
             </div>
-            {% if cancelled %}
-            <span class="cancelled-badge">キャンセル済</span>
+            {% if r.get('メモ') %}
+            <div class="history-memo">{{ r.get('メモ') }}</div>
             {% endif %}
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="empty">履歴はありません</div>
-    {% endif %}
-
-</main>
-</body>
-</html>
+    {% endfor %}
+</div>
+{% else %}
+<div class="admin-card"><div class="empty">履歴はありません</div></div>
+{% endif %}
+{% endblock %}

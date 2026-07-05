@@ -1,214 +1,18 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お問い合わせ | Admin</title>
-    <link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants-dark.png" media="(prefers-color-scheme: dark)">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
+{% extends "admin/admin_base.html" %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
-            background: #f5f5f5;
-            margin: 0;
-            color: #333;
-            font-size: 14px;
-        }
+{% block title %}お問い合わせ{% endblock %}
+{% block nav_contacts %}is-active{% endblock %}
+{% block page_heading %}お問い合わせ一覧{% endblock %}
 
-        .topbar {
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 30px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .topbar-left { display: flex; align-items: center; gap: 32px; }
-        .topbar-brand {
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #333;
-            text-decoration: none;
-        }
-        .topbar-nav { display: flex; gap: 0; }
-        .nav-link {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            padding: 0 16px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            border-bottom: 2px solid transparent;
-            transition: 0.2s;
-        }
-        .nav-link:hover { color: #333; }
-        .nav-link.active { color: #333; border-bottom-color: #333; }
-        .topbar-logout {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .topbar-logout:hover { color: #333; }
+{% block topbar_actions %}
+<span style="font-size:12px; color:var(--muted);">{{ contacts | length }} 件</span>
+{% endblock %}
 
-        .main { max-width: 1200px; margin: 40px auto; padding: 0 30px 80px; }
-
-        .page-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-        }
-        .page-title {
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #777;
-            margin: 0;
-            font-weight: 400;
-        }
-        .count-badge {
-            font-size: 12px;
-            color: #aaa;
-        }
-
-        .table-wrap { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-        }
-        th {
-            font-size: 10px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            font-weight: 500;
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-            white-space: nowrap;
-        }
-        td {
-            padding: 13px 16px;
-            border-bottom: 1px solid #f0f0f0;
-            vertical-align: top;
-            font-size: 13px;
-        }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #fafafa; }
-
-        .td-ts { color: #aaa; font-size: 11px; white-space: nowrap; }
-        .td-name { white-space: nowrap; font-weight: 500; }
-        .td-email { color: #666; font-size: 12px; white-space: nowrap; }
-        .td-subject { color: #555; white-space: nowrap; }
-        .td-message {
-            color: #555;
-            font-size: 13px;
-            line-height: 1.7;
-            max-width: 480px;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 80px 0;
-            color: #aaa;
-            font-size: 13px;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-        }
-
-        /* =========================================
-           レスポンシブ（スマホ）
-           ========================================= */
-        @media (max-width: 768px) {
-            .topbar { padding: 0 12px; }
-            .topbar-brand { display: none; }
-            .topbar-left { gap: 0; }
-            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
-            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
-
-            .main { max-width: 100%; margin: 16px auto; padding: 0 12px 60px; }
-
-            /* テーブル → カードレイアウト */
-            .table-wrap { overflow-x: visible; }
-            table { border: none; background: transparent; }
-            thead { display: none; }
-            tbody tr {
-                display: block;
-                background: #fff;
-                border: 1px solid #e0e0e0;
-                margin-bottom: 10px;
-                padding: 14px 16px;
-            }
-            tbody tr:hover td { background: transparent; }
-            tbody td {
-                display: flex;
-                gap: 8px;
-                padding: 3px 0;
-                border: none;
-                font-size: 13px;
-                align-items: flex-start;
-                white-space: normal;
-                word-break: break-word;
-            }
-            tbody td::before {
-                content: attr(data-label);
-                font-size: 10px;
-                color: #aaa;
-                letter-spacing: 1px;
-                text-transform: uppercase;
-                min-width: 44px;
-                flex-shrink: 0;
-                padding-top: 2px;
-            }
-            tbody td[data-label=""]::before { display: none; }
-            .td-name { font-weight: 500; font-size: 14px; }
-            .td-ts { white-space: normal; }
-            .td-email { white-space: normal; word-break: break-all; }
-            .td-subject { white-space: normal; }
-            .td-message { max-width: 100%; font-size: 13px; }
-        }
-    </style>
-</head>
-<body>
-
-<header class="topbar">
-    <div class="topbar-left">
-        <span class="topbar-brand">ei8ht plants — Admin</span>
-        <nav class="topbar-nav">
-            <a href="/admin/events" class="nav-link">Events</a>
-            <a href="/admin/reservations" class="nav-link">WS予約</a>
-            <a href="/admin/contacts" class="nav-link active">お問い合わせ</a>
-        </nav>
-    </div>
-    <a href="/admin/logout" class="topbar-logout">Logout</a>
-</header>
-
-<main class="main">
-
-    <div class="page-head">
-        <h1 class="page-title">お問い合わせ一覧</h1>
-        <span class="count-badge">{{ contacts | length }} 件</span>
-    </div>
-
-    {% if contacts %}
+{% block content %}
+{% if contacts %}
+<div class="admin-card" style="padding:0;">
     <div class="table-wrap">
-        <table>
+        <table class="admin-table">
             <thead>
                 <tr>
                     <th>受付日時</th>
@@ -221,24 +25,20 @@
             <tbody>
                 {% for c in contacts %}
                 <tr>
-                    <td class="td-ts" data-label="日付">{{ c.get('タイムスタンプ', '') }}</td>
-                    <td class="td-name" data-label="">{{ c.get('お名前', '') }}</td>
-                    <td class="td-email" data-label="メール">
-                        <a href="mailto:{{ c.get('メール', '') }}" style="color:#666; text-decoration:none;">
-                            {{ c.get('メール', '') }}
-                        </a>
+                    <td class="td-muted td-nowrap" data-label="日付">{{ c.get('タイムスタンプ', '') }}</td>
+                    <td class="td-bold td-nowrap" data-label="">{{ c.get('お名前', '') }}</td>
+                    <td class="td-muted" data-label="メール">
+                        <a href="mailto:{{ c.get('メール', '') }}" style="color:inherit;">{{ c.get('メール', '') }}</a>
                     </td>
-                    <td class="td-subject" data-label="件名">{{ c.get('件名', '') }}</td>
-                    <td class="td-message" data-label="内容">{{ c.get('内容', '') }}</td>
+                    <td data-label="件名">{{ c.get('件名', '') }}</td>
+                    <td data-label="内容" style="max-width:320px; white-space:pre-wrap; word-break:break-word;">{{ c.get('内容', '') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% else %}
-    <div class="empty">お問い合わせはまだありません</div>
-    {% endif %}
-
-</main>
-</body>
-</html>
+</div>
+{% else %}
+<div class="admin-card"><div class="empty">お問い合わせはまだありません</div></div>
+{% endif %}
+{% endblock %}

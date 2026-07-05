@@ -1,405 +1,127 @@
-<!--
-  templates/admin/event_form.html
-  ================================
-  管理画面 - イベント作成 / 編集フォーム
+{% extends "admin/admin_base.html" %}
 
-  新規作成と編集の両方に使い回すテンプレート。
-  row の有無でフォームの POST 先を切り替える:
-    row = None  → POST /admin/events/new   （新規作成）
-    row = 整数  → POST /admin/events/{row} （既存行の上書き更新）
+{% block title %}{{ title }}{% endblock %}
+{% block nav_events %}is-active{% endblock %}
+{% block page_heading %}{{ title }}{% endblock %}
 
-  Jinja2 変数:
-    event        : dict         - 既存イベントデータ（新規時は {}）
-    row          : int | None   - スプレッドシートの行番号（新規時は None）
-    title        : str          - ページタイトル文字列
-    brand_options: list[str]    - 販売ブランドのチェックボックス選択肢
--->
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} | Admin</title>
-    <link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants-dark.png" media="(prefers-color-scheme: dark)">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
+{% block topbar_actions %}
+<a href="/admin/events" class="btn btn--sm btn--outline">← 一覧へ戻る</a>
+{% endblock %}
 
-        /* =========================================
-           ベーススタイル
-           ========================================= */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
-            background: #f5f5f5;
-            margin: 0;
-            color: #333;
-            font-size: 14px;
-        }
+{% block content %}
+<div class="admin-card admin-card--pad" style="max-width:760px;">
 
-        /* =========================================
-           上部固定バー
-           ========================================= */
-        .topbar {
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 30px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .topbar-brand {
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #333;
-            text-decoration: none;
-        }
-        .topbar-logout {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .topbar-logout:hover { color: #333; }
+    {% if row %}
+    <form method="post" action="/admin/events/{{ row }}">
+    {% else %}
+    <form method="post" action="/admin/events/new">
+    {% endif %}
 
-        /* =========================================
-           メインコンテンツエリア
-           ========================================= */
-        .main { max-width: 760px; margin: 40px auto; padding: 0 30px 80px; }
+        <!-- 基本情報 -->
+        <p class="form-section-label">基本情報</p>
 
-        /* 一覧へ戻るリンク */
-        .back {
-            display: inline-block;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            text-decoration: none;
-            margin-bottom: 24px;
-            transition: color 0.2s;
-        }
-        .back:hover { color: #333; }
-
-        .page-title {
-            font-size: 14px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #333;
-            margin: 0 0 32px;
-            font-weight: 500;
-        }
-
-        /* =========================================
-           フォームカード
-           ========================================= */
-        .form-card {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 40px;
-        }
-
-        /* セクションの区切りラベル */
-        .section-label {
-            font-size: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #aaa;
-            margin: 32px 0 16px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .section-label:first-child { margin-top: 0; }
-
-        /* 横並び 2 カラムレイアウト（スマホでは 1 カラムに折り返す） */
-        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
-
-        /* フォームフィールドの余白 */
-        .field { margin-bottom: 20px; }
-        .field:last-child { margin-bottom: 0; }
-
-        /* フィールドラベル */
-        label {
-            display: block;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #999;
-            margin-bottom: 6px;
-        }
-
-        /* テキスト系 input・textarea・select の共通スタイル */
-        input[type="text"],
-        input[type="date"],
-        input[type="url"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-            /* Safari のデフォルトスタイルをリセット */
-            border-radius: 0;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #fff;
-        }
-        input:focus, textarea:focus, select:focus { border-color: #333; }
-        textarea { resize: vertical; min-height: 80px; }
-
-        /* =========================================
-           チェックボックスグループ
-           ブランド選択・WSフラグに使用
-           ========================================= */
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px; }
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 13px;
-            /* label の汎用スタイルを上書きして通常テキストに */
-            letter-spacing: normal;
-            text-transform: none;
-            color: #333;
-            cursor: pointer;
-        }
-        .checkbox-label input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            padding: 0;
-            margin: 0;
-            cursor: pointer;
-            /* チェックマークの色をサイトのメインカラーに合わせる */
-            accent-color: #333;
-        }
-
-        .ws-toggle { margin-top: 12px; }
-
-        /* 補足説明テキスト */
-        .hint {
-            font-size: 11px;
-            color: #aaa;
-            margin-top: 4px;
-            line-height: 1.5;
-        }
-
-
-        /* =========================================
-           フォームアクションボタン
-           ========================================= */
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 40px;
-        }
-        .btn-save {
-            padding: 13px 32px;
-            background: #333;
-            color: #fff;
-            border: none;
-            font-size: 11px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            cursor: pointer;
-            font-family: inherit;
-            transition: background 0.2s;
-        }
-        .btn-save:hover { background: #555; }
-        .btn-cancel {
-            padding: 13px 24px;
-            background: transparent;
-            color: #999;
-            border: 1px solid #ddd;
-            font-size: 11px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            transition: 0.2s;
-        }
-        .btn-cancel:hover { color: #333; border-color: #333; }
-
-        /* =========================================
-           レスポンシブ（スマホ）
-           ========================================= */
-        @media (max-width: 768px) {
-            .topbar { padding: 0 12px; }
-            .topbar-brand { display: none; }
-            .nav-link { padding: 0 8px; font-size: 10px; letter-spacing: 0.5px; }
-            .topbar-logout { font-size: 10px; letter-spacing: 0.5px; }
-
-            .main { max-width: 100%; margin: 16px auto; padding: 0 12px 60px; }
-            .form-card { padding: 24px 16px; }
-            .form-actions { flex-direction: column; }
-            .btn-save, .btn-cancel { width: 100%; text-align: center; justify-content: center; padding: 14px; }
-        }
-    </style>
-</head>
-<body>
-
-    <!-- 上部固定バー -->
-    <header class="topbar">
-        <span class="topbar-brand">ei8ht plants — Admin</span>
-        <a href="/admin/logout" class="topbar-logout">Logout</a>
-    </header>
-
-    <main class="main">
-        <a href="/admin/events" class="back">← イベント一覧</a>
-        <h1 class="page-title">{{ title }}</h1>
-
-        <div class="form-card">
-            <!--
-                フォームの POST 先を row の有無で切り替える。
-                row が存在する（編集時）: /admin/events/{row}
-                row が None（新規作成時）: /admin/events/new
-            -->
-            {% if row %}
-            <form method="post" action="/admin/events/{{ row }}">
-            {% else %}
-            <form method="post" action="/admin/events/new">
-            {% endif %}
-
-                <!-- ========== 基本情報 ========== -->
-                <p class="section-label">基本情報</p>
-
-                <div class="field">
-                    <label for="name">イベント名</label>
-                    <input type="text" id="name" name="イベント名"
-                           value="{{ event.get('イベント名', '') }}" required>
-                </div>
-
-                <div class="row">
-                    <div class="field">
-                        <label for="start">開始日</label>
-                        <!--
-                            Google Sheets が "YYYY/MM/DD" 形式で返すことがあるため
-                            replace('/', '-') で HTML の date input 用形式（YYYY-MM-DD）に変換する
-                        -->
-                        <input type="date" id="start" name="開始日"
-                               value="{{ event.get('開始日', '').replace('/', '-') }}" required>
-                    </div>
-                    <div class="field">
-                        <label for="end">終了日</label>
-                        <input type="date" id="end" name="終了日"
-                               value="{{ event.get('終了日', '').replace('/', '-') }}">
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label>販売ブランド</label>
-                    <!--
-                        スプレッドシートの "販売ブランド" 列はカンマ区切り文字列
-                        （例: "ei8ht plants, Habitat Oides"）。
-                        split(', ') でリスト化し、各ブランドがチェック済みかを判定する。
-                    -->
-                    {% set selected_brands = event.get('販売ブランド', '').split(', ') %}
-                    <div class="checkbox-group">
-                        {% for brand in brand_options %}
-                        <!--
-                            同じ name="販売ブランド" で複数チェックボックスを定義する。
-                            POST 時に admin.py の form.getlist('販売ブランド') で
-                            全選択値を取得し、カンマ区切りに結合して保存する。
-                        -->
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="販売ブランド" value="{{ brand }}"
-                                {% if brand in selected_brands %}checked{% endif %}>
-                            {{ brand }}
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- ========== 会場情報 ========== -->
-                <p class="section-label">会場情報</p>
-
-                <div class="field">
-                    <label for="place">場所（会場名）</label>
-                    <input type="text" id="place" name="場所"
-                           value="{{ event.get('場所', '') }}">
-                </div>
-
-                <div class="row">
-                    <div class="field">
-                        <label for="booth">ブース番号</label>
-                        <input type="text" id="booth" name="ブース番号"
-                               value="{{ event.get('ブース番号', '') }}">
-                    </div>
-                    <div class="field">
-                        <label for="time">開催時間</label>
-                        <input type="text" id="time" name="開催時間"
-                               value="{{ event.get('開催時間', '') }}" placeholder="例: 10:00-16:00,10:00-15:00">
-                        <p class="hint">複数日で時間が異なる場合は「,」で区切って日付順に入力。例: 10:00-16:00,10:00-15:00</p>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label for="address">住所</label>
-                    <!-- Google マップリンクの生成に使用（sheets.py の _enrich_event で処理） -->
-                    <input type="text" id="address" name="住所"
-                           value="{{ event.get('住所', '') }}">
-                </div>
-
-                <div class="field">
-                    <label for="site_url">公式サイトURL</label>
-                    <input type="url" id="site_url" name="公式サイトURL"
-                           value="{{ event.get('公式サイトURL', '') }}">
-                </div>
-
-                <!-- ========== ワークショップ ========== -->
-                <p class="section-label">ワークショップ</p>
-
-                <div class="field ws-toggle">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="ws-flag-cb" name="WSフラグ" value="TRUE"
-                            {% if event.get('WSフラグ', '').upper() == 'TRUE' %}checked{% endif %}>
-                        Habitat Style Workshop を開催する
-                    </label>
-                </div>
-
-                <div class="field ws-toggle" id="reserve-flag-wrap"
-                     style="margin-left: 24px; {% if event.get('WSフラグ', '').upper() != 'TRUE' %}display: none;{% endif %}">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="予約フラグ" value="TRUE"
-                            {% if event.get('予約フラグ', 'TRUE')|upper != 'FALSE' %}checked{% endif %}>
-                        ワークショップの予約を受け付ける
-                    </label>
-                    <p class="hint">OFFの場合、イベントページに「予約不要・当日スタッフにお声がけください」と表示されます。</p>
-                </div>
-
-                <input type="hidden" name="WS予約URL" value="{{ event.get('WS予約URL', '') }}">
-
-                <script>
-                    document.getElementById('ws-flag-cb').addEventListener('change', function() {
-                        document.getElementById('reserve-flag-wrap').style.display = this.checked ? '' : 'none';
-                    });
-                </script>
-
-                <!-- ========== 画像 ========== -->
-                <p class="section-label">画像</p>
-
-                <div class="field">
-                    <label for="images">画像URL（カンマ区切り）</label>
-                    <textarea id="images" name="画像" rows="3">{{ event.get('画像', '') }}</textarea>
-                    <p class="hint">Google Drive の共有URLをカンマ区切りで入力してください。例: https://drive.google.com/file/d/xxxxxx/view, https://...</p>
-                </div>
-
-                <!-- ========== 保存・キャンセル ========== -->
-                <div class="form-actions">
-                    <button type="submit" class="btn-save">保存</button>
-                    <a href="/admin/events" class="btn-cancel">キャンセル</a>
-                </div>
-
-            </form>
+        <div class="field">
+            <label for="name">イベント名</label>
+            <input type="text" id="name" name="イベント名" value="{{ event.get('イベント名', '') }}" required>
         </div>
-    </main>
-</body>
-</html>
+
+        <div class="form-row">
+            <div class="field">
+                <label for="start">開始日</label>
+                <input type="date" id="start" name="開始日" value="{{ event.get('開始日', '').replace('/', '-') }}" required>
+            </div>
+            <div class="field">
+                <label for="end">終了日</label>
+                <input type="date" id="end" name="終了日" value="{{ event.get('終了日', '').replace('/', '-') }}">
+            </div>
+        </div>
+
+        <div class="field">
+            <label>販売ブランド</label>
+            {% set selected_brands = event.get('販売ブランド', '').split(', ') %}
+            <div class="checkbox-group">
+                {% for brand in brand_options %}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="販売ブランド" value="{{ brand }}"
+                        {% if brand in selected_brands %}checked{% endif %}>
+                    {{ brand }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 会場情報 -->
+        <p class="form-section-label">会場情報</p>
+
+        <div class="field">
+            <label for="place">場所（会場名）</label>
+            <input type="text" id="place" name="場所" value="{{ event.get('場所', '') }}">
+        </div>
+
+        <div class="form-row">
+            <div class="field">
+                <label for="booth">ブース番号</label>
+                <input type="text" id="booth" name="ブース番号" value="{{ event.get('ブース番号', '') }}">
+            </div>
+            <div class="field">
+                <label for="time">開催時間</label>
+                <input type="text" id="time" name="開催時間" value="{{ event.get('開催時間', '') }}" placeholder="例: 10:00-16:00,10:00-15:00">
+                <p class="hint">複数日で時間が異なる場合は「,」で区切って日付順に入力</p>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="address">住所</label>
+            <input type="text" id="address" name="住所" value="{{ event.get('住所', '') }}">
+        </div>
+
+        <div class="field">
+            <label for="site_url">公式サイトURL</label>
+            <input type="url" id="site_url" name="公式サイトURL" value="{{ event.get('公式サイトURL', '') }}">
+        </div>
+
+        <!-- ワークショップ -->
+        <p class="form-section-label">ワークショップ</p>
+
+        <div class="field">
+            <label class="checkbox-label">
+                <input type="checkbox" id="ws-flag-cb" name="WSフラグ" value="TRUE"
+                    {% if event.get('WSフラグ', '').upper() == 'TRUE' %}checked{% endif %}>
+                Habitat Style Workshop を開催する
+            </label>
+        </div>
+
+        <div class="field" id="reserve-flag-wrap" style="margin-left:22px; {% if event.get('WSフラグ', '').upper() != 'TRUE' %}display:none;{% endif %}">
+            <label class="checkbox-label">
+                <input type="checkbox" name="予約フラグ" value="TRUE"
+                    {% if event.get('予約フラグ', 'TRUE')|upper != 'FALSE' %}checked{% endif %}>
+                ワークショップの予約を受け付ける
+            </label>
+            <p class="hint">OFF の場合「予約不要・当日スタッフにお声がけください」と表示されます。</p>
+        </div>
+        <input type="hidden" name="WS予約URL" value="{{ event.get('WS予約URL', '') }}">
+
+        <!-- 画像 -->
+        <p class="form-section-label">画像</p>
+
+        <div class="field">
+            <label for="images">画像URL（カンマ区切り）</label>
+            <textarea id="images" name="画像" rows="3">{{ event.get('画像', '') }}</textarea>
+            <p class="hint">Google Drive の共有URLをカンマ区切りで入力。例: https://drive.google.com/file/d/xxxxxx/view, https://...</p>
+        </div>
+
+        <!-- 保存 -->
+        <div class="form-actions">
+            <button type="submit" class="btn">保存</button>
+            <a href="/admin/events" class="btn btn--outline">キャンセル</a>
+        </div>
+
+    </form>
+</div>
+
+<script>
+document.getElementById('ws-flag-cb').addEventListener('change', function() {
+    document.getElementById('reserve-flag-wrap').style.display = this.checked ? '' : 'none';
+});
+</script>
+{% endblock %}
