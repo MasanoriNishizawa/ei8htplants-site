@@ -152,17 +152,28 @@
 
         .header-nav { display: flex; gap: 24px; align-items: center; justify-content: flex-end; }
 
-        .header-nav a {
+        .header-nav a,
+        .header-nav .nav-dropdown-trigger {
             font-size: var(--font-nav);
             color: var(--color-text-muted);
             font-weight: 400;
             letter-spacing: 0.12em;
-            text-transform: uppercase;
             text-decoration: none;
             transition: color 0.2s;
             white-space: nowrap;
             padding-bottom: 2px;
             border-bottom: 1px solid transparent;
+        }
+
+        /* HOME / ABOUT US など直リンクと OUR BRANDS ボタンのみ大文字 */
+        .header-nav > a,
+        .header-nav .nav-dropdown-trigger {
+            text-transform: uppercase;
+        }
+
+        /* ドロップダウン内ブランド名は大文字にしない */
+        .header-nav .nav-dropdown-menu a {
+            text-transform: none;
         }
 
         .header-nav a:hover { color: var(--color-text-main); }
