@@ -232,12 +232,12 @@
         .nav-dropdown.open .nav-dropdown-menu {
             display: block;
         }
-        .nav-dropdown-menu a {
+        .header-nav .nav-dropdown-menu a {
             display: block;
             padding: 10px 20px;
             font-size: 11px;
             letter-spacing: 0.04em;
-            text-transform: none;
+            text-transform: none !important;
             color: var(--color-text-muted);
             text-decoration: none;
             border-bottom: none;
@@ -262,9 +262,10 @@
                 width: 100%;
                 border-radius: 0;
             }
-            .nav-dropdown-menu a {
+            .header-nav .nav-dropdown-menu a {
                 text-align: center;
                 padding: 12px 20px;
+                text-transform: none !important;
             }
             .nav-dropdown-trigger::after {
                 display: inline-block;
