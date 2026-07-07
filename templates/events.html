@@ -5,28 +5,6 @@
 {% block title %}ei8ht plants | {% if is_past %}Past Events{% else %}Events{% endif %}{% endblock %}
 {% block meta_description %}ei8ht plants のイベント・フラワーマーケット・ワークショップ情報。最新の開催スケジュールをご確認ください。{% endblock %}
 
-{% block extra_css %}
-<style>
-    /* =========================================
-       1. ページ下部の切り替えボタン
-       ========================================= */
-    .admin-link-container { text-align: center; margin-top: 60px; }
-    .btn-past { 
-        display: inline-block; 
-        padding: 12px 30px; 
-        background-color: var(--color-card-bg); 
-        border: 1px solid var(--color-border); 
-        color: var(--color-text-sub); 
-        text-decoration: none; 
-        border-radius: var(--radius-card); 
-        font-size: var(--font-info); 
-        letter-spacing: 2px; 
-        transition: 0.3s; 
-    }
-    .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
-</style>
-{% endblock %}
-
 {% block extra_head %}
 {% if not is_past and pinned_event %}
 <script type="application/ld+json">
@@ -52,6 +30,20 @@
 
 {% block extra_css %}
 <style>
+  .admin-link-container { text-align: center; margin-top: 60px; }
+  .btn-past {
+    display: inline-block;
+    padding: 12px 30px;
+    background-color: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-sub);
+    text-decoration: none;
+    font-size: var(--font-info);
+    letter-spacing: 2px;
+    transition: 0.3s;
+  }
+  .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
+
   .events-hero {
     display: grid;
     grid-template-columns: 1fr 1fr;
