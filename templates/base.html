@@ -301,7 +301,7 @@
             2. 共通ページヘッダー（エディトリアル）
            ========================================= */
         .page-header {
-            padding: 56px 24px 44px;
+            padding: 6vw 5vw 5vw;
             background-color: var(--color-bg);
             border-bottom: 1px solid var(--color-border);
         }
@@ -315,14 +315,14 @@
             text-transform: uppercase;
             color: var(--color-text-muted);
             display: block;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
         .page-title {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: var(--font-display-sm);
+            font-size: clamp(36px, 6vw, 72px);
             font-weight: 300;
-            letter-spacing: 0.04em;
-            line-height: 1.1;
+            letter-spacing: 0.02em;
+            line-height: 1.05;
             margin: 0;
             color: var(--color-text-main);
             text-transform: none;
@@ -332,7 +332,7 @@
             3. メインコンテンツ・共通レイアウト
            ========================================= */
         .site-main { padding-top: 50px; min-height: 100vh; display: flex; flex-direction: column; }
-        .container { max-width: var(--max-width); margin: 56px auto; padding: 0 24px; width: 100%; box-sizing: border-box; }
+        .container { max-width: var(--max-width); margin: 5vw auto; padding: 0 5vw; width: 100%; box-sizing: border-box; }
 
         /* セクション見出し：雑誌的な横罫線スタイル */
         .section-header {
@@ -342,7 +342,7 @@
             letter-spacing: 0.28em;
             text-transform: uppercase;
             color: var(--color-text-muted);
-            margin: 72px 0 36px;
+            margin: 80px 0 40px;
             padding-bottom: 0;
             border-bottom: none;
             display: flex;
@@ -452,19 +452,20 @@
             4. レスポンシブ
            ========================================= */
         @media (max-width: 768px) {
-            .site-header { padding: 0 18px; min-height: 50px; }
-            .header-logo-img { height: 24px; }
+            .site-header { padding: 0 20px; min-height: 50px; }
+            .header-logo-img { height: 22px; }
 
             .menu-btn { display: block; }
 
             .header-nav {
-                position: fixed; top: 0; right: -100%; width: 72%; height: 100vh;
+                position: fixed; top: 0; right: -100%; width: 80%; height: 100vh;
                 background: rgba(245, 241, 232, 0.99); flex-direction: column;
-                justify-content: center; align-items: center; gap: 28px;
+                justify-content: center; align-items: center; gap: 36px;
                 transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1050;
                 box-shadow: -2px 0 20px rgba(40, 35, 20, 0.07);
             }
-            .header-nav a { font-size: 12px; letter-spacing: 0.15em; }
+            .header-nav > a,
+            .header-nav .nav-dropdown-trigger { font-size: 13px; letter-spacing: 0.2em; }
             .header-nav.nav-open { right: 0; }
 
             .menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
@@ -472,11 +473,11 @@
             .menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
             .site-main { padding-top: 50px; }
-            .event-content { padding: 20px; }
-            .event-title { font-size: 22px; }
-            .events-grid .event-title { font-size: 20px; }
-            .page-title { font-size: clamp(24px, 7vw, 36px); }
-            .section-header { margin: 52px 0 28px; }
+            .container { padding: 0 20px; margin: 48px auto; }
+            .event-content { padding: 24px 20px; }
+            .event-title { font-size: clamp(20px, 5.5vw, 28px); }
+            .events-grid .event-title { font-size: clamp(18px, 5vw, 24px); }
+            .section-header { margin: 56px 0 32px; }
         }
 
         @media (min-width: 769px) {
@@ -485,11 +486,11 @@
             .events-grid .event-card:nth-child(2n) { border-right: none; }
             .events-grid .event-card:first-child,
             .events-grid .event-card:nth-child(2) { border-top: 1px solid var(--color-border); }
-            .events-grid .event-content { padding: 24px; }
+            .events-grid .event-content { padding: 32px; }
             .next-card { flex-direction: row; }
             .next-card .image-wrap { width: 45%; min-width: 45%; }
-            .next-card .event-content { flex: 1; padding: 36px 40px; }
-            .next-card .event-title { font-size: clamp(22px, 2.8vw, 34px); }
+            .next-card .event-content { flex: 1; padding: 48px 52px; }
+            .next-card .event-title { font-size: clamp(24px, 2.8vw, 36px); }
         }
     </style>
     <!-- ページ固有の <style> を差し込む領域 -->

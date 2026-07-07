@@ -6,24 +6,24 @@
 
 {% block extra_css %}
 <style>
-  /* ── Cover / Hero ─────────────────────────────────── */
+  /* ── カバー全体 ────────────────────────────────────── */
   .cover {
+    display: flex;
+    flex-direction: column;
+    height: calc(100svh - 50px); /* ヘッダー分を引いた画面いっぱい */
     border-bottom: 1px solid var(--color-border);
-    padding: 0;
-  }
-  .cover-inner {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    padding: 0 24px;
+    overflow: hidden;
   }
 
-  /* マストヘッド（雑誌名バー） */
+  /* マストヘッドバー（雑誌タイトル行）*/
   .cover-masthead {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 0;
+    padding: 12px 5vw;
     border-bottom: 2px solid var(--color-text-main);
+    flex-shrink: 0;
+    background: var(--color-bg);
   }
   .cover-masthead-title {
     font-size: 9px;
@@ -33,25 +33,28 @@
   }
   .cover-masthead-issue {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 11px;
-    letter-spacing: 0.12em;
+    font-size: 12px;
+    letter-spacing: 0.1em;
     color: var(--color-text-muted);
     font-style: italic;
   }
 
-  /* ヒーロー本体：大きな見出し + ロゴ */
+  /* 2カラムのヒーロー本体 */
   .cover-body {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    min-height: 420px;
+    grid-template-columns: 55fr 45fr;
+    flex: 1;
+    overflow: hidden;
   }
+
+  /* 左：テキストカラム */
   .cover-text-col {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 56px 48px 56px 0;
+    justify-content: flex-end;
+    padding: 6vw 5vw 5vw 5vw;
     border-right: 1px solid var(--color-border);
+    background: var(--color-bg);
   }
   .cover-eyebrow {
     font-size: 9px;
@@ -59,41 +62,42 @@
     text-transform: uppercase;
     color: var(--color-text-muted);
     display: block;
-    margin-bottom: 20px;
+    margin-bottom: 3vh;
   }
   .cover-headline {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: var(--font-display);
+    font-size: clamp(52px, 8vw, 110px);
     font-weight: 300;
-    line-height: 1.05;
-    letter-spacing: 0.02em;
+    line-height: 1.0;
+    letter-spacing: -0.01em;
     color: var(--color-text-main);
-    margin: 0 0 24px;
+    margin: 0 0 4vh;
   }
   .cover-tagline {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 15px;
+    font-size: clamp(14px, 1.4vw, 18px);
     font-style: italic;
     font-weight: 300;
     color: var(--color-text-sub);
     letter-spacing: 0.06em;
-    line-height: 1.8;
-    margin: 0 0 36px;
+    line-height: 2.0;
+    margin: 0;
+    max-width: 28em;
   }
-  /* ロゴスライダーコラム */
+
+  /* 右：ロゴスライダーカラム */
   .cover-visual-col {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px 0 40px 48px;
     background: var(--color-card-bg);
     position: relative;
   }
   .cover-slider {
     position: relative;
-    width: 72%;
-    aspect-ratio: 1/1;
-    max-width: 320px;
+    width: 65%;
+    aspect-ratio: 1 / 1;
+    max-width: 380px;
   }
   .cover-slide-img {
     position: absolute;
@@ -103,7 +107,6 @@
     object-fit: contain;
     opacity: 0;
     animation: cover-fade 12s infinite;
-    filter: drop-shadow(0 2px 20px rgba(26,30,20,0.08));
     pointer-events: none;
   }
   .cover-slide-img:nth-child(1) { animation-delay: 0s; }
@@ -121,83 +124,111 @@
   .home-section {
     max-width: var(--max-width);
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 5vw;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* ── ギャラリー ─────────────────────────────────────── */
   .marquee-wrap {
     border-top: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
-    margin: 0;
-    padding: 0;
     overflow: hidden;
   }
   .marquee-section {
     width: 100%;
     overflow: hidden;
-    padding: 0;
-    -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
-    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
   }
-  .marquee-content { display: flex; width: fit-content; animation: marquee 80s linear infinite; }
-  .marquee-item { width: 260px; height: 260px; margin-right: 2px; flex-shrink: 0; overflow: hidden; }
+  .marquee-content { display: flex; width: fit-content; animation: marquee 70s linear infinite; }
+  .marquee-item { width: 33vw; max-width: 360px; min-width: 180px; height: 33vw; max-height: 360px; min-height: 180px; margin-right: 2px; flex-shrink: 0; overflow: hidden; }
   .marquee-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
   @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 1px)); } }
 
   /* ── Instagram ─────────────────────────────────────── */
   .ig-section {
-    border-top: 1px solid var(--color-border);
-    padding: 64px 24px;
+    padding: 72px 5vw;
     max-width: var(--max-width);
     margin: 0 auto;
+    border-top: 1px solid var(--color-border);
   }
   .ig-grid {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 48px;
-    margin-top: 32px;
+    gap: 6vw;
+    margin-top: 40px;
   }
   .ig-btn {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 140px;
-    height: 140px;
+    width: clamp(80px, 12vw, 160px);
+    height: clamp(80px, 12vw, 160px);
     overflow: hidden;
     transition: opacity 0.3s;
-    background: transparent;
+    flex-shrink: 0;
   }
-  .ig-btn:hover { opacity: 0.7; }
+  .ig-btn:hover { opacity: 0.65; }
   .ig-btn img { width: 100%; height: 100%; object-fit: contain; }
   .ig-img-habitat { object-fit: cover; border-radius: 50%; }
   .ig-img-ei8ht { width: 140%; height: auto; }
   .ig-img-hue { width: 115%; height: auto; }
 
-  /* ── レスポンシブ ──────────────────────────────────── */
+  /* ── PC: NEXT EVENT カード ─────────────────────────── */
+  @media (min-width: 769px) {
+    .home-next-wrapper .next-card { flex-direction: row; }
+    .home-next-wrapper .next-card .image-wrap { width: 42%; min-width: 42%; min-height: 320px; }
+    .home-next-wrapper .next-card .event-content { flex: 1; padding: 48px 52px; }
+    .home-next-wrapper .next-card .event-title { font-size: clamp(24px, 2.8vw, 38px); }
+  }
+
+  /* ── スマホ ─────────────────────────────────────────── */
   @media (max-width: 768px) {
+    .cover {
+      height: calc(100svh - 50px);
+    }
+    .cover-masthead {
+      padding: 10px 20px;
+    }
+    .cover-masthead-issue { display: none; }
+
+    /* スマホ：縦並び2段 */
     .cover-body {
       grid-template-columns: 1fr;
-      min-height: auto;
+      grid-template-rows: 1fr auto;
     }
     .cover-text-col {
-      padding: 36px 0 32px;
+      justify-content: flex-end;
+      padding: 24px 20px 28px;
       border-right: none;
       border-bottom: 1px solid var(--color-border);
     }
-    .cover-headline { font-size: clamp(36px, 10vw, 52px); }
-    .cover-visual-col { padding: 32px 0; }
-    .cover-slider { width: 56%; }
-.marquee-item { width: 160px; height: 160px; }
-    .ig-btn { width: 90px; height: 90px; }
-    .ig-grid { gap: 24px; }
-  }
+    .cover-headline {
+      font-size: clamp(52px, 15vw, 80px);
+      margin-bottom: 16px;
+    }
+    .cover-tagline { font-size: 13px; }
+    .cover-visual-col {
+      padding: 28px 20px;
+      min-height: 34vw;
+    }
+    .cover-slider {
+      width: 48%;
+      max-width: none;
+    }
 
-  @media (min-width: 769px) {
-    .home-next-wrapper .next-card { flex-direction: row; }
-    .home-next-wrapper .next-card .image-wrap { width: 40%; min-width: 40%; }
-    .home-next-wrapper .next-card .event-content { flex: 1; padding: 36px 40px; }
-    .home-next-wrapper .next-card .event-title { font-size: clamp(22px, 2.4vw, 32px); }
+    /* ギャラリー：スマホでも十分な高さ */
+    .marquee-item {
+      width: 48vw;
+      min-width: 140px;
+      height: 48vw;
+      min-height: 140px;
+    }
+    .home-section { padding: 0 20px; }
+    .ig-section { padding: 56px 20px; }
+    .ig-grid { gap: 28px; }
   }
 </style>
 {% endblock %}
@@ -205,54 +236,49 @@
 {% block content %}
 <h1 class="sr-only">ei8ht plants — アガベ・ハビタットスタイル・オーナメントプランツ</h1>
 
-<!-- Cover -->
+<!-- ── Cover ───────────────────────────────────────── -->
 <div class="cover">
-  <div class="cover-inner">
-    <!-- マストヘッド -->
-    <div class="cover-masthead">
-      <span class="cover-masthead-title">Plants &amp; Habitat &amp; Color</span>
-      <span class="cover-masthead-issue">Agave / Habitat Style / Color Plants</span>
+  <div class="cover-masthead">
+    <span class="cover-masthead-title">Plants &amp; Habitat &amp; Color</span>
+    <span class="cover-masthead-issue">Agave / Habitat Style / Color Plants</span>
+  </div>
+
+  <div class="cover-body">
+    <div class="cover-text-col">
+      <span class="cover-eyebrow">Plant Shop</span>
+      <h2 class="cover-headline">植物と、<br>深く。</h2>
+      <p class="cover-tagline">
+        色と形に惹かれた一株が、<br>
+        空間を静かに変えていく。
+      </p>
     </div>
 
-    <!-- ヒーロー本体 -->
-    <div class="cover-body">
-      <div class="cover-text-col">
-        <span class="cover-eyebrow">Plant Shop</span>
-        <h2 class="cover-headline">植物と、<br>深く。</h2>
-        <p class="cover-tagline">
-          色と形に惹かれた一株が、<br>
-          空間を静かに変えていく。
-        </p>
-      </div>
-
-      <div class="cover-visual-col">
-        <div class="cover-slider">
-          <img src="/static/img/logo-ei8htplants.png"  class="cover-slide-img" alt="ei8ht plants">
-          <img src="/static/img/logo-habitatoides.png" class="cover-slide-img" alt="Habitat Oides">
-          <img src="/static/img/logo-hue.png"          class="cover-slide-img" alt="HUE by ei8ht plants">
-        </div>
+    <div class="cover-visual-col">
+      <div class="cover-slider">
+        <img src="/static/img/logo-ei8htplants.png"  class="cover-slide-img" alt="ei8ht plants">
+        <img src="/static/img/logo-habitatoides.png" class="cover-slide-img" alt="Habitat Oides">
+        <img src="/static/img/logo-hue.png"          class="cover-slide-img" alt="HUE by ei8ht plants">
       </div>
     </div>
   </div>
 </div>
 
-
-<!-- NEXT EVENT -->
+<!-- ── NEXT EVENT ──────────────────────────────────── -->
 {% if next_event %}
 <div class="home-section">
   <h2 class="section-header">Next Event</h2>
   <div class="home-next-wrapper">
     {{ create_event_card(next_event, is_next=True, is_home=True) }}
   </div>
-  <div style="text-align:center; margin: 8px 0 72px;">
-    <a href="/events" style="font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--color-text-muted); text-decoration:none; border-bottom:1px solid var(--color-border); padding-bottom:3px; transition:0.2s;">
+  <div style="text-align:center; margin: 12px 0 80px;">
+    <a href="/events" style="font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--color-text-muted); text-decoration:none; border-bottom:1px solid var(--color-border); padding-bottom:3px;">
       View all events →
     </a>
   </div>
 </div>
 {% endif %}
 
-<!-- GALLERY -->
+<!-- ── GALLERY ─────────────────────────────────────── -->
 {% if gallery_images %}
 <div class="home-section" style="padding-bottom:0;">
   <h2 class="section-header">Gallery</h2>
@@ -266,15 +292,15 @@
   </div>
 </div>
 <div class="home-section" style="padding-top:0;">
-  <div style="text-align:center; margin: 28px 0 72px;">
-    <a href="/gallery" style="font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--color-text-muted); text-decoration:none; border-bottom:1px solid var(--color-border); padding-bottom:3px; transition:0.2s;">
+  <div style="text-align:center; margin: 28px 0 80px;">
+    <a href="/gallery" style="font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--color-text-muted); text-decoration:none; border-bottom:1px solid var(--color-border); padding-bottom:3px;">
       View all gallery →
     </a>
   </div>
 </div>
 {% endif %}
 
-<!-- Instagram -->
+<!-- ── Instagram ──────────────────────────────────── -->
 <div class="ig-section">
   <h2 class="section-header">Instagram</h2>
   <div class="ig-grid">
