@@ -372,7 +372,7 @@
         /* 画像エリア */
         .image-wrap {
             width: 100%;
-            aspect-ratio: 4 / 3;
+            aspect-ratio: 3 / 2;
             background-color: #e8e2d6;
             overflow: hidden;
             flex-shrink: 0;
@@ -488,10 +488,10 @@
         }
 
         @media (min-width: 769px) {
-            .events-grid { grid-template-columns: repeat(3, 1fr); gap: 2vw; background: transparent; padding: 2vw 2vw 1vw; }
+            .events-grid { grid-template-columns: repeat(3, 1fr); gap: 3vw; background: transparent; padding: 3vw 4vw 2vw; }
             .events-grid .event-card { border: 1px solid var(--color-border); }
-            .events-grid .event-content { padding: 14px 18px 20px; }
-            .events-grid .event-title { font-size: clamp(14px, 1.4vw, 20px); }
+            .events-grid .event-content { padding: 12px 16px 16px; }
+            .events-grid .event-title { font-size: clamp(13px, 1.3vw, 18px); }
             .next-card { flex-direction: row; border-bottom: 1px solid var(--color-border); margin-bottom: 0; }
             .next-card .image-wrap { width: 46%; flex-shrink: 0; }
             .next-card .event-content { flex: 1; padding: 40px 48px; display: flex; flex-direction: column; justify-content: center; }
