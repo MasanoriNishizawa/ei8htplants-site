@@ -91,43 +91,46 @@
   </div>
 </div>
 
-<div class="container">
-    {% if is_past %}
-        {% if scheduled_events %}
-            <div class="events-grid">
-                {% for item in scheduled_events %}
-                    {{ create_event_card(item) }}
-                {% endfor %}
-            </div>
-        {% else %}
-            <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">過去のイベントはありません。</p>
-        {% endif %}
-
+{% if is_past %}
+    {% if scheduled_events %}
+    <div class="events-grid">
+        {% for item in scheduled_events %}
+            {{ create_event_card(item) }}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="container">
+        <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">過去のイベントはありません。</p>
+    </div>
+    {% endif %}
+    <div class="container">
         <div class="admin-link-container">
             <a href="/events" class="btn-past">現在のイベントを見る</a>
         </div>
+    </div>
 
-    {% else %}
-        {% if pinned_event %}
-            <h2 class="section-header">Next Event</h2>
-            {{ create_event_card(pinned_event, is_next=True) }}
+{% else %}
+    {% if pinned_event %}
+        <h2 class="section-header" style="padding: 0 5vw;">Next Event</h2>
+        {{ create_event_card(pinned_event, is_next=True) }}
 
-            {% if scheduled_events %}
-            <h2 class="section-header">Events Schedule</h2>
-            <div class="events-grid">
-                {% for item in scheduled_events %}
-                    {{ create_event_card(item) }}
-                {% endfor %}
-            </div>
-            {% endif %}
-            
-        {% else %}
-            <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">予定されているイベントはありません。</p>
+        {% if scheduled_events %}
+        <h2 class="section-header" style="padding: 0 5vw;">Events Schedule</h2>
+        <div class="events-grid">
+            {% for item in scheduled_events %}
+                {{ create_event_card(item) }}
+            {% endfor %}
+        </div>
         {% endif %}
-
+    {% else %}
+        <div class="container">
+            <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">予定されているイベントはありません。</p>
+        </div>
+    {% endif %}
+    <div class="container">
         <div class="admin-link-container">
             <a href="/events?page=past" class="btn-past">過去のイベントを見る</a>
         </div>
-    {% endif %}
-</div>
+    </div>
+{% endif %}
 {% endblock %}

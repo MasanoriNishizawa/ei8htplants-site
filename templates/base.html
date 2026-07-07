@@ -369,16 +369,15 @@
             flex-direction: column;
             border-radius: 0;
         }
-        /* 画像エリア：3:2固定比率 */
+        /* 画像エリア */
         .image-wrap {
             width: 100%;
-            aspect-ratio: 3 / 2;
+            aspect-ratio: 4 / 3;
             background-color: #e8e2d6;
             overflow: hidden;
             flex-shrink: 0;
         }
-        .event-image { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s ease; }
-        .event-card:hover .event-image { transform: scale(1.04); }
+        .event-image { width: 100%; height: 100%; object-fit: cover; display: block; }
         .event-content { padding: 28px; flex: 1; display: flex; flex-direction: column; }
         .event-title {
             font-family: 'Cormorant Garamond', Georgia, serif;
@@ -429,12 +428,11 @@
         .ws-credit { display: block; margin-top: 12px; font-size: var(--font-small); color: #a1887f; line-height: 1.6; }
         .ws-no-reserve { display: block; margin-top: 10px; font-size: 12px; color: var(--color-ws-text); font-style: italic; }
 
-        /* イベントグリッド：マガジン的なタイルグリッド */
+        /* イベントグリッド：フルワイドタイルグリッド */
         .events-grid {
             display: grid;
             grid-template-columns: 1fr;
-            max-width: var(--max-width);
-            margin: 0 auto 80px auto;
+            margin: 0 0 80px 0;
             border-top: 1px solid var(--color-border);
         }
 
@@ -490,19 +488,13 @@
         }
 
         @media (min-width: 769px) {
-            /* 3カラムグリッド：1枚目だけ2列分の幅（フィーチャー） */
             .events-grid { grid-template-columns: repeat(3, 1fr); }
             .events-grid .event-card { border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
             .events-grid .event-card:nth-child(3n) { border-right: none; }
-            .events-grid .event-card:first-child { grid-column: span 2; flex-direction: row; }
-            .events-grid .event-card:first-child .image-wrap { width: 55%; aspect-ratio: auto; min-height: 320px; flex-shrink: 0; }
-            .events-grid .event-card:first-child .event-content { flex: 1; padding: 40px; }
-            .events-grid .event-card:first-child .event-title { font-size: clamp(22px, 2.4vw, 32px); }
-            .events-grid .event-content { padding: 28px; }
-            /* NEXTカード */
+            .events-grid .event-content { padding: 32px; }
             .next-card { flex-direction: row; border-bottom: 1px solid var(--color-border); margin-bottom: 0; }
-            .next-card .image-wrap { width: 48%; aspect-ratio: auto; min-height: 380px; flex-shrink: 0; }
-            .next-card .event-content { flex: 1; padding: 52px 56px; display: flex; flex-direction: column; justify-content: center; }
+            .next-card .image-wrap { width: 50%; aspect-ratio: auto; min-height: 360px; flex-shrink: 0; }
+            .next-card .event-content { flex: 1; padding: 48px 52px; display: flex; flex-direction: column; justify-content: center; }
             .next-card .event-title { font-size: clamp(26px, 3vw, 42px); margin-bottom: 0; }
         }
     </style>
