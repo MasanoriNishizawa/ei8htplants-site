@@ -111,11 +111,13 @@
 
 {% else %}
     {% if pinned_event %}
-        <h2 class="section-header" style="padding: 0 5vw;">Next Event</h2>
-        {{ create_event_card(pinned_event, is_next=True) }}
+        <div class="container">
+            <h2 class="section-header">Next Event</h2>
+            {{ create_event_card(pinned_event, is_next=True) }}
+        </div>
 
         {% if scheduled_events %}
-        <h2 class="section-header" style="padding: 0 5vw;">Events Schedule</h2>
+        <h2 class="section-header" style="padding: 0 2vw; margin: 3vw 0 0;">Events Schedule</h2>
         <div class="events-grid">
             {% for item in scheduled_events %}
                 {{ create_event_card(item) }}
