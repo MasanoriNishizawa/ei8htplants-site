@@ -59,47 +59,55 @@
             【デザイン・コントロールパネル】 一括設定エリア（CSS変数）
            ========================================================= */
         :root {
-            --font-title-lg: 26px;
-            --font-title-md: 18px;
-            --font-info: 13px;
-            --font-tag: 10px;
-            --font-section: 13px;
-            --font-nav: 11px;
-            --font-small: 11px;
+            --font-display:    clamp(42px, 6.5vw, 72px);
+            --font-display-sm: clamp(26px, 3.8vw, 44px);
+            --font-title-lg:   26px;
+            --font-title-md:   18px;
+            --font-info:       13px;
+            --font-tag:        10px;
+            --font-section:    13px;
+            --font-nav:        11px;
+            --font-small:      11px;
+            --font-overline:   9px;
+            --fs-body:         13px;
 
-            --color-bg: #f7f3ec;
-            --color-card-bg: #fffcf6;
-            --color-text-main: #1c2417;
-            --color-text-sub: #3a4535;
+            --color-bg:         #f5f1e8;
+            --color-card-bg:    #faf7f0;
+            --color-text-main:  #1a1e14;
+            --color-text-sub:   #3a4535;
             --color-text-muted: #8a9a7e;
-            --color-border: #ddd4c0;
-            --color-link: #4a6741;
+            --color-border:     #d8cdb8;
+            --color-border-dark:#b0a48c;
+            --color-accent:     #7a5c3a;
+            --color-link:       #4a6741;
 
-            --color-ws-bg: #f2ede2;
+            --color-ws-bg:     #f2ede2;
             --color-ws-border: #c8b49a;
-            --color-ws-text: #5c3d22;
+            --color-ws-text:   #5c3d22;
 
-            --max-width: 1000px;
-            --radius-card: 2px;
-            --radius-tag: 2px;
+            --max-width:   1080px;
+            --radius-card: 0;
+            --radius-tag:  1px;
 
             color-scheme: only light;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --color-bg: #f7f3ec;
-                --color-card-bg: #fffcf6;
-                --color-text-main: #1c2417;
-                --color-text-sub: #3a4535;
+                --color-bg:         #f5f1e8;
+                --color-card-bg:    #faf7f0;
+                --color-text-main:  #1a1e14;
+                --color-text-sub:   #3a4535;
                 --color-text-muted: #8a9a7e;
-                --color-border: #ddd4c0;
-                --color-link: #4a6741;
-                --color-ws-bg: #f2ede2;
-                --color-ws-border: #c8b49a;
-                --color-ws-text: #5c3d22;
+                --color-border:     #d8cdb8;
+                --color-border-dark:#b0a48c;
+                --color-accent:     #7a5c3a;
+                --color-link:       #4a6741;
+                --color-ws-bg:      #f2ede2;
+                --color-ws-border:  #c8b49a;
+                --color-ws-text:    #5c3d22;
             }
-            body { background-color: #f7f3ec; color: #1c2417; }
+            body { background-color: #f5f1e8; color: #1a1e14; }
         }
 
         body {
@@ -290,47 +298,156 @@
         }
         
         /* =========================================
-            2. 共通ページヘッダー
+            2. 共通ページヘッダー（エディトリアル）
            ========================================= */
-        .page-header { text-align: center; padding: 56px 20px 48px; background-color: var(--color-bg); }
-        .page-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 300; letter-spacing: 8px; text-transform: uppercase; margin: 0; color: var(--color-text-main); }
+        .page-header {
+            padding: 56px 24px 44px;
+            background-color: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+        }
+        .page-header-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+        .page-overline {
+            font-size: var(--font-overline);
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            display: block;
+            margin-bottom: 14px;
+        }
+        .page-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: var(--font-display-sm);
+            font-weight: 300;
+            letter-spacing: 0.04em;
+            line-height: 1.1;
+            margin: 0;
+            color: var(--color-text-main);
+            text-transform: none;
+        }
 
         /* =========================================
-            3. メインコンテンツ・共通レイアウト（元の要素を維持）
+            3. メインコンテンツ・共通レイアウト
            ========================================= */
         .site-main { padding-top: 50px; min-height: 100vh; display: flex; flex-direction: column; }
-        .container { max-width: var(--max-width); margin: 48px auto; padding: 0 24px; width: 100%; box-sizing: border-box;}
-        .section-header { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; font-weight: 300; font-style: italic; color: var(--color-text-main); letter-spacing: 3px; margin: 64px 0 20px 0; border-bottom: 1px solid var(--color-border); padding-bottom: 10px; }
+        .container { max-width: var(--max-width); margin: 56px auto; padding: 0 24px; width: 100%; box-sizing: border-box; }
+
+        /* セクション見出し：雑誌的な横罫線スタイル */
+        .section-header {
+            font-size: var(--font-overline);
+            font-weight: 400;
+            font-style: normal;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            margin: 72px 0 36px;
+            padding-bottom: 0;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .section-header::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--color-border);
+        }
         .section-header:first-child { margin-top: 0; }
 
-        .event-card { background: var(--color-card-bg); margin-bottom: 48px; overflow: hidden; border: 1px solid var(--color-border); box-shadow: none; display: flex; flex-direction: column; border-radius: var(--radius-card); }
-        .image-wrap { width: 100%; min-height: 200px; background-color: #ede7dc; }
-        .event-image { width: 100%; height: auto; display: block; }
-        .event-content { padding: 32px; }
-        .event-title { font-size: var(--font-title-md); margin: 0 0 16px 0; font-weight: 400; line-height: 1.5; letter-spacing: 0.04em; }
+        /* イベントカード：エディトリアルスタイル */
+        .event-card {
+            background: var(--color-card-bg);
+            margin-bottom: 48px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0;
+        }
+        .image-wrap { width: 100%; min-height: 220px; background-color: #e8e2d6; overflow: hidden; }
+        .event-image { width: 100%; height: auto; display: block; transition: transform 0.4s ease; }
+        .event-card:hover .event-image { transform: scale(1.02); }
+        .event-content { padding: 28px 28px 24px; }
+        .event-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: clamp(20px, 2.5vw, 28px);
+            font-weight: 300;
+            margin: 0 0 16px 0;
+            line-height: 1.35;
+            letter-spacing: 0.03em;
+            color: var(--color-text-main);
+        }
 
-        .brand-tags { margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
-        .brand-tag { font-size: var(--font-tag); background: var(--color-text-main); color: #fff; padding: 4px 10px; border-radius: var(--radius-tag); letter-spacing: 0.06em; text-decoration: none; transition: 0.2s; font-weight: 400; }
-        .brand-tag:hover { background: var(--color-text-sub); }
+        .brand-tags { margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 5px; }
+        .brand-tag {
+            font-size: var(--font-overline);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            background: transparent;
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border-dark);
+            padding: 3px 9px;
+            border-radius: 0;
+            text-decoration: none;
+            transition: 0.2s;
+            font-weight: 400;
+        }
+        .brand-tag:hover { background: var(--color-text-main); color: #fff; border-color: var(--color-text-main); }
 
-        .event-info { font-size: var(--font-info); color: var(--color-text-sub); background: #f7f4ef; padding: 14px 16px; border-radius: var(--radius-card); border: 1px solid var(--color-border); margin-bottom: 0; }
-        .info-row { display: flex; align-items: flex-start; margin-bottom: 6px; line-height: 1.7; }
-        .info-icon { margin-right: 8px; font-size: var(--font-info); opacity: 0.7; }
+        /* イベント情報：仕切り線スタイル */
+        .event-info {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            border-top: 1px solid var(--color-border);
+            padding-top: 14px;
+            margin-top: 16px;
+            background: transparent;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+            letter-spacing: 0.04em;
+            line-height: 1.9;
+        }
+        .info-row { display: flex; align-items: flex-start; margin-bottom: 4px; }
+        .info-icon { margin-right: 8px; opacity: 0.5; }
         .info-link { color: var(--color-link); text-decoration: underline; text-underline-offset: 3px; }
 
-        .ws-box { background: var(--color-ws-bg); border: 1px solid var(--color-ws-border); padding: 20px; margin-top: 16px; border-radius: var(--radius-card); }
-        .ws-title { display: block; font-weight: 500; color: var(--color-ws-text); font-size: var(--font-info); margin-bottom: 4px; letter-spacing: 0.05em; }
+        .ws-box { background: var(--color-ws-bg); border: 1px solid var(--color-ws-border); border-left: 3px solid var(--color-accent); padding: 18px 20px; margin-top: 16px; }
+        .ws-title { display: block; font-weight: 500; color: var(--color-ws-text); font-size: 11px; margin-bottom: 6px; letter-spacing: 0.1em; text-transform: uppercase; }
         .ws-desc { font-size: 13px; color: #7a5a3a; line-height: 1.8; display: block; }
-        .ws-link { display: inline-block; margin-top: 12px; background: var(--color-ws-text); color: #fff; text-decoration: none; padding: 8px 20px; border-radius: var(--radius-tag); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; transition: 0.2s; }
+        .ws-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; background: var(--color-ws-text); color: #fff; text-decoration: none; padding: 9px 20px; font-size: 10px; font-weight: 400; letter-spacing: 0.15em; text-transform: uppercase; transition: 0.2s; border-radius: 0; }
         .ws-link:hover { background: #3e2610; }
         .ws-credit { display: block; margin-top: 12px; font-size: var(--font-small); color: #a1887f; line-height: 1.6; }
         .ws-no-reserve { display: block; margin-top: 10px; font-size: 12px; color: var(--color-ws-text); font-style: italic; }
 
-        .events-grid { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: var(--max-width); margin: 0 auto 60px auto; }
-        .events-grid .event-card { margin-bottom: 0; height: 100%; }
+        .events-grid { display: grid; grid-template-columns: 1fr; gap: 2px; max-width: var(--max-width); margin: 0 auto 60px auto; }
+        .events-grid .event-card { margin-bottom: 0; height: 100%; border: none; border-bottom: 1px solid var(--color-border); }
+        .events-grid .event-card:first-child { border-top: 1px solid var(--color-border); }
 
-        .footer-copy { text-align: center; font-size: 10px; color: var(--color-text-muted); padding: 60px 0; margin-top: auto; letter-spacing: 0.18em; text-transform: uppercase; }
-    
+        /* フッター：マストヘッドスタイル */
+        .site-footer {
+            border-top: 2px solid var(--color-text-main);
+            margin-top: auto;
+        }
+        .footer-copy {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+            font-size: 9px;
+            color: var(--color-text-muted);
+            padding: 40px 24px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+        }
+        .footer-copy p { margin: 0; }
+
         /* =========================================
             4. レスポンシブ
            ========================================= */
@@ -342,7 +459,7 @@
 
             .header-nav {
                 position: fixed; top: 0; right: -100%; width: 72%; height: 100vh;
-                background: rgba(247, 243, 236, 0.99); flex-direction: column;
+                background: rgba(245, 241, 232, 0.99); flex-direction: column;
                 justify-content: center; align-items: center; gap: 28px;
                 transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1050;
                 box-shadow: -2px 0 20px rgba(40, 35, 20, 0.07);
@@ -356,18 +473,23 @@
 
             .site-main { padding-top: 50px; }
             .event-content { padding: 20px; }
-            .event-title { font-size: 16px; }
-            .events-grid .event-title { font-size: 15px; }
-            .page-title { font-size: 20px; letter-spacing: 5px; }
+            .event-title { font-size: 22px; }
+            .events-grid .event-title { font-size: 20px; }
+            .page-title { font-size: clamp(24px, 7vw, 36px); }
+            .section-header { margin: 52px 0 28px; }
         }
-        
+
         @media (min-width: 769px) {
-            .events-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+            .events-grid { grid-template-columns: 1fr 1fr; gap: 0; }
+            .events-grid .event-card { border: none; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+            .events-grid .event-card:nth-child(2n) { border-right: none; }
+            .events-grid .event-card:first-child,
+            .events-grid .event-card:nth-child(2) { border-top: 1px solid var(--color-border); }
             .events-grid .event-content { padding: 24px; }
             .next-card { flex-direction: row; }
-            .next-card .image-wrap { width: 100%; }
-            .next-card .event-content { width: 80%; padding: 36px; }
-            .next-card .event-title { font-size: var(--font-title-md); }
+            .next-card .image-wrap { width: 45%; min-width: 45%; }
+            .next-card .event-content { flex: 1; padding: 36px 40px; }
+            .next-card .event-title { font-size: clamp(22px, 2.8vw, 34px); }
         }
     </style>
     <!-- ページ固有の <style> を差し込む領域 -->
@@ -517,12 +639,8 @@
 
     <footer class="site-footer">
         <div class="footer-copy">
-            <p style="font-size: 12px; margin-bottom: 12px; color: #777; line-height: 1.6; letter-spacing: 0.5px;">
-                ※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! (および THE SUCCULENTIST) の登録商標です。
-            </p>
-            <div style="color: #999; font-size: 12px;">
-                © 2026 ei8ht plants. All Rights Reserved.
-            </div>
+            <p>※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! (および THE SUCCULENTIST) の登録商標です。</p>
+            <p>© 2026 ei8ht plants. All Rights Reserved.</p>
         </div>
     </footer>
 </body>

@@ -9,14 +9,16 @@
      コンセプトページの独自スタイル
      ========================================= */
   .concept-lead {
-      max-width: 750px;
-      margin: 0 auto;
-      line-height: 2.2;
-      font-size: var(--font-info);
+      max-width: 680px;
+      margin: 0;
+      line-height: 2.4;
+      font-size: 15px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 300;
       color: var(--color-text-sub);
-      text-align: justify;
-      text-justify: inter-character;
+      letter-spacing: 0.04em;
   }
+  .concept-intro { display: none; }
 
   /* 冒頭のブランドステートメントエリア */
   .concept-intro {
@@ -48,25 +50,24 @@
   }
 
   .line-item {
-      padding: 40px;
+      padding: 36px 32px;
       background: var(--color-card-bg);
       border: 1px solid var(--color-border);
-      border-radius: var(--radius-card);
-      transition: transform 0.3s ease;
+      border-top: 3px solid var(--color-text-main);
+      border-radius: 0;
+      transition: border-top-color 0.2s;
   }
-  
-  .line-item:hover {
-      transform: translateY(-5px);
-  }
+  .line-item:hover { border-top-color: var(--color-accent); }
 
   .line-name {
-      font-size: var(--font-section);
-      font-weight: 500;
-      letter-spacing: 2px;
-      margin-bottom: 15px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 20px;
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
       display: block;
       border-bottom: 1px solid var(--color-border);
-      padding-bottom: 10px;
+      padding-bottom: 12px;
   }
 
   .line-text {
@@ -82,9 +83,11 @@
 {% endblock %}
 
 {% block content %}
-<!-- タイトル -->
 <div class="page-header">
+  <div class="page-header-inner">
+    <span class="page-overline">About Us</span>
     <h1 class="page-title">Concept</h1>
+  </div>
 </div>
 
 <div class="container">

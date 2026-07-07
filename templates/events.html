@@ -51,11 +51,11 @@
 {% endblock %}
 
 {% block content %}
-<!-- 一括修正用の共通クラスを使用 -->
 <div class="page-header">
-    <h1 class="page-title">
-        {% if is_past %}Past Events{% else %}Events{% endif %}
-    </h1>
+  <div class="page-header-inner">
+    <span class="page-overline">Schedule</span>
+    <h1 class="page-title">{% if is_past %}Past Events{% else %}Events{% endif %}</h1>
+  </div>
 </div>
 
 <div class="container">
