@@ -80,25 +80,6 @@
     line-height: 1.8;
     margin: 0 0 36px;
   }
-  .cover-nav {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-  }
-  .cover-nav-link {
-    font-size: 9px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: color 0.2s;
-  }
-  .cover-nav-link::before { content: '→'; font-size: 10px; }
-  .cover-nav-link:hover { color: var(--color-text-main); }
-
   /* ロゴスライダーコラム */
   .cover-visual-col {
     display: flex;
@@ -134,49 +115,6 @@
     28%  { opacity: 1; }
     36%  { opacity: 0; }
     100% { opacity: 0; }
-  }
-
-  /* ── 目次バー（コンテンツリスト） ─────────────────── */
-  .toc-bar {
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-card-bg);
-  }
-  .toc-bar-inner {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    padding: 0 24px;
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .toc-bar-inner::-webkit-scrollbar { display: none; }
-  .toc-item {
-    flex: 1;
-    min-width: 120px;
-    padding: 20px 20px;
-    border-right: 1px solid var(--color-border);
-    text-decoration: none;
-    transition: background 0.2s;
-  }
-  .toc-item:last-child { border-right: none; }
-  .toc-item:hover { background: var(--color-bg); }
-  .toc-num {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 11px;
-    font-style: italic;
-    color: var(--color-text-muted);
-    display: block;
-    margin-bottom: 4px;
-  }
-  .toc-label {
-    font-size: 9px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--color-text-main);
-    display: block;
-    font-weight: 400;
   }
 
   /* ── NEXT EVENT ────────────────────────────────────── */
@@ -250,8 +188,7 @@
     .cover-headline { font-size: clamp(36px, 10vw, 52px); }
     .cover-visual-col { padding: 32px 0; }
     .cover-slider { width: 56%; }
-    .toc-item { min-width: 100px; padding: 16px; }
-    .marquee-item { width: 160px; height: 160px; }
+.marquee-item { width: 160px; height: 160px; }
     .ig-btn { width: 90px; height: 90px; }
     .ig-grid { gap: 24px; }
   }
@@ -286,11 +223,6 @@
           色と形に惹かれた一株が、<br>
           空間を静かに変えていく。
         </p>
-        <nav class="cover-nav">
-          <a href="/events" class="cover-nav-link">Schedule</a>
-          <a href="/ei8htplants" class="cover-nav-link">Our Brands</a>
-          <a href="/concept" class="cover-nav-link">About Us</a>
-        </nav>
       </div>
 
       <div class="cover-visual-col">
@@ -304,31 +236,6 @@
   </div>
 </div>
 
-<!-- 目次バー -->
-<div class="toc-bar">
-  <div class="toc-bar-inner">
-    <a href="/events" class="toc-item">
-      <span class="toc-num">01</span>
-      <span class="toc-label">Schedule</span>
-    </a>
-    <a href="/ei8htplants" class="toc-item">
-      <span class="toc-num">02</span>
-      <span class="toc-label">ei8ht plants</span>
-    </a>
-    <a href="/habitatoides" class="toc-item">
-      <span class="toc-num">03</span>
-      <span class="toc-label">Habitat Oides</span>
-    </a>
-    <a href="/hue" class="toc-item">
-      <span class="toc-num">04</span>
-      <span class="toc-label">HUE by ei8ht plants</span>
-    </a>
-    <a href="/concept" class="toc-item">
-      <span class="toc-num">05</span>
-      <span class="toc-label">About Us</span>
-    </a>
-  </div>
-</div>
 
 <!-- NEXT EVENT -->
 {% if next_event %}
