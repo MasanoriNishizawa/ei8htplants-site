@@ -5,6 +5,28 @@
 {% block title %}ei8ht plants | {% if is_past %}Past Events{% else %}Events{% endif %}{% endblock %}
 {% block meta_description %}ei8ht plants のイベント・フラワーマーケット・ワークショップ情報。最新の開催スケジュールをご確認ください。{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* =========================================
+       1. ページ下部の切り替えボタン
+       ========================================= */
+    .admin-link-container { text-align: center; margin-top: 60px; }
+    .btn-past { 
+        display: inline-block; 
+        padding: 12px 30px; 
+        background-color: var(--color-card-bg); 
+        border: 1px solid var(--color-border); 
+        color: var(--color-text-sub); 
+        text-decoration: none; 
+        border-radius: var(--radius-card); 
+        font-size: var(--font-info); 
+        letter-spacing: 2px; 
+        transition: 0.3s; 
+    }
+    .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
+</style>
+{% endblock %}
+
 {% block extra_head %}
 {% if not is_past and pinned_event %}
 <script type="application/ld+json">
@@ -28,111 +50,51 @@
 {% endif %}
 {% endblock %}
 
-{% block extra_css %}
-<style>
-  .admin-link-container { text-align: center; margin-top: 60px; }
-  .btn-past {
-    display: inline-block;
-    padding: 12px 30px;
-    background-color: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-sub);
-    text-decoration: none;
-    font-size: var(--font-info);
-    letter-spacing: 2px;
-    transition: 0.3s;
-  }
-  .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
-
-  .events-hero {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-bottom: 1px solid var(--color-border);
-  }
-  .events-hero-left {
-    padding: 6vw 5vw;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    border-right: 1px solid var(--color-border);
-  }
-  .events-hero-right {
-    padding: 6vw 5vw;
-    display: flex;
-    align-items: flex-end;
-  }
-  .events-hero-desc {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: clamp(14px, 1.8vw, 20px);
-    font-style: italic;
-    font-weight: 300;
-    color: var(--color-text-sub);
-    line-height: 1.9;
-    letter-spacing: 0.04em;
-  }
-  @media (max-width: 768px) {
-    .events-hero { grid-template-columns: 1fr; }
-    .events-hero-left { border-right: none; border-bottom: 1px solid var(--color-border); padding: 40px 20px 32px; }
-    .events-hero-right { padding: 28px 20px; }
-  }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="events-hero">
-  <div class="events-hero-left">
-    <span class="page-overline">Schedule</span>
-    <h1 class="page-title" style="margin-top:16px;">{% if is_past %}Past Events{% else %}Events{% endif %}</h1>
-  </div>
-  <div class="events-hero-right">
-    <p class="events-hero-desc">
-      フラワーマーケット・<br>ワークショップの<br>開催スケジュール。
-    </p>
-  </div>
+<!-- 一括修正用の共通クラスを使用 -->
+<div class="page-header">
+    <h1 class="page-title">
+        {% if is_past %}Past Events{% else %}Events{% endif %}
+    </h1>
 </div>
 
-{% if is_past %}
-    {% if scheduled_events %}
-    <div class="events-grid">
-        {% for item in scheduled_events %}
-            {{ create_event_card(item) }}
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="container">
-        <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">過去のイベントはありません。</p>
-    </div>
-    {% endif %}
-    <div class="container">
+<div class="container">
+    {% if is_past %}
+        {% if scheduled_events %}
+            <div class="events-grid">
+                {% for item in scheduled_events %}
+                    {{ create_event_card(item) }}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">過去のイベントはありません。</p>
+        {% endif %}
+
         <div class="admin-link-container">
             <a href="/events" class="btn-past">現在のイベントを見る</a>
         </div>
-    </div>
 
-{% else %}
-    {% if pinned_event %}
-        <div class="container">
+    {% else %}
+        {% if pinned_event %}
             <h2 class="section-header">Next Event</h2>
             {{ create_event_card(pinned_event, is_next=True) }}
-        </div>
 
-        {% if scheduled_events %}
-        <h2 class="section-header" style="padding: 0 2vw; margin: 3vw 0 0;">Events Schedule</h2>
-        <div class="events-grid">
-            {% for item in scheduled_events %}
-                {{ create_event_card(item) }}
-            {% endfor %}
-        </div>
-        {% endif %}
-    {% else %}
-        <div class="container">
+            {% if scheduled_events %}
+            <h2 class="section-header">Events Schedule</h2>
+            <div class="events-grid">
+                {% for item in scheduled_events %}
+                    {{ create_event_card(item) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+        {% else %}
             <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">予定されているイベントはありません。</p>
-        </div>
-    {% endif %}
-    <div class="container">
+        {% endif %}
+
         <div class="admin-link-container">
             <a href="/events?page=past" class="btn-past">過去のイベントを見る</a>
         </div>
-    </div>
-{% endif %}
+    {% endif %}
+</div>
 {% endblock %}
