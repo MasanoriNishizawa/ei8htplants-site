@@ -8,6 +8,7 @@ import Contact from './pages/Contact'
 import Stockists from './pages/Stockists'
 import Ei8htPlants from './pages/brands/Ei8htPlants'
 import HabitatOides from './pages/brands/HabitatOides'
+import HabitatOidesWorkshop from './pages/brands/HabitatOidesWorkshop'
 import Hue from './pages/brands/Hue'
 import Reserve from './pages/Reserve'
 import AdminLayout from './pages/admin/AdminLayout'
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/stockists" element={<Stockists />} />
           <Route path="/ei8htplants" element={<Ei8htPlants />} />
           <Route path="/habitatoides" element={<HabitatOides />} />
+          <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
           <Route path="/hue" element={<Hue />} />
           <Route path="/reserve" element={<Reserve />} />
         </Route>

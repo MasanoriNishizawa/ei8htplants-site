@@ -18,44 +18,88 @@ export default function Contact() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '12px 16px', border: '1px solid #ddd4c0',
-    borderRadius: 8, fontSize: 16, fontFamily: 'inherit',
-    background: '#fffcf6', boxSizing: 'border-box',
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #ddd',
+    fontSize: 16,
+    fontFamily: 'inherit',
+    outline: 'none',
+    background: '#fff',
+    boxSizing: 'border-box',
+    color: '#1c2417',
+    borderRadius: 0,
+    WebkitAppearance: 'none',
+    appearance: 'none',
   }
 
   return (
-    <>
-      <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Contact</h1>
+    <div style={{ maxWidth: 640, margin: '0 auto', padding: '48px 20px 80px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #ddd4c0' }}>
+        <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>ei8ht plants</p>
+        <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: '#1c2417' }}>Contact</h1>
+        <p style={{ fontSize: 16, color: '#8a9a7e', lineHeight: 1.8, margin: 0 }}>
+          ご質問・ご依頼など、お気軽にお問い合わせください。<br />
+          通常 2〜3 営業日以内にご返信いたします。
+        </p>
       </div>
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 20px 80px' }}>
-        {status === 'done' ? (
-          <p style={{ textAlign: 'center', padding: '60px 0', color: '#3a4535' }}>お問い合わせを受け付けました。</p>
-        ) : (
-          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1 }}>お名前</label>
-              <input required style={inputStyle} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1 }}>メールアドレス</label>
-              <input required type="email" style={inputStyle} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1 }}>お問い合わせ内容</label>
-              <textarea required rows={6} style={{ ...inputStyle, resize: 'vertical' }} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
-            </div>
-            {status === 'error' && <p style={{ color: '#c0392b', fontSize: 14 }}>送信に失敗しました。再度お試しください。</p>}
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              style={{ padding: '14px 40px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 14, fontSize: 15, letterSpacing: 2, cursor: 'pointer', alignSelf: 'flex-start' }}
-            >
-              {status === 'loading' ? '送信中...' : '送信する'}
-            </button>
-          </form>
-        )}
-      </div>
-    </>
+
+      {status === 'done' ? (
+        <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', color: '#2e7d32', padding: '20px 24px', borderRadius: 14, textAlign: 'center', fontSize: 16, lineHeight: 1.8 }}>
+          お問い合わせを受け付けました。<br />
+          内容を確認次第、ご連絡いたします。
+        </div>
+      ) : (
+        <form onSubmit={submit} style={{ background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 14, padding: '40px' }}>
+          <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#aaa', margin: '0 0 16px', paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>お客様情報</p>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#999', marginBottom: 6 }}>
+              お名前 <span style={{ color: '#c0392b' }}>*</span>
+            </label>
+            <input required type="text" style={inputStyle} placeholder="例: 山田 花子" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#999', marginBottom: 6 }}>
+              メールアドレス <span style={{ color: '#c0392b' }}>*</span>
+            </label>
+            <input required type="email" style={inputStyle} placeholder="例: yourname@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </div>
+
+          <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#aaa', margin: '32px 0 16px', paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>お問い合わせ内容</p>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#999', marginBottom: 6 }}>
+              内容 <span style={{ color: '#c0392b' }}>*</span>
+            </label>
+            <textarea
+              required
+              rows={6}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 140 }}
+              placeholder="お問い合わせ内容をご記入ください"
+              value={form.message}
+              onChange={(e) => setForm({ ...form, message: e.target.value })}
+            />
+          </div>
+
+          {status === 'error' && <p style={{ color: '#c0392b', fontSize: 14, marginBottom: 16 }}>送信に失敗しました。再度お試しください。</p>}
+
+          <button
+            type="submit"
+            disabled={status === 'loading'}
+            style={{ width: '100%', padding: 16, background: '#1c2417', color: '#fff', border: 'none', fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', marginTop: 32, borderRadius: 4 }}
+          >
+            {status === 'loading' ? '送信中...' : '送信する'}
+          </button>
+
+          <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.8, marginTop: 20, textAlign: 'center' }}>
+            Instagram DM でのお問い合わせも受け付けています。<br />
+            <a href="https://www.instagram.com/ei8ht.plants/" target="_blank" rel="noopener noreferrer" style={{ color: '#888' }}>@ei8ht.plants</a>
+            &nbsp;/&nbsp;
+            <a href="https://www.instagram.com/habitatoides/" target="_blank" rel="noopener noreferrer" style={{ color: '#888' }}>@habitatoides</a>
+          </p>
+        </form>
+      )}
+    </div>
   )
 }

@@ -92,3 +92,234 @@ body {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ---- Brand pages ---- */
+.hero-wrapper {
+  height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-subnav {
+  position: sticky;
+  top: 60px;
+  z-index: 90;
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #ddd4c0;
+  flex-shrink: 0;
+}
+.brand-subnav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.brand-subnav-inner::-webkit-scrollbar { display: none; }
+.brand-subnav-inner a {
+  font-size: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #8a9a7e;
+  text-decoration: none;
+  padding: 15px 18px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+  display: block;
+}
+.brand-subnav-inner a:hover { color: #1c2417; }
+.brand-subnav-inner a.subnav-active { color: #1c2417; border-bottom-color: #1c2417; }
+
+/* ei8ht plants hero */
+.ep-hero {
+  background: #eaeae6 url('https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0') center 65%/cover no-repeat;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  padding: 60px 20px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Habitat Oides hero */
+.ho-hero {
+  background: #1e3272 url('https://lh3.googleusercontent.com/d/13Ml-NbMaYimYhKuppnj6KGZ4rrx3Abz4') center/cover no-repeat;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* HUE hero */
+.hue-hero {
+  background: #fdf8f3;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hue-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(253,248,243,0.45);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Workshop hero */
+.wspage-hero {
+  min-height: 60vh;
+  background: #1e3272;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 20px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.wspage-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 65% at 50% 55%, #2e4898 0%, #1e3272 100%);
+  pointer-events: none;
+}
+
+/* Shared brand concept grid */
+.brand-concept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+/* Habitat Oides workshop feature card */
+.ho-workshop-feature {
+  background: #1e3272;
+  border-radius: 14px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Workshop about grid */
+.wspage-about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+
+/* Workshop features grid */
+.wspage-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Concept brand line grid */
+.brand-line-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  margin-top: 40px;
+}
+
+/* Gallery grid */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+}
+.gallery-item {
+  position: relative;
+  aspect-ratio: 1/1;
+  overflow: hidden;
+  background: #f9f9f9;
+  cursor: zoom-in;
+  border-radius: 8px;
+}
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.4s ease;
+  display: block;
+}
+.gallery-item:hover img { transform: scale(1.08); filter: brightness(0.9); }
+
+/* Scroll hint animation */
+.scroll-hint-line {
+  width: 1px;
+  height: 38px;
+  animation: scrollHintAnim 2s ease-in-out infinite;
+}
+@keyframes scrollHintAnim {
+  0%,100% { opacity: 0; transform: scaleY(0); transform-origin: top; }
+  60% { opacity: 1; transform: scaleY(1); transform-origin: top; }
+}
+
+/* HUE color blobs */
+.hue-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.hue-blob-1 { width: 320px; height: 320px; background: #ffb5c8; top: -60px; left: -60px; animation: hueBlob1 11s ease-in-out infinite; }
+.hue-blob-2 { width: 260px; height: 260px; background: #c8a8e8; top: 15%; right: -50px; animation: hueBlob2 13s ease-in-out infinite; }
+.hue-blob-3 { width: 220px; height: 220px; background: #a8e4c4; bottom: -40px; left: 25%; animation: hueBlob3 10s ease-in-out infinite; }
+.hue-blob-4 { width: 240px; height: 240px; background: #ffe07a; top: 5%; left: 38%; animation: hueBlob4 14s ease-in-out infinite; }
+.hue-blob-5 { width: 200px; height: 200px; background: #ffaa80; bottom: 5%; right: 15%; animation: hueBlob5 12s ease-in-out infinite; }
+@keyframes hueBlob1 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(80px,60px) scale(1.1);} 66%{transform:translate(20px,-50px) scale(0.9);} }
+@keyframes hueBlob2 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(-70px,55px) scale(0.9);} 66%{transform:translate(-10px,-65px) scale(1.2);} }
+@keyframes hueBlob3 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-55px,-80px) scale(1.15);} }
+@keyframes hueBlob4 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(55px,65px) scale(0.85);} 66%{transform:translate(-45px,25px) scale(1.1);} }
+@keyframes hueBlob5 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(65px,-55px) scale(1.2);} }
+
+/* section scroll-margin for sticky subnav */
+.brand-section {
+  scroll-margin-top: 116px;
+}
+
+@media (max-width: 768px) {
+  .hero-wrapper { height: auto; min-height: calc(100vh - 60px); }
+  .ep-hero, .ho-hero, .hue-hero { min-height: 50vh; }
+}
+@media (max-width: 700px) {
+  .ho-workshop-feature { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .brand-concept-grid { grid-template-columns: 1fr; gap: 24px; }
+  .wspage-about-grid { grid-template-columns: 1fr; gap: 32px; }
+  .wspage-features { grid-template-columns: 1fr; }
+}
+@media (min-width: 768px) {
+  .brand-line-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+}

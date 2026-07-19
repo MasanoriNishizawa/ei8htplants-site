@@ -1,19 +1,94 @@
+import { useEffect, useRef, useState } from 'react'
+
+const SECTIONS = ['concept', 'store'] as const
+
 export default function Ei8htPlants() {
+  const [active, setActive] = useState('')
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id) })
+      },
+      { rootMargin: '-55% 0px -45% 0px' }
+    )
+    SECTIONS.forEach((id) => {
+      const el = sectionRefs.current[id]
+      if (el) obs.observe(el)
+    })
+    return () => obs.disconnect()
+  }, [])
+
+  const scrollTo = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
-    <div style={{ maxWidth: 800, margin: '80px auto', padding: '0 20px' }}>
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <img src="/img/logo-ei8htplants.png" alt="ei8ht plants" style={{ width: 200, height: 'auto' }} />
+    <>
+      <h1 className="sr-only">ei8ht plants — アガベ専門ライン</h1>
+
+      <div className="hero-wrapper">
+        <nav className="brand-subnav">
+          <div className="brand-subnav-inner">
+            {SECTIONS.map((id) => (
+              <a key={id} href={`#${id}`} className={active === id ? 'subnav-active' : ''} onClick={scrollTo(id)}>
+                {id === 'concept' ? 'Concept' : 'Store'}
+              </a>
+            ))}
+          </div>
+        </nav>
+
+        <section className="ep-hero">
+          <p style={{ fontSize: 14, letterSpacing: 4, textTransform: 'uppercase', color: '#666', marginBottom: 24, position: 'relative', zIndex: 2 }}>
+            Agave Specialist
+          </p>
+          <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+            <img src="/img/text-logo-ei8htplants.jpeg" alt="ei8ht plants" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9, mixBlendMode: 'multiply' }} />
+          </div>
+          <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
+            <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #999, transparent)' }} />
+            <span style={{ fontSize: 11, letterSpacing: 3, color: '#999', textTransform: 'uppercase' }}>Scroll</span>
+          </div>
+        </section>
       </div>
-      <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, fontWeight: 300, letterSpacing: 4, textAlign: 'center' }}>ei8ht plants</h1>
-      <p style={{ lineHeight: 2, color: '#3a4535', fontSize: 15, marginTop: 40 }}>
-        アガベを中心としたサキュレントプランツを提案するブランド。育てる楽しさと、植物との深い関わり方を伝えています。
-      </p>
-      <div style={{ textAlign: 'center', marginTop: 40 }}>
-        <a href="https://www.instagram.com/ei8ht.plants/" target="_blank" rel="noopener noreferrer"
-          style={{ display: 'inline-block', padding: '12px 30px', background: '#1c2417', color: '#fff', textDecoration: 'none', borderRadius: 20, fontSize: 13, letterSpacing: 2 }}>
-          @ei8ht.plants
+
+      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+
+      <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
+        <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>Concept</h2>
+          <div className="brand-concept-grid">
+            <img src="/img/logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
+            <div>
+              <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: '#1c2417', margin: '0 0 20px', lineHeight: 1.4 }}>
+                Agave<br />Specialist
+              </h2>
+              <p style={{ fontSize: 16, color: '#3a4535', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
+                鋭利なフォルムと深みある色彩—アガベが持つ圧倒的な存在感に魅せられた。<br /><br />
+                すべての株を自社で丁寧に育成し、初めての方からコレクターの方まで、一株一株の個性と美しさに寄り添います。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+
+      <section id="store" className="brand-section" ref={(el) => { sectionRefs.current.store = el }}
+        style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>
+        <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
+        <p style={{ fontSize: 13, letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
+        <a
+          href="https://ei8htplants.square.site/s/shop"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#fff', textDecoration: 'none', border: '1px solid #444', padding: '16px 36px', borderRadius: 2, transition: 'background 0.2s' }}
+        >
+          Shop now →
         </a>
-      </div>
-    </div>
+      </section>
+    </>
   )
 }
