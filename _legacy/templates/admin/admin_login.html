@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Login | ei8ht plants Admin</title>
+    <link rel="icon" type="image/png" href="/static/favicon/favicon-ei8htplants.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        :root {
+            --text: #1c2417;
+            --muted: #7a7168;
+            --border: #e0dbd0;
+            --accent: #4a6741;
+            --danger: #b3462c;
+        }
+        html, body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans JP", sans-serif;
+            font-size: 14px;
+            background: #f2f0ec;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+        .login-shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 48px 44px;
+            width: 360px;
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .login-logo strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+        .login-logo small {
+            display: block;
+            font-size: 9px;
+            letter-spacing: .22em;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        .error {
+            padding: 11px 14px;
+            margin-bottom: 20px;
+            font-size: 12.5px;
+            background: #f6e6e2;
+            border: 1px solid #e8c0b8;
+            color: var(--danger);
+        }
+        .field { margin-bottom: 18px; }
+        label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            border: 1px solid var(--border);
+            padding: 11px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #fff;
+            color: var(--text);
+            transition: border-color .15s;
+        }
+        input:focus { outline: none; border-color: var(--accent); }
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: var(--text);
+            color: #fff;
+            border: none;
+            font-size: 12px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 8px;
+            transition: opacity .15s;
+        }
+        .btn:hover { opacity: .8; }
+        @media (max-width: 400px) {
+            .login-card { width: 100%; padding: 36px 24px; }
+        }
+    </style>
+</head>
+<body>
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-logo">
+            <strong>ei8ht plants</strong>
+            <small>ADMIN</small>
+        </div>
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="post" action="/admin/login">
+            <div class="field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

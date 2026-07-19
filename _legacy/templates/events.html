@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import create_event_card %}
+
+{% block title %}ei8ht plants | {% if is_past %}Past Events{% else %}Events{% endif %}{% endblock %}
+{% block meta_description %}ei8ht plants のイベント・フラワーマーケット・ワークショップ情報。最新の開催スケジュールをご確認ください。{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================
+       1. ページ下部の切り替えボタン
+       ========================================= */
+    .admin-link-container { text-align: center; margin-top: 60px; }
+    .btn-past { 
+        display: inline-block; 
+        padding: 12px 30px; 
+        background-color: var(--color-card-bg); 
+        border: 1px solid var(--color-border); 
+        color: var(--color-text-sub); 
+        text-decoration: none; 
+        border-radius: var(--radius-card); 
+        font-size: var(--font-info); 
+        letter-spacing: 2px; 
+        transition: 0.3s; 
+    }
+    .btn-past:hover { background-color: var(--color-text-main); color: #fff; }
+</style>
+{% endblock %}
+
+{% block extra_head %}
+{% if not is_past and pinned_event %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "{{ pinned_event.get('イベント名', '') }}",
+  "startDate": "{{ pinned_event.get('開始日', '') }}",
+  "endDate": "{{ pinned_event.get('終了日') or pinned_event.get('開始日', '') }}",
+  "location": {
+    "@type": "Place",
+    "name": "{{ pinned_event.get('場所', '') }}"
+  },
+  "organizer": {
+    "@type": "Organization",
+    "name": "ei8ht plants",
+    "url": "https://ei8htplants.com"
+  }
+}
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- 一括修正用の共通クラスを使用 -->
+<div class="page-header">
+    <h1 class="page-title">
+        {% if is_past %}Past Events{% else %}Events{% endif %}
+    </h1>
+</div>
+
+<div class="container">
+    {% if is_past %}
+        {% if scheduled_events %}
+            <div class="events-grid">
+                {% for item in scheduled_events %}
+                    {{ create_event_card(item) }}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">過去のイベントはありません。</p>
+        {% endif %}
+
+        <div class="admin-link-container">
+            <a href="/events" class="btn-past">現在のイベントを見る</a>
+        </div>
+
+    {% else %}
+        {% if pinned_event %}
+            <h2 class="section-header">Next Event</h2>
+            {{ create_event_card(pinned_event, is_next=True) }}
+
+            {% if scheduled_events %}
+            <h2 class="section-header">Events Schedule</h2>
+            <div class="events-grid">
+                {% for item in scheduled_events %}
+                    {{ create_event_card(item) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+        {% else %}
+            <p style="text-align:center; padding: 100px 0; color: var(--color-text-muted);">予定されているイベントはありません。</p>
+        {% endif %}
+
+        <div class="admin-link-container">
+            <a href="/events?page=past" class="btn-past">過去のイベントを見る</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

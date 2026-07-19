@@ -1,0 +1,343 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}WS予約{% endblock %}
+{% block nav_reservations %}is-active{% endblock %}
+{% block mob_reservations %}is-active{% endblock %}
+{% block page_heading %}WS 予約一覧{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* サマリーカード */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+        background: var(--card-bg, #fff);
+        border: 1px solid var(--border, #e0dbd0);
+        padding: 18px 20px;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: box-shadow .15s;
+    }
+    .stat-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+    .stat-card .s-label { font-size: 11px; color: var(--muted, #7a7168); margin-bottom: 8px; }
+    .stat-card .s-value { font-size: 26px; font-weight: 700; }
+    .stat-card .s-value span { font-size: 14px; font-weight: 400; color: var(--muted, #7a7168); }
+    .stat-card .s-sub { font-size: 11px; color: var(--muted, #7a7168); margin-top: 4px; }
+
+    /* フィルター */
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+    .filter-label { font-size: 11px; color: var(--muted, #7a7168); letter-spacing: .05em; }
+    .filter-check { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+    .filter-count { font-size: 12px; color: var(--muted, #7a7168); margin-left: auto; }
+
+    /* テーブル行：キャンセル済み */
+    .cancelled-row td { opacity: .45; text-decoration: line-through; }
+    .cancelled-row td.td-status { text-decoration: none; }
+
+    /* バッジ・ステータス */
+    .badge-bring {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--warn-soft, #f3ece0);
+        color: var(--warn, #93692b);
+    }
+
+    /* メモセル */
+    .memo-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+    .memo-input {
+        border: 1px solid var(--border, #e0dbd0);
+        padding: 6px 8px;
+        font-size: 12px;
+        font-family: inherit;
+        resize: vertical;
+        width: 100%;
+        min-width: 120px;
+    }
+    .memo-input:focus { outline: none; border-color: var(--accent, #4a6741); }
+    .btn-memo-save {
+        align-self: flex-end;
+        padding: 4px 10px;
+        font-size: 11px;
+        background: var(--text, #1c2417);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        transition: opacity .15s;
+    }
+    .btn-memo-save:hover { opacity: .75; }
+    .btn-memo-save.saved { background: var(--accent, #4a6741); }
+
+    /* キャンセルボタン */
+    .btn-cancel-row {
+        padding: 5px 12px;
+        font-size: 11px;
+        border: 1px solid var(--danger, #b3462c);
+        color: var(--danger, #b3462c);
+        background: transparent;
+        cursor: pointer;
+        font-family: inherit;
+        white-space: nowrap;
+        transition: .15s;
+    }
+    .btn-cancel-row:hover { background: var(--danger, #b3462c); color: #fff; }
+
+    /* テーブル列幅調整 */
+    .td-event { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-contact { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .td-note { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+
+    @media (max-width: 768px) {
+        .stat-grid { grid-template-columns: 1fr 1fr; }
+        .td-event, .td-contact, .td-note { max-width: none; white-space: normal; overflow: visible; text-overflow: clip; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- サマリーカード -->
+{% if active_totals %}
+<div class="stat-grid">
+    {% for event_name, total in active_totals.items() %}
+    <a class="stat-card" href="/admin/reservations/schedule?event={{ event_name | urlencode }}">
+        <div class="s-label">{{ event_name }}</div>
+        <div class="s-value">{{ total }}<span> 名</span></div>
+        <div class="s-sub">予約合計（有効）→ WS予約表</div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- フィルター -->
+<div class="filter-row">
+    <span class="filter-label">絞り込み</span>
+    <select class="toolbar-select" id="filter-event">
+        <option value="">すべてのイベント</option>
+        {% set tab_event_names = current_event_names if active_tab == 'current' else past_event_names %}
+        {% for name in tab_event_names %}
+        <option value="{{ name }}" {% if name == selected_event %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+    </select>
+    <label class="filter-check">
+        <input type="checkbox" id="filter-exclude-cancelled" {% if exclude_cancelled %}checked{% endif %}>
+        キャンセル済を除く
+    </label>
+    <span class="filter-count" id="filter-count"></span>
+</div>
+
+<!-- タブ -->
+<div class="tab-bar">
+    <button class="tab-btn" id="tab-btn-current" onclick="switchTab('current')">予約一覧</button>
+    <button class="tab-btn" id="tab-btn-past" onclick="switchTab('past')">過去の予約</button>
+</div>
+
+<!-- 現在の予約 -->
+<div id="tab-current" class="tab-pane">
+    {% if current_reservations %}
+    <div class="admin-card" style="padding:0;">
+        <div class="table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>受付日</th>
+                        <th>イベント名</th>
+                        <th>お名前</th>
+                        <th>連絡先</th>
+                        <th>予約日</th>
+                        <th>時間帯</th>
+                        <th>人数</th>
+                        <th>持込み</th>
+                        <th>備考</th>
+                        <th>メモ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in current_reservations %}
+                    {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
+                    <tr class="{{ 'cancelled-row' if cancelled else '' }}">
+                        <td class="td-muted td-nowrap" data-label="受付日">{{ r.get('タイムスタンプ', '')[:10] }}</td>
+                        <td class="td-event" data-label="イベント" title="{{ r.get('イベント名', '') }}">{{ r.get('イベント名', '') }}</td>
+                        <td class="td-nowrap" data-label="お名前">
+                            <a href="/admin/reservations/history?name={{ r.get('お名前', '') | urlencode }}"
+                               style="border-bottom:1px solid var(--border);">{{ r.get('お名前', '') }}</a>
+                        </td>
+                        <td class="td-contact" data-label="連絡先" title="{{ r.get('メール', '') }}">{{ r.get('メール', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="予約日">{{ r.get('希望日', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="時間帯">{{ r.get('希望時間帯', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="人数">{{ r.get('参加人数', '') }}</td>
+                        <td data-label="持込み">
+                            {% if r.get('お持ち込み') %}<span class="badge-bring">{{ r.get('お持ち込み') }}</span>{% endif %}
+                        </td>
+                        <td class="td-note" data-label="備考" title="{{ r.get('備考', '') }}">{{ r.get('備考', '') }}</td>
+                        <td data-label="メモ">
+                            <div class="memo-wrap">
+                                <textarea class="memo-input" rows="1" data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
+                                <button type="button" class="btn-memo-save" onclick="saveMemo(this)">保存</button>
+                            </div>
+                        </td>
+                        <td class="td-status td-nowrap" data-label="">
+                            {% if cancelled %}
+                            <span class="pill pill--off">キャンセル済</span>
+                            {% elif r.get('キャンセルトークン') %}
+                            <form method="post" action="/admin/reservations/cancel" style="margin:0;">
+                                <input type="hidden" name="token" value="{{ r.get('キャンセルトークン', '') }}">
+                                <button type="button" class="btn-cancel-row"
+                                    onclick="if(confirm('{{ r.get('お名前','') }} 様の予約をキャンセルしますか？')) this.form.submit()">キャンセル</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="admin-card"><div class="empty">予約はまだありません</div></div>
+    {% endif %}
+</div>
+
+<!-- 過去の予約 -->
+<div id="tab-past" class="tab-pane">
+    {% if past_reservations %}
+    <div class="admin-card" style="padding:0;">
+        <div class="table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>受付日</th>
+                        <th>イベント名</th>
+                        <th>お名前</th>
+                        <th>連絡先</th>
+                        <th>予約日</th>
+                        <th>時間帯</th>
+                        <th>人数</th>
+                        <th>持込み</th>
+                        <th>備考</th>
+                        <th>メモ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in past_reservations %}
+                    {% set cancelled = r.get('キャンセル済み') == 'TRUE' %}
+                    <tr class="{{ 'cancelled-row' if cancelled else '' }}">
+                        <td class="td-muted td-nowrap" data-label="受付日">{{ r.get('タイムスタンプ', '')[:10] }}</td>
+                        <td class="td-event" data-label="イベント" title="{{ r.get('イベント名', '') }}">{{ r.get('イベント名', '') }}</td>
+                        <td class="td-nowrap" data-label="お名前">
+                            <a href="/admin/reservations/history?name={{ r.get('お名前', '') | urlencode }}"
+                               style="border-bottom:1px solid var(--border);">{{ r.get('お名前', '') }}</a>
+                        </td>
+                        <td class="td-contact" data-label="連絡先" title="{{ r.get('メール', '') }}">{{ r.get('メール', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="予約日">{{ r.get('希望日', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="時間帯">{{ r.get('希望時間帯', '') }}</td>
+                        <td class="td-muted td-nowrap" data-label="人数">{{ r.get('参加人数', '') }}</td>
+                        <td data-label="持込み">
+                            {% if r.get('お持ち込み') %}<span class="badge-bring">{{ r.get('お持ち込み') }}</span>{% endif %}
+                        </td>
+                        <td class="td-note" data-label="備考" title="{{ r.get('備考', '') }}">{{ r.get('備考', '') }}</td>
+                        <td data-label="メモ">
+                            <div class="memo-wrap">
+                                <textarea class="memo-input" rows="1" data-row="{{ r.get('_row', '') }}">{{ r.get('メモ', '') }}</textarea>
+                                <button type="button" class="btn-memo-save" onclick="saveMemo(this)">保存</button>
+                            </div>
+                        </td>
+                        <td class="td-status td-nowrap" data-label="">
+                            {% if cancelled %}
+                            <span class="pill pill--off">キャンセル済</span>
+                            {% elif r.get('キャンセルトークン') %}
+                            <form method="post" action="/admin/reservations/cancel" style="margin:0;">
+                                <input type="hidden" name="token" value="{{ r.get('キャンセルトークン', '') }}">
+                                <button type="button" class="btn-cancel-row"
+                                    onclick="if(confirm('{{ r.get('お名前','') }} 様の予約をキャンセルしますか？')) this.form.submit()">キャンセル</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="admin-card"><div class="empty">過去の予約はありません</div></div>
+    {% endif %}
+</div>
+
+<script>
+var currentTab = '{{ active_tab }}';
+var eventNamesByTab = {
+    current: {{ current_event_names | tojson }},
+    past:    {{ past_event_names | tojson }}
+};
+var selectedEvent = '{{ selected_event }}';
+
+function updateEventFilter() {
+    var names = eventNamesByTab[currentTab] || [];
+    var select = document.getElementById('filter-event');
+    select.innerHTML = '<option value="">すべてのイベント</option>';
+    names.forEach(function(name) {
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === selectedEvent) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+function switchTab(id) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    document.getElementById('tab-btn-' + id).classList.add('active');
+    currentTab = id;
+    updateEventFilter();
+    updateCount();
+}
+
+function updateCount() {
+    const pane = document.getElementById('tab-' + currentTab);
+    const rows = pane ? pane.querySelectorAll('tbody tr').length : 0;
+    document.getElementById('filter-count').textContent = rows + ' 件';
+}
+
+function applyFilters() {
+    const event = document.getElementById('filter-event').value;
+    const excludeCancelled = document.getElementById('filter-exclude-cancelled').checked;
+    const params = new URLSearchParams();
+    if (event) params.set('event', event);
+    if (excludeCancelled) params.set('exclude_cancelled', '1');
+    params.set('tab', currentTab);
+    location.href = '/admin/reservations?' + params.toString();
+}
+document.getElementById('filter-event').addEventListener('change', applyFilters);
+document.getElementById('filter-exclude-cancelled').addEventListener('change', applyFilters);
+
+switchTab(currentTab);
+
+function saveMemo(btn) {
+    const textarea = btn.closest('.memo-wrap').querySelector('.memo-input');
+    const row = textarea.dataset.row;
+    const memo = textarea.value;
+    btn.textContent = '…';
+    btn.disabled = true;
+    fetch('/admin/reservations/memo', { method: 'POST', body: new URLSearchParams({ row, memo }) })
+        .then(r => r.json())
+        .then(() => {
+            btn.textContent = '保存済';
+            btn.classList.add('saved');
+            setTimeout(() => { btn.textContent = '保存'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
+        })
+        .catch(() => { btn.textContent = '保存'; btn.disabled = false; });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}ei8ht plants | CONCEPT{% endblock %}
+{% block meta_description %}ei8ht plants のブランドコンセプト。アガベ専門・ハビタットスタイル・オーナメントプランツの3ラインで植物の楽しみ方を提案します。{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =========================================
+     コンセプトページの独自スタイル
+     ========================================= */
+  .concept-lead {
+      max-width: 750px;
+      margin: 0 auto;
+      line-height: 2.2;
+      font-size: var(--font-info);
+      color: var(--color-text-sub);
+      text-align: justify;
+      text-justify: inter-character;
+  }
+
+  /* 冒頭のブランドステートメントエリア */
+  .concept-intro {
+      text-align: center;
+      padding: 80px 20px;
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border);
+  }
+
+  .brand-statement-title {
+      font-size: var(--font-title-md);
+      letter-spacing: 4px;
+      font-weight: 400;
+      margin-bottom: 30px;
+      color: var(--color-text-main);
+      display: block;
+  }
+
+  .concept-section {
+      margin-top: 80px;
+  }
+
+  /* ブランドラインのデザイン */
+  .brand-line-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 30px;
+      margin-top: 40px;
+  }
+
+  .line-item {
+      padding: 40px;
+      background: var(--color-card-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-card);
+      transition: transform 0.3s ease;
+  }
+  
+  .line-item:hover {
+      transform: translateY(-5px);
+  }
+
+  .line-name {
+      font-size: var(--font-section);
+      font-weight: 500;
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+      display: block;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 10px;
+  }
+
+  .line-text {
+      font-size: var(--fs-body);
+      line-height: 1.9;
+      color: var(--color-text-sub);
+  }
+
+  @media (min-width: 768px) {
+      .brand-line-grid { grid-template-columns: 1fr 1fr; } 
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- タイトル -->
+<div class="page-header">
+    <h1 class="page-title">Concept</h1>
+</div>
+
+<div class="container">
+    <!-- フィロソフィー -->
+    <div class="concept-section">
+        <h2 class="section-header">Philosophy</h2>
+        <div class="concept-lead">
+            植物は、育てるものであり、飾るもの。<br><br>
+            色と形に惹かれて手に取った一株が、部屋に置かれたとき—その空間は静かに変わる。私たちはその瞬間のために、色もフォルムも妥協しない植物を選び抜いています。<br><br>
+            観葉植物の持つ鮮やかな色彩と独特の造形美を軸に、インテリアとして「飾る」視点でセレクトし、暮らしを彩る植物文化を提案します。
+        </div>
+    </div>
+
+    <!-- ブランドライン -->
+    <div class="concept-section">
+        <h2 class="section-header">Specialized Lines</h2>
+        <div class="brand-line-grid">
+            <!-- ei8ht plants -->
+            <div class="line-item">
+                <span class="line-name">ei8ht plants</span>
+                <p class="line-text">
+                    <strong>アガベ専門ライン</strong><br>
+                    個性的なフォルムを持つアガベの魅力を入り口に、育てる楽しさ、仕立てる喜び、株姿を追求する深みへ。初めての一株を探している方から、理想の姿を追い求めるコレクターまで——アガベと向き合う奥深い楽しさをお届けします。
+                </p>
+            </div>
+
+            <!-- Habitat Oides -->
+            <div class="line-item">
+                <span class="line-name">Habitat Oides</span>
+                <p class="line-text">
+                    <strong>ハビタットスタイルライン</strong><br>
+                    自生地の風景を、一つの鉢の中に。石や砂、岩肌との調和の中に植物を落とし込み、「景色としての植物」を構築するハビタットスタイルに特化したライン。自生地が持つ空気感と記憶を手元に宿す、没入感のある植物の世界を提案します。
+                </p>
+            </div>
+
+            <!-- HUE -->
+            <div class="line-item">
+                <span class="line-name">HUE by ei8ht plants</span>
+                <p class="line-text">
+                    <strong>オーナメントプランツライン</strong><br>
+                    葉の色彩と造形に宿る美しさに着目したライン。フィロデンドロンやカラテアが持つ鮮やかな葉色、ビカクシダが纏う独特のシルエット——日々の暮らしに溶け込みながら、空間に確かな存在感を添えるインテリアグリーンをお届けします。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

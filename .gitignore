@@ -1,6 +1,24 @@
-secret_key.json
-__pycache__/
+# 環境変数
 .env
+.env.local
+.env*.local
+secret_key.json
+
+# Python
+__pycache__/
+*.py[cod]
 venv/
+.venv/
+.pytest_cache/
+
+# Node.js
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Editor / OS
 .DS_Store
+.vscode/
+
+# Claude
 .claude/
