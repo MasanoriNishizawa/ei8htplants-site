@@ -25,8 +25,14 @@ app.include_router(reserve.router, prefix='/api')
 # 本番: Viteビルド済みSPAを配信
 DIST = os.path.join(os.path.dirname(__file__), '../../frontend/dist')
 if os.path.isdir(DIST):
-    app.mount('/assets', StaticFiles(directory=os.path.join(DIST, 'assets')), name='assets')
+    for _subdir in ['assets', 'img', 'favicon']:
+        _path = os.path.join(DIST, _subdir)
+        if os.path.isdir(_path):
+            app.mount(f'/{_subdir}', StaticFiles(directory=_path), name=_subdir)
 
     @app.get('/{full_path:path}')
     def serve_spa(full_path: str):
+        file_path = os.path.join(DIST, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
         return FileResponse(os.path.join(DIST, 'index.html'))
