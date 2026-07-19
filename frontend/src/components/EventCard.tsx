@@ -42,7 +42,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
   return (
     <div className={`event-card${isNext ? ' next-card' : ''}`} style={cardStyle}>
       {images.length > 0 && (
-        <div style={{ position: 'relative', width: '100%', background: '#ede7dc' }}>
+        <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#ede7dc' }}>
           {isHome ? (
             <a href="/events" style={{ display: 'block' }}>
               <img src={images[imgIdx].url} alt={event.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
@@ -69,7 +69,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
         </div>
       )}
 
-      <div style={{ padding: isNext ? 40 : 25 }}>
+      <div className={isNext ? 'next-content' : ''} style={{ padding: isNext ? 40 : 25 }}>
         {event.brands.length > 0 && (
           <div style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {event.brands.map((brand) => (

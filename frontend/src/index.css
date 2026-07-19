@@ -18,3 +18,77 @@ body {
   padding: 0;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ---- ハンバーガーボタン ---- */
+.menu-btn {
+  display: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 5px;
+  z-index: 1100;
+}
+
+/* ---- ヘッダーナビ（モバイル） ---- */
+.header-nav-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 75%;
+  height: 100vh;
+  background: rgba(247,243,236,0.99);
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  transition: right 0.4s cubic-bezier(0.4,0,0.2,1);
+  z-index: 1050;
+  box-shadow: -5px 0 30px rgba(40,35,20,0.10);
+}
+
+/* ---- イベントカード（next-card / レスポンシブ） ---- */
+.next-card {
+  flex-direction: column;
+}
+.next-image-wrap {
+  width: 100%;
+  background: #ede7dc;
+}
+.next-content {
+  flex: 1;
+}
+
+/* ---- イベントグリッド ---- */
+.events-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .menu-btn {
+    display: block;
+  }
+  .header-nav-desktop {
+    display: none !important;
+  }
+  .header-nav-overlay.nav-open {
+    display: flex;
+    right: 0;
+  }
+}
+
+@media (min-width: 769px) {
+  .next-card {
+    flex-direction: row;
+  }
+  .next-image-wrap {
+    width: 55%;
+    flex-shrink: 0;
+  }
+  .events-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

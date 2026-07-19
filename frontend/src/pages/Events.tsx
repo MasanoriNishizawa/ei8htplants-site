@@ -53,7 +53,7 @@ export default function Events() {
                 Events Schedule
               </h2>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 30, alignItems: 'start' }}>
+            <div className="events-grid">
               {rest.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
