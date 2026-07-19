@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { api, type Event } from '../../lib/api'
+import { api } from '../../lib/api'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
