@@ -35,6 +35,13 @@ export default function Stockists() {
             ))}
           </div>
         ))}
+        {!loading && (
+          <div style={{ marginTop: 48, padding: '20px 24px', background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 14, color: '#8a9a7e', lineHeight: 1.9 }}>
+            取扱のご相談・卸のお問い合わせは{' '}
+            <a href="/contact" style={{ color: '#1c2417', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
+            {' '}よりお気軽にご連絡ください。
+          </div>
+        )}
       </div>
     </>
   )

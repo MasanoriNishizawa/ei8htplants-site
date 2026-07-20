@@ -1,18 +1,23 @@
+import { Link } from 'react-router-dom'
+
 const LINES = [
   {
     name: 'ei8ht plants',
-    subtitle: 'アガベ専門ライン',
-    text: '個性的なフォルムを持つアガベの魅力を入り口に、育てる楽しさ、仕立てる喜び、株姿を追求する深みへ。初めての一株を探している方から、理想の姿を追い求めるコレクターまで——アガベと向き合う奥深い楽しさをお届けします。',
+    subtitle: 'Agave Specialist',
+    teaser: 'アガベが持つ個性的なフォルムと深みある色彩。初めての一株からコレクター向けまで、育てる楽しさをともに見つけていきます。',
+    to: '/ei8htplants',
   },
   {
     name: 'Habitat Oides',
-    subtitle: 'ハビタットスタイルライン',
-    text: '自生地の風景を、一つの鉢の中に。石や砂、岩肌との調和の中に植物を落とし込み、「景色としての植物」を構築するハビタットスタイルに特化したライン。自生地が持つ空気感と記憶を手元に宿す、没入感のある植物の世界を提案します。',
+    subtitle: 'Habitat Style Materials & Plants',
+    teaser: '自生地の風景を、一つの鉢の中に。石・砂と植物が織りなすハビタットスタイルの世界観と、ワークショップをご提案します。',
+    to: '/habitatoides',
   },
   {
     name: 'HUE by ei8ht plants',
-    subtitle: 'オーナメントプランツライン',
-    text: '葉の色彩と造形に宿る美しさに着目したライン。フィロデンドロンやカラテアが持つ鮮やかな葉色、ビカクシダが纏う独特のシルエット——日々の暮らしに溶け込みながら、空間に確かな存在感を添えるインテリアグリーンをお届けします。',
+    subtitle: 'Color Plants Selection',
+    teaser: '葉の色彩と造形美に着目したオーナメントプランツライン。暮らしの空間に彩りと生命感を添える一鉢をお届けします。',
+    to: '/hue',
   },
 ]
 
@@ -36,19 +41,23 @@ export default function Concept() {
         <div style={{ marginTop: 80, marginBottom: 100 }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 0', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>Specialized Lines</h2>
           <div className="brand-line-grid">
-            {LINES.map(({ name, subtitle, text }) => (
-              <div
+            {LINES.map(({ name, subtitle, teaser, to }) => (
+              <Link
                 key={name}
-                style={{ padding: 40, background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 14, transition: 'transform 0.3s ease' }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-5px)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                to={to}
+                style={{ textDecoration: 'none', color: 'inherit' }}
               >
-                <span style={{ display: 'block', fontSize: 16, fontWeight: 500, letterSpacing: 2, marginBottom: 15, borderBottom: '1px solid #ddd4c0', paddingBottom: 10 }}>{name}</span>
-                <p style={{ fontSize: 15, lineHeight: 1.9, color: '#3a4535' }}>
-                  <strong>{subtitle}</strong><br />
-                  {text}
-                </p>
-              </div>
+                <div
+                  style={{ padding: 40, background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 14, transition: 'transform 0.3s ease', height: '100%', boxSizing: 'border-box' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-5px)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                >
+                  <span style={{ display: 'block', fontSize: 16, fontWeight: 500, letterSpacing: 2, marginBottom: 6, borderBottom: '1px solid #ddd4c0', paddingBottom: 10 }}>{name}</span>
+                  <span style={{ display: 'block', fontSize: 12, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16 }}>{subtitle}</span>
+                  <p style={{ fontSize: 15, lineHeight: 1.9, color: '#3a4535', margin: '0 0 20px' }}>{teaser}</p>
+                  <span style={{ fontSize: 13, letterSpacing: 1.5, color: '#8a9a7e', textTransform: 'uppercase' }}>詳しく見る →</span>
+                </div>
+              </Link>
             ))}
           </div>
         </div>

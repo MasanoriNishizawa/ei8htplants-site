@@ -144,7 +144,7 @@ export default function HabitatOides() {
         </div>
       </section>
 
-      <section style={{ background: '#1e3272', color: '#f0f2ff', textAlign: 'center', padding: '88px 20px' }}>
+      <section style={{ background: '#1e3272', color: '#f0f2ff', textAlign: 'center', padding: '88px 20px', borderTop: '1px solid #2e4898' }}>
         <h2 style={{ fontSize: 'clamp(24px, 4vw, 48px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Follow Us</h2>
         <p style={{ fontSize: 13, letterSpacing: 2, color: '#9aaedd', textTransform: 'uppercase', margin: '0 0 40px' }}>Instagram</p>
         <a

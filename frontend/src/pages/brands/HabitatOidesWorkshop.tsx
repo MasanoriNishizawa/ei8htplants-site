@@ -42,7 +42,7 @@ export default function HabitatOidesWorkshop() {
     <>
       <nav className="brand-subnav" style={{ top: 60 }}>
         <div className="brand-subnav-inner">
-          <Link to="/habitatoides" style={{ borderRight: '1px solid #ddd4c0', marginRight: 8, paddingRight: 24, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#8a9a7e', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
+          <Link to="/habitatoides" style={{ borderRight: '1px solid #ddd4c0', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#8a9a7e', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
             ← Habitat Oides
           </Link>
           {SECTIONS.map((id) => (
