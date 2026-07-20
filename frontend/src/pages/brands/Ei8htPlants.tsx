@@ -45,7 +45,7 @@ export default function Ei8htPlants() {
             Agave Specialist
           </p>
           <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-            <img src="/img/text-logo-ei8htplants.jpeg" alt="ei8ht plants" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9, mixBlendMode: 'multiply' }} />
+            <img src="/img/text-logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9 }} />
           </div>
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #999, transparent)' }} />

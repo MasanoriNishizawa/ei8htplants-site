@@ -91,9 +91,9 @@ export default function Header() {
     >
       <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
         <img
-          src="/img/text-logo-ei8htplants.jpeg"
+          src="/img/text-logo-ei8htplants.png"
           alt="ei8ht plants"
-          style={{ height: 32, width: 'auto', objectFit: 'contain', mixBlendMode: 'multiply', filter: 'contrast(1.1)' }}
+          style={{ height: 32, width: 'auto', objectFit: 'contain' }}
         />
       </Link>
 
