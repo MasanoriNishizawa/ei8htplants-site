@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 from ..db import supabase, admin_supabase
+from ..auth import require_auth
 
 router = APIRouter(prefix='/gallery', tags=['gallery'])
 
@@ -21,12 +22,12 @@ def list_gallery(brand: Optional[str] = None):
 
 
 @router.post('')
-def add_image(body: GalleryBody):
+def add_image(body: GalleryBody, _=Depends(require_auth)):
     count = supabase.table('gallery_images').select('id', count='exact').execute().count or 0
     return admin_supabase.table('gallery_images').insert({**body.model_dump(), 'display_order': count}).execute().data[0]
 
 
 @router.delete('/{image_id}')
-def delete_image(image_id: str):
+def delete_image(image_id: str, _=Depends(require_auth)):
     admin_supabase.table('gallery_images').delete().eq('id', image_id).execute()
     return {'ok': True}

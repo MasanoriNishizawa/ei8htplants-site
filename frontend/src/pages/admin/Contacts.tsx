@@ -5,13 +5,19 @@ export default function AdminContacts() {
   const [contacts, setContacts] = useState<ContactRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [updateError, setUpdateError] = useState<string | null>(null)
 
   const load = () => api.contact.list().then(setContacts).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
 
   const toggleRead = async (c: ContactRecord) => {
-    await api.contact.markRead(c.id, !c.is_read)
-    setContacts((prev) => prev.map((x) => x.id === c.id ? { ...x, is_read: !c.is_read } : x))
+    try {
+      await api.contact.markRead(c.id, !c.is_read)
+      setContacts((prev) => prev.map((x) => x.id === c.id ? { ...x, is_read: !c.is_read } : x))
+    } catch {
+      setUpdateError('更新に失敗しました')
+      setTimeout(() => setUpdateError(null), 3000)
+    }
   }
 
   const unreadCount = contacts.filter((c) => !c.is_read).length
@@ -26,6 +32,11 @@ export default function AdminContacts() {
           </span>
         )}
       </div>
+      {updateError && (
+        <p style={{ color: '#c0392b', fontSize: 13, marginBottom: 12, padding: '8px 14px', background: '#fdf0ee', borderRadius: 8, border: '1px solid #f5c6c0' }}>
+          {updateError}
+        </p>
+      )}
 
       {loading ? (
         <p style={{ color: '#8a9a7e' }}>読み込み中...</p>

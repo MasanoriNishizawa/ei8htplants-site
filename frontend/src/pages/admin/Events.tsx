@@ -17,7 +17,7 @@ export default function AdminEvents() {
 
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
-    await fetch(`/api/events/${id}`, { method: 'DELETE' })
+    await api.events.delete(id)
     load()
   }
 

@@ -34,11 +34,7 @@ export default function AdminStockists() {
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    await fetch('/api/stockists', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
+    await api.stockists.add(form)
     setForm(empty)
     await load()
     setSaving(false)
@@ -68,7 +64,7 @@ export default function AdminStockists() {
 
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
-    await fetch(`/api/stockists/${id}`, { method: 'DELETE' })
+    await api.stockists.delete(id)
     load()
   }
 

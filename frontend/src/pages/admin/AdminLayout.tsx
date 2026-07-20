@@ -1,12 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null
+import { supabase } from '../../lib/supabase'
 
 const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
   display: 'block', padding: '10px 16px', textDecoration: 'none',

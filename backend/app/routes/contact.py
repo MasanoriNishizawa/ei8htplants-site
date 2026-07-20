@@ -1,8 +1,9 @@
 import resend
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from ..config import RESEND_API_KEY, CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL
 from ..db import admin_supabase
+from ..auth import require_auth
 
 router = APIRouter(prefix='/contact', tags=['contact'])
 
@@ -34,10 +35,10 @@ def send_contact(body: ContactBody):
 
 
 @router.get('s')
-def list_contacts():
+def list_contacts(_=Depends(require_auth)):
     return admin_supabase.table('contacts').select('*').order('created_at', desc=True).execute().data
 
 
 @router.patch('s/{contact_id}')
-def update_contact(contact_id: str, body: ContactPatch):
+def update_contact(contact_id: str, body: ContactPatch, _=Depends(require_auth)):
     return admin_supabase.table('contacts').update(body.model_dump()).eq('id', contact_id).execute().data[0]

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from ..db import supabase, admin_supabase
+from ..auth import require_auth
 
 router = APIRouter(prefix='/events', tags=['events'])
 
@@ -50,7 +51,7 @@ def get_event(event_id: str):
 
 
 @router.post('')
-def create_event(body: EventBody):
+def create_event(body: EventBody, _=Depends(require_auth)):
     row = body.model_dump(exclude={'image_urls'})
     result = admin_supabase.table('events').insert(row).execute().data[0]
     _save_images(result['id'], body.image_urls)
@@ -58,7 +59,7 @@ def create_event(body: EventBody):
 
 
 @router.put('/{event_id}')
-def update_event(event_id: str, body: EventBody):
+def update_event(event_id: str, body: EventBody, _=Depends(require_auth)):
     row = body.model_dump(exclude={'image_urls'})
     admin_supabase.table('events').update(row).eq('id', event_id).execute()
     admin_supabase.table('event_images').delete().eq('event_id', event_id).execute()
@@ -67,7 +68,7 @@ def update_event(event_id: str, body: EventBody):
 
 
 @router.delete('/{event_id}')
-def delete_event(event_id: str):
+def delete_event(event_id: str, _=Depends(require_auth)):
     admin_supabase.table('events').delete().eq('id', event_id).execute()
     return {'ok': True}
 

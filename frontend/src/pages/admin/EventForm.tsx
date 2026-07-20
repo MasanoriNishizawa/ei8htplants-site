@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { api } from '../../lib/api'
+import { api, type EventBody } from '../../lib/api'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
@@ -45,13 +45,12 @@ export default function AdminEventForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    const urls = imageUrls.filter(Boolean)
-    const body = { ...form, image_urls: urls }
+    const body: EventBody = { ...form, image_urls: imageUrls.filter(Boolean) }
     try {
       if (id) {
-        await fetch(`/api/events/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        await api.events.update(id, body)
       } else {
-        await fetch('/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        await api.events.create(body)
       }
       navigate('/admin/events')
     } finally {

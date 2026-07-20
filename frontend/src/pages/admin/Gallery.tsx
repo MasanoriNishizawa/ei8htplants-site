@@ -9,6 +9,7 @@ export default function AdminGallery() {
   const [alt, setAlt] = useState('')
   const [brand, setBrand] = useState('')
   const [saving, setSaving] = useState(false)
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set())
 
   const load = () => api.gallery.list().then(setImages)
   useEffect(() => { load() }, [])
@@ -17,11 +18,7 @@ export default function AdminGallery() {
     e.preventDefault()
     if (!url) return
     setSaving(true)
-    await fetch('/api/gallery', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, alt: alt || null, brand: brand || null }),
-    })
+    await api.gallery.add({ url, alt: alt || null, brand: brand || null })
     setUrl(''); setAlt(''); setBrand('')
     await load()
     setSaving(false)
@@ -29,7 +26,7 @@ export default function AdminGallery() {
 
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
-    await fetch(`/api/gallery/${id}`, { method: 'DELETE' })
+    await api.gallery.delete(id)
     load()
   }
 
@@ -49,8 +46,18 @@ export default function AdminGallery() {
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
         {images.map((img) => (
-          <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1/1' }}>
-            <img src={img.url} alt={img.alt ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1/1', background: '#f0ebe0' }}>
+            <img
+              src={img.url}
+              alt={img.alt ?? ''}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={() => setBrokenIds((prev) => new Set([...prev, img.id]))}
+            />
+            {brokenIds.has(img.id) && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(192,57,43,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 11, color: '#c0392b', background: '#fff', padding: '3px 10px', borderRadius: 10, fontWeight: 600 }}>URL無効</span>
+              </div>
+            )}
             {img.brand && (
               <span style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, padding: '2px 8px', borderRadius: 10, letterSpacing: 1 }}>
                 {img.brand}
@@ -60,7 +67,7 @@ export default function AdminGallery() {
               onClick={() => del(img.id)}
               style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 14 }}
             >
-              ×
+              x
             </button>
           </div>
         ))}
