@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api, type Stockist } from '../lib/api'
 
+const BRAND_COLORS: Record<string, { bg: string; color: string }> = {
+  'ei8ht plants': { bg: '#e8f0e8', color: '#2d4a2d' },
+  'Habitat Oides': { bg: '#dde4f5', color: '#1e3272' },
+  'HUE': { bg: '#f5ead8', color: '#6b3c1a' },
+}
+
 export default function Stockists() {
   const [stockists, setStockists] = useState<Stockist[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,7 +36,19 @@ export default function Stockists() {
                 <div style={{ fontWeight: 500, marginBottom: 4 }}>
                   {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1c2417', textDecoration: 'underline', textUnderlineOffset: 3 }}>{s.name}</a> : s.name}
                 </div>
-                {s.address && <div style={{ fontSize: 14, color: '#8a9a7e' }}>{s.address}</div>}
+                {s.address && <div style={{ fontSize: 14, color: '#8a9a7e', marginBottom: s.brands?.length ? 8 : 0 }}>{s.address}</div>}
+                {s.brands?.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {s.brands.map((b) => {
+                      const c = BRAND_COLORS[b] ?? { bg: '#f0ebe0', color: '#3a4535' }
+                      return (
+                        <span key={b} style={{ fontSize: 11, padding: '2px 10px', borderRadius: 12, letterSpacing: '0.5px', background: c.bg, color: c.color }}>
+                          {b}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -141,6 +141,14 @@ export default function HabitatOides() {
               />
             </div>
           </div>
+          <div style={{ marginTop: 48 }}>
+            <Link
+              to="/collaborations"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 14, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#9aaedd', textDecoration: 'none', borderBottom: '1px solid #3a58b8', paddingBottom: 4 }}
+            >
+              View all collaborations →
+            </Link>
+          </div>
         </div>
       </section>
 

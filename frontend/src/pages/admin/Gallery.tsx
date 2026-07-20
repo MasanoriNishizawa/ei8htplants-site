@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api, type GalleryImage } from '../../lib/api'
 
+const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE']
+
 export default function AdminGallery() {
   const [images, setImages] = useState<GalleryImage[]>([])
   const [url, setUrl] = useState('')
   const [alt, setAlt] = useState('')
+  const [brand, setBrand] = useState('')
   const [saving, setSaving] = useState(false)
 
   const load = () => api.gallery.list().then(setImages)
@@ -14,8 +17,12 @@ export default function AdminGallery() {
     e.preventDefault()
     if (!url) return
     setSaving(true)
-    await fetch('/api/gallery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, alt }) })
-    setUrl(''); setAlt('')
+    await fetch('/api/gallery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, alt: alt || null, brand: brand || null }),
+    })
+    setUrl(''); setAlt(''); setBrand('')
     await load()
     setSaving(false)
   }
@@ -34,12 +41,21 @@ export default function AdminGallery() {
       <form onSubmit={add} style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
         <input required type="url" placeholder="画像URL" value={url} onChange={(e) => setUrl(e.target.value)} style={{ ...inputStyle, flex: 2, minWidth: 200 }} />
         <input placeholder="ALTテキスト（任意）" value={alt} onChange={(e) => setAlt(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 140 }} />
+        <select value={brand} onChange={(e) => setBrand(e.target.value)} style={{ ...inputStyle, minWidth: 160 }}>
+          <option value="">ブランド（任意）</option>
+          {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
+        </select>
         <button type="submit" disabled={saving} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>追加</button>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
         {images.map((img) => (
           <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1/1' }}>
             <img src={img.url} alt={img.alt ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {img.brand && (
+              <span style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, padding: '2px 8px', borderRadius: 10, letterSpacing: 1 }}>
+                {img.brand}
+              </span>
+            )}
             <button
               onClick={() => del(img.id)}
               style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 14 }}

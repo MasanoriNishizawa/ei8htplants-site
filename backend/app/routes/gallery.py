@@ -9,11 +9,15 @@ router = APIRouter(prefix='/gallery', tags=['gallery'])
 class GalleryBody(BaseModel):
     url: str
     alt: Optional[str] = None
+    brand: Optional[str] = None
 
 
 @router.get('')
-def list_gallery():
-    return supabase.table('gallery_images').select('*').order('display_order').execute().data
+def list_gallery(brand: Optional[str] = None):
+    q = supabase.table('gallery_images').select('*').order('display_order')
+    if brand:
+        q = q.eq('brand', brand)
+    return q.execute().data
 
 
 @router.post('')

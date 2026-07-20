@@ -4,7 +4,9 @@ const ITEMS = [
   { to: '/admin/events', label: 'イベント管理', desc: 'イベントの追加・編集・削除' },
   { to: '/admin/gallery', label: 'ギャラリー管理', desc: '画像のアップロード・削除' },
   { to: '/admin/stockists', label: '取扱店管理', desc: '取扱店の追加・編集' },
-  { to: '/admin/reservations', label: 'WS予約一覧', desc: 'ワークショップ予約の確認' },
+  { to: '/admin/reservations', label: 'WS予約一覧', desc: 'ワークショップ予約の確認・ステータス管理' },
+  { to: '/admin/collaborations', label: 'コラボレーション', desc: 'コラボ記事の追加・削除' },
+  { to: '/admin/contacts', label: 'お問い合わせ', desc: 'お問い合わせ内容の確認' },
 ]
 
 export default function Dashboard() {

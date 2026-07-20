@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
 import { api, type GalleryImage } from '../lib/api'
 
+const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE']
+
 export default function Gallery() {
   const [images, setImages] = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeBrand, setActiveBrand] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
 
   useEffect(() => {
-    api.gallery.list().then(setImages).finally(() => setLoading(false))
-  }, [])
+    setLoading(true)
+    api.gallery.list(activeBrand ?? undefined).then(setImages).finally(() => setLoading(false))
+  }, [activeBrand])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightbox(null) }
@@ -25,6 +29,26 @@ export default function Gallery() {
     <>
       <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f7f3ec' }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Gallery</h1>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 0, borderBottom: '1px solid #ddd4c0', background: '#f7f3ec' }}>
+        {[null, ...BRANDS].map((b) => (
+          <button
+            key={b ?? 'all'}
+            onClick={() => setActiveBrand(b)}
+            style={{
+              padding: '12px 20px', border: 'none', background: 'none',
+              fontSize: 12, letterSpacing: '1.5px', textTransform: 'uppercase',
+              cursor: 'pointer', fontFamily: 'inherit',
+              color: activeBrand === b ? '#1c2417' : '#8a9a7e',
+              borderBottom: activeBrand === b ? '2px solid #1c2417' : '2px solid transparent',
+              marginBottom: -1,
+              transition: 'color 0.2s',
+            }}
+          >
+            {b ?? 'All'}
+          </button>
+        ))}
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto 100px', padding: '40px 20px 0' }}>

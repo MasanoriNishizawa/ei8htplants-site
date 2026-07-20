@@ -69,6 +69,8 @@ export default function AdminLayout() {
         <NavLink to="/admin/gallery" style={navStyle}>ギャラリー</NavLink>
         <NavLink to="/admin/stockists" style={navStyle}>取扱店</NavLink>
         <NavLink to="/admin/reservations" style={navStyle}>WS予約</NavLink>
+        <NavLink to="/admin/collaborations" style={navStyle}>コラボレーション</NavLink>
+        <NavLink to="/admin/contacts" style={navStyle}>お問い合わせ</NavLink>
         <div style={{ marginTop: 'auto' }}>
           <button onClick={logout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, cursor: 'pointer', color: '#8a9a7e' }}>ログアウト</button>
         </div>

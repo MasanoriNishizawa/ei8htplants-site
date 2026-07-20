@@ -6,6 +6,7 @@ import Gallery from './pages/Gallery'
 import Concept from './pages/Concept'
 import Contact from './pages/Contact'
 import Stockists from './pages/Stockists'
+import Collaborations from './pages/Collaborations'
 import Ei8htPlants from './pages/brands/Ei8htPlants'
 import HabitatOides from './pages/brands/HabitatOides'
 import HabitatOidesWorkshop from './pages/brands/HabitatOidesWorkshop'
@@ -18,6 +19,8 @@ import AdminEventForm from './pages/admin/EventForm'
 import AdminGallery from './pages/admin/Gallery'
 import AdminStockists from './pages/admin/Stockists'
 import AdminReservations from './pages/admin/Reservations'
+import AdminCollaborations from './pages/admin/Collaborations'
+import AdminContacts from './pages/admin/Contacts'
 
 export default function App() {
   return (
@@ -30,6 +33,7 @@ export default function App() {
           <Route path="/concept" element={<Concept />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/stockists" element={<Stockists />} />
+          <Route path="/collaborations" element={<Collaborations />} />
           <Route path="/ei8htplants" element={<Ei8htPlants />} />
           <Route path="/habitatoides" element={<HabitatOides />} />
           <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
@@ -44,6 +48,8 @@ export default function App() {
           <Route path="gallery" element={<AdminGallery />} />
           <Route path="stockists" element={<AdminStockists />} />
           <Route path="reservations" element={<AdminReservations />} />
+          <Route path="collaborations" element={<AdminCollaborations />} />
+          <Route path="contacts" element={<AdminContacts />} />
         </Route>
       </Routes>
     </BrowserRouter>
