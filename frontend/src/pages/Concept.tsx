@@ -28,8 +28,8 @@ export default function Concept() {
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 40px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>Philosophy</h2>
           <div style={{ maxWidth: 750, margin: '0 auto', lineHeight: 2.2, fontSize: 16, color: '#3a4535', textAlign: 'justify' }}>
             植物は、育てるものであり、飾るもの。<br /><br />
-            色と形に惹かれて手に取った一株が、部屋に置かれたとき—その空間は静かに変わる。私たちはその瞬間のために、色もフォルムも妥協しない植物を選び抜いています。<br /><br />
-            観葉植物の持つ鮮やかな色彩と独特の造形美を軸に、インテリアとして「飾る」視点でセレクトし、暮らしを彩る植物文化を提案します。
+            色と形に惹かれて手に取った一株が、日々の手入れを通じて少しずつ表情を変えていく—その過程そのものが、植物を育てることの醍醐味だと思っています。<br /><br />
+            はじめての一株の選び方から、育て方の悩み、空間に合う植物探しまで。どんなことでも気軽にご相談ください。一緒に考えながら、あなたに合ったご提案をします。
           </div>
         </div>
 
