@@ -14,6 +14,7 @@ export default function AdminCollaborations() {
   const [items, setItems] = useState<Collaboration[]>([])
   const [form, setForm] = useState<CollaborationPayload>(empty)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const load = () => api.collaborations.list().then(setItems)
   useEffect(() => { load() }, [])
@@ -33,6 +34,19 @@ export default function AdminCollaborations() {
     setForm(empty)
     await load()
     setSaving(false)
+  }
+
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const uploaded = await api.upload(file)
+      setForm((f) => ({ ...f, image_url: uploaded }))
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
   }
 
   const del = async (id: string) => {
@@ -63,8 +77,12 @@ export default function AdminCollaborations() {
         <div>
           <input type="url" placeholder="動画URL（任意）" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} style={inputStyle} />
         </div>
-        <div>
-          <input type="url" placeholder="画像URL（任意）" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} style={inputStyle} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input type="url" placeholder="画像URL（任意）" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
+          <label style={{ padding: '10px 12px', background: uploading ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploading ? 'default' : 'pointer', fontSize: 12, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+            {uploading ? '...' : 'ファイル'}
+            <input type="file" accept="image/*" onChange={handleImageFile} disabled={uploading} style={{ display: 'none' }} />
+          </label>
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <textarea

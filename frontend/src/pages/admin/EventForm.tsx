@@ -22,6 +22,7 @@ export default function AdminEventForm() {
   const [form, setForm] = useState<FormState>(empty)
   const [imageUrls, setImageUrls] = useState<string[]>([''])
   const [saving, setSaving] = useState(false)
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -38,6 +39,22 @@ export default function AdminEventForm() {
   }, [id])
 
   const set = (k: keyof FormState, v: unknown) => setForm((f) => ({ ...f, [k]: v }))
+
+  const handleImageFile = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingIdx(i)
+    try {
+      const uploaded = await api.upload(file)
+      const next = [...imageUrls]
+      next[i] = uploaded
+      if (i === imageUrls.length - 1) next.push('')
+      setImageUrls(next)
+    } finally {
+      setUploadingIdx(null)
+      e.target.value = ''
+    }
+  }
 
   const toggleBrand = (b: string) =>
     set('brands', form.brands.includes(b) ? form.brands.filter((x) => x !== b) : [...form.brands, b])
@@ -106,6 +123,10 @@ export default function AdminEventForm() {
                   setImageUrls(next)
                 }}
               />
+              <label style={{ padding: '10px 12px', background: uploadingIdx === i ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploadingIdx === i ? 'default' : 'pointer', fontSize: 12, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                {uploadingIdx === i ? '...' : 'ファイル'}
+                <input type="file" accept="image/*" onChange={(e) => handleImageFile(i, e)} disabled={uploadingIdx !== null} style={{ display: 'none' }} />
+              </label>
               {i < imageUrls.length - 1 && (
                 <button type="button" onClick={() => setImageUrls(imageUrls.filter((_, j) => j !== i))}
                   style={{ padding: '0 12px', border: '1px solid #ddd4c0', borderRadius: 8, background: 'none', cursor: 'pointer', color: '#c0392b' }}>

@@ -22,6 +22,24 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  upload: async (file: File): Promise<string> => {
+    const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
+    const token = data.session?.access_token
+    if (!token) throw new Error('401 Unauthorized')
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${BASE}/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail ?? `${res.status} ${res.statusText}`)
+    }
+    const { url } = await res.json()
+    return url
+  },
   events: {
     list: (past = false) => request<Event[]>(`/events?past=${past}`),
     get: (id: string) => request<Event>(`/events/${id}`),

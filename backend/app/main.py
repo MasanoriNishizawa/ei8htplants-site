@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-from .routes import events, gallery, stockists, contact, reserve, collaborations
+from .routes import events, gallery, stockists, contact, reserve, collaborations, upload
 
 app = FastAPI(title='ei8ht plants API')
 
@@ -22,6 +22,7 @@ app.include_router(stockists.router, prefix='/api')
 app.include_router(contact.router, prefix='/api')
 app.include_router(reserve.router, prefix='/api')
 app.include_router(collaborations.router, prefix='/api')
+app.include_router(upload.router, prefix='/api')
 
 # 本番: Viteビルド済みSPAを配信
 DIST = os.path.join(os.path.dirname(__file__), '../../frontend/dist')

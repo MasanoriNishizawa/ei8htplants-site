@@ -9,10 +9,24 @@ export default function AdminGallery() {
   const [alt, setAlt] = useState('')
   const [brand, setBrand] = useState('')
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set())
 
   const load = () => api.gallery.list().then(setImages)
   useEffect(() => { load() }, [])
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const uploaded = await api.upload(file)
+      setUrl(uploaded)
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,13 +50,19 @@ export default function AdminGallery() {
     <div>
       <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>ギャラリー管理</h2>
       <form onSubmit={add} style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
-        <input required type="url" placeholder="画像URL" value={url} onChange={(e) => setUrl(e.target.value)} style={{ ...inputStyle, flex: 2, minWidth: 200 }} />
+        <div style={{ display: 'flex', gap: 8, flex: 2, minWidth: 200 }}>
+          <input required type="url" placeholder="画像URL" value={url} onChange={(e) => setUrl(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+          <label style={{ padding: '10px 14px', background: uploading ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploading ? 'default' : 'pointer', fontSize: 13, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+            {uploading ? 'アップロード中...' : 'ファイルを選択'}
+            <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} style={{ display: 'none' }} />
+          </label>
+        </div>
         <input placeholder="ALTテキスト（任意）" value={alt} onChange={(e) => setAlt(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 140 }} />
         <select value={brand} onChange={(e) => setBrand(e.target.value)} style={{ ...inputStyle, minWidth: 160 }}>
           <option value="">ブランド（任意）</option>
           {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
-        <button type="submit" disabled={saving} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>追加</button>
+        <button type="submit" disabled={saving || uploading} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>追加</button>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
         {images.map((img) => (

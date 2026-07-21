@@ -72,9 +72,9 @@ export default function HabitatOidesWorkshop() {
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>About Workshop</h2>
           <div className="wspage-about-grid">
-            <div style={{ aspectRatio: '1/1', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ aspectRatio: '1/1', borderRadius: 14, overflow: 'hidden', background: '#e8e0d4' }}>
               <img
-                src="https://drive.google.com/thumbnail?id=1uYatRvkQUtXSOi_MDa-TEsF1x3nO2pFF&sz=w1000"
+                src="/img/habitatOides/habitat_oides_workshop_main.jpg"
                 alt="Habitat Style Workshop"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
