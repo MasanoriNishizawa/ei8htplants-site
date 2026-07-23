@@ -10,6 +10,8 @@ type FormState = {
   brands: string[]; has_workshop: boolean; ws_requires_reservation: boolean; is_past: boolean
 }
 
+type SessionInput = { time_label: string; max_participants: number }
+
 const empty: FormState = {
   name: '', start_date: '', end_date: '', time: '', location: '',
   booth_number: '', address: '', official_url: '',
@@ -21,12 +23,13 @@ export default function AdminEventForm() {
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(empty)
   const [imageUrls, setImageUrls] = useState<string[]>([''])
+  const [sessions, setSessions] = useState<SessionInput[]>([])
   const [saving, setSaving] = useState(false)
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null)
 
   useEffect(() => {
     if (!id) return
-    api.events.get(id).then((ev) => {
+    Promise.all([api.events.get(id), api.events.getSessions(id)]).then(([ev, sess]) => {
       setForm({
         name: ev.name, start_date: ev.start_date, end_date: ev.end_date ?? '',
         time: ev.time ?? '', location: ev.location, booth_number: ev.booth_number ?? '',
@@ -35,6 +38,7 @@ export default function AdminEventForm() {
         ws_requires_reservation: ev.ws_requires_reservation, is_past: ev.is_past,
       })
       setImageUrls(ev.images.map((i) => i.url).concat(['']))
+      setSessions(sess.map((s) => ({ time_label: s.time_label, max_participants: s.max_participants })))
     })
   }, [id])
 
@@ -61,15 +65,26 @@ export default function AdminEventForm() {
   const toggleBrand = (b: string) =>
     set('brands', form.brands.includes(b) ? form.brands.filter((x) => x !== b) : [...form.brands, b])
 
+  const addSession = () => setSessions((prev) => [...prev, { time_label: '', max_participants: 10 }])
+  const removeSession = (i: number) => setSessions((prev) => prev.filter((_, j) => j !== i))
+  const setSession = (i: number, key: keyof SessionInput, value: string | number) =>
+    setSessions((prev) => prev.map((s, j) => j === i ? { ...s, [key]: value } : s))
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     const body: EventBody = { ...form, image_urls: imageUrls.filter(Boolean) }
     try {
+      let eventId = id
       if (id) {
         await api.events.update(id, body)
       } else {
-        await api.events.create(body)
+        const created = await api.events.create(body)
+        eventId = created.id
+      }
+      if (eventId) {
+        const validSessions = form.has_workshop ? sessions.filter((s) => s.time_label.trim()) : []
+        await api.events.saveSessions(eventId, validSessions)
       }
       navigate('/admin/events')
     } finally {
@@ -113,39 +128,41 @@ export default function AdminEventForm() {
           <label style={labelStyle}>画像URL（複数可）</label>
           {imageUrls.map((url, i) => (
             <div key={i} style={{ marginBottom: 8 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {url && !url.startsWith('blob:') && (
-                <img src={url} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              )}
-              {url && url.startsWith('blob:') && uploadingIdx === i && (
-                <img src={url} alt="preview" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0, opacity: 0.6 }} />
-              )}
-              <input
-                type="url"
-                style={{ ...inputStyle, flex: 1 }}
-                value={url.startsWith('blob:') ? '' : url}
-                placeholder={uploadingIdx === i ? 'アップロード中...' : 'https://...'}
-                onChange={(e) => {
-                  const next = [...imageUrls]
-                  next[i] = e.target.value
-                  if (i === imageUrls.length - 1 && e.target.value) next.push('')
-                  setImageUrls(next)
-                }}
-              />
-              <label style={{ padding: '10px 12px', background: uploadingIdx === i ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploadingIdx === i ? 'default' : 'pointer', fontSize: 12, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
-                {uploadingIdx === i ? '...' : 'ファイル'}
-                <input type="file" accept="image/*" onChange={(e) => handleImageFile(i, e)} disabled={uploadingIdx !== null} style={{ display: 'none' }} />
-              </label>
-              {i < imageUrls.length - 1 && (
-                <button type="button" onClick={() => setImageUrls(imageUrls.filter((_, j) => j !== i))}
-                  style={{ padding: '0 12px', border: '1px solid #ddd4c0', borderRadius: 8, background: 'none', cursor: 'pointer', color: '#c0392b' }}>
-                  ×
-                </button>
-              )}
-            </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {url && !url.startsWith('blob:') && (
+                  <img src={url} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                )}
+                {url && url.startsWith('blob:') && uploadingIdx === i && (
+                  <img src={url} alt="preview" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0, opacity: 0.6 }} />
+                )}
+                <input
+                  type="url"
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={url.startsWith('blob:') ? '' : url}
+                  placeholder={uploadingIdx === i ? 'アップロード中...' : 'https://...'}
+                  onChange={(e) => {
+                    const next = [...imageUrls]
+                    next[i] = e.target.value
+                    if (i === imageUrls.length - 1 && e.target.value) next.push('')
+                    setImageUrls(next)
+                  }}
+                />
+                <label style={{ padding: '10px 12px', background: uploadingIdx === i ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploadingIdx === i ? 'default' : 'pointer', fontSize: 12, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                  {uploadingIdx === i ? '...' : 'ファイル'}
+                  <input type="file" accept="image/*" onChange={(e) => handleImageFile(i, e)} disabled={uploadingIdx !== null} style={{ display: 'none' }} />
+                </label>
+                {i < imageUrls.length - 1 && (
+                  <button type="button" onClick={() => setImageUrls(imageUrls.filter((_, j) => j !== i))}
+                    style={{ padding: '0 12px', border: '1px solid #ddd4c0', borderRadius: 8, background: 'none', cursor: 'pointer', color: '#c0392b' }}>
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
+
+        {/* フラグ */}
         <div style={{ display: 'flex', gap: 20 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
             <input type="checkbox" checked={form.has_workshop} onChange={(e) => set('has_workshop', e.target.checked)} />
@@ -162,6 +179,49 @@ export default function AdminEventForm() {
             過去のイベント
           </label>
         </div>
+
+        {/* WSセッション管理 */}
+        {form.has_workshop && (
+          <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <label style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</label>
+              <button type="button" onClick={addSession}
+                style={{ padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+                + 追加
+              </button>
+            </div>
+            {sessions.length === 0 && (
+              <p style={{ fontSize: 13, color: '#8a9a7e', margin: 0 }}>セッションなし（時間指定なしで予約受付）</p>
+            )}
+            {sessions.map((s, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="例: 10:00〜11:30"
+                  value={s.time_label}
+                  onChange={(e) => setSession(i, 'time_label', e.target.value)}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 13, color: '#8a9a7e', whiteSpace: 'nowrap' }}>定員</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={s.max_participants}
+                    onChange={(e) => setSession(i, 'max_participants', Number(e.target.value))}
+                    style={{ ...inputStyle, width: 70, textAlign: 'right' }}
+                  />
+                  <span style={{ fontSize: 13, color: '#8a9a7e' }}>名</span>
+                </div>
+                <button type="button" onClick={() => removeSession(i)}
+                  style={{ padding: '0 10px', height: 40, border: '1px solid #ddd4c0', borderRadius: 8, background: 'none', cursor: 'pointer', color: '#c0392b', flexShrink: 0 }}>
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
           <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, cursor: 'pointer' }}>
             {saving ? '保存中...' : '保存する'}

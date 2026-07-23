@@ -3,7 +3,7 @@
 ベースURL（開発）: `http://localhost:8000/api`  
 ベースURL（本番）: `https://<ドメイン>/api`
 
-全リクエスト `Content-Type: application/json`
+全リクエスト `Content-Type: application/json`（アップロードエンドポイントを除く）
 
 ---
 
@@ -17,9 +17,51 @@
 
 | HTTPステータス | 原因 |
 |---|---|
+| 401 Unauthorized | Bearerトークン未送信または無効 |
+| 409 Conflict | WSセッションが満席 |
 | 422 Unprocessable Entity | Pydanticバリデーションエラー（型不一致・必須フィールド欠如等） |
 | 404 Not Found | リソースが存在しない |
 | 500 Internal Server Error | Supabase接続エラー・メール設定不備等 |
+
+---
+
+## Upload
+
+### POST /api/upload
+
+画像ファイルを Supabase Storage にアップロードし、公開URLを返す。
+
+**認証**: Bearer JWT 必須
+
+**リクエスト**: `multipart/form-data`
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `file` | File | アップロードするファイル |
+
+**制約**
+
+| 項目 | 値 |
+|---|---|
+| 許可 MIME タイプ | `image/jpeg`, `image/png`, `image/webp`, `image/gif` |
+| 最大ファイルサイズ | 10MB |
+| ファイル名 | `{uuid}{拡張子}` で保存（元ファイル名を使用しない） |
+
+**レスポンス `200`**
+
+```json
+{
+  "url": "https://xxxx.supabase.co/storage/v1/object/public/images/abcd-1234.jpg"
+}
+```
+
+**エラー**
+
+| ステータス | 原因 |
+|---|---|
+| `400` | 許可されていない MIME タイプ |
+| `413` | ファイルサイズが 10MB 超 |
+| `401` | Bearerトークン未送信または無効 |
 
 ---
 
@@ -78,6 +120,8 @@
 
 イベント作成。
 
+**認証**: Bearer JWT 必須
+
 **リクエストボディ**
 
 ```json
@@ -106,6 +150,8 @@
 
 イベント更新。画像を全置換。
 
+**認証**: Bearer JWT 必須
+
 **リクエストボディ**: POST と同形式  
 **レスポンス `200`**: 更新後のイベント
 
@@ -115,7 +161,106 @@
 
 イベント削除。`event_images` はカスケード削除。
 
+**認証**: Bearer JWT 必須
+
 **レスポンス `200`**: `{"ok": true}`
+
+---
+
+### GET /api/events/finances
+
+全イベントの収支データ一括取得。
+
+**認証**: Bearer JWT 必須
+
+**レスポンス `200`**: 下記オブジェクトの配列（収支登録済みイベントのみ）
+
+---
+
+### GET /api/events/{event_id}/finances
+
+イベント単件の収支データ取得。未登録の場合はデフォルト値を返す。
+
+**認証**: Bearer JWT 必須
+
+**レスポンス `200`**
+
+```json
+{
+  "id": "uuid",
+  "event_id": "uuid",
+  "sales": 150000,
+  "booth_fee": 20000,
+  "distance": 80,
+  "gas_price": 170,
+  "expressway_toll": 3000,
+  "accommodation": 0,
+  "ws_participants": 10,
+  "payment_flag": true,
+  "other_expenses": 5000,
+  "other_expenses_note": "消耗品",
+  "notes": "備考",
+  "updated_at": "2024-10-01T10:00:00+09:00"
+}
+```
+
+---
+
+### PUT /api/events/{event_id}/finances
+
+イベントの収支データを登録・更新（upsert）。
+
+**認証**: Bearer JWT 必須
+
+**リクエストボディ**: `GET` レスポンスから `id`, `event_id`, `updated_at` を除いた形式
+
+**レスポンス `200`**: upsert後のレコード
+
+---
+
+### GET /api/events/{event_id}/sessions
+
+イベントに紐付くWSセッション一覧と各セッションの予約数を取得。
+
+**レスポンス `200`**
+
+```json
+[
+  {
+    "id": "uuid",
+    "event_id": "uuid",
+    "time_label": "10:00〜11:30",
+    "max_participants": 8,
+    "reserved_count": 3,
+    "display_order": 0
+  }
+]
+```
+
+`display_order` 昇順。セッションが未登録の場合は空配列 `[]`。
+
+---
+
+### PUT /api/events/{event_id}/sessions
+
+イベントのWSセッションを全置換。
+
+**認証**: Bearer JWT 必須
+
+**リクエストボディ**
+
+```json
+{
+  "sessions": [
+    { "time_label": "10:00〜11:30", "max_participants": 8 },
+    { "time_label": "13:00〜14:30", "max_participants": 8 }
+  ]
+}
+```
+
+既存セッションを全削除して再挿入。`display_order` はリスト順に 0, 1, 2... を付与。
+
+**レスポンス `200`**: 作成後のセッション配列
 
 ---
 
@@ -153,6 +298,8 @@
 
 ギャラリー画像追加。
 
+**認証**: Bearer JWT 必須
+
 **リクエストボディ**
 
 ```json
@@ -167,7 +314,27 @@
 
 ---
 
+### PATCH /api/gallery/{image_id}
+
+ギャラリー画像の表示順を更新。隣接画像と `display_order` を swap する際に2回呼ぶ。
+
+**認証**: Bearer JWT 必須
+
+**リクエストボディ**
+
+```json
+{
+  "display_order": 3
+}
+```
+
+**レスポンス `200`**: 更新後のレコード
+
+---
+
 ### DELETE /api/gallery/{image_id}
+
+**認証**: Bearer JWT 必須
 
 **レスポンス `200`**: `{"ok": true}`
 
@@ -197,6 +364,8 @@
 
 ### POST /api/stockists
 
+**認証**: Bearer JWT 必須
+
 **リクエストボディ**
 
 ```json
@@ -217,12 +386,16 @@
 
 取扱店情報更新。
 
+**認証**: Bearer JWT 必須
+
 **リクエストボディ**: POST と同形式  
 **レスポンス `200`**: 更新後のレコード
 
 ---
 
 ### DELETE /api/stockists/{stockist_id}
+
+**認証**: Bearer JWT 必須
 
 **レスポンス `200`**: `{"ok": true}`
 
@@ -253,6 +426,8 @@
 
 お問い合わせ一覧取得（管理者用）。
 
+**認証**: Bearer JWT 必須
+
 **レスポンス `200`**
 
 ```json
@@ -276,6 +451,8 @@
 
 既読状態を更新。
 
+**認証**: Bearer JWT 必須
+
 **リクエストボディ**
 
 ```json
@@ -288,11 +465,32 @@
 
 ---
 
+### POST /api/contacts/{contact_id}/reply
+
+問い合わせ者へ返信メールを送信する。送信後、該当レコードを既読に更新する。
+
+**認証**: Bearer JWT 必須
+
+**リクエストボディ**
+
+```json
+{
+  "subject": "Re: ei8ht plants お問い合わせ", // required
+  "body": "メール本文テキスト"                 // required
+}
+```
+
+**レスポンス `200`**: `{"ok": true}`  
+**レスポンス `404`**: 対象の問い合わせが存在しない  
+**レスポンス `500`**: `{"detail": "Mail not configured"}` (環境変数未設定時)
+
+---
+
 ## Reserve
 
 ### POST /api/reserve
 
-ワークショップ予約作成。
+ワークショップ予約作成。予約者宛に確認メールを送信する。
 
 **リクエストボディ**
 
@@ -303,17 +501,29 @@
   "email": "taro@example.com", // required, EmailStr
   "phone": "090-0000-0000",    // optional
   "participants": 2,           // optional, default 1
-  "note": "備考テキスト"        // optional
+  "note": "備考テキスト",       // optional
+  "session_id": "uuid",        // optional, WSセッションUUID
+  "bring_plant": false,        // optional, default false
+  "bring_pot": false           // optional, default false
 }
 ```
 
-**レスポンス `200`**: 作成されたレコード（statusは"pending"）
+**レスポンス `200`**: 作成されたレコード（statusは"pending"）  
+**レスポンス `409`**: `{"detail": "このセッションは満席です"}` （`session_id` 指定時に定員超過）
 
 ---
 
 ### GET /api/reserves
 
 予約一覧取得（管理者用）。
+
+**認証**: Bearer JWT 必須
+
+**クエリパラメータ**
+
+| パラメータ | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| `event_id` | string (UUID) | なし | 指定すると該当イベントの予約のみ返す |
 
 **レスポンス `200`**
 
@@ -328,6 +538,9 @@
     "participants": 2,
     "note": null,
     "status": "pending",
+    "session_id": "uuid",
+    "bring_plant": false,
+    "bring_pot": true,
     "created_at": "2024-10-01T10:00:00+09:00"
   }
 ]
@@ -340,6 +553,8 @@
 ### PATCH /api/reserves/{reservation_id}
 
 予約ステータス更新（管理者用）。
+
+**認証**: Bearer JWT 必須
 
 **リクエストボディ**
 
@@ -385,6 +600,8 @@
 
 コラボレーション追加。
 
+**認証**: Bearer JWT 必須
+
 **リクエストボディ**
 
 ```json
@@ -404,6 +621,8 @@
 
 ### DELETE /api/collaborations/{collab_id}
 
+**認証**: Bearer JWT 必須
+
 **レスポンス `200`**: `{"ok": true}`
 
 ---
@@ -411,18 +630,34 @@
 ## APIクライアント (`lib/api.ts`) との対応
 
 ```
-api.events.list(past)         → GET  /api/events?past={past}
-api.events.get(id)            → GET  /api/events/{id}
-api.gallery.list(brand?)      → GET  /api/gallery[?brand=...]
-api.stockists.list()          → GET  /api/stockists
-api.stockists.patch(id, body) → PATCH /api/stockists/{id}
-api.contact.send(body)        → POST  /api/contact
-api.contact.list()            → GET  /api/contacts
-api.contact.markRead(id, b)   → PATCH /api/contacts/{id}
-api.reserve.create(body)      → POST  /api/reserve
-api.reserve.list()            → GET  /api/reserves
-api.reserve.updateStatus(id,s)→ PATCH /api/reserves/{id}
-api.collaborations.list()     → GET  /api/collaborations
-api.collaborations.add(body)  → POST  /api/collaborations
-api.collaborations.delete(id) → DELETE /api/collaborations/{id}
+api.upload(file)                         → POST   /api/upload  (multipart/form-data, auth)
+api.stats()                              → 内部で複数エンドポイントを並列呼び出し
+api.events.list(past)                    → GET    /api/events?past={past}
+api.events.get(id)                       → GET    /api/events/{id}
+api.events.create(body)                  → POST   /api/events  (auth)
+api.events.update(id, body)              → PUT    /api/events/{id}  (auth)
+api.events.delete(id)                    → DELETE /api/events/{id}  (auth)
+api.events.getAllFinances()              → GET    /api/events/finances  (auth)
+api.events.getFinances(id)               → GET    /api/events/{id}/finances  (auth)
+api.events.saveFinances(id, body)        → PUT    /api/events/{id}/finances  (auth)
+api.events.getSessions(id)               → GET    /api/events/{id}/sessions
+api.events.saveSessions(id, sessions)    → PUT    /api/events/{id}/sessions  (auth)
+api.gallery.list(brand?)                 → GET    /api/gallery[?brand=...]
+api.gallery.add(body)                    → POST   /api/gallery  (auth)
+api.gallery.updateOrder(id, n)           → PATCH  /api/gallery/{id}  (auth)
+api.gallery.delete(id)                   → DELETE /api/gallery/{id}  (auth)
+api.stockists.list()                     → GET    /api/stockists
+api.stockists.add(body)                  → POST   /api/stockists  (auth)
+api.stockists.patch(id, body)            → PATCH  /api/stockists/{id}  (auth)
+api.stockists.delete(id)                 → DELETE /api/stockists/{id}  (auth)
+api.contact.send(body)                   → POST   /api/contact
+api.contact.list()                       → GET    /api/contacts  (auth)
+api.contact.markRead(id, b)              → PATCH  /api/contacts/{id}  (auth)
+api.contact.reply(id, sub, body)         → POST   /api/contacts/{id}/reply  (auth)
+api.reserve.create(body)                 → POST   /api/reserve
+api.reserve.list(eventId?)               → GET    /api/reserves[?event_id={eventId}]  (auth)
+api.reserve.updateStatus(id, s)          → PATCH  /api/reserves/{id}  (auth)
+api.collaborations.list()                → GET    /api/collaborations
+api.collaborations.add(body)             → POST   /api/collaborations  (auth)
+api.collaborations.delete(id)            → DELETE /api/collaborations/{id}  (auth)
 ```

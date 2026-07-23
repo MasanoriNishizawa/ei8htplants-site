@@ -61,6 +61,16 @@ export const api = {
       authRequest<Event>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id: string) =>
       authRequest<{ ok: boolean }>(`/events/${id}`, { method: 'DELETE' }),
+    getFinances: (id: string) =>
+      authRequest<EventFinances>(`/events/${id}/finances`),
+    saveFinances: (id: string, body: EventFinancesBody) =>
+      authRequest<EventFinances>(`/events/${id}/finances`, { method: 'PUT', body: JSON.stringify(body) }),
+    getAllFinances: () =>
+      authRequest<EventFinances[]>('/events/finances'),
+    getSessions: (id: string) =>
+      request<WsSession[]>(`/events/${id}/sessions`),
+    saveSessions: (id: string, sessions: { time_label: string; max_participants: number }[]) =>
+      authRequest<WsSession[]>(`/events/${id}/sessions`, { method: 'PUT', body: JSON.stringify({ sessions }) }),
   },
   gallery: {
     list: (brand?: string) =>
@@ -93,7 +103,8 @@ export const api = {
   reserve: {
     create: (body: ReservationPayload) =>
       request('/reserve', { method: 'POST', body: JSON.stringify(body) }),
-    list: () => authRequest<Reservation[]>('/reserves'),
+    list: (eventId?: string) =>
+      authRequest<Reservation[]>(eventId ? `/reserves?event_id=${eventId}` : '/reserves'),
     updateStatus: (id: string, status: string) =>
       authRequest<Reservation>(`/reserves/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   },
@@ -193,6 +204,9 @@ export interface ReservationPayload {
   phone?: string
   participants: number
   note?: string
+  session_id?: string
+  bring_plant: boolean
+  bring_pot: boolean
 }
 
 export interface Reservation {
@@ -204,7 +218,19 @@ export interface Reservation {
   participants: number
   note: string | null
   status: string
+  session_id: string | null
+  bring_plant: boolean
+  bring_pot: boolean
   created_at: string
+}
+
+export interface WsSession {
+  id: string
+  event_id: string
+  time_label: string
+  max_participants: number
+  reserved_count: number
+  display_order: number
 }
 
 export interface Collaboration {
@@ -226,4 +252,47 @@ export interface CollaborationPayload {
   video_url?: string
   image_url?: string
   event_date?: string
+}
+
+export interface EventFinances {
+  id?: string
+  event_id: string
+  sales: number
+  booth_fee: number
+  distance: number
+  gas_price: number
+  expressway_toll: number
+  accommodation: number
+  ws_participants: number
+  payment_flag: boolean
+  other_expenses: number
+  other_expenses_note: string | null
+  notes: string | null
+  updated_at?: string
+}
+
+export type EventFinancesBody = Omit<EventFinances, 'id' | 'event_id' | 'updated_at'>
+
+export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
+  transport: number
+  wsSales: number
+  totalExpense: number
+  net: number
+  salesShare: number
+  wsShare: number
+} {
+  const transport = Math.round((fin.distance * 2 / 10) * fin.gas_price)
+  const totalExpense = fin.booth_fee + transport + fin.expressway_toll + fin.accommodation + fin.other_expenses
+
+  if (hasWorkshop && fin.payment_flag) {
+    // WS開催 + 手伝いあり: max(0, 売上 - 各支出) × 20% + WS売上 × 70%
+    const wsSales = fin.ws_participants * 1000
+    const salesShare = Math.round(Math.max(0, fin.sales - totalExpense) * 0.2)
+    const wsShare = Math.round(wsSales * 0.7)
+    return { transport, wsSales, totalExpense, net: salesShare + wsShare, salesShare, wsShare }
+  }
+
+  // WS非開催、またはWS開催でも手伝いなし: 売上 - 各支出
+  const wsSales = hasWorkshop ? fin.ws_participants * 1000 : 0
+  return { transport, wsSales, totalExpense, net: fin.sales - totalExpense, salesShare: 0, wsShare: 0 }
 }

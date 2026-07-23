@@ -23,6 +23,27 @@ class EventBody(BaseModel):
     image_urls: list[str] = []
 
 
+class FinanceBody(BaseModel):
+    sales: int = 0
+    booth_fee: int = 0
+    distance: int = 0
+    gas_price: int = 170
+    expressway_toll: int = 0
+    accommodation: int = 0
+    ws_participants: int = 0
+    payment_flag: bool = False
+    other_expenses: int = 0
+    other_expenses_note: Optional[str] = None
+    notes: Optional[str] = None
+
+
+_FINANCE_DEFAULTS = {
+    'sales': 0, 'booth_fee': 0, 'distance': 0, 'gas_price': 170,
+    'expressway_toll': 0, 'accommodation': 0, 'ws_participants': 0,
+    'payment_flag': False, 'other_expenses': 0, 'other_expenses_note': None, 'notes': None,
+}
+
+
 def _attach_images(events: list[dict]) -> list[dict]:
     if not events:
         return events
@@ -40,6 +61,51 @@ def _attach_images(events: list[dict]) -> list[dict]:
 def list_events(past: bool = False):
     data = supabase.table('events').select('*').eq('is_past', past).order('start_date').execute().data
     return _attach_images(data)
+
+
+# IMPORTANT: static routes must be declared before /{event_id} to avoid
+# FastAPI matching the literal segment as a path parameter value.
+@router.get('/finances')
+def list_all_finances(_=Depends(require_auth)):
+    return admin_supabase.table('event_finances').select('*').execute().data
+
+
+class WsSessionInput(BaseModel):
+    time_label: str
+    max_participants: int = 10
+
+
+class WsSessionsBody(BaseModel):
+    sessions: list[WsSessionInput]
+
+
+@router.get('/{event_id}/sessions')
+def get_sessions(event_id: str):
+    sessions = admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).order('display_order').execute().data
+    if not sessions:
+        return []
+    session_ids = [s['id'] for s in sessions]
+    reservations = admin_supabase.table('workshop_reservations').select('session_id').in_('session_id', session_ids).neq('status', 'cancelled').execute().data
+    count_map: dict[str, int] = {}
+    for r in reservations:
+        sid = r.get('session_id')
+        if sid:
+            count_map[sid] = count_map.get(sid, 0) + 1
+    for s in sessions:
+        s['reserved_count'] = count_map.get(s['id'], 0)
+    return sessions
+
+
+@router.put('/{event_id}/sessions')
+def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)):
+    admin_supabase.table('ws_sessions').delete().eq('event_id', event_id).execute()
+    if body.sessions:
+        rows = [
+            {'event_id': event_id, 'time_label': s.time_label, 'max_participants': s.max_participants, 'display_order': i}
+            for i, s in enumerate(body.sessions)
+        ]
+        admin_supabase.table('ws_sessions').insert(rows).execute()
+    return get_sessions(event_id)
 
 
 @router.get('/{event_id}')
@@ -71,6 +137,23 @@ def update_event(event_id: str, body: EventBody, _=Depends(require_auth)):
 def delete_event(event_id: str, _=Depends(require_auth)):
     admin_supabase.table('events').delete().eq('id', event_id).execute()
     return {'ok': True}
+
+
+@router.get('/{event_id}/finances')
+def get_finances(event_id: str, _=Depends(require_auth)):
+    result = admin_supabase.table('event_finances').select('*').eq('event_id', event_id).execute()
+    if result.data:
+        return result.data[0]
+    return {'event_id': event_id, **_FINANCE_DEFAULTS}
+
+
+@router.put('/{event_id}/finances')
+def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)):
+    data = {**body.model_dump(), 'event_id': event_id, 'updated_at': 'now()'}
+    existing = admin_supabase.table('event_finances').select('id').eq('event_id', event_id).execute()
+    if existing.data:
+        return admin_supabase.table('event_finances').update(data).eq('event_id', event_id).execute().data[0]
+    return admin_supabase.table('event_finances').insert(data).execute().data[0]
 
 
 def _save_images(event_id: str, urls: list[str]):

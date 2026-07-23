@@ -13,11 +13,16 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   cancelled: { bg: '#f8d7da', color: '#721c24' },
 }
 
-function exportCsv(rows: Reservation[]) {
-  const header = ['受付日', 'お名前', 'メール', '電話', '人数', '備考', 'ステータス']
+function exportCsv(rows: ReservationWithTime[]) {
+  const header = ['受付日', 'お名前', 'メール', '電話', '時間', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
   const lines = rows.map((r) => [
     new Date(r.created_at).toLocaleDateString('ja-JP'),
-    r.name, r.email, r.phone ?? '', String(r.participants), r.note ?? '', r.status,
+    r.name, r.email, r.phone ?? '',
+    r.session_time ?? '',
+    String(r.participants),
+    r.bring_plant ? 'あり' : 'なし',
+    r.bring_pot ? 'あり' : 'なし',
+    r.note ?? '', r.status,
   ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
   const bom = '﻿'
   const csv = bom + [header.join(','), ...lines].join('\r\n')
@@ -30,13 +35,28 @@ function exportCsv(rows: Reservation[]) {
   URL.revokeObjectURL(url)
 }
 
+type ReservationWithTime = Reservation & { session_time?: string }
+
 export default function AdminReservations() {
-  const [rows, setRows] = useState<Reservation[]>([])
+  const [rows, setRows] = useState<ReservationWithTime[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
 
   useEffect(() => {
-    api.reserve.list().then(setRows).finally(() => setLoading(false))
+    api.reserve.list().then(async (reservations) => {
+      // Fetch session time labels for reservations that have a session_id
+      const sessionIds = [...new Set(reservations.map((r) => r.session_id).filter(Boolean) as string[])]
+      const sessionMap = new Map<string, string>()
+      if (sessionIds.length > 0) {
+        // Fetch sessions for each unique event
+        const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
+        await Promise.all(eventIds.map(async (eid) => {
+          const sessions = await api.events.getSessions(eid)
+          sessions.forEach((s) => sessionMap.set(s.id, s.time_label))
+        }))
+      }
+      setRows(reservations.map((r) => ({ ...r, session_time: r.session_id ? sessionMap.get(r.session_id) : undefined })))
+    }).finally(() => setLoading(false))
   }, [])
 
   const updateStatus = async (id: string, status: string) => {
@@ -45,6 +65,8 @@ export default function AdminReservations() {
     setRows((prev) => prev.map((r) => r.id === id ? { ...r, ...updated } : r))
     setUpdating(null)
   }
+
+  const headers = ['受付日', 'お名前', 'メール', '電話', '時間', '人数', '持込', '備考', 'ステータス']
 
   return (
     <div>
@@ -61,7 +83,7 @@ export default function AdminReservations() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #ddd4c0', textAlign: 'left' }}>
-                {['受付日', 'お名前', 'メール', '電話', '人数', '備考', 'ステータス'].map((h) => (
+                {headers.map((h) => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -69,14 +91,19 @@ export default function AdminReservations() {
             <tbody>
               {rows.map((r) => {
                 const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
+                const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f0ebe0' }}>
                     <td style={{ padding: '12px 14px', color: '#8a9a7e', whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
                     <td style={{ padding: '12px 14px' }}><a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a></td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.session_time ? '#1c2417' : '#ccc' }}>{r.session_time ?? '-'}</td>
                     <td style={{ padding: '12px 14px' }}>{r.participants}</td>
-                    <td style={{ padding: '12px 14px', color: '#8a9a7e', maxWidth: 200 }}>{r.note ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>
+                      {bringFlags || <span style={{ color: '#ccc' }}>-</span>}
+                    </td>
+                    <td style={{ padding: '12px 14px', color: '#8a9a7e', maxWidth: 160 }}>{r.note ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
