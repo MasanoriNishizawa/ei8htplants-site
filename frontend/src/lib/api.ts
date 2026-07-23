@@ -207,6 +207,8 @@ export interface ReservationPayload {
   session_id?: string
   bring_plant: boolean
   bring_pot: boolean
+  preferred_date?: string
+  preferred_time?: string
 }
 
 export interface Reservation {
@@ -221,6 +223,8 @@ export interface Reservation {
   session_id: string | null
   bring_plant: boolean
   bring_pot: boolean
+  preferred_date: string | null
+  preferred_time: string | null
   created_at: string
 }
 

@@ -13,16 +13,20 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   cancelled: { bg: '#f8d7da', color: '#721c24' },
 }
 
+type ReservationWithTime = Reservation & { session_time?: string }
+
 function exportCsv(rows: ReservationWithTime[]) {
-  const header = ['受付日', 'お名前', 'メール', '電話', '時間', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
+  const header = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
   const lines = rows.map((r) => [
     new Date(r.created_at).toLocaleDateString('ja-JP'),
     r.name, r.email, r.phone ?? '',
+    r.preferred_date ?? '',
+    r.preferred_time ?? '',
     r.session_time ?? '',
     String(r.participants),
     r.bring_plant ? 'あり' : 'なし',
     r.bring_pot ? 'あり' : 'なし',
-    r.note ?? '', r.status,
+    r.note ?? '', STATUS_LABELS[r.status] ?? r.status,
   ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
   const bom = '﻿'
   const csv = bom + [header.join(','), ...lines].join('\r\n')
@@ -35,8 +39,6 @@ function exportCsv(rows: ReservationWithTime[]) {
   URL.revokeObjectURL(url)
 }
 
-type ReservationWithTime = Reservation & { session_time?: string }
-
 export default function AdminReservations() {
   const [rows, setRows] = useState<ReservationWithTime[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,17 +46,12 @@ export default function AdminReservations() {
 
   useEffect(() => {
     api.reserve.list().then(async (reservations) => {
-      // Fetch session time labels for reservations that have a session_id
-      const sessionIds = [...new Set(reservations.map((r) => r.session_id).filter(Boolean) as string[])]
+      const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
       const sessionMap = new Map<string, string>()
-      if (sessionIds.length > 0) {
-        // Fetch sessions for each unique event
-        const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
-        await Promise.all(eventIds.map(async (eid) => {
-          const sessions = await api.events.getSessions(eid)
-          sessions.forEach((s) => sessionMap.set(s.id, s.time_label))
-        }))
-      }
+      await Promise.all(eventIds.map(async (eid) => {
+        const sessions = await api.events.getSessions(eid)
+        sessions.forEach((s) => sessionMap.set(s.id, s.time_label))
+      }))
       setRows(reservations.map((r) => ({ ...r, session_time: r.session_id ? sessionMap.get(r.session_id) : undefined })))
     }).finally(() => setLoading(false))
   }, [])
@@ -66,7 +63,7 @@ export default function AdminReservations() {
     setUpdating(null)
   }
 
-  const headers = ['受付日', 'お名前', 'メール', '電話', '時間', '人数', '持込', '備考', 'ステータス']
+  const headers = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '持込', '備考', 'ステータス']
 
   return (
     <div>
@@ -98,6 +95,8 @@ export default function AdminReservations() {
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
                     <td style={{ padding: '12px 14px' }}><a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a></td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>{r.preferred_date ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_time ? '#1c2417' : '#ccc' }}>{r.preferred_time ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.session_time ? '#1c2417' : '#ccc' }}>{r.session_time ?? '-'}</td>
                     <td style={{ padding: '12px 14px' }}>{r.participants}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>

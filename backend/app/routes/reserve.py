@@ -19,6 +19,8 @@ class ReserveBody(BaseModel):
     session_id: Optional[str] = None
     bring_plant: bool = False
     bring_pot: bool = False
+    preferred_date: Optional[str] = None
+    preferred_time: Optional[str] = None
 
 
 class ReserveStatusPatch(BaseModel):
@@ -48,7 +50,9 @@ def _send_confirmation(body: ReserveBody):
     if body.session_id:
         session = admin_supabase.table('ws_sessions').select('time_label').eq('id', body.session_id).single().execute().data
         if session:
-            session_line = f'\n時間: {session["time_label"]}'
+            session_line = f'\nWSセッション: {session["time_label"]}'
+    date_line = f'\n予約日: {body.preferred_date}' if body.preferred_date else ''
+    time_line = f'\n予約時間: {body.preferred_time}' if body.preferred_time else ''
     bring_lines = ''
     if body.bring_plant:
         bring_lines += '\n植物持ち込み: あり'
@@ -66,7 +70,7 @@ def _send_confirmation(body: ReserveBody):
             f'以下の内容で予約を受け付けました。\n\n'
             f'イベント名: {event["name"]}\n'
             f'開催日: {event["start_date"]}\n'
-            f'会場: {event["location"]}{session_line}\n'
+            f'会場: {event["location"]}{date_line}{time_line}{session_line}\n'
             f'参加人数: {body.participants} 名{bring_lines}{note_line}\n\n'
             f'ご不明な点がございましたら、このメールに返信するか、\n'
             f'お問い合わせフォームからご連絡ください。\n\n'

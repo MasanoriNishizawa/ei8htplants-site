@@ -26,24 +26,36 @@ function buildPrintHtml(event: Event, rows: ReservationWithTime[]): string {
     : event.start_date
   const trs = rows.map((r) => {
     const bring = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
-    return `<tr><td>${new Date(r.created_at).toLocaleDateString('ja-JP')}</td><td>${esc(r.name)}</td><td>${esc(r.session_time ?? '-')}</td><td>${r.participants}</td><td>${esc(bring || '-')}</td><td>${esc(r.note ?? '-')}</td><td>${STATUS_LABELS[r.status] ?? r.status}</td></tr>`
+    return `<tr>
+      <td>${new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
+      <td>${esc(r.name)}</td>
+      <td>${esc(r.preferred_date ?? '-')}</td>
+      <td>${esc(r.preferred_time ?? '-')}</td>
+      <td>${esc(r.session_time ?? '-')}</td>
+      <td>${r.participants}</td>
+      <td>${esc(bring || '-')}</td>
+      <td>${esc(r.note ?? '-')}</td>
+      <td>${STATUS_LABELS[r.status] ?? r.status}</td>
+    </tr>`
   }).join('')
   const totalPeople = rows.reduce((s, r) => s + r.participants, 0)
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <title>${esc(event.name)} 予約一覧</title>
 <style>
-body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;padding:20px 24px;color:#1c2417;}
-h1{font-size:17px;font-weight:normal;margin:0 0 4px;}
-p.meta{font-size:11px;color:#666;margin:0 0 18px;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;padding:16px 20px;color:#1c2417;}
+h1{font-size:15px;font-weight:normal;margin:0 0 3px;}
+p.meta{font-size:10px;color:#666;margin:0 0 14px;}
 table{width:100%;border-collapse:collapse;}
-th{background:#3a4535;color:#fff;padding:7px 10px;text-align:left;font-weight:normal;font-size:11px;letter-spacing:.5px;}
-td{padding:6px 10px;border-bottom:1px solid #e8e8e8;vertical-align:top;}
+th{background:#3a4535;color:#fff;padding:6px 8px;text-align:left;font-weight:normal;font-size:10px;letter-spacing:.5px;}
+td{padding:5px 8px;border-bottom:1px solid #e8e8e8;vertical-align:top;}
 tr:nth-child(even) td{background:#f7f7f7;}
-p.total{margin:10px 0 0;font-size:11px;color:#666;}
+p.total{margin:8px 0 0;font-size:10px;color:#666;}
 </style></head><body>
 <h1>${esc(event.name)} ワークショップ予約一覧</h1>
 <p class="meta">${esc(dateRange)}${event.time ? ' ' + esc(event.time) : ''} / ${esc(event.location)}</p>
-<table><thead><tr><th>受付日</th><th>お名前</th><th>時間</th><th>人数</th><th>持込</th><th>備考</th><th>ステータス</th></tr></thead>
+<table><thead><tr>
+  <th>受付日</th><th>お名前</th><th>予約日</th><th>予約時間</th><th>WSセッション</th><th>人数</th><th>持込</th><th>備考</th><th>ステータス</th>
+</tr></thead>
 <tbody>${trs}</tbody></table>
 <p class="total">合計 ${rows.length} 件 / ${totalPeople} 名</p>
 <script>window.onload=()=>window.print();</script>
@@ -51,10 +63,12 @@ p.total{margin:10px 0 0;font-size:11px;color:#666;}
 }
 
 function exportCsv(event: Event, rows: ReservationWithTime[]) {
-  const header = ['受付日', 'お名前', 'メール', '電話', '時間', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
+  const header = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
   const lines = rows.map((r) => [
     new Date(r.created_at).toLocaleDateString('ja-JP'),
     r.name, r.email, r.phone ?? '',
+    r.preferred_date ?? '',
+    r.preferred_time ?? '',
     r.session_time ?? '',
     String(r.participants),
     r.bring_plant ? 'あり' : 'なし',
@@ -125,6 +139,8 @@ export default function AdminEventReservations() {
     fontSize: 13, background: '#fffcf6', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535',
   }
 
+  const headers = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '持込', '備考', 'ステータス']
+
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
@@ -190,7 +206,7 @@ export default function AdminEventReservations() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #ddd4c0', textAlign: 'left' }}>
-                {['受付日', 'お名前', 'メール', '電話', '時間', '人数', '持込', '備考', 'ステータス'].map((h) => (
+                {headers.map((h) => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -209,6 +225,12 @@ export default function AdminEventReservations() {
                       <a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a>
                     </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>
+                      {r.preferred_date ?? '-'}
+                    </td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_time ? '#1c2417' : '#ccc' }}>
+                      {r.preferred_time ?? '-'}
+                    </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.session_time ? '#1c2417' : '#ccc' }}>
                       {r.session_time ?? '-'}
                     </td>

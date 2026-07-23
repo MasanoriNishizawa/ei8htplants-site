@@ -12,11 +12,44 @@ type FormState = {
   session_id: string
   bring_plant: boolean
   bring_pot: boolean
+  preferred_date: string
+  preferred_time: string
 }
 
 const BLANK: FormState = {
   name: '', email: '', phone: '', participants: 1, note: '',
   session_id: '', bring_plant: false, bring_pot: false,
+  preferred_date: '', preferred_time: '',
+}
+
+function parseDateRange(startDate: string, endDate: string | null): string[] {
+  const dates: string[] = []
+  const start = new Date(startDate + 'T00:00:00')
+  const end = endDate ? new Date(endDate + 'T00:00:00') : start
+  const cur = new Date(start)
+  while (cur <= end) {
+    dates.push(cur.toISOString().slice(0, 10))
+    cur.setDate(cur.getDate() + 1)
+  }
+  return dates
+}
+
+function parseTimeSlots(timeStr: string): string[] {
+  const m = timeStr.match(/(\d{1,2}):(\d{2})[〜~\-–]\s*(\d{1,2}):(\d{2})/)
+  if (!m) return []
+  const startH = parseInt(m[1])
+  const endH = parseInt(m[3])
+  const slots: string[] = []
+  for (let h = startH + 1; h < endH - 1; h++) {
+    slots.push(`${String(h).padStart(2, '0')}:00〜${String(h + 1).padStart(2, '0')}:00`)
+  }
+  return slots
+}
+
+function fmtDate(d: string): string {
+  return new Date(d + 'T00:00:00').toLocaleDateString('ja-JP', {
+    month: 'long', day: 'numeric', weekday: 'short',
+  })
 }
 
 export default function Reserve() {
@@ -32,6 +65,10 @@ export default function Reserve() {
     if (!eventId) return
     api.events.get(eventId).then((ev) => {
       setEvent(ev)
+      const dates = parseDateRange(ev.start_date, ev.end_date)
+      if (dates.length === 1) {
+        setForm((f) => ({ ...f, preferred_date: dates[0] }))
+      }
       if (ev.has_workshop) {
         api.events.getSessions(eventId).then(setSessions)
       }
@@ -41,12 +78,20 @@ export default function Reserve() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
+  const dates = event ? parseDateRange(event.start_date, event.end_date) : []
+  const isMultiDay = dates.length > 1
+  const timeSlots = event?.time ? parseTimeSlots(event.time) : []
   const hasSessions = sessions.length > 0
   const selectedSession = sessions.find((s) => s.id === form.session_id) ?? null
 
+  const needsDate = isMultiDay && !form.preferred_date
+  const needsTime = timeSlots.length > 0 && !form.preferred_time
+  const needsSession = hasSessions && !form.session_id
+  const canSubmit = !needsDate && !needsTime && !needsSession
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (hasSessions && !form.session_id) return
+    if (!canSubmit) return
     setStatus('loading')
     setErrorMsg('')
     try {
@@ -60,6 +105,8 @@ export default function Reserve() {
         session_id: form.session_id || undefined,
         bring_plant: form.bring_plant,
         bring_pot: form.bring_pot,
+        preferred_date: form.preferred_date || undefined,
+        preferred_time: form.preferred_time || undefined,
       })
       setStatus('done')
     } catch (err: unknown) {
@@ -89,6 +136,14 @@ export default function Reserve() {
     margin: '32px 0 16px', paddingBottom: 8, borderBottom: '1px solid #f0f0f0',
   }
 
+  const radioCard = (selected: boolean, disabled = false): React.CSSProperties => ({
+    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+    border: `1px solid ${selected ? '#4a6741' : '#ddd'}`,
+    borderRadius: 6, cursor: disabled ? 'not-allowed' : 'pointer',
+    background: disabled ? '#f8f8f8' : selected ? '#f0f5ee' : '#fff',
+    opacity: disabled ? 0.6 : 1,
+  })
+
   return (
     <>
       <PageMeta title="Workshop 予約" description="Habitat Style Workshop へのご予約はこちらから。" />
@@ -99,7 +154,7 @@ export default function Reserve() {
           {event && (
             <p style={{ fontSize: 15, color: '#3a4535', lineHeight: 1.7, margin: 0 }}>
               {event.name}<br />
-              <span style={{ fontSize: 13, color: '#8a9a7e' }}>{event.start_date}{event.time ? ` ${event.time}` : ''} / {event.location}</span>
+              <span style={{ fontSize: 13, color: '#8a9a7e' }}>{event.start_date}{event.end_date && event.end_date !== event.start_date ? ` 〜 ${event.end_date}` : ''}{event.time ? ` ${event.time}` : ''} / {event.location}</span>
             </p>
           )}
           {!event && (
@@ -132,12 +187,14 @@ export default function Reserve() {
                 { label: 'お名前', value: form.name },
                 { label: 'メール', value: form.email },
                 { label: '電話番号', value: form.phone || '-' },
-                ...(selectedSession ? [{ label: '時間', value: selectedSession.time_label }] : []),
+                ...(event ? [{ label: 'イベント', value: event.name }] : []),
+                ...(form.preferred_date ? [{ label: '予約日', value: fmtDate(form.preferred_date) }] : []),
+                ...(form.preferred_time ? [{ label: '予約時間', value: form.preferred_time }] : []),
+                ...(selectedSession ? [{ label: 'WSセッション', value: selectedSession.time_label }] : []),
                 { label: '参加人数', value: `${form.participants} 名` },
                 { label: '植物持ち込み', value: form.bring_plant ? 'あり' : 'なし' },
                 { label: '鉢持ち込み', value: form.bring_pot ? 'あり' : 'なし' },
                 ...(form.note ? [{ label: '備考', value: form.note }] : []),
-                ...(event ? [{ label: 'イベント', value: event.name }] : []),
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0ebe0' }}>
                   <span style={{ fontSize: 12, color: '#8a9a7e' }}>{label}</span>
@@ -170,22 +227,60 @@ export default function Reserve() {
 
             <p style={sectionLabel}>予約内容</p>
 
-            {/* セッション選択 */}
+            {/* 予約日（複数日イベントのみ） */}
+            {isMultiDay && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>予約日 <span style={{ color: '#c0392b' }}>*</span></label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {dates.map((d) => (
+                    <label key={d} style={radioCard(form.preferred_date === d)}>
+                      <input
+                        type="radio"
+                        name="preferred_date"
+                        value={d}
+                        checked={form.preferred_date === d}
+                        onChange={() => set('preferred_date', d)}
+                        style={{ accentColor: '#4a6741' }}
+                      />
+                      <span style={{ fontSize: 15, color: '#1c2417' }}>{fmtDate(d)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 予約時間（event.time から自動生成） */}
+            {timeSlots.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>予約時間 <span style={{ color: '#c0392b' }}>*</span></label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {timeSlots.map((slot) => (
+                    <label key={slot} style={radioCard(form.preferred_time === slot)}>
+                      <input
+                        type="radio"
+                        name="preferred_time"
+                        value={slot}
+                        checked={form.preferred_time === slot}
+                        onChange={() => set('preferred_time', slot)}
+                        style={{ accentColor: '#4a6741' }}
+                      />
+                      <span style={{ fontSize: 15, color: '#1c2417' }}>{slot}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* WSセッション選択 */}
             {hasSessions && (
               <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>参加時間 <span style={{ color: '#c0392b' }}>*</span></label>
+                <label style={labelStyle}>WSセッション <span style={{ color: '#c0392b' }}>*</span></label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {sessions.map((s) => {
                     const remaining = s.max_participants - s.reserved_count
                     const full = remaining <= 0
                     return (
-                      <label key={s.id} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                        border: `1px solid ${form.session_id === s.id ? '#4a6741' : '#ddd'}`,
-                        borderRadius: 6, cursor: full ? 'not-allowed' : 'pointer',
-                        background: full ? '#f8f8f8' : form.session_id === s.id ? '#f0f5ee' : '#fff',
-                        opacity: full ? 0.6 : 1,
-                      }}>
+                      <label key={s.id} style={radioCard(form.session_id === s.id, full)}>
                         <input
                           type="radio"
                           name="session"
@@ -235,13 +330,15 @@ export default function Reserve() {
 
             <button
               type="submit"
-              disabled={status === 'loading' || (hasSessions && !form.session_id)}
-              style={{ width: '100%', padding: 16, background: '#1e3272', color: '#fff', border: 'none', fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', marginTop: 32, borderRadius: 4, opacity: (hasSessions && !form.session_id) ? 0.5 : 1 }}
+              disabled={status === 'loading' || !canSubmit}
+              style={{ width: '100%', padding: 16, background: '#1e3272', color: '#fff', border: 'none', fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', marginTop: 32, borderRadius: 4, opacity: !canSubmit ? 0.5 : 1 }}
             >
               {status === 'loading' ? '送信中...' : '予約する'}
             </button>
-            {hasSessions && !form.session_id && (
-              <p style={{ textAlign: 'center', fontSize: 12, color: '#c0392b', marginTop: 8 }}>参加時間を選択してください</p>
+            {(needsDate || needsTime || needsSession) && (
+              <p style={{ textAlign: 'center', fontSize: 12, color: '#c0392b', marginTop: 8 }}>
+                {needsDate ? '予約日を選択してください' : needsTime ? '予約時間を選択してください' : 'WSセッションを選択してください'}
+              </p>
             )}
           </form>
         )}
