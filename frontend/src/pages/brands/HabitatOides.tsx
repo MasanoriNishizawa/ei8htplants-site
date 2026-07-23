@@ -39,7 +39,7 @@ export default function HabitatOides() {
 
   return (
     <>
-      <PageMeta title="Habitat Oides" description="植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.png" />
+      <PageMeta title="Habitat Oides" description="植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg" />
       <h1 className="sr-only">Habitat Oides — ハビタットスタイルライン</h1>
 
       <div className="hero-wrapper">

@@ -152,7 +152,7 @@ body {
 
 /* Habitat Oides hero */
 .ho-hero {
-  background: #1e3272 url('/img/habitatOides/habitat_oides_hero.png') center/cover no-repeat;
+  background: #1e3272 url('/img/habitatOides/habitat_oides_hero.jpg') center/cover no-repeat;
   flex: 1;
   display: flex;
   flex-direction: column;
