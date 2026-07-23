@@ -37,13 +37,16 @@ ei8htplants-site/
 ├── frontend/              # React SPA
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── api.ts       # API クライアント（request / authRequest）
+│   │   │   ├── api.ts       # API クライアント（request / authRequest / api.upload）
 │   │   │   └── supabase.ts  # 共有 Supabase クライアント
 │   │   ├── pages/
 │   │   │   ├── admin/       # 管理画面（認証必須）
 │   │   │   ├── brands/      # ブランドページ
 │   │   │   └── *.tsx        # 公開ページ
-│   │   └── components/      # 共通コンポーネント
+│   │   └── components/
+│   │       ├── EventCard.tsx  # イベントカード（あとN日バッジ付き）
+│   │       ├── PageMeta.tsx   # OGP / SEO メタタグ（全ページ共通）
+│   │       └── Layout.tsx     # グローバルレイアウト・ナビゲーション
 │   └── .env               # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
 │
 ├── backend/
@@ -52,7 +55,7 @@ ei8htplants-site/
 │   │   ├── auth.py          # Admin API 認証（Supabase JWT 検証）
 │   │   ├── config.py        # 環境変数
 │   │   ├── db.py            # Supabase クライアント（anon / service_role）
-│   │   └── routes/          # events / gallery / stockists / contact / reserve / collaborations
+│   │   └── routes/          # events / gallery / stockists / contact / reserve / collaborations / upload
 │   ├── migrations/          # Supabase SQL マイグレーション
 │   └── requirements.txt
 │
@@ -117,15 +120,16 @@ npm run dev
 
 | URL | 機能 |
 |---|---|
-| `/admin` | ダッシュボード |
-| `/admin/events` | イベント CRUD・画像管理 |
-| `/admin/gallery` | ギャラリー画像追加・削除 |
+| `/admin` | ダッシュボード（未読お問い合わせ・未確認予約・公開中イベント数の統計カード） |
+| `/admin/events` | イベント CRUD・複製・画像ファイルアップロード（プレビュー付き） |
+| `/admin/gallery` | ギャラリー画像追加・削除・表示順変更（上下ボタン）・ファイルアップロード |
 | `/admin/stockists` | 取扱店管理 |
-| `/admin/reservations` | WS 予約一覧・ステータス管理 |
-| `/admin/collaborations` | コラボレーション管理 |
-| `/admin/contacts` | お問い合わせ一覧・既読管理 |
+| `/admin/reservations` | WS 予約一覧・ステータス管理・CSV エクスポート |
+| `/admin/collaborations` | コラボレーション管理・画像ファイルアップロード |
+| `/admin/contacts` | お問い合わせ一覧・既読管理・返信モーダル（Resend 直送） |
 
-管理画面から発行する API リクエストには Supabase セッショントークン（Bearer）が自動付与され、バックエンドで検証されます。
+管理画面から発行する API リクエストには Supabase セッショントークン（Bearer）が自動付与され、バックエンドで検証されます。  
+画像ファイルは `POST /api/upload` 経由で Supabase Storage（`images` バケット）にアップロードされます。
 
 ---
 
@@ -138,6 +142,7 @@ npm run dev
 | `001_*.sql` | 初版スキーマ |
 | `002_admin_features.sql` | collaborations / contacts テーブル追加、brands・status カラム追加 |
 | `003_fix_rls.sql` | contacts の不要な anon INSERT ポリシーを削除 |
+| `004_site_assets.sql` | site_assets テーブル追加（将来の静的アセット管理用） |
 
 ---
 
