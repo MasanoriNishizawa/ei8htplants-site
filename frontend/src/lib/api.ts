@@ -22,6 +22,18 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  stats: async (): Promise<{ unreadContacts: number; pendingReservations: number; activeEvents: number }> => {
+    const [contacts, reservations, events] = await Promise.all([
+      authRequest<ContactRecord[]>('/contacts'),
+      authRequest<Reservation[]>('/reserves'),
+      request<Event[]>('/events?past=false'),
+    ])
+    return {
+      unreadContacts: contacts.filter((c) => !c.is_read).length,
+      pendingReservations: reservations.filter((r) => r.status === 'pending').length,
+      activeEvents: events.length,
+    }
+  },
   upload: async (file: File): Promise<string> => {
     const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
     const token = data.session?.access_token
@@ -55,6 +67,8 @@ export const api = {
       request<GalleryImage[]>(brand ? `/gallery?brand=${encodeURIComponent(brand)}` : '/gallery'),
     add: (body: GalleryBody) =>
       authRequest<GalleryImage>('/gallery', { method: 'POST', body: JSON.stringify(body) }),
+    updateOrder: (id: string, display_order: number) =>
+      authRequest<GalleryImage>(`/gallery/${id}`, { method: 'PATCH', body: JSON.stringify({ display_order }) }),
     delete: (id: string) =>
       authRequest<{ ok: boolean }>(`/gallery/${id}`, { method: 'DELETE' }),
   },
@@ -73,6 +87,8 @@ export const api = {
     list: () => authRequest<ContactRecord[]>('/contacts'),
     markRead: (id: string, is_read: boolean) =>
       authRequest<ContactRecord>(`/contacts/${id}`, { method: 'PATCH', body: JSON.stringify({ is_read }) }),
+    reply: (id: string, subject: string, body: string) =>
+      authRequest<{ ok: boolean }>(`/contacts/${id}/reply`, { method: 'POST', body: JSON.stringify({ subject, body }) }),
   },
   reserve: {
     create: (body: ReservationPayload) =>

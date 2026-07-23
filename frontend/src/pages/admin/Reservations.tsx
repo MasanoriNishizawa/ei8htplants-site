@@ -13,6 +13,23 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   cancelled: { bg: '#f8d7da', color: '#721c24' },
 }
 
+function exportCsv(rows: Reservation[]) {
+  const header = ['受付日', 'お名前', 'メール', '電話', '人数', '備考', 'ステータス']
+  const lines = rows.map((r) => [
+    new Date(r.created_at).toLocaleDateString('ja-JP'),
+    r.name, r.email, r.phone ?? '', String(r.participants), r.note ?? '', r.status,
+  ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+  const bom = '﻿'
+  const csv = bom + [header.join(','), ...lines].join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `reservations_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function AdminReservations() {
   const [rows, setRows] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,7 +48,14 @@ export default function AdminReservations() {
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>WS予約一覧</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>WS予約一覧</h2>
+        {rows.length > 0 && (
+          <button onClick={() => exportCsv(rows)} style={{ padding: '8px 20px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, background: '#fffcf6', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535' }}>
+            CSV エクスポート
+          </button>
+        )}
+      </div>
       {loading ? <p style={{ color: '#8a9a7e' }}>読み込み中...</p> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import PageMeta from '../../components/PageMeta'
 
 const SECTIONS = ['about', 'contents', 'flow'] as const
 
@@ -40,6 +41,7 @@ export default function HabitatOidesWorkshop() {
 
   return (
     <>
+      <PageMeta title="Habitat Style Workshop" description="ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_workshop_main.jpg" />
       <nav className="brand-subnav" style={{ top: 60 }}>
         <div className="brand-subnav-inner">
           <Link to="/habitatoides" style={{ borderRight: '1px solid #ddd4c0', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#8a9a7e', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>

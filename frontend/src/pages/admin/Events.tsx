@@ -21,6 +21,25 @@ export default function AdminEvents() {
     load()
   }
 
+  const duplicate = async (ev: Event) => {
+    await api.events.create({
+      name: `${ev.name} (コピー)`,
+      start_date: ev.start_date,
+      end_date: ev.end_date ?? undefined,
+      time: ev.time ?? undefined,
+      location: ev.location,
+      booth_number: ev.booth_number ?? undefined,
+      address: ev.address ?? undefined,
+      official_url: ev.official_url ?? undefined,
+      brands: ev.brands,
+      has_workshop: ev.has_workshop,
+      ws_requires_reservation: ev.ws_requires_reservation,
+      is_past: ev.is_past,
+      image_urls: ev.images.map((i) => i.url),
+    })
+    load()
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -39,6 +58,7 @@ export default function AdminEvents() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, color: '#3a4535', textDecoration: 'none' }}>編集</Link>
+                <button onClick={() => duplicate(ev)} style={{ padding: '8px 16px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, color: '#4a6741', background: 'none', cursor: 'pointer' }}>複製</button>
                 <button onClick={() => del(ev.id)} style={{ padding: '8px 16px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
               </div>
             </div>

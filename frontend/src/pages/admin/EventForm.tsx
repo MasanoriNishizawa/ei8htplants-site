@@ -43,13 +43,15 @@ export default function AdminEventForm() {
   const handleImageFile = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const localUrl = URL.createObjectURL(file)
+    const next = [...imageUrls]
+    next[i] = localUrl
+    if (i === imageUrls.length - 1) next.push('')
+    setImageUrls(next)
     setUploadingIdx(i)
     try {
       const uploaded = await api.upload(file)
-      const next = [...imageUrls]
-      next[i] = uploaded
-      if (i === imageUrls.length - 1) next.push('')
-      setImageUrls(next)
+      setImageUrls((prev) => prev.map((u, j) => j === i ? uploaded : u))
     } finally {
       setUploadingIdx(null)
       e.target.value = ''
@@ -110,12 +112,19 @@ export default function AdminEventForm() {
         <div>
           <label style={labelStyle}>画像URL（複数可）</label>
           {imageUrls.map((url, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <div key={i} style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {url && !url.startsWith('blob:') && (
+                <img src={url} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              )}
+              {url && url.startsWith('blob:') && uploadingIdx === i && (
+                <img src={url} alt="preview" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0, opacity: 0.6 }} />
+              )}
               <input
                 type="url"
                 style={{ ...inputStyle, flex: 1 }}
-                value={url}
-                placeholder="https://..."
+                value={url.startsWith('blob:') ? '' : url}
+                placeholder={uploadingIdx === i ? 'アップロード中...' : 'https://...'}
                 onChange={(e) => {
                   const next = [...imageUrls]
                   next[i] = e.target.value
@@ -133,6 +142,7 @@ export default function AdminEventForm() {
                   ×
                 </button>
               )}
+            </div>
             </div>
           ))}
         </div>

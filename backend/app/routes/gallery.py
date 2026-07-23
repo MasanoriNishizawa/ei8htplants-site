@@ -13,6 +13,10 @@ class GalleryBody(BaseModel):
     brand: Optional[str] = None
 
 
+class GalleryOrderPatch(BaseModel):
+    display_order: int
+
+
 @router.get('')
 def list_gallery(brand: Optional[str] = None):
     q = supabase.table('gallery_images').select('*').order('display_order')
@@ -25,6 +29,11 @@ def list_gallery(brand: Optional[str] = None):
 def add_image(body: GalleryBody, _=Depends(require_auth)):
     count = supabase.table('gallery_images').select('id', count='exact').execute().count or 0
     return admin_supabase.table('gallery_images').insert({**body.model_dump(), 'display_order': count}).execute().data[0]
+
+
+@router.patch('/{image_id}')
+def update_image(image_id: str, body: GalleryOrderPatch, _=Depends(require_auth)):
+    return admin_supabase.table('gallery_images').update(body.model_dump()).eq('id', image_id).execute().data[0]
 
 
 @router.delete('/{image_id}')

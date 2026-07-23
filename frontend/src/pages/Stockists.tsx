@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Stockist } from '../lib/api'
+import PageMeta from '../components/PageMeta'
 
 const BRAND_COLORS: Record<string, { bg: string; color: string }> = {
   'ei8ht plants': { bg: '#e8f0e8', color: '#2d4a2d' },
@@ -23,6 +24,7 @@ export default function Stockists() {
 
   return (
     <>
+      <PageMeta title="Stockists" description="ei8ht plants 取扱店一覧。" />
       <div style={{ textAlign: 'center', padding: '50px 20px' }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Stockists</h1>
       </div>

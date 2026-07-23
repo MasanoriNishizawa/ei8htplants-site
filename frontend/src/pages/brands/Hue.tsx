@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import PageMeta from '../../components/PageMeta'
 
 const SWATCHES = ['#d4a878','#a8c4a0','#e8b4b0','#c4d4c8','#e0c890','#b8a8d4','#f0d4b8']
 const SECTIONS = ['concept'] as const
@@ -28,6 +29,7 @@ export default function Hue() {
 
   return (
     <>
+      <PageMeta title="HUE by ei8ht plants" description="HUE は、色彩と形を楽しむオーナメントプランツのラインです。" />
       <h1 className="sr-only">HUE by ei8ht plants — オーナメントプランツライン</h1>
 
       <div className="hero-wrapper">

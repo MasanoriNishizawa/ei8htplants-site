@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import PageMeta from '../../components/PageMeta'
 
 const SECTIONS = ['concept', 'workshop', 'collaboration'] as const
 
@@ -38,6 +39,7 @@ export default function HabitatOides() {
 
   return (
     <>
+      <PageMeta title="Habitat Oides" description="植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.png" />
       <h1 className="sr-only">Habitat Oides — ハビタットスタイルライン</h1>
 
       <div className="hero-wrapper">

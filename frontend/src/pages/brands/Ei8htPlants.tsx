@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import PageMeta from '../../components/PageMeta'
 
 const SECTIONS = ['concept', 'store'] as const
 
@@ -27,6 +28,7 @@ export default function Ei8htPlants() {
 
   return (
     <>
+      <PageMeta title="ei8ht plants" description="アガベを中心に、個性的なフォルムと深みある色彩の植物を提案するラインです。" />
       <h1 className="sr-only">ei8ht plants — アガベ専門ライン</h1>
 
       <div className="hero-wrapper">

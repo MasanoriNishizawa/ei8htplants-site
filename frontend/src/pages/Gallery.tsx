@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type GalleryImage } from '../lib/api'
+import PageMeta from '../components/PageMeta'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE']
 
@@ -27,6 +28,7 @@ export default function Gallery() {
 
   return (
     <>
+      <PageMeta title="Gallery" description="ei8ht plants、Habitat Oides、HUE の植物ギャラリー。" />
       <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f7f3ec' }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Gallery</h1>
       </div>

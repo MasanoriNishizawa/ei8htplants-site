@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../lib/api'
+import PageMeta from '../components/PageMeta'
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
@@ -33,6 +34,8 @@ export default function Contact() {
   }
 
   return (
+    <>
+    <PageMeta title="Contact" description="ei8ht plants へのお問い合わせはこちらから。" />
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '48px 20px 80px' }}>
       <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #ddd4c0' }}>
         <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>ei8ht plants</p>
@@ -101,5 +104,6 @@ export default function Contact() {
         </form>
       )}
     </div>
+    </>
   )
 }

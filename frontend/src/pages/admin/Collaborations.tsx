@@ -39,6 +39,8 @@ export default function AdminCollaborations() {
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const localUrl = URL.createObjectURL(file)
+    setForm((f) => ({ ...f, image_url: localUrl }))
     setUploading(true)
     try {
       const uploaded = await api.upload(file)
@@ -77,8 +79,11 @@ export default function AdminCollaborations() {
         <div>
           <input type="url" placeholder="動画URL（任意）" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} style={inputStyle} />
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input type="url" placeholder="画像URL（任意）" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {form.image_url && (
+            <img src={form.image_url} alt="preview" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0, opacity: uploading ? 0.6 : 1 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          )}
+          <input type="url" placeholder="画像URL（任意）" value={form.image_url?.startsWith('blob:') ? '' : (form.image_url ?? '')} onChange={(e) => setForm({ ...form, image_url: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
           <label style={{ padding: '10px 12px', background: uploading ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploading ? 'default' : 'pointer', fontSize: 12, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
             {uploading ? '...' : 'ファイル'}
             <input type="file" accept="image/*" onChange={handleImageFile} disabled={uploading} style={{ display: 'none' }} />

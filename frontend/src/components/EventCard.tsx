@@ -7,6 +7,14 @@ const BRAND_IG: Record<string, string> = {
   'HUE by ei8ht plants': 'https://www.instagram.com/hue_by.ei8ht.plants/',
 }
 
+function daysUntil(dateStr: string): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(dateStr)
+  target.setHours(0, 0, 0, 0)
+  return Math.round((target.getTime() - today.getTime()) / 86400000)
+}
+
 function formatDate(start: string, end: string | null): string {
   const s = new Date(start)
   const fmt = (d: Date) =>
@@ -28,6 +36,8 @@ interface Props {
 export default function EventCard({ event, isNext = false, isHome = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
   const images = event.images ?? []
+  const days = !event.is_past ? daysUntil(event.start_date) : null
+  const urgentBadge = days !== null && days >= 0 && days <= 7
 
   const cardStyle: React.CSSProperties = {
     background: '#fffcf6',
@@ -43,6 +53,11 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     <div className={`event-card${isNext ? ' next-card' : ''}`} style={cardStyle}>
       {images.length > 0 && (
         <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#ede7dc' }}>
+          {urgentBadge && (
+            <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: days === 0 ? '#c0392b' : '#e67e22', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: 0.5 }}>
+              {days === 0 ? '本日開催' : `あと${days}日`}
+            </div>
+          )}
           {isHome ? (
             <a href="/events" style={{ display: 'block' }}>
               <img src={images[imgIdx].url} alt={event.name} style={{ width: '100%', height: 'auto', display: 'block' }} />

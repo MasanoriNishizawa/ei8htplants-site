@@ -10,6 +10,7 @@ export default function AdminGallery() {
   const [brand, setBrand] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [preview, setPreview] = useState<string | null>(null)
   const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set())
 
   const load = () => api.gallery.list().then(setImages)
@@ -18,6 +19,7 @@ export default function AdminGallery() {
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setPreview(URL.createObjectURL(file))
     setUploading(true)
     try {
       const uploaded = await api.upload(file)
@@ -33,7 +35,7 @@ export default function AdminGallery() {
     if (!url) return
     setSaving(true)
     await api.gallery.add({ url, alt: alt || null, brand: brand || null })
-    setUrl(''); setAlt(''); setBrand('')
+    setUrl(''); setAlt(''); setBrand(''); setPreview(null)
     await load()
     setSaving(false)
   }
@@ -44,11 +46,27 @@ export default function AdminGallery() {
     load()
   }
 
+  const move = async (idx: number, dir: -1 | 1) => {
+    const next = dir === -1 ? idx - 1 : idx + 1
+    if (next < 0 || next >= images.length) return
+    const a = images[idx], b = images[next]
+    await Promise.all([
+      api.gallery.updateOrder(a.id, b.display_order),
+      api.gallery.updateOrder(b.id, a.display_order),
+    ])
+    load()
+  }
+
   const inputStyle: React.CSSProperties = { padding: '10px 14px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', background: '#fffcf6' }
 
   return (
     <div>
       <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>ギャラリー管理</h2>
+      {preview && (
+        <div style={{ marginBottom: 16 }}>
+          <img src={preview} alt="preview" style={{ height: 80, width: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #ddd4c0' }} />
+        </div>
+      )}
       <form onSubmit={add} style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 8, flex: 2, minWidth: 200 }}>
           <input required type="url" placeholder="画像URL" value={url} onChange={(e) => setUrl(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
@@ -65,7 +83,7 @@ export default function AdminGallery() {
         <button type="submit" disabled={saving || uploading} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>追加</button>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
-        {images.map((img) => (
+        {images.map((img, idx) => (
           <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1/1', background: '#f0ebe0' }}>
             <img
               src={img.url}
@@ -83,12 +101,20 @@ export default function AdminGallery() {
                 {img.brand}
               </span>
             )}
-            <button
-              onClick={() => del(img.id)}
-              style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 14 }}
-            >
+            <button onClick={() => del(img.id)}
+              style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 14 }}>
               x
             </button>
+            <div style={{ position: 'absolute', bottom: 6, right: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <button onClick={() => move(idx, -1)} disabled={idx === 0}
+                style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: idx === 0 ? 0.3 : 1 }}>
+                ▲
+              </button>
+              <button onClick={() => move(idx, 1)} disabled={idx === images.length - 1}
+                style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 4, width: 22, height: 22, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: idx === images.length - 1 ? 0.3 : 1 }}>
+                ▼
+              </button>
+            </div>
           </div>
         ))}
       </div>

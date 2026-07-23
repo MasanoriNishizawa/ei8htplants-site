@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import EventCard from '../components/EventCard'
 import { api, type Event, type GalleryImage } from '../lib/api'
+import PageMeta from '../components/PageMeta'
 
 const SLIDES = [
   { src: '/img/logo-ei8htplants.png', alt: 'ei8ht plants', scale: 1.4 },
@@ -39,6 +40,7 @@ export default function Home() {
 
   return (
     <>
+      <PageMeta />
       {/* Hero */}
       <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fffcf6', borderBottom: '1px solid #ddd4c0', marginBottom: 40 }}>
         <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', maxWidth: 400, width: '85%', margin: '0 auto 20px auto', aspectRatio: '1/1' }}>
