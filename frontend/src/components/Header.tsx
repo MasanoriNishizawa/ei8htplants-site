@@ -19,6 +19,7 @@ export default function Header() {
     <>
       <NavLink to="/" end className={navLinkClass} onClick={() => setMenuOpen(false)}>HOME</NavLink>
       <NavLink to="/events" className={navLinkClass} onClick={() => setMenuOpen(false)}>EVENT</NavLink>
+      <NavLink to="/gallery" className={navLinkClass} onClick={() => setMenuOpen(false)}>GALLERY</NavLink>
 
       <div style={{ position: 'relative' }}>
         <span
@@ -64,6 +65,8 @@ export default function Header() {
       </div>
 
       <NavLink to="/concept" className={navLinkClass} onClick={() => setMenuOpen(false)}>CONCEPT</NavLink>
+      <NavLink to="/stockists" className={navLinkClass} onClick={() => setMenuOpen(false)}>STOCKISTS</NavLink>
+      <NavLink to="/collaborations" className={navLinkClass} onClick={() => setMenuOpen(false)}>COLLABORATIONS</NavLink>
       <NavLink to="/contact" className={navLinkClass} onClick={() => setMenuOpen(false)}>CONTACT</NavLink>
       <a
         href="https://ei8htplants.square.site/s/shop"
@@ -107,7 +110,7 @@ export default function Header() {
         <span style={{ display: 'block', width: 25, height: 2, background: '#1c2417', margin: '5px 0', transition: '0.3s' }} />
       </button>
 
-      <nav className="header-nav-desktop" style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+      <nav className="header-nav-desktop" style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
         {navItems}
       </nav>
 
