@@ -67,12 +67,11 @@ body {
   align-items: start;
 }
 
-.header-nav-desktop > *:not(:last-child) {
-  padding-right: 8px;
-  border-right: 1px solid #c8b99a;
+.header-nav-desktop > * {
+  padding: 0 7px;
 }
-.header-nav-desktop > * + * {
-  margin-left: 8px;
+.header-nav-desktop > *:not(:last-child) {
+  border-right: 1px solid #c8b99a;
 }
 
 @media (max-width: 768px) {
