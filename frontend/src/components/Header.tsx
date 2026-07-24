@@ -21,9 +21,9 @@ export default function Header() {
       <NavLink to="/events" className={navLinkClass} onClick={() => setMenuOpen(false)}>EVENT</NavLink>
       <NavLink to="/gallery" className={navLinkClass} onClick={() => setMenuOpen(false)}>GALLERY</NavLink>
 
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <span
-          style={{ ...navLinkStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
+          style={{ ...navLinkStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none', paddingBottom: 4, borderBottom: '2px solid transparent' }}
           onClick={() => setBrandOpen(!brandOpen)}
           onMouseEnter={() => setBrandOpen(true)}
           onMouseLeave={() => setBrandOpen(false)}
@@ -72,7 +72,7 @@ export default function Header() {
         href="https://ei8htplants.square.site/s/shop"
         target="_blank"
         rel="noopener noreferrer"
-        style={navLinkStyle}
+        style={{ ...navLinkStyle, paddingBottom: 4, borderBottom: '2px solid transparent' }}
       >
         ONLINE STORE
       </a>
