@@ -13,8 +13,8 @@ MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 def _ensure_bucket():
     try:
         admin_supabase.storage.create_bucket(BUCKET, {'public': True})
-    except Exception:
-        pass  # already exists
+    except Exception as e:
+        print(f'[upload] bucket ensure: {e}')
 
 
 @router.post('')
