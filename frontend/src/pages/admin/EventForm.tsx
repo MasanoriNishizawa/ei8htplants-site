@@ -102,6 +102,11 @@ export default function AdminEventForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const startYear = parseInt((form.start_date || '').slice(0, 4))
+    if (!form.start_date || startYear < 2020 || startYear > 2040) {
+      alert(`開始日の年が正しくありません（入力値: "${form.start_date}"）。\n2020〜2040年の日付を入力してください。`)
+      return
+    }
     setSaving(true)
     const isMultiDay = form.start_date && form.end_date && form.end_date > form.start_date
     const body: EventBody = {
@@ -138,8 +143,18 @@ export default function AdminEventForm() {
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div><label style={labelStyle}>イベント名</label><input required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div><label style={labelStyle}>開始日</label><input required type="date" min="2020-01-01" max="2040-12-31" style={inputStyle} value={form.start_date} onChange={(e) => { const v = e.target.value; if (!v || parseInt(v.slice(0, 4)) >= 2020) set('start_date', v) }} /></div>
-          <div><label style={labelStyle}>終了日</label><input type="date" min="2020-01-01" max="2040-12-31" style={inputStyle} value={form.end_date} onChange={(e) => { const v = e.target.value; if (!v || parseInt(v.slice(0, 4)) >= 2020) set('end_date', v) }} /></div>
+          <div>
+            <label style={labelStyle}>開始日</label>
+            <input required type="date" style={inputStyle} value={form.start_date}
+              onChange={(e) => set('start_date', e.target.value)} />
+            {form.start_date && <span style={{ fontSize: 11, color: parseInt(form.start_date.slice(0, 4)) < 2020 ? '#c0392b' : '#8a9a7e', marginTop: 4, display: 'block' }}>確認: {form.start_date}</span>}
+          </div>
+          <div>
+            <label style={labelStyle}>終了日</label>
+            <input type="date" style={inputStyle} value={form.end_date}
+              onChange={(e) => set('end_date', e.target.value)} />
+            {form.end_date && <span style={{ fontSize: 11, color: parseInt(form.end_date.slice(0, 4)) < 2020 ? '#c0392b' : '#8a9a7e', marginTop: 4, display: 'block' }}>確認: {form.end_date}</span>}
+          </div>
         </div>
         <div>
           {(() => {
