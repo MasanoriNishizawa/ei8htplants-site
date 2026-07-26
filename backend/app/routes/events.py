@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import date
 from ..db import supabase, admin_supabase
@@ -22,6 +22,11 @@ class EventBody(BaseModel):
     ws_requires_reservation: bool = True
     daily_times: Optional[dict] = None
     image_urls: list[str] = []
+
+    @field_validator('end_date', 'time', 'booth_number', 'address', 'official_url', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v: object) -> object:
+        return None if v == '' else v
 
 
 def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
