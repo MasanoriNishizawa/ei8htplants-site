@@ -45,12 +45,28 @@ function ImageCarousel({ images }: { images: { url: string }[] }) {
   )
 }
 
+function hasPageContent(pc: PageContent | null): boolean {
+  if (!pc) return false
+  return !!(
+    (pc.hero?.image_url && pc.hero.image_url.length > 0 && !pc.hero.image_url.startsWith('blob:')) ||
+    (pc.hero?.tagline && pc.hero.tagline.length > 0) ||
+    (pc.hero?.subtitle && pc.hero.subtitle.length > 0) ||
+    (pc.venue?.address && pc.venue.address.length > 0) ||
+    (pc.venue?.access && pc.venue.access.length > 0) ||
+    (pc.concept && pc.concept.length > 0) ||
+    (pc.lineup && pc.lineup.length > 0) ||
+    (pc.guests && pc.guests.length > 0) ||
+    (pc.archive?.enabled === true)
+  )
+}
+
 interface Props {
   event: Event
 }
 
 export default function EventPreview({ event }: Props) {
   const pc: PageContent = event.page_content ?? {}
+  const hasSite = hasPageContent(event.page_content)
   const images = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
   const dateLabel = formatDate(event.start_date, event.end_date)
   const address = pc.venue?.address ?? event.address
@@ -84,7 +100,7 @@ export default function EventPreview({ event }: Props) {
         {event.name}
       </h2>
 
-      <div style={{ fontSize: 15, color: '#3a4535', background: '#f2ede4', padding: '18px 20px', borderRadius: 10, border: '1px solid #ddd4c0', lineHeight: 1.9 }}>
+      <div style={{ fontSize: 15, color: '#3a4535', background: '#f2ede4', padding: '18px 20px', borderRadius: 10, border: '1px solid #ddd4c0', marginBottom: 20, lineHeight: 1.9 }}>
         <div>{dateLabel}</div>
         {event.daily_times && Object.keys(event.daily_times).length > 0 ? (
           <div>
@@ -134,7 +150,7 @@ export default function EventPreview({ event }: Props) {
               公式サイト
             </a>
           </div>
-        ) : event.page_content !== null ? (
+        ) : hasSite ? (
           <div style={{ marginTop: 4 }}>
             <Link
               to={`/events/${event.id}`}
