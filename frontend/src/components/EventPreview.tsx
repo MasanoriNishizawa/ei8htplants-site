@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Event, PageContent } from '../lib/api'
 
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export default function EventPreview({ event }: Props) {
+  const [imgIdx, setImgIdx] = useState(0)
   const pc: PageContent = event.page_content ?? {}
   const hasSite = hasPageContent(event.page_content)
   const images = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
@@ -59,12 +61,29 @@ export default function EventPreview({ event }: Props) {
     }}>
       {/* 画像 */}
       {images.length > 0 && (
-        <div style={{ background: '#ede7dc' }}>
+        <div style={{ position: 'relative', background: '#ede7dc' }}>
           <img
-            src={images[0].url}
+            src={images[imgIdx].url}
             alt={event.name}
             style={{ width: '100%', height: 'auto', display: 'block' }}
           />
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={() => setImgIdx((i) => (i - 1 + images.length) % images.length)}
+                style={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
+              >&#10094;</button>
+              <button
+                onClick={() => setImgIdx((i) => (i + 1) % images.length)}
+                style={{ position: 'absolute', top: '50%', right: 6, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
+              >&#10095;</button>
+              <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4 }}>
+                {images.map((_, i) => (
+                  <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)' }} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
