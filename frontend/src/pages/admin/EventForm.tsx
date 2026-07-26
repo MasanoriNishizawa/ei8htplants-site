@@ -138,8 +138,8 @@ export default function AdminEventForm() {
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div><label style={labelStyle}>イベント名</label><input required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div><label style={labelStyle}>開始日</label><input required type="date" style={inputStyle} value={form.start_date} onChange={(e) => set('start_date', e.target.value)} /></div>
-          <div><label style={labelStyle}>終了日</label><input type="date" style={inputStyle} value={form.end_date} onChange={(e) => set('end_date', e.target.value)} /></div>
+          <div><label style={labelStyle}>開始日</label><input required type="date" min="2020-01-01" max="2040-12-31" style={inputStyle} value={form.start_date} onChange={(e) => { const v = e.target.value; if (!v || parseInt(v.slice(0, 4)) >= 2020) set('start_date', v) }} /></div>
+          <div><label style={labelStyle}>終了日</label><input type="date" min="2020-01-01" max="2040-12-31" style={inputStyle} value={form.end_date} onChange={(e) => { const v = e.target.value; if (!v || parseInt(v.slice(0, 4)) >= 2020) set('end_date', v) }} /></div>
         </div>
         <div>
           {(() => {
