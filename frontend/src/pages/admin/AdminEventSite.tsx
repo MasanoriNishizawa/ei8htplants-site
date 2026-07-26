@@ -84,7 +84,7 @@ export default function AdminEventSite() {
         ...saved,
         hero: { ...emptyContent().hero, ...saved.hero },
         venue: { ...emptyContent().venue, ...saved.venue },
-        archive: { ...emptyContent().archive, ...saved.archive },
+        archive: { ...emptyContent().archive, ...saved.archive, enabled: saved.archive?.enabled ?? false },
       })
     })
   }, [id])
@@ -111,7 +111,7 @@ export default function AdminEventSite() {
     setPc((p) => ({ ...p, venue: { ...p.venue, [key]: val } }))
 
   const setArchive = (key: string, val: string | boolean | string[]) =>
-    setPc((p) => ({ ...p, archive: { ...emptyContent().archive, ...p.archive, [key]: val } }))
+    setPc((p) => ({ ...p, archive: { ...emptyContent().archive, ...p.archive, enabled: p.archive?.enabled ?? false, [key]: val } }))
 
   const setLineupItem = (i: number, patch: Partial<LineupItem>) =>
     set('lineup', (pc.lineup ?? []).map((it, j) => j === i ? { ...it, ...patch } : it))
