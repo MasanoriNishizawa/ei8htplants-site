@@ -26,6 +26,8 @@ export default function AdminEventForm() {
   const [sessions, setSessions] = useState<SessionInput[]>([])
   const [saving, setSaving] = useState(false)
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null)
+  const [dailyTimesMode, setDailyTimesMode] = useState(false)
+  const [dailyTimes, setDailyTimes] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!id) return
@@ -39,6 +41,9 @@ export default function AdminEventForm() {
       })
       setImageUrls(ev.images.map((i) => i.url).concat(['']))
       setSessions(sess.map((s) => ({ time_label: s.time_label, max_participants: s.max_participants })))
+      const hasDailyTimes = !!ev.daily_times && Object.keys(ev.daily_times).length > 0
+      setDailyTimesMode(hasDailyTimes)
+      setDailyTimes(ev.daily_times ?? {})
     })
   }, [id])
 
@@ -70,10 +75,33 @@ export default function AdminEventForm() {
   const setSession = (i: number, key: keyof SessionInput, value: string | number) =>
     setSessions((prev) => prev.map((s, j) => j === i ? { ...s, [key]: value } : s))
 
+  const DOW_JA = ['日', '月', '火', '水', '木', '金', '土']
+
+  const getDates = (start: string, end: string): string[] => {
+    const dates: string[] = []
+    const cur = new Date(start + 'T00:00:00')
+    const endDate = new Date(end + 'T00:00:00')
+    while (cur <= endDate) {
+      dates.push(cur.toISOString().slice(0, 10))
+      cur.setDate(cur.getDate() + 1)
+    }
+    return dates
+  }
+
+  const fmtDay = (dateStr: string): string => {
+    const d = new Date(dateStr + 'T00:00:00')
+    return `${d.getMonth() + 1}月${d.getDate()}日（${DOW_JA[d.getDay()]}）`
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    const body: EventBody = { ...form, image_urls: imageUrls.filter(Boolean) }
+    const isMultiDay = form.start_date && form.end_date && form.end_date > form.start_date
+    const body: EventBody = {
+      ...form,
+      daily_times: (dailyTimesMode && isMultiDay) ? dailyTimes : null,
+      image_urls: imageUrls.filter(Boolean),
+    }
     try {
       let eventId = id
       if (id) {
@@ -106,7 +134,54 @@ export default function AdminEventForm() {
           <div><label style={labelStyle}>開始日</label><input required type="date" style={inputStyle} value={form.start_date} onChange={(e) => set('start_date', e.target.value)} /></div>
           <div><label style={labelStyle}>終了日</label><input type="date" style={inputStyle} value={form.end_date} onChange={(e) => set('end_date', e.target.value)} /></div>
         </div>
-        <div><label style={labelStyle}>開催時間</label><input style={inputStyle} placeholder="10:00〜16:00" value={form.time} onChange={(e) => set('time', e.target.value)} /></div>
+        <div>
+          {(() => {
+            const isMultiDay = form.start_date && form.end_date && form.end_date > form.start_date
+            const dates = isMultiDay ? getDates(form.start_date, form.end_date) : []
+            return (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>開催時間</label>
+                  {isMultiDay && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#3a4535' }}>
+                      <input
+                        type="checkbox"
+                        checked={dailyTimesMode}
+                        onChange={(e) => {
+                          const checked = e.target.checked
+                          setDailyTimesMode(checked)
+                          if (checked) {
+                            const init: Record<string, string> = {}
+                            dates.forEach((d) => { init[d] = form.time })
+                            setDailyTimes(init)
+                          }
+                        }}
+                      />
+                      日ごとに異なる
+                    </label>
+                  )}
+                </div>
+                {dailyTimesMode && isMultiDay ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: '#f8f4ee', borderRadius: 8, border: '1px solid #ddd4c0' }}>
+                    {dates.map((d) => (
+                      <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 13, color: '#3a4535', minWidth: 116, flexShrink: 0 }}>{fmtDay(d)}</span>
+                        <input
+                          style={{ ...inputStyle, flex: 1 }}
+                          placeholder="10:00〜16:00"
+                          value={dailyTimes[d] ?? ''}
+                          onChange={(e) => setDailyTimes((prev) => ({ ...prev, [d]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <input style={inputStyle} placeholder="10:00〜16:00" value={form.time} onChange={(e) => set('time', e.target.value)} />
+                )}
+              </>
+            )
+          })()}
+        </div>
         <div><label style={labelStyle}>会場名</label><input required style={inputStyle} value={form.location} onChange={(e) => set('location', e.target.value)} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div><label style={labelStyle}>ブース番号</label><input style={inputStyle} value={form.booth_number} onChange={(e) => set('booth_number', e.target.value)} /></div>

@@ -20,6 +20,7 @@ class EventBody(BaseModel):
     brands: list[str] = []
     has_workshop: bool = False
     ws_requires_reservation: bool = True
+    daily_times: Optional[dict] = None
     image_urls: list[str] = []
 
 

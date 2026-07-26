@@ -173,6 +173,7 @@ export interface Event {
   display_order: number
   images: { id: string; url: string; display_order: number }[]
   page_content: PageContent | null
+  daily_times: Record<string, string> | null
 }
 
 export interface EventBody {
@@ -187,6 +188,7 @@ export interface EventBody {
   brands: string[]
   has_workshop: boolean
   ws_requires_reservation: boolean
+  daily_times?: Record<string, string> | null
   image_urls: string[]
 }
 

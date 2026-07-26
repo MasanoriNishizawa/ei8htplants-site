@@ -119,13 +119,31 @@ export default function EventSite() {
       </section>
 
       {/* 開催情報 */}
-      {(pc.venue || event.address || event.time) && (
+      {(pc.venue || event.address || event.time || event.daily_times) && (
         <section style={{ background: '#fffcf6', borderBottom: '1px solid #ddd4c0' }}>
           <div style={{ maxWidth: 900, margin: '0 auto', padding: '64px 20px' }}>
             <h2 style={headStyle}>開催情報</h2>
             <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '18px 40px', margin: 0 }}>
               <InfoRow label="日程" value={dateLabel} />
-              {event.time && <InfoRow label="時間" value={event.time} />}
+              {event.daily_times && Object.keys(event.daily_times).length > 0 ? (
+                <>
+                  <dt style={{ fontSize: 12, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', whiteSpace: 'nowrap', paddingTop: 2 }}>時間</dt>
+                  <dd style={{ margin: 0 }}>
+                    {Object.entries(event.daily_times).sort(([a], [b]) => a.localeCompare(b)).map(([date, time]) => {
+                      const d = new Date(date + 'T00:00:00')
+                      const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
+                      return (
+                        <div key={date} style={{ display: 'flex', gap: 16, fontSize: 15, color: '#1c2417', lineHeight: 2 }}>
+                          <span style={{ minWidth: 110 }}>{d.getMonth() + 1}月{d.getDate()}日（{dow}）</span>
+                          <span>{time}</span>
+                        </div>
+                      )
+                    })}
+                  </dd>
+                </>
+              ) : (
+                event.time && <InfoRow label="時間" value={event.time} />
+              )}
               <InfoRow label="会場" value={event.location} />
               {(pc.venue?.address ?? event.address) && (
                 <InfoRow label="住所" value={pc.venue?.address ?? event.address ?? ''} />
