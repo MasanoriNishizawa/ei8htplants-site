@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import EventCard from '../components/EventCard'
+import EventPreview from '../components/EventPreview'
 import { api, type Event } from '../lib/api'
 import PageMeta from '../components/PageMeta'
 
@@ -91,7 +91,7 @@ export default function Events() {
         </div>
       )}
 
-      <div style={{ maxWidth: 1280, margin: '40px auto', padding: '0 20px', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 920, margin: '40px auto', padding: '0 20px', width: '100%', boxSizing: 'border-box' }}>
         {loading && <p style={{ textAlign: 'center', padding: '100px 0', color: '#8a9a7e' }}>読み込み中...</p>}
 
         {!loading && filtered.length === 0 && (
@@ -102,23 +102,25 @@ export default function Events() {
 
         {!loading && !isPast && pinned && (
           <>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '0 0 24px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '0 0 40px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
               Next Event
             </h2>
-            <EventCard event={pinned} isNext />
+            <EventPreview event={pinned} />
           </>
         )}
 
         {!loading && rest.length > 0 && (
           <>
             {!isPast && (
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '60px 0 24px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '0 0 40px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
                 Events Schedule
               </h2>
             )}
-            <div className="events-grid">
-              {rest.map((event) => (
-                <EventCard key={event.id} event={event} />
+            <div>
+              {rest.map((event, i) => (
+                <div key={event.id} style={{ borderBottom: i < rest.length - 1 ? '1px solid #ddd4c0' : 'none' }}>
+                  <EventPreview event={event} />
+                </div>
               ))}
             </div>
           </>
