@@ -7,7 +7,7 @@ const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 type FormState = {
   name: string; start_date: string; end_date: string; time: string
   location: string; booth_number: string; address: string; official_url: string
-  brands: string[]; has_workshop: boolean; ws_requires_reservation: boolean; is_past: boolean
+  brands: string[]; has_workshop: boolean; ws_requires_reservation: boolean
 }
 
 type SessionInput = { time_label: string; max_participants: number }
@@ -15,7 +15,7 @@ type SessionInput = { time_label: string; max_participants: number }
 const empty: FormState = {
   name: '', start_date: '', end_date: '', time: '', location: '',
   booth_number: '', address: '', official_url: '',
-  brands: [], has_workshop: false, ws_requires_reservation: true, is_past: false,
+  brands: [], has_workshop: false, ws_requires_reservation: true,
 }
 
 export default function AdminEventForm() {
@@ -35,7 +35,7 @@ export default function AdminEventForm() {
         time: ev.time ?? '', location: ev.location, booth_number: ev.booth_number ?? '',
         address: ev.address ?? '', official_url: ev.official_url ?? '',
         brands: ev.brands, has_workshop: ev.has_workshop,
-        ws_requires_reservation: ev.ws_requires_reservation, is_past: ev.is_past,
+        ws_requires_reservation: ev.ws_requires_reservation,
       })
       setImageUrls(ev.images.map((i) => i.url).concat(['']))
       setSessions(sess.map((s) => ({ time_label: s.time_label, max_participants: s.max_participants })))
@@ -174,10 +174,6 @@ export default function AdminEventForm() {
               予約必要
             </label>
           )}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-            <input type="checkbox" checked={form.is_past} onChange={(e) => set('is_past', e.target.checked)} />
-            過去のイベント
-          </label>
         </div>
 
         {/* WSセッション管理 */}

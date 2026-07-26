@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from datetime import date
 from ..db import supabase, admin_supabase
 from ..auth import require_auth
 
@@ -19,8 +20,14 @@ class EventBody(BaseModel):
     brands: list[str] = []
     has_workshop: bool = False
     ws_requires_reservation: bool = True
-    is_past: bool = False
     image_urls: list[str] = []
+
+
+def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
+    try:
+        return date.fromisoformat(end_date or start_date) < date.today()
+    except Exception:
+        return False
 
 
 class FinanceBody(BaseModel):
@@ -129,6 +136,7 @@ def get_event(event_id: str):
 @router.post('')
 def create_event(body: EventBody, _=Depends(require_auth)):
     row = body.model_dump(exclude={'image_urls'})
+    row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     result = admin_supabase.table('events').insert(row).execute().data[0]
     _save_images(result['id'], body.image_urls)
     return get_event(result['id'])
@@ -137,6 +145,7 @@ def create_event(body: EventBody, _=Depends(require_auth)):
 @router.put('/{event_id}')
 def update_event(event_id: str, body: EventBody, _=Depends(require_auth)):
     row = body.model_dump(exclude={'image_urls'})
+    row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     admin_supabase.table('events').update(row).eq('id', event_id).execute()
     admin_supabase.table('event_images').delete().eq('event_id', event_id).execute()
     _save_images(event_id, body.image_urls)

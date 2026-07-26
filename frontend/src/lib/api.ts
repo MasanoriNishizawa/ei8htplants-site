@@ -187,7 +187,6 @@ export interface EventBody {
   brands: string[]
   has_workshop: boolean
   ws_requires_reservation: boolean
-  is_past: boolean
   image_urls: string[]
 }
 
