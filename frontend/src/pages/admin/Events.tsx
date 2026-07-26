@@ -51,7 +51,6 @@ export default function AdminEvents() {
       brands: ev.brands,
       has_workshop: ev.has_workshop,
       ws_requires_reservation: ev.ws_requires_reservation,
-      is_past: ev.is_past,
       image_urls: ev.images.map((i) => i.url),
     })
     load()
