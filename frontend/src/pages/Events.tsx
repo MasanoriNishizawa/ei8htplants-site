@@ -44,9 +44,6 @@ export default function Events() {
     })
   }, [sorted, brandFilter, monthFilter])
 
-  const pinned = !isPast ? filtered[0] ?? null : null
-  const rest = !isPast ? filtered.slice(1) : filtered
-
   const filterBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: '7px 16px', border: '1px solid #ddd4c0', borderRadius: 20, fontSize: 12,
     letterSpacing: 1, cursor: 'pointer', fontFamily: 'inherit',
@@ -91,7 +88,7 @@ export default function Events() {
         </div>
       )}
 
-      <div style={{ maxWidth: 920, margin: '40px auto', padding: '0 20px', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 1200, margin: '40px auto', padding: '0 20px', width: '100%', boxSizing: 'border-box' }}>
         {loading && <p style={{ textAlign: 'center', padding: '100px 0', color: '#8a9a7e' }}>読み込み中...</p>}
 
         {!loading && filtered.length === 0 && (
@@ -100,30 +97,12 @@ export default function Events() {
           </p>
         )}
 
-        {!loading && !isPast && pinned && (
-          <>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '0 0 40px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
-              Next Event
-            </h2>
-            <EventPreview event={pinned} />
-          </>
-        )}
-
-        {!loading && rest.length > 0 && (
-          <>
-            {!isPast && (
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '0 0 40px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
-                Events Schedule
-              </h2>
-            )}
-            <div>
-              {rest.map((event, i) => (
-                <div key={event.id} style={{ borderBottom: i < rest.length - 1 ? '1px solid #ddd4c0' : 'none' }}>
-                  <EventPreview event={event} />
-                </div>
-              ))}
-            </div>
-          </>
+        {!loading && filtered.length > 0 && (
+          <div className="events-grid">
+            {filtered.map((event) => (
+              <EventPreview key={event.id} event={event} />
+            ))}
+          </div>
         )}
 
         <div style={{ textAlign: 'center', marginTop: 60 }}>

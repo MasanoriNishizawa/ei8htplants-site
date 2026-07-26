@@ -63,7 +63,7 @@ body {
 .events-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 30px;
+  gap: 20px;
   align-items: start;
 }
 
@@ -87,7 +87,13 @@ body {
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 600px) {
+  .events-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
   .next-card {
     flex-direction: row;
   }
