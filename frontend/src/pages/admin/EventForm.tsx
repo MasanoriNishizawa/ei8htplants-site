@@ -102,11 +102,6 @@ export default function AdminEventForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const startYear = parseInt((form.start_date || '').slice(0, 4))
-    if (!form.start_date || startYear < 2020 || startYear > 2040) {
-      alert(`開始日の年が正しくありません（入力値: "${form.start_date}"）。\n2020〜2040年の日付を入力してください。`)
-      return
-    }
     setSaving(true)
     const isMultiDay = form.start_date && form.end_date && form.end_date > form.start_date
     const body: EventBody = {
