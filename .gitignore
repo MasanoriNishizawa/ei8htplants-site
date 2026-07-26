@@ -22,3 +22,6 @@ frontend/dist/
 
 # Claude
 .claude/
+
+# Source / design files
+*.pdf

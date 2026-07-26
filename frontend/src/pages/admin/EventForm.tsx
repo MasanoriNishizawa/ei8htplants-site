@@ -22,7 +22,7 @@ export default function AdminEventForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(empty)
-  const [imageUrls, setImageUrls] = useState<string[]>([''])
+  const [imageUrls, setImageUrls] = useState<string[]>([])
   const [sessions, setSessions] = useState<SessionInput[]>([])
   const [saving, setSaving] = useState(false)
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null)
@@ -39,7 +39,7 @@ export default function AdminEventForm() {
         brands: ev.brands, has_workshop: ev.has_workshop,
         ws_requires_reservation: ev.ws_requires_reservation,
       })
-      setImageUrls(ev.images.map((i) => i.url).concat(['']))
+      setImageUrls(ev.images.map((i) => i.url))
       setSessions(sess.map((s) => ({ time_label: s.time_label, max_participants: s.max_participants })))
       const hasDailyTimes = !!ev.daily_times && Object.keys(ev.daily_times).length > 0
       setDailyTimesMode(hasDailyTimes)
@@ -49,21 +49,28 @@ export default function AdminEventForm() {
 
   const set = (k: keyof FormState, v: unknown) => setForm((f) => ({ ...f, [k]: v }))
 
-  const handleImageFile = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const localUrl = URL.createObjectURL(file)
-    const next = [...imageUrls]
-    next[i] = localUrl
-    if (i === imageUrls.length - 1) next.push('')
-    setImageUrls(next)
-    setUploadingIdx(i)
+  const handleImageFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const fileArray = Array.from(files)
+    const startIdx = imageUrls.filter(Boolean).length
+    const blobs = fileArray.map((f) => URL.createObjectURL(f))
+    setImageUrls((prev) => {
+      const existing = prev.filter(Boolean)
+      return [...existing, ...blobs]
+    })
+    setUploadingIdx(startIdx)
     try {
-      const uploaded = await api.upload(file)
-      setImageUrls((prev) => prev.map((u, j) => j === i ? uploaded : u))
+      const uploaded = await Promise.all(fileArray.map((f) => api.upload(f)))
+      setImageUrls((prev) => {
+        const result = [...prev]
+        blobs.forEach((blob, i) => {
+          const idx = result.indexOf(blob)
+          if (idx !== -1) result[idx] = uploaded[i]
+        })
+        return result
+      })
     } finally {
       setUploadingIdx(null)
-      e.target.value = ''
     }
   }
 
@@ -200,41 +207,51 @@ export default function AdminEventForm() {
           </div>
         </div>
         <div>
-          <label style={labelStyle}>画像URL（複数可）</label>
-          {imageUrls.map((url, i) => (
-            <div key={i} style={{ marginBottom: 8 }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {url && !url.startsWith('blob:') && (
-                  <img src={url} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                )}
-                {url && url.startsWith('blob:') && uploadingIdx === i && (
-                  <img src={url} alt="preview" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0, opacity: 0.6 }} />
-                )}
-                <input
-                  type="url"
-                  style={{ ...inputStyle, flex: 1 }}
-                  value={url.startsWith('blob:') ? '' : url}
-                  placeholder={uploadingIdx === i ? 'アップロード中...' : 'https://...'}
-                  onChange={(e) => {
-                    const next = [...imageUrls]
-                    next[i] = e.target.value
-                    if (i === imageUrls.length - 1 && e.target.value) next.push('')
-                    setImageUrls(next)
-                  }}
-                />
-                <label style={{ padding: '10px 12px', background: uploadingIdx === i ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploadingIdx === i ? 'default' : 'pointer', fontSize: 12, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
-                  {uploadingIdx === i ? '...' : 'ファイル'}
-                  <input type="file" accept="image/*" onChange={(e) => handleImageFile(i, e)} disabled={uploadingIdx !== null} style={{ display: 'none' }} />
-                </label>
-                {i < imageUrls.length - 1 && (
-                  <button type="button" onClick={() => setImageUrls(imageUrls.filter((_, j) => j !== i))}
-                    style={{ padding: '0 12px', border: '1px solid #ddd4c0', borderRadius: 8, background: 'none', cursor: 'pointer', color: '#c0392b' }}>
-                    ×
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+          <label style={labelStyle}>画像（複数可）</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' }}>
+            {imageUrls.map((url, i) => {
+              const isBlob = url.startsWith('blob:')
+              const isUploading = isBlob && uploadingIdx !== null
+              return (
+                <div key={i} style={{ position: 'relative', width: 88, height: 88, flexShrink: 0 }}>
+                  <img
+                    src={url}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid #ddd4c0', opacity: isUploading ? 0.5 : 1, display: 'block' }}
+                  />
+                  {isUploading && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#8a9a7e' }}>...</div>
+                  )}
+                  {!isUploading && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrls((prev) => prev.filter((_, j) => j !== i))}
+                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#c0392b', border: 'none', color: '#fff', fontSize: 12, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+            <label style={{
+              width: 88, height: 88, border: '1.5px dashed #b8a88a', borderRadius: 8,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 4, cursor: uploadingIdx !== null ? 'default' : 'pointer', color: '#8a9a7e', flexShrink: 0,
+              opacity: uploadingIdx !== null ? 0.5 : 1,
+            }}>
+              <span style={{ fontSize: 24, lineHeight: 1 }}>+</span>
+              <span style={{ fontSize: 11 }}>追加</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleImageFiles(e.target.files)}
+                disabled={uploadingIdx !== null}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </div>
         </div>
 
         {/* フラグ */}
