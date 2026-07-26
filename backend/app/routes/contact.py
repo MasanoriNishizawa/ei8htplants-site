@@ -38,6 +38,29 @@ def send_contact(body: ContactBody):
             })
         except Exception:
             pass
+    if RESEND_API_KEY:
+        try:
+            resend.api_key = RESEND_API_KEY
+            resend.Emails.send({
+                'from': CONTACT_FROM_EMAIL,
+                'to': [body.email],
+                'subject': 'お問い合わせを受け付けました | ei8ht plants',
+                'text': (
+                    f'{body.name} 様\n\n'
+                    'この度はお問い合わせいただきありがとうございます。\n'
+                    '内容を確認次第、2〜3営業日以内にご連絡いたします。\n\n'
+                    '─────────────────\n'
+                    '【お問い合わせ内容】\n'
+                    f'お名前: {body.name}\n'
+                    f'メール: {body.email}\n\n'
+                    f'{body.message}\n'
+                    '─────────────────\n\n'
+                    'ei8ht plants\n'
+                    'https://ei8htplants.com'
+                ),
+            })
+        except Exception:
+            pass
     return {'ok': True}
 
 
