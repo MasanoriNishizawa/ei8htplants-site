@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Event } from '../lib/api'
 
 const BRAND_IG: Record<string, string> = {
@@ -35,7 +36,7 @@ interface Props {
 
 export default function EventCard({ event, isNext = false, isHome = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
-  const images = event.images ?? []
+  const images = (event.images ?? []).filter((i) => i.url && !i.url.startsWith('blob:'))
   const days = !event.is_past ? daysUntil(event.start_date) : null
   const urgentBadge = days !== null && days >= 0 && days <= 7
 
@@ -49,107 +50,128 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     borderRadius: 14,
   }
 
-  return (
-    <div className={`event-card${isNext ? ' next-card' : ''}`} style={cardStyle}>
-      {images.length > 0 && (
-        <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#ede7dc' }}>
-          {urgentBadge && (
-            <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: days === 0 ? '#c0392b' : '#e67e22', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: 0.5 }}>
-              {days === 0 ? '本日開催' : `あと${days}日`}
-            </div>
-          )}
-          {isHome ? (
-            <a href="/events" style={{ display: 'block' }}>
-              <img src={images[imgIdx].url} alt={event.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
+  const imageSection = images.length > 0 && (
+    <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#ede7dc' }}>
+      {urgentBadge && (
+        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: days === 0 ? '#c0392b' : '#e67e22', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: 0.5 }}>
+          {days === 0 ? '本日開催' : `あと${days}日`}
+        </div>
+      )}
+      <img
+        src={images[imgIdx].url}
+        alt={event.name}
+        style={{ width: '100%', height: isNext ? '100%' : 280, objectFit: 'cover', display: 'block' }}
+      />
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => { e.preventDefault(); setImgIdx((i) => (i - 1 + images.length) % images.length) }}
+            style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
+          >&#10094;</button>
+          <button
+            onClick={(e) => { e.preventDefault(); setImgIdx((i) => (i + 1) % images.length) }}
+            style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
+          >&#10095;</button>
+        </>
+      )}
+    </div>
+  )
+
+  const infoSection = (
+    <div className={isNext ? 'next-content' : ''} style={{ padding: isNext ? 40 : 25 }}>
+      {event.brands.length > 0 && (
+        <div style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {event.brands.map((brand) => (
+            <a
+              key={brand}
+              href={BRAND_IG[brand] ?? '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontSize: 12, background: '#1c2417', color: '#fff', padding: '6px 12px', borderRadius: 20, letterSpacing: 1, textDecoration: 'none', fontWeight: 500 }}
+            >
+              {brand}
             </a>
-          ) : (
-            <img src={images[imgIdx].url} alt={event.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
-          )}
-          {images.length > 1 && (
-            <>
-              <button
-                onClick={() => setImgIdx((i) => (i - 1 + images.length) % images.length)}
-                style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
-              >
-                &#10094;
-              </button>
-              <button
-                onClick={() => setImgIdx((i) => (i + 1) % images.length)}
-                style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
-              >
-                &#10095;
-              </button>
-            </>
-          )}
+          ))}
         </div>
       )}
 
-      <div className={isNext ? 'next-content' : ''} style={{ padding: isNext ? 40 : 25 }}>
-        {event.brands.length > 0 && (
-          <div style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {event.brands.map((brand) => (
-              <a
-                key={brand}
-                href={BRAND_IG[brand] ?? '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 12, background: '#1c2417', color: '#fff', padding: '6px 12px', borderRadius: 20, letterSpacing: 1, textDecoration: 'none', fontWeight: 500 }}
-              >
-                {brand}
-              </a>
-            ))}
+      <h2 style={{ fontSize: 24, margin: '0 0 20px 0', fontWeight: 500, lineHeight: 1.4 }}>
+        {event.name}
+      </h2>
+
+      <div style={{ fontSize: 16, color: '#3a4535', background: '#f2ede4', padding: '15px 18px', borderRadius: 10, border: '1px solid #ddd4c0' }}>
+        <div style={{ marginBottom: 8 }}>{formatDate(event.start_date, event.end_date)}</div>
+        {event.time && <div style={{ marginBottom: 8 }}>{event.time}</div>}
+        <div style={{ fontWeight: 'bold', marginBottom: event.booth_number || event.address ? 8 : 0 }}>{event.location}</div>
+        {event.booth_number && <div style={{ fontWeight: 'bold', marginBottom: 8 }}>ブース: {event.booth_number}</div>}
+        {event.address && (
+          <div>
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent(event.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              {event.address}
+            </a>
           </div>
         )}
-
-        <h2 style={{ fontSize: 24, margin: '0 0 20px 0', fontWeight: 500, lineHeight: 1.4 }}>
-          {isHome ? <a href="/events" style={{ color: 'inherit', textDecoration: 'none' }}>{event.name}</a> : event.name}
-        </h2>
-
-        <div style={{ fontSize: 16, color: '#3a4535', background: '#f2ede4', padding: '15px 18px', borderRadius: 10, border: '1px solid #ddd4c0' }}>
-          <div style={{ marginBottom: 8 }}>{formatDate(event.start_date, event.end_date)}</div>
-          {event.time && <div style={{ marginBottom: 8 }}>{event.time}</div>}
-          <div style={{ fontWeight: 'bold', marginBottom: event.booth_number || event.address ? 8 : 0 }}>{event.location}</div>
-          {event.booth_number && <div style={{ fontWeight: 'bold', marginBottom: 8 }}>ブース: {event.booth_number}</div>}
-          {event.address && (
-            <div>
-              <a
-                href={`https://www.google.com/maps/search/${encodeURIComponent(event.address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
-              >
-                {event.address}
-              </a>
-            </div>
-          )}
-          {event.official_url && (
-            <div style={{ marginTop: 8 }}>
-              <a href={event.official_url} target="_blank" rel="noopener noreferrer" style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                公式サイト
-              </a>
-            </div>
-          )}
-        </div>
-
-        {event.has_workshop && (
-          <div style={{ background: '#f2ede2', border: '1px solid #c8b49a', padding: 20, marginTop: 20, borderRadius: 14 }}>
-            <span style={{ display: 'block', fontWeight: 500, color: '#5c3d22', fontSize: 16, marginBottom: 5 }}>
-              Habitat Style Workshop
-            </span>
-            <span style={{ fontSize: 15, color: '#7a5a3a', lineHeight: 1.6, display: 'block' }}>
-              現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。
-            </span>
-            {!event.is_past && event.ws_requires_reservation && (
-              <a
-                href={`/reserve?event_id=${event.id}`}
-                style={{ display: 'inline-block', marginTop: 12, background: '#5c3d22', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}
-              >
-                ワークショップを予約する
-              </a>
-            )}
+        {event.official_url && (
+          <div style={{ marginTop: 8 }}>
+            <a
+              href={event.official_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              公式サイト
+            </a>
           </div>
         )}
       </div>
+
+      {event.has_workshop && (
+        <div style={{ background: '#f2ede2', border: '1px solid #c8b49a', padding: 20, marginTop: 20, borderRadius: 14 }}>
+          <span style={{ display: 'block', fontWeight: 500, color: '#5c3d22', fontSize: 16, marginBottom: 5 }}>
+            Habitat Style Workshop
+          </span>
+          <span style={{ fontSize: 15, color: '#7a5a3a', lineHeight: 1.6, display: 'block' }}>
+            現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。
+          </span>
+          {!event.is_past && event.ws_requires_reservation && (
+            <a
+              href={`/reserve?event_id=${event.id}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{ display: 'inline-block', marginTop: 12, background: '#5c3d22', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}
+            >
+              ワークショップを予約する
+            </a>
+          )}
+        </div>
+      )}
     </div>
+  )
+
+  if (isHome) {
+    return (
+      <div className="event-card" style={cardStyle}>
+        <a href="/events" style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
+          {imageSection}
+        </a>
+        {infoSection}
+      </div>
+    )
+  }
+
+  return (
+    <Link to={`/events/${event.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+      <div className={`event-card${isNext ? ' next-card' : ''}`} style={{ ...cardStyle, cursor: 'pointer' }}>
+        {imageSection}
+        {infoSection}
+      </div>
+    </Link>
   )
 }
