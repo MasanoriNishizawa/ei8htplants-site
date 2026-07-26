@@ -36,8 +36,8 @@ def send_contact(body: ContactBody):
                 'subject': f'[ei8ht plants] お問い合わせ: {body.name}',
                 'text': f'お名前: {body.name}\nメール: {body.email}\n\n{body.message}',
             })
-        except Exception:
-            pass
+        except Exception as e:
+            print(f'[contact] admin notify failed: {e}')
     if RESEND_API_KEY:
         try:
             resend.api_key = RESEND_API_KEY
@@ -59,8 +59,8 @@ def send_contact(body: ContactBody):
                     'https://ei8htplants.com'
                 ),
             })
-        except Exception:
-            pass
+        except Exception as e:
+            print(f'[contact] auto-reply failed: {e}')
     return {'ok': True}
 
 
@@ -76,17 +76,21 @@ def update_contact(contact_id: str, body: ContactPatch, _=Depends(require_auth))
 
 @router.post('s/{contact_id}/reply')
 def reply_contact(contact_id: str, body: ContactReply, _=Depends(require_auth)):
-    if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
-        raise HTTPException(500, 'Mail not configured')
+    if not RESEND_API_KEY:
+        raise HTTPException(500, 'RESEND_API_KEY が設定されていません')
     row = admin_supabase.table('contacts').select('email, name').eq('id', contact_id).single().execute().data
     if not row:
         raise HTTPException(404, 'Not found')
-    resend.api_key = RESEND_API_KEY
-    resend.Emails.send({
-        'from': CONTACT_FROM_EMAIL,
-        'to': [row['email']],
-        'subject': body.subject,
-        'text': body.body,
-    })
+    try:
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            'from': CONTACT_FROM_EMAIL,
+            'to': [row['email']],
+            'subject': body.subject,
+            'text': body.body,
+        })
+    except Exception as e:
+        print(f'[contact] reply send failed: {e}')
+        raise HTTPException(500, f'メール送信に失敗しました: {e}')
     admin_supabase.table('contacts').update({'is_read': True}).eq('id', contact_id).execute()
     return {'ok': True}

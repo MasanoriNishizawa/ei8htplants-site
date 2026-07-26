@@ -3,9 +3,10 @@ import { supabase } from './supabase'
 const BASE = '/api'
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const { headers: optHeaders, ...restOptions } = options ?? {}
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    ...options,
+    headers: { 'Content-Type': 'application/json', ...optHeaders },
+    ...restOptions,
   })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   return res.json()
