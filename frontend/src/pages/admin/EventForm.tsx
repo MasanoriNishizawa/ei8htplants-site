@@ -110,7 +110,7 @@ export default function AdminEventForm() {
     const body: EventBody = {
       ...form,
       daily_times: (dailyTimesMode && isMultiDay) ? dailyTimes : null,
-      image_urls: imageUrls.filter(Boolean),
+      image_urls: imageUrls.filter((u) => u && !u.startsWith('blob:')),
     }
     try {
       let eventId = id
@@ -324,8 +324,8 @@ export default function AdminEventForm() {
         )}
 
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-          <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, cursor: 'pointer' }}>
-            {saving ? '保存中...' : '保存する'}
+          <button type="submit" disabled={saving || uploadingIdx !== null} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, cursor: saving || uploadingIdx !== null ? 'default' : 'pointer', opacity: saving || uploadingIdx !== null ? 0.6 : 1 }}>
+            {saving ? '保存中...' : uploadingIdx !== null ? 'アップロード中...' : '保存する'}
           </button>
           <button type="button" onClick={() => navigate('/admin/events')} style={{ padding: '12px 24px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 15, background: 'none', cursor: 'pointer' }}>
             キャンセル

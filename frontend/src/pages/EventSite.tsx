@@ -51,7 +51,8 @@ export default function EventSite() {
   const pc: PageContent = event.page_content ?? {}
   const isArchived = pc.archive?.enabled ?? false
   const dateLabel = fmtDate(event.start_date, event.end_date)
-  const heroImage = pc.hero?.image_url ?? event.images[0]?.url ?? ''
+  const validUrl = (u?: string | null) => (u && !u.startsWith('blob:') ? u : '')
+  const heroImage = validUrl(pc.hero?.image_url) || validUrl(event.images[0]?.url)
 
   return (
     <>
