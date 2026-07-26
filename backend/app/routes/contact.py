@@ -25,17 +25,19 @@ class ContactReply(BaseModel):
 
 @router.post('')
 def send_contact(body: ContactBody):
-    if not RESEND_API_KEY or not CONTACT_TO_EMAIL:
-        raise HTTPException(500, 'Mail not configured')
     admin_supabase.table('contacts').insert(body.model_dump()).execute()
-    resend.api_key = RESEND_API_KEY
-    resend.Emails.send({
-        'from': CONTACT_FROM_EMAIL,
-        'to': [CONTACT_TO_EMAIL],
-        'reply_to': body.email,
-        'subject': f'[ei8ht plants] お問い合わせ: {body.name}',
-        'text': f'お名前: {body.name}\nメール: {body.email}\n\n{body.message}',
-    })
+    if RESEND_API_KEY and CONTACT_TO_EMAIL:
+        try:
+            resend.api_key = RESEND_API_KEY
+            resend.Emails.send({
+                'from': CONTACT_FROM_EMAIL,
+                'to': [CONTACT_TO_EMAIL],
+                'reply_to': body.email,
+                'subject': f'[ei8ht plants] お問い合わせ: {body.name}',
+                'text': f'お名前: {body.name}\nメール: {body.email}\n\n{body.message}',
+            })
+        except Exception:
+            pass
     return {'ok': True}
 
 
