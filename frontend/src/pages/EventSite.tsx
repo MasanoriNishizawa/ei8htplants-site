@@ -65,11 +65,6 @@ export default function EventSite() {
   const validImages = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
   const ogImage = validImages[0]?.url
 
-  const address = pc.venue?.address ?? event.address
-  const mapsUrl = address
-    ? `https://www.google.com/maps/search/${encodeURIComponent(address)}`
-    : null
-
   return (
     <>
       <PageMeta title={event.name} description={`${dateLabel} / ${event.location}`} ogImage={ogImage} />
@@ -100,45 +95,6 @@ export default function EventSite() {
         <h1 style={{ fontSize: 26, margin: '0 0 20px', fontWeight: 500, lineHeight: 1.4, color: '#1c2417' }}>
           {event.name}
         </h1>
-
-        {/* 開催情報ボックス */}
-        <div style={{ fontSize: 15, color: '#3a4535', background: '#f2ede4', padding: '18px 20px', borderRadius: 10, border: '1px solid #ddd4c0', marginBottom: 20, lineHeight: 1.9 }}>
-          <div>{dateLabel}</div>
-          {event.daily_times && Object.keys(event.daily_times).length > 0 ? (
-            <div>
-              {Object.entries(event.daily_times).sort(([a], [b]) => a.localeCompare(b)).map(([date, time]) => {
-                const d = new Date(date + 'T00:00:00')
-                const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
-                return (
-                  <div key={date}>{d.getMonth() + 1}月{d.getDate()}日（{dow}）　{time}</div>
-                )
-              })}
-            </div>
-          ) : (
-            event.time && <div>{event.time}</div>
-          )}
-          <div style={{ fontWeight: 'bold' }}>{event.location}</div>
-          {event.booth_number && <div style={{ fontWeight: 'bold' }}>ブース: {event.booth_number}</div>}
-          {address && (
-            <div>
-              {mapsUrl ? (
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                  style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                  {address}
-                </a>
-              ) : address}
-            </div>
-          )}
-          {pc.venue?.access && <div style={{ marginTop: 4, fontSize: 14 }}>{pc.venue.access}</div>}
-          {event.official_url && (
-            <div style={{ marginTop: 4 }}>
-              <a href={event.official_url} target="_blank" rel="noopener noreferrer"
-                style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                公式サイト
-              </a>
-            </div>
-          )}
-        </div>
 
         {/* コンセプト */}
         {pc.concept && (
