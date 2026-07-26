@@ -155,6 +155,13 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     </div>
   )
 
+  const hasSite = event.page_content !== null
+  const cardLink = hasSite
+    ? { internal: `/events/${event.id}` }
+    : event.official_url
+    ? { external: event.official_url }
+    : null
+
   if (isHome) {
     return (
       <div className="event-card" style={cardStyle}>
@@ -166,12 +173,26 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     )
   }
 
-  return (
-    <Link to={`/events/${event.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-      <div className={`event-card${isNext ? ' next-card' : ''}`} style={{ ...cardStyle, cursor: 'pointer' }}>
-        {imageSection}
-        {infoSection}
-      </div>
-    </Link>
+  const card = (
+    <div className={`event-card${isNext ? ' next-card' : ''}`} style={{ ...cardStyle, cursor: cardLink ? 'pointer' : 'default' }}>
+      {imageSection}
+      {infoSection}
+    </div>
   )
+
+  if (cardLink && 'internal' in cardLink && cardLink.internal) {
+    return (
+      <Link to={cardLink.internal} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+        {card}
+      </Link>
+    )
+  }
+  if (cardLink && 'external' in cardLink) {
+    return (
+      <a href={cardLink.external} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+        {card}
+      </a>
+    )
+  }
+  return card
 }
