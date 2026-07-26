@@ -58,17 +58,15 @@ export default function EventPreview({ event }: Props) {
       flexDirection: 'column',
     }}>
       {/* 画像 */}
-      <div style={{ aspectRatio: '4/3', background: '#ede7dc', overflow: 'hidden' }}>
-        {images.length > 0 ? (
+      {images.length > 0 && (
+        <div style={{ background: '#ede7dc' }}>
           <img
             src={images[0].url}
             alt={event.name}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
           />
-        ) : (
-          <div style={{ width: '100%', height: '100%' }} />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 情報 */}
       <div style={{ padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
