@@ -2,6 +2,13 @@ import resend
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from ..config import RESEND_API_KEY, CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL
+
+SENDER = f'ei8ht plants <{CONTACT_FROM_EMAIL}>'
+NO_REPLY_NOTE = (
+    '\n\n─────────────────\n'
+    '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
+    '  お問い合わせは https://ei8htplants.com/contact よりお願いいたします。'
+)
 from ..db import admin_supabase
 from ..auth import require_auth
 
@@ -30,7 +37,7 @@ def send_contact(body: ContactBody):
         try:
             resend.api_key = RESEND_API_KEY
             resend.Emails.send({
-                'from': CONTACT_FROM_EMAIL,
+                'from': SENDER,
                 'to': [CONTACT_TO_EMAIL],
                 'reply_to': body.email,
                 'subject': f'[ei8ht plants] お問い合わせ: {body.name}',
@@ -42,7 +49,7 @@ def send_contact(body: ContactBody):
         try:
             resend.api_key = RESEND_API_KEY
             resend.Emails.send({
-                'from': CONTACT_FROM_EMAIL,
+                'from': SENDER,
                 'to': [body.email],
                 'subject': 'お問い合わせを受け付けました | ei8ht plants',
                 'text': (
@@ -57,6 +64,7 @@ def send_contact(body: ContactBody):
                     '─────────────────\n\n'
                     'ei8ht plants\n'
                     'https://ei8htplants.com'
+                    + NO_REPLY_NOTE
                 ),
             })
         except Exception as e:
@@ -84,10 +92,10 @@ def reply_contact(contact_id: str, body: ContactReply, _=Depends(require_auth)):
     try:
         resend.api_key = RESEND_API_KEY
         resend.Emails.send({
-            'from': CONTACT_FROM_EMAIL,
+            'from': SENDER,
             'to': [row['email']],
             'subject': body.subject,
-            'text': body.body,
+            'text': body.body + NO_REPLY_NOTE,
         })
     except Exception as e:
         print(f'[contact] reply send failed: {e}')
