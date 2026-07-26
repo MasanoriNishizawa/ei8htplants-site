@@ -69,6 +69,9 @@ export default function AdminEventForm() {
         })
         return result
       })
+    } catch (err) {
+      setImageUrls((prev) => prev.filter((u) => !blobs.includes(u)))
+      alert(`画像のアップロードに失敗しました: ${err instanceof Error ? err.message : err}`)
     } finally {
       setUploadingIdx(null)
     }
