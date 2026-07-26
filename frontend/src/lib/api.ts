@@ -71,6 +71,8 @@ export const api = {
       request<WsSession[]>(`/events/${id}/sessions`),
     saveSessions: (id: string, sessions: { time_label: string; max_participants: number }[]) =>
       authRequest<WsSession[]>(`/events/${id}/sessions`, { method: 'PUT', body: JSON.stringify({ sessions }) }),
+    savePageContent: (id: string, page_content: PageContent) =>
+      authRequest<Event>(`/events/${id}/page`, { method: 'PATCH', body: JSON.stringify({ page_content }) }),
   },
   gallery: {
     list: (brand?: string) =>
@@ -117,6 +119,43 @@ export const api = {
   },
 }
 
+export interface PageContent {
+  hero?: {
+    image_url?: string
+    tagline?: string
+    subtitle?: string
+  }
+  venue?: {
+    address?: string
+    access?: string
+    map_url?: string
+  }
+  concept?: string
+  lineup?: Array<{
+    title: string
+    description?: string
+    image_url?: string
+  }>
+  workshop?: {
+    title?: string
+    description?: string
+    note?: string
+  } | null
+  guests?: Array<{
+    name: string
+    role?: string
+    bio?: string
+    image_url?: string
+    instagram_url?: string
+  }>
+  archive?: {
+    enabled: boolean
+    title?: string
+    message?: string
+    gallery?: string[]
+  }
+}
+
 export interface Event {
   id: string
   name: string
@@ -133,6 +172,7 @@ export interface Event {
   is_past: boolean
   display_order: number
   images: { id: string; url: string; display_order: number }[]
+  page_content: PageContent | null
 }
 
 export interface EventBody {

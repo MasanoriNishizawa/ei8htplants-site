@@ -30,6 +30,8 @@ import AdminCollaborations from './pages/admin/Collaborations'
 import AdminContacts from './pages/admin/Contacts'
 import AdminEventFinance from './pages/admin/EventFinance'
 import AdminEventReservations from './pages/admin/EventReservations'
+import AdminEventSite from './pages/admin/AdminEventSite'
+import EventSite from './pages/EventSite'
 
 export default function App() {
   return (
@@ -49,6 +51,7 @@ export default function App() {
           <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
           <Route path="/hue" element={<Hue />} />
           <Route path="/reserve" element={<Reserve />} />
+          <Route path="/events/:id" element={<EventSite />} />
         </Route>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
@@ -57,6 +60,7 @@ export default function App() {
           <Route path="events/:id/edit" element={<AdminEventForm />} />
           <Route path="events/:id/finances" element={<AdminEventFinance />} />
           <Route path="events/:id/reservations" element={<AdminEventReservations />} />
+          <Route path="events/:id/site" element={<AdminEventSite />} />
           <Route path="gallery" element={<AdminGallery />} />
           <Route path="stockists" element={<AdminStockists />} />
           <Route path="reservations" element={<AdminReservations />} />

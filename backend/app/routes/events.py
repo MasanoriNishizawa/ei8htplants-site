@@ -108,6 +108,16 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)):
     return get_sessions(event_id)
 
 
+class PageContentBody(BaseModel):
+    page_content: dict
+
+
+@router.patch('/{event_id}/page')
+def save_page_content(event_id: str, body: PageContentBody, _=Depends(require_auth)):
+    admin_supabase.table('events').update({'page_content': body.page_content}).eq('id', event_id).execute()
+    return get_event(event_id)
+
+
 @router.get('/{event_id}')
 def get_event(event_id: str):
     data = supabase.table('events').select('*').eq('id', event_id).single().execute().data

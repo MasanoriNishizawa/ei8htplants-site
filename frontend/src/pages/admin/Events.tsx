@@ -125,6 +125,7 @@ export default function AdminEvents() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, color: '#3a4535', textDecoration: 'none' }}>編集</Link>
                   <Link to={`/admin/events/${ev.id}/finances`} style={{ padding: '8px 16px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, color: '#4a6741', textDecoration: 'none' }}>収支</Link>
+                  <Link to={`/admin/events/${ev.id}/site`} style={{ padding: '8px 16px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, color: '#1e3272', textDecoration: 'none' }}>サイト</Link>
                   {ev.has_workshop && (
                     <Link to={`/admin/events/${ev.id}/reservations`} style={{ padding: '8px 16px', border: '1px solid #b8d0b2', borderRadius: 8, fontSize: 13, color: '#2d5a27', textDecoration: 'none', background: resCount > 0 ? '#f0f6ee' : 'none' }}>
                       予約{resCount > 0 ? ` ${resCount}件` : ''}
