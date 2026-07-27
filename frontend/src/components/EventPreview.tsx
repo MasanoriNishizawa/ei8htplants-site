@@ -36,9 +36,10 @@ function hasPageContent(pc: PageContent | null): boolean {
 
 interface Props {
   event: Event
+  horizontal?: boolean
 }
 
-export default function EventPreview({ event }: Props) {
+export default function EventPreview({ event, horizontal = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
   const pc: PageContent = event.page_content ?? {}
   const hasSite = hasPageContent(event.page_content)
@@ -50,7 +51,7 @@ export default function EventPreview({ event }: Props) {
     : null
 
   return (
-    <div style={{
+    <div className={horizontal ? 'ep-horizontal' : ''} style={{
       background: '#fffcf6',
       borderRadius: 12,
       overflow: 'hidden',

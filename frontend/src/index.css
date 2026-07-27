@@ -59,6 +59,23 @@ body {
   flex: 1;
 }
 
+/* ---- EventPreview 横並びレイアウト（Home用） ---- */
+.ep-horizontal {
+  flex-direction: column !important;
+}
+@media (min-width: 700px) {
+  .ep-horizontal {
+    flex-direction: row !important;
+  }
+  .ep-horizontal > :first-child {
+    width: 50%;
+    flex-shrink: 0;
+  }
+  .ep-horizontal > :last-child {
+    flex: 1;
+  }
+}
+
 /* ---- イベントグリッド ---- */
 .events-grid {
   display: grid;

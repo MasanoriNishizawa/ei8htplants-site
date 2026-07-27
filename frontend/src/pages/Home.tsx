@@ -66,13 +66,13 @@ export default function Home() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 20px' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 20px' }}>
         {nextEvent && (
           <>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '60px 0 24px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
               NEXT EVENT
             </h2>
-            <EventPreview event={nextEvent} />
+            <EventPreview event={nextEvent} horizontal />
             <div style={{ margin: '24px 0 40px' }}>
               <Link
                 to="/events"
