@@ -98,12 +98,6 @@ body {
   align-items: start;
 }
 
-.header-nav-desktop > * {
-  padding: 0 7px;
-}
-.header-nav-desktop > *:not(:last-child) {
-  border-right: 1px solid #c0c0d2;
-}
 
 @media (max-width: 768px) {
   .menu-btn {

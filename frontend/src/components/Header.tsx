@@ -5,25 +5,23 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [brandOpen, setBrandOpen] = useState(false)
 
-  const navLinkStyle: React.CSSProperties = {
-    fontSize: 16, color: '#8a9a7e', fontWeight: 500,
-    letterSpacing: '1.5px', textDecoration: 'none',
-  }
-
-  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `text-text-muted hover:text-text-main transition-colors duration-300 text-base font-medium tracking-wider no-underline pb-1 border-b-2 ${
-      isActive ? 'text-text-main border-text-main' : 'border-transparent'
-    }`
+  const navItemStyle = (isActive: boolean): React.CSSProperties => ({
+    fontSize: 13, fontWeight: 500, letterSpacing: '1.5px',
+    textDecoration: 'none', padding: '5px 10px', borderRadius: 3,
+    color: isActive ? '#fff' : '#8a9a7e',
+    background: isActive ? '#1c2417' : 'transparent',
+    transition: 'background 0.15s, color 0.15s',
+  })
 
   const navItems = (
     <>
-      <NavLink to="/" end className={navLinkClass} onClick={() => setMenuOpen(false)}>HOME</NavLink>
-      <NavLink to="/events" className={navLinkClass} onClick={() => setMenuOpen(false)}>EVENT</NavLink>
-      <NavLink to="/gallery" className={navLinkClass} onClick={() => setMenuOpen(false)}>GALLERY</NavLink>
+      <NavLink to="/" end style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>HOME</NavLink>
+      <NavLink to="/events" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>EVENT</NavLink>
+      <NavLink to="/gallery" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>GALLERY</NavLink>
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <span
-          style={{ ...navLinkStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none', paddingBottom: 4, borderBottom: '2px solid transparent' }}
+          style={{ ...navItemStyle(false), cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
           onClick={() => setBrandOpen(!brandOpen)}
           onMouseEnter={() => setBrandOpen(true)}
           onMouseLeave={() => setBrandOpen(false)}
@@ -55,7 +53,7 @@ export default function Header() {
                 key={to}
                 to={to}
                 onClick={() => { setBrandOpen(false); setMenuOpen(false) }}
-                style={{ display: 'block', padding: '11px 20px', fontSize: 12, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#8a9a7e', textDecoration: 'none' }}
+                style={({ isActive }) => ({ display: 'block', padding: '11px 20px', fontSize: 12, letterSpacing: '1.5px', textTransform: 'uppercase', textDecoration: 'none', color: isActive ? '#fff' : '#8a9a7e', background: isActive ? '#1c2417' : 'transparent' })}
               >
                 {label}
               </NavLink>
@@ -64,15 +62,15 @@ export default function Header() {
         )}
       </div>
 
-      <NavLink to="/concept" className={navLinkClass} onClick={() => setMenuOpen(false)}>CONCEPT</NavLink>
-      <NavLink to="/stockists" className={navLinkClass} onClick={() => setMenuOpen(false)}>STOCKISTS</NavLink>
-      <NavLink to="/collaborations" className={navLinkClass} onClick={() => setMenuOpen(false)}>COLLABORATIONS</NavLink>
-      <NavLink to="/contact" className={navLinkClass} onClick={() => setMenuOpen(false)}>CONTACT</NavLink>
+      <NavLink to="/concept" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>CONCEPT</NavLink>
+      <NavLink to="/stockists" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>STOCKISTS</NavLink>
+      <NavLink to="/collaborations" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>COLLABORATIONS</NavLink>
+      <NavLink to="/contact" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>CONTACT</NavLink>
       <a
         href="https://ei8htplants.square.site/s/shop"
         target="_blank"
         rel="noopener noreferrer"
-        style={{ ...navLinkStyle, paddingBottom: 4, borderBottom: '2px solid transparent' }}
+        style={navItemStyle(false)}
       >
         ONLINE STORE
       </a>
@@ -110,7 +108,7 @@ export default function Header() {
         <span style={{ display: 'block', width: 25, height: 2, background: '#1c2417', margin: '5px 0', transition: '0.3s' }} />
       </button>
 
-      <nav className="header-nav-desktop" style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+      <nav className="header-nav-desktop" style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
         {navItems}
       </nav>
 
