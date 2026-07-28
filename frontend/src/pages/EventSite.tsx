@@ -78,9 +78,42 @@ export default function EventSite() {
             {isArchived && (
               <div style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 2, marginBottom: 8 }}>Archived</div>
             )}
-            <h1 style={{ fontSize: 26, margin: '0 0 20px', fontWeight: 500, lineHeight: 1.4, color: '#1c2417' }}>
+            <h1 style={{ fontSize: 26, margin: '0 0 8px', fontWeight: 500, lineHeight: 1.4, color: '#1c2417' }}>
               {event.name}
             </h1>
+
+            {/* キャッチコピー・サブタイトル */}
+            {(pc.hero?.tagline || pc.hero?.subtitle) && (
+              <div style={{ marginBottom: 20 }}>
+                {pc.hero?.tagline && (
+                  <p style={{ fontSize: 17, color: '#3a4535', fontWeight: 400, margin: '0 0 4px', lineHeight: 1.6 }}>{pc.hero.tagline}</p>
+                )}
+                {pc.hero?.subtitle && (
+                  <p style={{ fontSize: 13, color: '#8a9a7e', margin: 0, lineHeight: 1.6 }}>{pc.hero.subtitle}</p>
+                )}
+              </div>
+            )}
+
+            {/* 会場・地図 */}
+            {event.address && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #dddde8' }}>Venue</div>
+                <p style={{ fontSize: 13, color: '#3a4535', margin: '0 0 4px' }}>{event.address}</p>
+                {pc.venue?.access && (
+                  <p style={{ fontSize: 13, color: '#8a9a7e', margin: '0 0 12px' }}>{pc.venue.access}</p>
+                )}
+                <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #dddde8' }}>
+                  <iframe
+                    title="map"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(event.address)}&output=embed&z=15&hl=ja`}
+                    width="100%"
+                    height="260"
+                    style={{ border: 0, display: 'block' }}
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* コンセプト */}
             {pc.concept && (
