@@ -177,14 +177,27 @@ export default function AdminEventSite() {
 
         {/* 開催情報 */}
         <Card title="開催情報">
-          <Field label="住所">
-            <input value={pc.venue?.address ?? ''} onChange={(e) => setVenue('address', e.target.value)} style={inputStyle} />
+          <Field label="住所（イベント情報から自動取得）">
+            <div style={{ padding: '9px 12px', background: '#f2ede4', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 14, color: '#3a4535' }}>
+              {event.address ? (
+                <>
+                  <span>{event.address}</span>
+                  <a
+                    href={`https://www.google.com/maps/search/${encodeURIComponent(event.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ marginLeft: 12, fontSize: 12, color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                  >
+                    Google マップで確認
+                  </a>
+                </>
+              ) : (
+                <span style={{ color: '#aaa' }}>イベントに住所が登録されていません</span>
+              )}
+            </div>
           </Field>
           <Field label="アクセス">
             <input value={pc.venue?.access ?? ''} onChange={(e) => setVenue('access', e.target.value)} placeholder="○○駅から徒歩5分" style={inputStyle} />
-          </Field>
-          <Field label="Google Maps URL">
-            <input value={pc.venue?.map_url ?? ''} onChange={(e) => setVenue('map_url', e.target.value)} style={inputStyle} />
           </Field>
         </Card>
 
