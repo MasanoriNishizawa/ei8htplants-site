@@ -110,7 +110,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           {event.name}
         </h3>
 
-        <div style={{ fontSize: 13, color: '#3a4535', background: '#f2ede4', padding: '12px 14px', borderRadius: 8, border: '1px solid #ddd4c0', lineHeight: 1.8, marginTop: 'auto' }}>
+        <div style={{ fontSize: 13, color: '#3a4535', background: '#f2ede4', padding: '12px 14px', borderRadius: 8, border: '1px solid #ddd4c0', lineHeight: 1.8 }}>
           <div>{dateLabel}</div>
           {event.time && <div>{event.time}</div>}
           <div style={{ fontWeight: 600 }}>{event.location}</div>
