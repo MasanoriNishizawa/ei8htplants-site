@@ -303,8 +303,8 @@ export default function AdminEventForm() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <label style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" onClick={autoSetSessions} disabled={!form.time.match(/\d:\d{2}\s*[〜~\-]\s*\d:\d{2}/)}
-                  style={{ padding: '6px 14px', background: 'none', color: '#4a6741', border: '1px solid #4a6741', borderRadius: 2, fontSize: 13, cursor: 'pointer', opacity: form.time.match(/\d:\d{2}\s*[〜~\-]\s*\d:\d{2}/) ? 1 : 0.4 }}>
+                <button type="button" onClick={autoSetSessions} disabled={!form.time.match(/\d{1,2}:\d{2}\s*[〜~\-]\s*\d{1,2}:\d{2}/)}
+                  style={{ padding: '6px 14px', background: 'none', color: '#4a6741', border: '1px solid #4a6741', borderRadius: 2, fontSize: 13, cursor: 'pointer', opacity: form.time.match(/\d{1,2}:\d{2}\s*[〜~\-]\s*\d{1,2}:\d{2}/) ? 1 : 0.4 }}>
                   自動設定
                 </button>
                 <button type="button" onClick={addSession}
