@@ -102,6 +102,7 @@ export default function AdminEventSite() {
         ...saved,
         hero: { ...emptyContent().hero, ...saved.hero },
         venue: { ...emptyContent().venue, ...saved.venue },
+        workshop: ev.has_workshop ? (saved.workshop ?? { title: '', description: '', note: '' }) : null,
         archive: { ...emptyContent().archive, ...saved.archive, enabled: saved.archive?.enabled ?? false },
       })
     })
@@ -139,7 +140,6 @@ export default function AdminEventSite() {
 
   if (!event) return <p style={{ color: '#8a9a7e' }}>読み込み中...</p>
 
-  const hasWorkshop = pc.workshop !== null && pc.workshop !== undefined
   const isArchived = pc.archive?.enabled ?? false
 
   return (
@@ -238,25 +238,19 @@ export default function AdminEventSite() {
         </Card>
 
         {/* ワークショップ */}
-        <Card title="ワークショップ">
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, cursor: 'pointer', fontSize: 14, color: '#3a4535' }}>
-            <input type="checkbox" checked={hasWorkshop} onChange={(e) => set('workshop', e.target.checked ? { title: '', description: '', note: '' } : null)} style={{ width: 16, height: 16 }} />
-            ワークショップセクションを表示する
-          </label>
-          {hasWorkshop && pc.workshop !== null && pc.workshop !== undefined && (
-            <>
-              <Field label="タイトル">
-                <input value={pc.workshop.title ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, title: e.target.value })} style={inputStyle} />
-              </Field>
-              <Field label="説明">
-                <textarea value={pc.workshop.description ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, description: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical' }} />
-              </Field>
-              <Field label="備考（定員・持ち物など）">
-                <input value={pc.workshop.note ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, note: e.target.value })} placeholder="定員 8名" style={inputStyle} />
-              </Field>
-            </>
-          )}
-        </Card>
+        {event.has_workshop && pc.workshop !== null && pc.workshop !== undefined && (
+          <Card title="ワークショップ">
+            <Field label="タイトル">
+              <input value={pc.workshop.title ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, title: e.target.value })} style={inputStyle} />
+            </Field>
+            <Field label="説明">
+              <textarea value={pc.workshop.description ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, description: e.target.value })} rows={8} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.8 }} />
+            </Field>
+            <Field label="備考（定員・持ち物など）">
+              <input value={pc.workshop.note ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, note: e.target.value })} placeholder="定員 8名" style={inputStyle} />
+            </Field>
+          </Card>
+        )}
 
         {/* ゲスト・出展者 */}
         <Card title="ゲスト・出展者">
