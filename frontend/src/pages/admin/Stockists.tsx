@@ -65,7 +65,7 @@ export default function AdminStockists() {
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
     await api.stockists.delete(id)
-    load()
+    setStockists((prev) => prev.filter((s) => s.id !== id))
   }
 
   const inputStyle: React.CSSProperties = { padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', width: '100%', boxSizing: 'border-box' }

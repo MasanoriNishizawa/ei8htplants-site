@@ -54,7 +54,7 @@ export default function AdminCollaborations() {
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
     await api.collaborations.delete(id)
-    load()
+    setItems((prev) => prev.filter((item) => item.id !== id))
   }
 
   const inputStyle: React.CSSProperties = {

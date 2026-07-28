@@ -41,7 +41,7 @@ export default function AdminGallery() {
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
     await api.gallery.delete(id)
-    load()
+    setImages((prev) => prev.filter((img) => img.id !== id))
   }
 
   const move = async (idx: number, dir: -1 | 1) => {
