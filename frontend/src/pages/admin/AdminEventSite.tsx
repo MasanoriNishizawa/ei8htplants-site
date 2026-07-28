@@ -44,13 +44,31 @@ function ImageInput({ value, onChange }: { value: string; onChange: (v: string) 
       e.target.value = ''
     }
   }
+  const thumb: React.CSSProperties = {
+    width: 88, height: 88, borderRadius: 8, border: '1px solid #ddd4c0',
+    overflow: 'hidden', position: 'relative', flexShrink: 0, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: '#f2ede4',
+  }
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://..." style={{ ...inputStyle, flex: 1 }} />
-      <label style={{ padding: '9px 14px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 12, cursor: uploading ? 'default' : 'pointer', color: '#8a9a7e', whiteSpace: 'nowrap', opacity: uploading ? 0.5 : 1 }}>
-        {uploading ? '...' : '選択'}
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <label style={{ ...thumb, opacity: uploading ? 0.5 : 1 }}>
+        {value && !value.startsWith('blob:') ? (
+          <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontSize: 24, color: '#aaa' }}>{uploading ? '…' : '+'}</span>
+        )}
         <input type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} disabled={uploading} />
       </label>
+      {value && !value.startsWith('blob:') && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          style={{ fontSize: 12, color: '#c0392b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          削除
+        </button>
+      )}
     </div>
   )
 }
