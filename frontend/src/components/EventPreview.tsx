@@ -154,14 +154,20 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           ) : null}
         </div>
 
-        {event.has_workshop && event.ws_requires_reservation && !event.is_past && (
+        {event.has_workshop && (
           <div style={{ marginTop: 14 }}>
-            <a
-              href={`/reserve?event_id=${event.id}`}
-              style={{ display: 'inline-block', fontSize: 12, color: '#2c3a4a', textDecoration: 'none', padding: '7px 16px', borderRadius: 20, border: '1px solid #2c3a4a', letterSpacing: 0.5, fontWeight: 500 }}
-            >
-              ワークショップを予約する
-            </a>
+            {event.is_past ? (
+              <p style={{ fontSize: 12, color: '#8a9a7e', margin: 0, lineHeight: 1.7 }}>
+                ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。
+              </p>
+            ) : event.ws_requires_reservation ? (
+              <a
+                href={`/reserve?event_id=${event.id}`}
+                style={{ display: 'inline-block', fontSize: 12, color: '#2c3a4a', textDecoration: 'none', padding: '7px 16px', borderRadius: 20, border: '1px solid #2c3a4a', letterSpacing: 0.5, fontWeight: 500 }}
+              >
+                ワークショップを予約する
+              </a>
+            ) : null}
           </div>
         )}
       </div>
