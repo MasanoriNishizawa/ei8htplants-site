@@ -18,10 +18,19 @@ app.add_middleware(
 
 
 @app.middleware('http')
-async def no_cache_api(request: Request, call_next):
+async def cache_control(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith('/api/'):
+    path = request.url.path
+    if path.startswith('/api/'):
+        # API responses must never be cached (CDN-Cache-Control targets Cloudflare specifically)
         response.headers['Cache-Control'] = 'no-store'
+        response.headers['CDN-Cache-Control'] = 'no-store'
+    elif path.startswith('/assets/'):
+        # Vite hashed assets are safe to cache forever
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    else:
+        # HTML (index.html) must always be revalidated
+        response.headers['Cache-Control'] = 'no-cache'
     return response
 
 app.include_router(events.router, prefix='/api')
