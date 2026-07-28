@@ -94,6 +94,14 @@ export default function EventSite() {
               </div>
             )}
 
+            {/* コンセプト */}
+            {pc.concept && (
+              <div style={{ marginBottom: 24, padding: '24px 20px', background: '#ffffff', borderRadius: 10, border: '1px solid #dddde8' }}>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 14 }}>Concept</div>
+                <p style={{ fontSize: 15, lineHeight: 2.2, color: '#3a4535', margin: 0, whiteSpace: 'pre-line' }}>{pc.concept}</p>
+              </div>
+            )}
+
             {/* 会場・地図 */}
             {event.address && (
               <div style={{ marginBottom: 24 }}>
@@ -112,14 +120,6 @@ export default function EventSite() {
                     loading="lazy"
                   />
                 </div>
-              </div>
-            )}
-
-            {/* コンセプト */}
-            {pc.concept && (
-              <div style={{ marginBottom: 24, padding: '24px 20px', background: '#ffffff', borderRadius: 10, border: '1px solid #dddde8' }}>
-                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 14 }}>Concept</div>
-                <p style={{ fontSize: 15, lineHeight: 2.2, color: '#3a4535', margin: 0, whiteSpace: 'pre-line' }}>{pc.concept}</p>
               </div>
             )}
 
