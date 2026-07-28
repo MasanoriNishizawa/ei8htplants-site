@@ -135,7 +135,7 @@ export default function AdminEventReservations() {
   const totalPeople = nonCancelled.reduce((s, r) => s + r.participants, 0)
 
   const btnStyle: React.CSSProperties = {
-    padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 8,
+    padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4,
     fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535',
   }
 
@@ -241,14 +241,14 @@ export default function AdminEventReservations() {
                     <td style={{ padding: '12px 14px', color: '#8a9a7e', maxWidth: 160 }}>{r.note ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
                           {STATUS_LABELS[r.status] ?? r.status}
                         </span>
                         <select
                           value={r.status}
                           disabled={updating === r.id}
                           onChange={(e) => updateStatus(r.id, e.target.value)}
-                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 6, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
+                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 2, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           {Object.entries(STATUS_LABELS).map(([val, label]) => (
                             <option key={val} value={val}>{label}</option>

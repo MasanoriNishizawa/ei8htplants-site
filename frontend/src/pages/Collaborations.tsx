@@ -33,7 +33,7 @@ export default function Collaborations() {
           {items.map((item) => (
             <article
               key={item.id}
-              style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 14, overflow: 'hidden' }}
+              style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, overflow: 'hidden' }}
             >
               {item.image_url && (
                 <div style={{ width: '100%', aspectRatio: '16/9', overflow: 'hidden', background: '#f0f0f5' }}>

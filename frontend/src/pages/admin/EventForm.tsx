@@ -130,7 +130,7 @@ export default function AdminEventForm() {
     }
   }
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }
   const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1, color: '#3a4535' }
 
   return (
@@ -182,7 +182,7 @@ export default function AdminEventForm() {
                   )}
                 </div>
                 {dailyTimesMode && isMultiDay ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: '#f6f6fa', borderRadius: 8, border: '1px solid #dddde8' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: '#f6f6fa', borderRadius: 4, border: '1px solid #dddde8' }}>
                     {dates.map((d) => (
                       <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span style={{ fontSize: 13, color: '#3a4535', minWidth: 116, flexShrink: 0 }}>{fmtDay(d)}</span>
@@ -230,7 +230,7 @@ export default function AdminEventForm() {
                   <img
                     src={url}
                     alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid #dddde8', opacity: isUploading ? 0.5 : 1, display: 'block' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, border: '1px solid #dddde8', opacity: isUploading ? 0.5 : 1, display: 'block' }}
                   />
                   {isUploading && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#8a9a7e' }}>...</div>
@@ -248,7 +248,7 @@ export default function AdminEventForm() {
               )
             })}
             <label style={{
-              width: 88, height: 88, border: '1.5px dashed #b0b0c4', borderRadius: 8,
+              width: 88, height: 88, border: '1.5px dashed #b0b0c4', borderRadius: 4,
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 4, cursor: uploadingIdx !== null ? 'default' : 'pointer', color: '#8a9a7e', flexShrink: 0,
               opacity: uploadingIdx !== null ? 0.5 : 1,
@@ -283,11 +283,11 @@ export default function AdminEventForm() {
 
         {/* WSセッション管理 */}
         {form.has_workshop && (
-          <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 10 }}>
+          <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <label style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</label>
               <button type="button" onClick={addSession}
-                style={{ padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+                style={{ padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
                 + 追加
               </button>
             </div>
@@ -315,7 +315,7 @@ export default function AdminEventForm() {
                   <span style={{ fontSize: 13, color: '#8a9a7e' }}>名</span>
                 </div>
                 <button type="button" onClick={() => removeSession(i)}
-                  style={{ padding: '0 10px', height: 40, border: '1px solid #dddde8', borderRadius: 8, background: 'none', cursor: 'pointer', color: '#c0392b', flexShrink: 0 }}>
+                  style={{ padding: '0 10px', height: 40, border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', color: '#c0392b', flexShrink: 0 }}>
                   ×
                 </button>
               </div>
@@ -324,10 +324,10 @@ export default function AdminEventForm() {
         )}
 
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-          <button type="submit" disabled={saving || uploadingIdx !== null} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, cursor: saving || uploadingIdx !== null ? 'default' : 'pointer', opacity: saving || uploadingIdx !== null ? 0.6 : 1 }}>
+          <button type="submit" disabled={saving || uploadingIdx !== null} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: saving || uploadingIdx !== null ? 'default' : 'pointer', opacity: saving || uploadingIdx !== null ? 0.6 : 1 }}>
             {saving ? '保存中...' : uploadingIdx !== null ? 'アップロード中...' : '保存する'}
           </button>
-          <button type="button" onClick={() => navigate('/admin/events')} style={{ padding: '12px 24px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 15, background: 'none', cursor: 'pointer' }}>
+          <button type="button" onClick={() => navigate('/admin/events')} style={{ padding: '12px 24px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, background: 'none', cursor: 'pointer' }}>
             キャンセル
           </button>
         </div>

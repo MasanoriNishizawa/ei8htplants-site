@@ -50,7 +50,7 @@ export default function Concept() {
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >
                 <div
-                  style={{ padding: 40, background: '#ffffff', border: '1px solid #dddde8', borderRadius: 14, transition: 'transform 0.3s ease', height: '100%', boxSizing: 'border-box' }}
+                  style={{ padding: 40, background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, transition: 'transform 0.3s ease', height: '100%', boxSizing: 'border-box' }}
                   onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-5px)')}
                   onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                 >

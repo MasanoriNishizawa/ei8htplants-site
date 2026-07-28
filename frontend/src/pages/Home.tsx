@@ -56,7 +56,7 @@ export default function Home() {
                 opacity: slideIdx === i ? 1 : 0,
                 transition: 'opacity 1s ease',
                 filter: 'drop-shadow(0 0 15px #fff) drop-shadow(0 0 10px #fff)',
-                borderRadius: 12, pointerEvents: 'none',
+                borderRadius: 4, pointerEvents: 'none',
               }}
             />
           ))}
@@ -76,7 +76,7 @@ export default function Home() {
             <div style={{ margin: '24px 0 40px' }}>
               <Link
                 to="/events"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#ffffff', border: '1px solid #ddd', borderRadius: 14, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#ffffff', border: '1px solid #ddd', borderRadius: 4, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
               >
                 VIEW ALL EVENTS
               </Link>
@@ -96,7 +96,7 @@ export default function Home() {
           <div style={{ width: '100%', overflow: 'hidden', marginBottom: 60, padding: '20px 0', WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}>
             <div style={{ display: 'flex', width: 'fit-content', animation: 'marquee 80s linear infinite' }}>
               {marqueeImages.map((img, i) => (
-                <div key={i} style={{ width: 250, height: 250, marginRight: 15, borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+                <div key={i} style={{ width: 250, height: 250, marginRight: 15, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
                   <img src={img.url} alt={img.alt ?? ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
               ))}
@@ -107,7 +107,7 @@ export default function Home() {
             <div style={{ maxWidth: 400, margin: '-20px auto 0' }}>
               <Link
                 to="/gallery"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#ffffff', border: '1px solid #ddd', borderRadius: 14, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#ffffff', border: '1px solid #ddd', borderRadius: 4, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
               >
                 VIEW ALL GALLERY
               </Link>

@@ -54,7 +54,7 @@ export default function EventSite() {
                   key={i}
                   src={img.url}
                   alt={event.name}
-                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid #e8e8f0' }}
+                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 4, border: '1px solid #e8e8f0' }}
                 />
               ))}
             </div>
@@ -96,7 +96,7 @@ export default function EventSite() {
 
             {/* コンセプト */}
             {pc.concept && (
-              <div style={{ marginBottom: 24, padding: '24px 20px', background: '#ffffff', borderRadius: 10, border: '1px solid #dddde8' }}>
+              <div style={{ marginBottom: 24, padding: '24px 20px', background: '#ffffff', borderRadius: 4, border: '1px solid #dddde8' }}>
                 <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 14 }}>Concept</div>
                 <p style={{ fontSize: 15, lineHeight: 2.2, color: '#3a4535', margin: 0, whiteSpace: 'pre-line' }}>{pc.concept}</p>
               </div>
@@ -110,7 +110,7 @@ export default function EventSite() {
                 {pc.venue?.access && (
                   <p style={{ fontSize: 13, color: '#8a9a7e', margin: '0 0 12px' }}>{pc.venue.access}</p>
                 )}
-                <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #dddde8' }}>
+                <div style={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #dddde8' }}>
                   <iframe
                     title="map"
                     src={`https://maps.google.com/maps?q=${encodeURIComponent(event.address)}&output=embed&z=15&hl=ja`}
@@ -125,7 +125,7 @@ export default function EventSite() {
 
             {/* ワークショップ */}
             {event.has_workshop && (
-              <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: '16px 20px', marginBottom: 24, borderRadius: 14 }}>
+              <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: '16px 20px', marginBottom: 24, borderRadius: 4 }}>
                 <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 10 }}>Workshop</div>
                 {!isArchived && event.ws_requires_reservation && (
                   <a href={`/reserve?event_id=${event.id}`}
@@ -142,7 +142,7 @@ export default function EventSite() {
                 <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>Lineup</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
                   {pc.lineup.map((item, i) => (
-                    <div key={i} style={{ background: '#f5f5f8', borderRadius: 10, overflow: 'hidden', border: '1px solid #dddde8' }}>
+                    <div key={i} style={{ background: '#f5f5f8', borderRadius: 4, overflow: 'hidden', border: '1px solid #dddde8' }}>
                       {item.image_url && (
                         <img src={item.image_url} alt={item.title} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
                       )}
@@ -162,7 +162,7 @@ export default function EventSite() {
                 <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>Guests</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
                   {pc.guests.map((guest, i) => (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#f5f5f8', borderRadius: 10, padding: '16px 12px', border: '1px solid #dddde8' }}>
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#f5f5f8', borderRadius: 4, padding: '16px 12px', border: '1px solid #dddde8' }}>
                       {guest.image_url ? (
                         <img src={guest.image_url} alt={guest.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, border: '1px solid #dddde8' }} />
                       ) : (
@@ -185,7 +185,7 @@ export default function EventSite() {
 
             {/* アーカイブ */}
             {isArchived && (
-              <div style={{ textAlign: 'center', background: '#f5f5f8', borderRadius: 10, padding: '40px 24px', border: '1px solid #dddde8' }}>
+              <div style={{ textAlign: 'center', background: '#f5f5f8', borderRadius: 4, padding: '40px 24px', border: '1px solid #dddde8' }}>
                 <h2 style={{ fontSize: 22, fontWeight: 400, color: '#1c2417', margin: '0 0 16px' }}>
                   {pc.archive?.title ?? 'ご来場ありがとうございました'}
                 </h2>
@@ -195,7 +195,7 @@ export default function EventSite() {
                 {pc.archive?.gallery && pc.archive.gallery.length > 0 && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, textAlign: 'left' }}>
                     {pc.archive.gallery.map((url, i) => (
-                      <div key={i} style={{ aspectRatio: '1/1', overflow: 'hidden', borderRadius: 8 }}>
+                      <div key={i} style={{ aspectRatio: '1/1', overflow: 'hidden', borderRadius: 4 }}>
                         <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     ))}

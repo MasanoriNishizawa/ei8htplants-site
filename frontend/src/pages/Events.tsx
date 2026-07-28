@@ -108,7 +108,7 @@ export default function Events() {
         <div style={{ textAlign: 'center', marginTop: 60 }}>
           <Link
             to={isPast ? '/events' : '/events?page=past'}
-            style={{ display: 'inline-block', padding: '12px 30px', background: '#ffffff', border: '1px solid #dddde8', color: '#8a9a7e', textDecoration: 'none', borderRadius: 14, fontSize: 16, letterSpacing: 2 }}
+            style={{ display: 'inline-block', padding: '12px 30px', background: '#ffffff', border: '1px solid #dddde8', color: '#8a9a7e', textDecoration: 'none', borderRadius: 4, fontSize: 16, letterSpacing: 2 }}
           >
             {isPast ? '現在のイベントを見る' : '過去のイベントを見る'}
           </Link>

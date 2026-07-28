@@ -70,7 +70,7 @@ export default function AdminReservations() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>WS予約一覧</h2>
         {rows.length > 0 && (
-          <button onClick={() => exportCsv(rows)} style={{ padding: '8px 20px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535' }}>
+          <button onClick={() => exportCsv(rows)} style={{ padding: '8px 20px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535' }}>
             CSV エクスポート
           </button>
         )}
@@ -105,14 +105,14 @@ export default function AdminReservations() {
                     <td style={{ padding: '12px 14px', color: '#8a9a7e', maxWidth: 160 }}>{r.note ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
                           {STATUS_LABELS[r.status] ?? r.status}
                         </span>
                         <select
                           value={r.status}
                           disabled={updating === r.id}
                           onChange={(e) => updateStatus(r.id, e.target.value)}
-                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 6, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
+                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 2, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           {Object.entries(STATUS_LABELS).map(([val, label]) => (
                             <option key={val} value={val}>{label}</option>

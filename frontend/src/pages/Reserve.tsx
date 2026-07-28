@@ -139,7 +139,7 @@ export default function Reserve() {
   const radioCard = (selected: boolean, disabled = false): React.CSSProperties => ({
     display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
     border: `1px solid ${selected ? '#4a6741' : '#ddd'}`,
-    borderRadius: 6, cursor: disabled ? 'not-allowed' : 'pointer',
+    borderRadius: 2, cursor: disabled ? 'not-allowed' : 'pointer',
     background: disabled ? '#f8f8f8' : selected ? '#f0f5ee' : '#fff',
     opacity: disabled ? 0.6 : 1,
   })
@@ -168,20 +168,20 @@ export default function Reserve() {
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p style={{ fontSize: 18, color: '#c0392b', marginBottom: 16 }}>このセッションは満席になりました</p>
             <p style={{ fontSize: 14, color: '#8a9a7e', marginBottom: 24 }}>別の回をお選びいただくか、次回のワークショップをお待ちください。</p>
-            <button onClick={() => { setStatus('idle'); set('session_id', '') }} style={{ padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 14 }}>
+            <button onClick={() => { setStatus('idle'); set('session_id', '') }} style={{ padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', fontSize: 14 }}>
               戻る
             </button>
           </div>
         ) : status === 'done' ? (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ background: '#f0f6f0', border: '1px solid #b0d4b0', borderRadius: 14, padding: '36px 32px', marginBottom: 32 }}>
+            <div style={{ background: '#f0f6f0', border: '1px solid #b0d4b0', borderRadius: 4, padding: '36px 32px', marginBottom: 32 }}>
               <p style={{ fontSize: 22, fontWeight: 300, letterSpacing: '0.08em', color: '#2d5a2d', margin: '0 0 16px' }}>予約を受け付けました</p>
               <p style={{ fontSize: 14, color: '#3a4535', lineHeight: 1.9, margin: 0 }}>
                 確認メールを <strong>{form.email}</strong> にお送りしました。<br />
                 届かない場合は迷惑メールフォルダをご確認ください。
               </p>
             </div>
-            <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 12, padding: '24px 28px', textAlign: 'left', marginBottom: 32 }}>
+            <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '24px 28px', textAlign: 'left', marginBottom: 32 }}>
               <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 16px' }}>予約内容</p>
               {[
                 { label: 'お名前', value: form.name },
@@ -202,12 +202,12 @@ export default function Reserve() {
                 </div>
               ))}
             </div>
-            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 8, color: '#8a9a7e', textDecoration: 'none', fontSize: 14 }}>
+            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: '#8a9a7e', textDecoration: 'none', fontSize: 14 }}>
               イベント一覧へ戻る
             </Link>
           </div>
         ) : (
-          <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 14, padding: '40px' }}>
+          <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px' }}>
             <p style={sectionLabel}>お客様情報</p>
 
             <div style={{ marginBottom: 20 }}>

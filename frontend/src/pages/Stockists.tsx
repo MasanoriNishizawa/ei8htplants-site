@@ -44,7 +44,7 @@ export default function Stockists() {
                     {s.brands.map((b) => {
                       const c = BRAND_COLORS[b] ?? { bg: '#f0f0f5', color: '#3a4535' }
                       return (
-                        <span key={b} style={{ fontSize: 11, padding: '2px 10px', borderRadius: 12, letterSpacing: '0.5px', background: c.bg, color: c.color }}>
+                        <span key={b} style={{ fontSize: 11, padding: '2px 10px', borderRadius: 4, letterSpacing: '0.5px', background: c.bg, color: c.color }}>
                           {b}
                         </span>
                       )
@@ -56,7 +56,7 @@ export default function Stockists() {
           </div>
         ))}
         {!loading && (
-          <div style={{ marginTop: 48, padding: '20px 24px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 8, fontSize: 14, color: '#8a9a7e', lineHeight: 1.9 }}>
+          <div style={{ marginTop: 48, padding: '20px 24px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, color: '#8a9a7e', lineHeight: 1.9 }}>
             取扱のご相談・卸のお問い合わせは{' '}
             <a href="/contact" style={{ color: '#1c2417', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
             {' '}よりお気軽にご連絡ください。

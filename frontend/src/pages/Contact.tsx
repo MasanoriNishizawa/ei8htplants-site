@@ -47,12 +47,12 @@ export default function Contact() {
       </div>
 
       {status === 'done' ? (
-        <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', color: '#2e7d32', padding: '20px 24px', borderRadius: 14, textAlign: 'center', fontSize: 16, lineHeight: 1.8 }}>
+        <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', color: '#2e7d32', padding: '20px 24px', borderRadius: 4, textAlign: 'center', fontSize: 16, lineHeight: 1.8 }}>
           お問い合わせを受け付けました。<br />
           内容を確認次第、ご連絡いたします。
         </div>
       ) : (
-        <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 14, padding: '40px' }}>
+        <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px' }}>
           <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#aaa', margin: '0 0 16px', paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>お客様情報</p>
 
           <div style={{ marginBottom: 20 }}>

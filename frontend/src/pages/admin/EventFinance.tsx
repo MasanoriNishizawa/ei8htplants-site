@@ -71,7 +71,7 @@ export default function EventFinance() {
   const inputStyle: React.CSSProperties = {
     padding: '8px 12px',
     border: '1px solid #dddde8',
-    borderRadius: 8,
+    borderRadius: 4,
     fontSize: 15,
     fontFamily: 'inherit',
     background: '#ffffff',
@@ -145,7 +145,7 @@ export default function EventFinance() {
               padding: '14px 16px',
               background: form.payment_flag ? '#f0f5ee' : '#ffffff',
               border: `1px solid ${form.payment_flag ? '#b8d4ae' : '#dddde8'}`,
-              borderRadius: 10,
+              borderRadius: 4,
             }}>
               <input
                 type="checkbox"
@@ -196,7 +196,7 @@ export default function EventFinance() {
               placeholder="内容（任意）"
               value={form.other_expenses_note ?? ''}
               onChange={(e) => set('other_expenses_note', e.target.value || null)}
-              style={{ width: '100%', padding: '7px 12px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '7px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }}
             />
           </div>
           <div style={{ height: 2 }} />
@@ -208,7 +208,7 @@ export default function EventFinance() {
         {/* 収支 / 支払い金額 */}
         {form.payment_flag && event?.has_workshop ? (
           <div style={{
-            padding: '18px 22px', borderRadius: 12, marginBottom: 8,
+            padding: '18px 22px', borderRadius: 4, marginBottom: 8,
             background: net >= 0 ? '#f0f5ee' : '#fdf0ee',
             border: `1px solid ${net >= 0 ? '#b8d4ae' : '#f0b8ae'}`,
           }}>
@@ -234,7 +234,7 @@ export default function EventFinance() {
           </div>
         ) : (
           <div style={{
-            padding: '18px 22px', borderRadius: 12, marginBottom: 8,
+            padding: '18px 22px', borderRadius: 4, marginBottom: 8,
             background: net >= 0 ? '#f0f5ee' : '#fdf0ee',
             border: `1px solid ${net >= 0 ? '#b8d4ae' : '#f0b8ae'}`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -262,12 +262,12 @@ export default function EventFinance() {
             onChange={(e) => set('notes', e.target.value || null)}
             rows={3}
             placeholder="備考・メモ（任意）"
-            style={{ width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: '#ffffff', resize: 'vertical', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', background: '#ffffff', resize: 'vertical', boxSizing: 'border-box' }}
           />
         </div>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 15 }}>
+          <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15 }}>
             {saving ? '保存中...' : '保存'}
           </button>
           {saved && <span style={{ fontSize: 13, color: '#4a6741' }}>保存しました</span>}
@@ -281,7 +281,7 @@ function SectionBox({ label, children }: { label: string; children: React.ReactN
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 12, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
-      <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 10, padding: '0 16px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '0 16px' }}>
         {children}
       </div>
     </div>

@@ -47,7 +47,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     boxShadow: '0 2px 24px rgba(40,35,20,0.08), 0 1px 4px rgba(40,35,20,0.04)',
     display: 'flex',
     flexDirection: isNext ? undefined : 'column',
-    borderRadius: 14,
+    borderRadius: 4,
   }
 
   const imageSection = images.length > 0 && (
@@ -100,7 +100,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
         {event.name}
       </h2>
 
-      <div style={{ fontSize: 16, color: '#3a4535', background: '#f5f5f8', padding: '15px 18px', borderRadius: 10, border: '1px solid #dddde8' }}>
+      <div style={{ fontSize: 16, color: '#3a4535', background: '#f5f5f8', padding: '15px 18px', borderRadius: 4, border: '1px solid #dddde8' }}>
         <div style={{ marginBottom: 8 }}>{formatDate(event.start_date, event.end_date)}</div>
         {event.time && <div style={{ marginBottom: 8 }}>{event.time}</div>}
         <div style={{ fontWeight: 'bold', marginBottom: event.booth_number || event.address ? 8 : 0 }}>{event.location}</div>
@@ -134,7 +134,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
       </div>
 
       {event.has_workshop && (
-        <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: 20, marginTop: 20, borderRadius: 14 }}>
+        <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: 20, marginTop: 20, borderRadius: 4 }}>
           <span style={{ display: 'block', fontWeight: 500, color: '#2c3a4a', fontSize: 16, marginBottom: 5 }}>
             Habitat Style Workshop
           </span>

@@ -69,7 +69,7 @@ export default function AdminEvents() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>イベント管理</h2>
-        <Link to="/admin/events/new" style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', textDecoration: 'none', borderRadius: 8, fontSize: 14 }}>
+        <Link to="/admin/events/new" style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', textDecoration: 'none', borderRadius: 4, fontSize: 14 }}>
           + 新規追加
         </Link>
       </div>
@@ -83,7 +83,7 @@ export default function AdminEvents() {
           padding: '16px 20px',
           background: totalNet >= 0 ? '#f0f5ee' : '#fdf0ee',
           border: `1px solid ${totalNet >= 0 ? '#b8d4ae' : '#f0b8ae'}`,
-          borderRadius: 12,
+          borderRadius: 4,
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
@@ -104,7 +104,7 @@ export default function AdminEvents() {
             const net = fin ? computeFinances(fin, ev.has_workshop).net : null
             const resCount = reservationCountMap.get(ev.id) ?? 0
             return (
-              <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 10, gap: 12 }}>
+              <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500 }}>{ev.name}</div>
                   <div style={{ fontSize: 13, color: '#8a9a7e', marginTop: 4 }}>{ev.start_date} / {ev.location}</div>
@@ -122,16 +122,16 @@ export default function AdminEvents() {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, color: '#3a4535', textDecoration: 'none' }}>編集</Link>
-                  <Link to={`/admin/events/${ev.id}/finances`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, color: '#4a6741', textDecoration: 'none' }}>収支</Link>
-                  <Link to={`/admin/events/${ev.id}/site`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, color: '#1e3272', textDecoration: 'none' }}>サイト</Link>
+                  <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#3a4535', textDecoration: 'none' }}>編集</Link>
+                  <Link to={`/admin/events/${ev.id}/finances`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#4a6741', textDecoration: 'none' }}>収支</Link>
+                  <Link to={`/admin/events/${ev.id}/site`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#1e3272', textDecoration: 'none' }}>サイト</Link>
                   {ev.has_workshop && (
-                    <Link to={`/admin/events/${ev.id}/reservations`} style={{ padding: '8px 16px', border: '1px solid #b8d0b2', borderRadius: 8, fontSize: 13, color: '#2d5a27', textDecoration: 'none', background: resCount > 0 ? '#f0f6ee' : 'none' }}>
+                    <Link to={`/admin/events/${ev.id}/reservations`} style={{ padding: '8px 16px', border: '1px solid #b8d0b2', borderRadius: 4, fontSize: 13, color: '#2d5a27', textDecoration: 'none', background: resCount > 0 ? '#f0f6ee' : 'none' }}>
                       予約{resCount > 0 ? ` ${resCount}件` : ''}
                     </Link>
                   )}
-                  <button onClick={() => duplicate(ev)} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, color: '#4a6741', background: 'none', cursor: 'pointer' }}>複製</button>
-                  <button onClick={() => del(ev.id)} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
+                  <button onClick={() => duplicate(ev)} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#4a6741', background: 'none', cursor: 'pointer' }}>複製</button>
+                  <button onClick={() => del(ev.id)} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
                 </div>
               </div>
             )

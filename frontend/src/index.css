@@ -262,7 +262,7 @@ body {
 /* Habitat Oides workshop feature card */
 .ho-workshop-feature {
   background: #1e3272;
-  border-radius: 14px;
+  border-radius: 4px;
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -303,7 +303,7 @@ body {
   overflow: hidden;
   background: #f9f9f9;
   cursor: zoom-in;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 .gallery-item img {
   width: 100%;

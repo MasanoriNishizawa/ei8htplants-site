@@ -55,13 +55,13 @@ export default function AdminGallery() {
     load()
   }
 
-  const inputStyle: React.CSSProperties = { padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', background: '#ffffff' }
+  const inputStyle: React.CSSProperties = { padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff' }
 
   return (
     <div>
       <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>ギャラリー管理</h2>
       <form onSubmit={add} style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ width: 88, height: 88, borderRadius: 8, border: '1px solid #dddde8', overflow: 'hidden', flexShrink: 0, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f8', opacity: uploading ? 0.5 : 1 }}>
+        <label style={{ width: 88, height: 88, borderRadius: 4, border: '1px solid #dddde8', overflow: 'hidden', flexShrink: 0, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f8', opacity: uploading ? 0.5 : 1 }}>
           {url ? (
             <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
@@ -75,12 +75,12 @@ export default function AdminGallery() {
             <option value="">ブランド（任意）</option>
             {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
-          <button type="submit" disabled={!url || saving || uploading} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: !url ? 0.5 : 1 }}>追加</button>
+          <button type="submit" disabled={!url || saving || uploading} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', opacity: !url ? 0.5 : 1 }}>追加</button>
         </div>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
         {images.map((img, idx) => (
-          <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1/1', background: '#f0f0f5' }}>
+          <div key={img.id} style={{ position: 'relative', borderRadius: 4, overflow: 'hidden', aspectRatio: '1/1', background: '#f0f0f5' }}>
             <img
               src={img.url}
               alt={img.alt ?? ''}
@@ -89,11 +89,11 @@ export default function AdminGallery() {
             />
             {brokenIds.has(img.id) && (
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(192,57,43,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 11, color: '#c0392b', background: '#fff', padding: '3px 10px', borderRadius: 10, fontWeight: 600 }}>URL無効</span>
+                <span style={{ fontSize: 11, color: '#c0392b', background: '#fff', padding: '3px 10px', borderRadius: 4, fontWeight: 600 }}>URL無効</span>
               </div>
             )}
             {img.brand && (
-              <span style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, padding: '2px 8px', borderRadius: 10, letterSpacing: 1 }}>
+              <span style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, padding: '2px 8px', borderRadius: 4, letterSpacing: 1 }}>
                 {img.brand}
               </span>
             )}

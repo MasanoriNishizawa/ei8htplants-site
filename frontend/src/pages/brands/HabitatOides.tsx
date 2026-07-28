@@ -118,7 +118,7 @@ export default function HabitatOides() {
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#9aaedd', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #3a58b8' }}>Collaboration</h2>
           <div style={{ margin: '40px auto 0', width: 'min(420px, 100%)' }}>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', maxHeight: '68vh', overflow: 'hidden', borderRadius: 8, background: '#000' }}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', maxHeight: '68vh', overflow: 'hidden', borderRadius: 4, background: '#000' }}>
               <video
                 ref={videoRef}
                 src="/collab.mp4"

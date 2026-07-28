@@ -43,7 +43,7 @@ export default function Header() {
               position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
               background: 'rgba(245,245,247,0.98)', border: '1px solid #dddde8',
               boxShadow: '0 8px 32px rgba(40,35,20,0.10)', minWidth: 200,
-              zIndex: 200, padding: '8px 0', borderRadius: 8,
+              zIndex: 200, padding: '8px 0', borderRadius: 4,
             }}
           >
             {[

@@ -74,7 +74,7 @@ export default function HabitatOidesWorkshop() {
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>About Workshop</h2>
           <div className="wspage-about-grid">
-            <div style={{ aspectRatio: '1/1', borderRadius: 14, overflow: 'hidden', background: '#e8e0d4' }}>
+            <div style={{ aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: '#e8e0d4' }}>
               <img
                 src="/img/habitatOides/habitat_oides_workshop_main.jpg"
                 alt="Habitat Style Workshop"
@@ -106,7 +106,7 @@ export default function HabitatOidesWorkshop() {
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Contents</h2>
           <div className="wspage-features">
             {FEATURES.map(({ bg, title, text }) => (
-              <div key={title} style={{ background: bg, borderRadius: 14, padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div key={title} style={{ background: bg, borderRadius: 4, padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 500, letterSpacing: '0.05em', color: '#fff', margin: 0 }}>{title}</h3>
                 <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)', lineHeight: 1.9, margin: 0 }}>{text}</p>
               </div>
