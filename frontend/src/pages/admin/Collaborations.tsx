@@ -80,14 +80,17 @@ export default function AdminCollaborations() {
           <input type="url" placeholder="動画URL（任意）" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} style={inputStyle} />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {form.image_url && (
-            <img src={form.image_url} alt="preview" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd4c0', flexShrink: 0, opacity: uploading ? 0.6 : 1 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-          )}
-          <input type="url" placeholder="画像URL（任意）" value={form.image_url?.startsWith('blob:') ? '' : (form.image_url ?? '')} onChange={(e) => setForm({ ...form, image_url: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
-          <label style={{ padding: '10px 12px', background: uploading ? '#ccc' : '#e8e0d4', border: '1px solid #ddd4c0', borderRadius: 8, cursor: uploading ? 'default' : 'pointer', fontSize: 12, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
-            {uploading ? '...' : 'ファイル'}
+          <label style={{ width: 88, height: 88, borderRadius: 8, border: '1px solid #ddd4c0', overflow: 'hidden', flexShrink: 0, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2ede4', opacity: uploading ? 0.5 : 1 }}>
+            {form.image_url && !form.image_url.startsWith('blob:') ? (
+              <img src={form.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: 24, color: '#aaa' }}>{uploading ? '…' : '+'}</span>
+            )}
             <input type="file" accept="image/*" onChange={handleImageFile} disabled={uploading} style={{ display: 'none' }} />
           </label>
+          {form.image_url && !form.image_url.startsWith('blob:') && (
+            <button type="button" onClick={() => setForm({ ...form, image_url: '' })} style={{ fontSize: 12, color: '#c0392b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>削除</button>
+          )}
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <textarea
