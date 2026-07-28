@@ -6,7 +6,7 @@ type LineupItem = NonNullable<PageContent['lineup']>[number]
 type GuestItem = NonNullable<PageContent['guests']>[number]
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '9px 12px', border: '1px solid #ddd4c0', borderRadius: 8,
+  width: '100%', padding: '9px 12px', border: '1px solid #dddde8', borderRadius: 8,
   fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box',
 }
 
@@ -21,8 +21,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 12, padding: 24 }}>
-      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, letterSpacing: 2, margin: '0 0 20px', paddingBottom: 12, borderBottom: '1px solid #ddd4c0' }}>{title}</h3>
+    <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 12, padding: 24 }}>
+      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, letterSpacing: 2, margin: '0 0 20px', paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>{title}</h3>
       {children}
     </div>
   )
@@ -45,10 +45,10 @@ function ImageInput({ value, onChange }: { value: string; onChange: (v: string) 
     }
   }
   const thumb: React.CSSProperties = {
-    width: 88, height: 88, borderRadius: 8, border: '1px solid #ddd4c0',
+    width: 88, height: 88, borderRadius: 8, border: '1px solid #dddde8',
     overflow: 'hidden', position: 'relative', flexShrink: 0, cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: '#f2ede4',
+    background: '#f5f5f8',
   }
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -150,7 +150,7 @@ export default function AdminEventSite() {
           <p style={{ fontSize: 13, color: '#8a9a7e', margin: 0 }}>{event.name}</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Link to={`/events/${id}`} target="_blank" style={{ fontSize: 13, color: '#8a9a7e', textDecoration: 'none', borderBottom: '1px solid #ddd4c0', paddingBottom: 2 }}>
+          <Link to={`/events/${id}`} target="_blank" style={{ fontSize: 13, color: '#8a9a7e', textDecoration: 'none', borderBottom: '1px solid #dddde8', paddingBottom: 2 }}>
             プレビュー →
           </Link>
           <button
@@ -178,7 +178,7 @@ export default function AdminEventSite() {
         {/* 開催情報 */}
         <Card title="開催情報">
           <Field label="住所（イベント情報から自動取得）">
-            <div style={{ padding: '9px 12px', background: '#f2ede4', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 14, color: '#3a4535' }}>
+            <div style={{ padding: '9px 12px', background: '#f5f5f8', border: '1px solid #dddde8', borderRadius: 8, fontSize: 14, color: '#3a4535' }}>
               {event.address ? (
                 <>
                   <span>{event.address}</span>
@@ -215,7 +215,7 @@ export default function AdminEventSite() {
         {/* ラインナップ */}
         <Card title="ラインナップ">
           {(pc.lineup ?? []).map((item, i) => (
-            <div key={i} style={{ border: '1px solid #e8e2d8', borderRadius: 8, padding: '16px 16px 4px', marginBottom: 12 }}>
+            <div key={i} style={{ border: '1px solid #e4e4ee', borderRadius: 8, padding: '16px 16px 4px', marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <span style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 1 }}>ラインナップ {i + 1}</span>
                 <button onClick={() => set('lineup', (pc.lineup ?? []).filter((_, j) => j !== i))} style={{ padding: '4px 10px', border: '1px solid #f0b8ae', borderRadius: 6, fontSize: 12, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
@@ -232,7 +232,7 @@ export default function AdminEventSite() {
             </div>
           ))}
           <button onClick={() => set('lineup', [...(pc.lineup ?? []), { title: '', description: '', image_url: '' }])}
-            style={{ padding: '9px 20px', border: '1px dashed #b8a88a', borderRadius: 8, fontSize: 13, color: '#8a9a7e', background: 'none', cursor: 'pointer', width: '100%' }}>
+            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 8, fontSize: 13, color: '#8a9a7e', background: 'none', cursor: 'pointer', width: '100%' }}>
             + ラインナップを追加
           </button>
         </Card>
@@ -240,7 +240,7 @@ export default function AdminEventSite() {
         {/* ゲスト・出展者 */}
         <Card title="ゲスト・出展者">
           {(pc.guests ?? []).map((guest, i) => (
-            <div key={i} style={{ border: '1px solid #e8e2d8', borderRadius: 8, padding: '16px 16px 4px', marginBottom: 12 }}>
+            <div key={i} style={{ border: '1px solid #e4e4ee', borderRadius: 8, padding: '16px 16px 4px', marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <span style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 1 }}>ゲスト {i + 1}</span>
                 <button onClick={() => set('guests', (pc.guests ?? []).filter((_, j) => j !== i))} style={{ padding: '4px 10px', border: '1px solid #f0b8ae', borderRadius: 6, fontSize: 12, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
@@ -263,7 +263,7 @@ export default function AdminEventSite() {
             </div>
           ))}
           <button onClick={() => set('guests', [...(pc.guests ?? []), { name: '', role: '', bio: '', image_url: '', instagram_url: '' }])}
-            style={{ padding: '9px 20px', border: '1px dashed #b8a88a', borderRadius: 8, fontSize: 13, color: '#8a9a7e', background: 'none', cursor: 'pointer', width: '100%' }}>
+            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 8, fontSize: 13, color: '#8a9a7e', background: 'none', cursor: 'pointer', width: '100%' }}>
             + ゲストを追加
           </button>
         </Card>

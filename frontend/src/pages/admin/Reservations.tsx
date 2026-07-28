@@ -70,7 +70,7 @@ export default function AdminReservations() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>WS予約一覧</h2>
         {rows.length > 0 && (
-          <button onClick={() => exportCsv(rows)} style={{ padding: '8px 20px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, background: '#fffcf6', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535' }}>
+          <button onClick={() => exportCsv(rows)} style={{ padding: '8px 20px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535' }}>
             CSV エクスポート
           </button>
         )}
@@ -79,7 +79,7 @@ export default function AdminReservations() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid #ddd4c0', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
                 {headers.map((h) => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -90,7 +90,7 @@ export default function AdminReservations() {
                 const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
                 const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
                 return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #f0ebe0' }}>
+                  <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
                     <td style={{ padding: '12px 14px', color: '#8a9a7e', whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
                     <td style={{ padding: '12px 14px' }}><a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a></td>
@@ -112,7 +112,7 @@ export default function AdminReservations() {
                           value={r.status}
                           disabled={updating === r.id}
                           onChange={(e) => updateStatus(r.id, e.target.value)}
-                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #ddd4c0', borderRadius: 6, background: '#fffcf6', cursor: 'pointer', fontFamily: 'inherit' }}
+                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 6, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           {Object.entries(STATUS_LABELS).map(([val, label]) => (
                             <option key={val} value={val}>{label}</option>

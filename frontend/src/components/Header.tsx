@@ -41,7 +41,7 @@ export default function Header() {
             onMouseLeave={() => setBrandOpen(false)}
             style={{
               position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-              background: 'rgba(247,243,236,0.98)', border: '1px solid #ddd4c0',
+              background: 'rgba(245,245,247,0.98)', border: '1px solid #dddde8',
               boxShadow: '0 8px 32px rgba(40,35,20,0.10)', minWidth: 200,
               zIndex: 200, padding: '8px 0', borderRadius: 8,
             }}
@@ -83,9 +83,9 @@ export default function Header() {
     <header
       style={{
         position: 'fixed', top: 0, left: 0, width: '100%',
-        background: 'rgba(247,243,236,0.97)',
+        background: 'rgba(245,245,247,0.97)',
         backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid #b8a88a',
+        borderBottom: '1px solid #b0b0c4',
         boxShadow: '0 2px 16px rgba(40,35,20,0.08)',
         zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',

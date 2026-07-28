@@ -135,8 +135,8 @@ export default function AdminEventReservations() {
   const totalPeople = nonCancelled.reduce((s, r) => s + r.participants, 0)
 
   const btnStyle: React.CSSProperties = {
-    padding: '8px 18px', border: '1px solid #ddd4c0', borderRadius: 8,
-    fontSize: 13, background: '#fffcf6', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535',
+    padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 8,
+    fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535',
   }
 
   const headers = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '持込', '備考', 'ステータス']
@@ -178,7 +178,7 @@ export default function AdminEventReservations() {
             <>
               <button
                 onClick={() => setActiveSession('all')}
-                style={{ ...btnStyle, background: activeSession === 'all' ? '#1c2417' : '#fffcf6', color: activeSession === 'all' ? '#fff' : '#3a4535', border: `1px solid ${activeSession === 'all' ? '#1c2417' : '#ddd4c0'}` }}
+                style={{ ...btnStyle, background: activeSession === 'all' ? '#1c2417' : '#ffffff', color: activeSession === 'all' ? '#fff' : '#3a4535', border: `1px solid ${activeSession === 'all' ? '#1c2417' : '#dddde8'}` }}
               >
                 全て
               </button>
@@ -188,7 +188,7 @@ export default function AdminEventReservations() {
                   <button
                     key={s.id}
                     onClick={() => setActiveSession(s.id)}
-                    style={{ ...btnStyle, background: activeSession === s.id ? '#1c2417' : '#fffcf6', color: activeSession === s.id ? '#fff' : '#3a4535', border: `1px solid ${activeSession === s.id ? '#1c2417' : '#ddd4c0'}` }}
+                    style={{ ...btnStyle, background: activeSession === s.id ? '#1c2417' : '#ffffff', color: activeSession === s.id ? '#fff' : '#3a4535', border: `1px solid ${activeSession === s.id ? '#1c2417' : '#dddde8'}` }}
                   >
                     {s.time_label}{count > 0 ? ` (${count})` : ''}
                   </button>
@@ -205,7 +205,7 @@ export default function AdminEventReservations() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid #ddd4c0', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
                 {headers.map((h) => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -216,7 +216,7 @@ export default function AdminEventReservations() {
                 const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
                 const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
                 return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #f0ebe0' }}>
+                  <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
                     <td style={{ padding: '12px 14px', color: '#8a9a7e', whiteSpace: 'nowrap' }}>
                       {new Date(r.created_at).toLocaleDateString('ja-JP')}
                     </td>
@@ -248,7 +248,7 @@ export default function AdminEventReservations() {
                           value={r.status}
                           disabled={updating === r.id}
                           onChange={(e) => updateStatus(r.id, e.target.value)}
-                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #ddd4c0', borderRadius: 6, background: '#fffcf6', cursor: 'pointer', fontFamily: 'inherit' }}
+                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 6, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           {Object.entries(STATUS_LABELS).map(([val, label]) => (
                             <option key={val} value={val}>{label}</option>

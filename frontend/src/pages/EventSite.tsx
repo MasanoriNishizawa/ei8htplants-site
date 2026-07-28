@@ -54,7 +54,7 @@ export default function EventSite() {
                   key={i}
                   src={img.url}
                   alt={event.name}
-                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid #ede8de' }}
+                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid #e8e8f0' }}
                 />
               ))}
             </div>
@@ -84,7 +84,7 @@ export default function EventSite() {
 
             {/* コンセプト */}
             {pc.concept && (
-              <div style={{ marginBottom: 24, padding: '24px 20px', background: '#fffcf6', borderRadius: 10, border: '1px solid #ddd4c0' }}>
+              <div style={{ marginBottom: 24, padding: '24px 20px', background: '#ffffff', borderRadius: 10, border: '1px solid #dddde8' }}>
                 <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 14 }}>Concept</div>
                 <p style={{ fontSize: 15, lineHeight: 2.2, color: '#3a4535', margin: 0, whiteSpace: 'pre-line' }}>{pc.concept}</p>
               </div>
@@ -92,11 +92,11 @@ export default function EventSite() {
 
             {/* ワークショップ */}
             {event.has_workshop && (
-              <div style={{ background: '#f2ede2', border: '1px solid #c8b49a', padding: '16px 20px', marginBottom: 24, borderRadius: 14 }}>
+              <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: '16px 20px', marginBottom: 24, borderRadius: 14 }}>
                 <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 10 }}>Workshop</div>
                 {!isArchived && event.ws_requires_reservation && (
                   <a href={`/reserve?event_id=${event.id}`}
-                    style={{ display: 'inline-block', background: '#5c3d22', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
+                    style={{ display: 'inline-block', background: '#2c3a4a', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
                     ワークショップを予約する
                   </a>
                 )}
@@ -106,10 +106,10 @@ export default function EventSite() {
             {/* ラインナップ */}
             {pc.lineup && pc.lineup.length > 0 && (
               <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #ddd4c0' }}>Lineup</div>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>Lineup</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
                   {pc.lineup.map((item, i) => (
-                    <div key={i} style={{ background: '#f2ede4', borderRadius: 10, overflow: 'hidden', border: '1px solid #ddd4c0' }}>
+                    <div key={i} style={{ background: '#f5f5f8', borderRadius: 10, overflow: 'hidden', border: '1px solid #dddde8' }}>
                       {item.image_url && (
                         <img src={item.image_url} alt={item.title} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
                       )}
@@ -126,14 +126,14 @@ export default function EventSite() {
             {/* ゲスト・出展者 */}
             {pc.guests && pc.guests.length > 0 && (
               <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #ddd4c0' }}>Guests</div>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>Guests</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
                   {pc.guests.map((guest, i) => (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#f2ede4', borderRadius: 10, padding: '16px 12px', border: '1px solid #ddd4c0' }}>
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#f5f5f8', borderRadius: 10, padding: '16px 12px', border: '1px solid #dddde8' }}>
                       {guest.image_url ? (
-                        <img src={guest.image_url} alt={guest.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, border: '1px solid #ddd4c0' }} />
+                        <img src={guest.image_url} alt={guest.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, border: '1px solid #dddde8' }} />
                       ) : (
-                        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e8e2d8', marginBottom: 10, border: '1px solid #ddd4c0' }} />
+                        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e4e4ee', marginBottom: 10, border: '1px solid #dddde8' }} />
                       )}
                       <div style={{ fontSize: 15, fontWeight: 500, color: '#1c2417', marginBottom: 2 }}>{guest.name}</div>
                       {guest.role && <div style={{ fontSize: 11, letterSpacing: 1, color: '#8a9a7e', marginBottom: 6 }}>{guest.role}</div>}
@@ -152,7 +152,7 @@ export default function EventSite() {
 
             {/* アーカイブ */}
             {isArchived && (
-              <div style={{ textAlign: 'center', background: '#f2ede4', borderRadius: 10, padding: '40px 24px', border: '1px solid #ddd4c0' }}>
+              <div style={{ textAlign: 'center', background: '#f5f5f8', borderRadius: 10, padding: '40px 24px', border: '1px solid #dddde8' }}>
                 <h2 style={{ fontSize: 22, fontWeight: 400, color: '#1c2417', margin: '0 0 16px' }}>
                   {pc.archive?.title ?? 'ご来場ありがとうございました'}
                 </h2>

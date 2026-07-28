@@ -42,7 +42,7 @@ export default function Home() {
     <>
       <PageMeta />
       {/* Hero */}
-      <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fffcf6', borderBottom: '1px solid #ddd4c0', marginBottom: 40 }}>
+      <div style={{ textAlign: 'center', padding: '60px 20px', background: '#ffffff', borderBottom: '1px solid #dddde8', marginBottom: 40 }}>
         <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', maxWidth: 400, width: '85%', margin: '0 auto 20px auto', aspectRatio: '1/1' }}>
           {SLIDES.map(({ src, alt, scale }, i) => (
             <img
@@ -69,14 +69,14 @@ export default function Home() {
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 20px' }}>
         {nextEvent && (
           <>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '60px 0 24px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '60px 0 24px 0', borderBottom: '1px solid #dddde8', paddingBottom: 12 }}>
               NEXT EVENT
             </h2>
             <EventPreview event={nextEvent} horizontal />
             <div style={{ margin: '24px 0 40px' }}>
               <Link
                 to="/events"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#fffcf6', border: '1px solid #ddd', borderRadius: 14, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#ffffff', border: '1px solid #ddd', borderRadius: 14, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
               >
                 VIEW ALL EVENTS
               </Link>
@@ -89,7 +89,7 @@ export default function Home() {
       {gallery.length > 0 && (
         <>
           <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '60px 0 24px 0', borderBottom: '1px solid #ddd4c0', paddingBottom: 12 }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 300, fontStyle: 'italic', letterSpacing: 2, margin: '60px 0 24px 0', borderBottom: '1px solid #dddde8', paddingBottom: 12 }}>
               GALLERY
             </h2>
           </div>
@@ -107,7 +107,7 @@ export default function Home() {
             <div style={{ maxWidth: 400, margin: '-20px auto 0' }}>
               <Link
                 to="/gallery"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#fffcf6', border: '1px solid #ddd', borderRadius: 14, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: '#ffffff', border: '1px solid #ddd', borderRadius: 14, color: '#1c2417', textDecoration: 'none', fontSize: 16, letterSpacing: 2, fontWeight: 'bold' }}
               >
                 VIEW ALL GALLERY
               </Link>
@@ -118,7 +118,7 @@ export default function Home() {
 
       {/* Instagram */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
-        <div style={{ textAlign: 'center', marginTop: 60, paddingTop: 60, borderTop: '1px solid #ddd4c0' }}>
+        <div style={{ textAlign: 'center', marginTop: 60, paddingTop: 60, borderTop: '1px solid #dddde8' }}>
           <div style={{ fontSize: 20, color: '#8a9a7e', letterSpacing: 4, marginBottom: 30, textTransform: 'uppercase' }}>Instagram</div>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 40, maxWidth: 600, margin: '0 auto' }}>
             {IG_LINKS.map(({ href, src, cls }) => (

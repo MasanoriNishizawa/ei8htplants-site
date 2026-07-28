@@ -54,8 +54,8 @@ export default function AdminContacts() {
   const unreadCount = contacts.filter((c) => !c.is_read).length
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 12px', border: '1px solid #ddd4c0',
-    borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: '#fffcf6',
+    width: '100%', padding: '10px 12px', border: '1px solid #dddde8',
+    borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: '#ffffff',
     boxSizing: 'border-box', resize: 'vertical' as const,
   }
 
@@ -86,7 +86,7 @@ export default function AdminContacts() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {contacts.map((c) => (
-            <div key={c.id} style={{ background: c.is_read ? '#fffcf6' : '#fef9f0', border: `1px solid ${c.is_read ? '#ddd4c0' : '#e8c870'}`, borderRadius: 10, overflow: 'hidden' }}>
+            <div key={c.id} style={{ background: c.is_read ? '#ffffff' : '#fef9f0', border: `1px solid ${c.is_read ? '#dddde8' : '#e8c870'}`, borderRadius: 10, overflow: 'hidden' }}>
               <div
                 style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '14px 18px', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setExpanded(expanded === c.id ? null : c.id)}
@@ -103,7 +103,7 @@ export default function AdminContacts() {
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <button onClick={(e) => { e.stopPropagation(); toggleRead(c) }}
-                    style={{ padding: '6px 14px', border: '1px solid #ddd4c0', borderRadius: 6, fontSize: 12, cursor: 'pointer', background: '#fff', color: '#3a4535', whiteSpace: 'nowrap' }}>
+                    style={{ padding: '6px 14px', border: '1px solid #dddde8', borderRadius: 6, fontSize: 12, cursor: 'pointer', background: '#fff', color: '#3a4535', whiteSpace: 'nowrap' }}>
                     {c.is_read ? '未読に戻す' : '既読にする'}
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); openReply(c) }}
@@ -114,7 +114,7 @@ export default function AdminContacts() {
                 </div>
               </div>
               {expanded === c.id && (
-                <div style={{ padding: '0 18px 18px', borderTop: '1px solid #f0ebe0' }}>
+                <div style={{ padding: '0 18px 18px', borderTop: '1px solid #f0f0f5' }}>
                   <p style={{ fontSize: 15, color: '#1c2417', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: '14px 0 0' }}>{c.message}</p>
                 </div>
               )}
@@ -141,7 +141,7 @@ export default function AdminContacts() {
               <textarea rows={10} style={inputStyle} value={reply.body} onChange={(e) => setReply({ ...reply, body: e.target.value })} />
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setReply(null)} style={{ padding: '10px 20px', border: '1px solid #ddd4c0', borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 14 }}>キャンセル</button>
+              <button onClick={() => setReply(null)} style={{ padding: '10px 20px', border: '1px solid #dddde8', borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 14 }}>キャンセル</button>
               <button onClick={sendReply} disabled={replySending} style={{ padding: '10px 24px', border: 'none', borderRadius: 8, background: '#1c2417', color: '#fff', cursor: 'pointer', fontSize: 14 }}>
                 {replySending ? '送信中...' : '送信する'}
               </button>

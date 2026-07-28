@@ -56,17 +56,17 @@ export default function Hue() {
             />
           </div>
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
-            <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #c4a882, transparent)' }} />
-            <span style={{ fontSize: 11, letterSpacing: 3, color: '#c4a882', textTransform: 'uppercase' }}>Scroll</span>
+            <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #b4b4c8, transparent)' }} />
+            <span style={{ fontSize: 11, letterSpacing: 3, color: '#b4b4c8', textTransform: 'uppercase' }}>Scroll</span>
           </div>
         </section>
       </div>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>Concept</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
             <img src="/img/logo-hue.png" alt="HUE by ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
@@ -88,14 +88,14 @@ export default function Hue() {
         </div>
       </section>
 
-      <section style={{ background: '#2a1a08', color: '#f8f4ee', textAlign: 'center', padding: '88px 20px' }}>
+      <section style={{ background: '#2a1a08', color: '#f6f6fa', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(24px, 4vw, 48px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Follow Us</h2>
-        <p style={{ fontSize: 13, letterSpacing: 2, color: '#9a7a5a', textTransform: 'uppercase', margin: '0 0 40px' }}>Instagram</p>
+        <p style={{ fontSize: 13, letterSpacing: 2, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 40px' }}>Instagram</p>
         <a
           href="https://www.instagram.com/hue_by.ei8ht.plants/"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f8f4ee', textDecoration: 'none', border: '1px solid #5a3a18', padding: '16px 36px', borderRadius: 2 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f6f6fa', textDecoration: 'none', border: '1px solid #5a3a18', padding: '16px 36px', borderRadius: 2 }}
         >
           @hue_by.ei8ht.plants →
         </a>

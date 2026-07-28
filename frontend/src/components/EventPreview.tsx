@@ -52,17 +52,17 @@ export default function EventPreview({ event, horizontal = false }: Props) {
 
   return (
     <div className={horizontal ? 'ep-horizontal' : ''} style={{
-      background: '#fffcf6',
+      background: '#ffffff',
       borderRadius: 12,
       overflow: 'hidden',
       boxShadow: '0 2px 16px rgba(40,35,20,0.08)',
-      border: '1px solid #ede8de',
+      border: '1px solid #e8e8f0',
       display: 'flex',
       flexDirection: 'column',
     }}>
       {/* 画像 */}
       {images.length > 0 && (
-        <div style={{ position: 'relative', background: '#ede7dc' }}>
+        <div style={{ position: 'relative', background: '#e8e8f0' }}>
           <img
             src={images[imgIdx].url}
             alt={event.name}
@@ -110,7 +110,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           {event.name}
         </h3>
 
-        <div style={{ fontSize: 13, color: '#3a4535', background: '#f2ede4', padding: '12px 14px', borderRadius: 8, border: '1px solid #ddd4c0', lineHeight: 1.8 }}>
+        <div style={{ fontSize: 13, color: '#3a4535', background: '#f5f5f8', padding: '12px 14px', borderRadius: 8, border: '1px solid #dddde8', lineHeight: 1.8 }}>
           <div>{dateLabel}</div>
           {event.time && <div>{event.time}</div>}
           <div style={{ fontWeight: 600 }}>{event.location}</div>

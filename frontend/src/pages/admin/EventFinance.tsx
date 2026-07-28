@@ -70,11 +70,11 @@ export default function EventFinance() {
 
   const inputStyle: React.CSSProperties = {
     padding: '8px 12px',
-    border: '1px solid #ddd4c0',
+    border: '1px solid #dddde8',
     borderRadius: 8,
     fontSize: 15,
     fontFamily: 'inherit',
-    background: '#fffcf6',
+    background: '#ffffff',
     textAlign: 'right',
     width: 130,
   }
@@ -84,7 +84,7 @@ export default function EventFinance() {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px 0',
-    borderBottom: '1px solid #f0ebe0',
+    borderBottom: '1px solid #f0f0f5',
     gap: 16,
   }
 
@@ -143,8 +143,8 @@ export default function EventFinance() {
             <label style={{
               display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
               padding: '14px 16px',
-              background: form.payment_flag ? '#f0f5ee' : '#fffcf6',
-              border: `1px solid ${form.payment_flag ? '#b8d4ae' : '#ddd4c0'}`,
+              background: form.payment_flag ? '#f0f5ee' : '#ffffff',
+              border: `1px solid ${form.payment_flag ? '#b8d4ae' : '#dddde8'}`,
               borderRadius: 10,
             }}>
               <input
@@ -186,7 +186,7 @@ export default function EventFinance() {
             <NumInput value={form.accommodation} onChange={(v) => set('accommodation', v)} style={inputStyle} />
           </Row>
           {/* その他支出 */}
-          <div style={{ padding: '12px 0', borderBottom: '1px solid #f0ebe0' }}>
+          <div style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f5' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 8 }}>
               <span style={{ fontSize: 14 }}>その他支出</span>
               <NumInput value={form.other_expenses} onChange={(v) => set('other_expenses', v)} style={inputStyle} />
@@ -196,7 +196,7 @@ export default function EventFinance() {
               placeholder="内容（任意）"
               value={form.other_expenses_note ?? ''}
               onChange={(e) => set('other_expenses_note', e.target.value || null)}
-              style={{ width: '100%', padding: '7px 12px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', background: '#fffcf6', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '7px 12px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }}
             />
           </div>
           <div style={{ height: 2 }} />
@@ -262,7 +262,7 @@ export default function EventFinance() {
             onChange={(e) => set('notes', e.target.value || null)}
             rows={3}
             placeholder="備考・メモ（任意）"
-            style={{ width: '100%', padding: '10px 14px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: '#fffcf6', resize: 'vertical', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: '#ffffff', resize: 'vertical', boxSizing: 'border-box' }}
           />
         </div>
 
@@ -281,7 +281,7 @@ function SectionBox({ label, children }: { label: string; children: React.ReactN
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 12, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
-      <div style={{ background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 10, padding: '0 16px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 10, padding: '0 16px' }}>
         {children}
       </div>
     </div>

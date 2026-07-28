@@ -58,15 +58,15 @@ export default function AdminCollaborations() {
   }
 
   const inputStyle: React.CSSProperties = {
-    padding: '10px 14px', border: '1px solid #ddd4c0', borderRadius: 8,
-    fontSize: 15, fontFamily: 'inherit', background: '#fffcf6', width: '100%', boxSizing: 'border-box',
+    padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 8,
+    fontSize: 15, fontFamily: 'inherit', background: '#ffffff', width: '100%', boxSizing: 'border-box',
   }
 
   return (
     <div>
       <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>コラボレーション管理</h2>
 
-      <form onSubmit={add} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 32, padding: 20, background: '#fffcf6', borderRadius: 12, border: '1px solid #ddd4c0' }}>
+      <form onSubmit={add} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 32, padding: 20, background: '#ffffff', borderRadius: 12, border: '1px solid #dddde8' }}>
         <div style={{ gridColumn: '1 / -1' }}>
           <input required placeholder="タイトル *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inputStyle} />
         </div>
@@ -80,7 +80,7 @@ export default function AdminCollaborations() {
           <input type="url" placeholder="動画URL（任意）" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} style={inputStyle} />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <label style={{ width: 88, height: 88, borderRadius: 8, border: '1px solid #ddd4c0', overflow: 'hidden', flexShrink: 0, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2ede4', opacity: uploading ? 0.5 : 1 }}>
+          <label style={{ width: 88, height: 88, borderRadius: 8, border: '1px solid #dddde8', overflow: 'hidden', flexShrink: 0, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f8', opacity: uploading ? 0.5 : 1 }}>
             {form.image_url && !form.image_url.startsWith('blob:') ? (
               <img src={form.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
@@ -110,7 +110,7 @@ export default function AdminCollaborations() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {items.map((item) => (
-          <div key={item.id} style={{ display: 'grid', gridTemplateColumns: item.image_url ? '80px 1fr auto' : '1fr auto', gap: 16, alignItems: 'start', padding: '16px 20px', background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 10 }}>
+          <div key={item.id} style={{ display: 'grid', gridTemplateColumns: item.image_url ? '80px 1fr auto' : '1fr auto', gap: 16, alignItems: 'start', padding: '16px 20px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 10 }}>
             {item.image_url && (
               <img src={item.image_url} alt={item.title} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6 }} />
             )}
@@ -121,7 +121,7 @@ export default function AdminCollaborations() {
               {item.description && <div style={{ fontSize: 13, color: '#3a4535', marginTop: 6, lineHeight: 1.6 }}>{item.description}</div>}
               {item.video_url && <div style={{ fontSize: 12, color: '#4a6741', marginTop: 4 }}>動画あり</div>}
             </div>
-            <button onClick={() => del(item.id)} style={{ padding: '8px 16px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 13, color: '#c0392b', background: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>削除</button>
+            <button onClick={() => del(item.id)} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 13, color: '#c0392b', background: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>削除</button>
           </div>
         ))}
         {items.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: '#8a9a7e' }}>コラボレーションがありません。</p>}

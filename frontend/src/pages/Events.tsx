@@ -45,9 +45,9 @@ export default function Events() {
   }, [sorted, brandFilter, monthFilter])
 
   const filterBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: '7px 16px', border: '1px solid #ddd4c0', borderRadius: 20, fontSize: 12,
+    padding: '7px 16px', border: '1px solid #dddde8', borderRadius: 20, fontSize: 12,
     letterSpacing: 1, cursor: 'pointer', fontFamily: 'inherit',
-    background: active ? '#1c2417' : '#fffcf6',
+    background: active ? '#1c2417' : '#ffffff',
     color: active ? '#fff' : '#8a9a7e',
     transition: 'all 0.15s',
   })
@@ -57,14 +57,14 @@ export default function Events() {
   return (
     <>
       <PageMeta title={isPast ? 'Past Events' : 'Events'} description="ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。" />
-      <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f7f3ec' }}>
+      <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f5f5f7' }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>
           {isPast ? 'Past Events' : 'Events'}
         </h1>
       </div>
 
       {!loading && events.length > 0 && (
-        <div style={{ background: '#f7f3ec', borderBottom: '1px solid #ddd4c0', padding: '12px 20px' }}>
+        <div style={{ background: '#f5f5f7', borderBottom: '1px solid #dddde8', padding: '12px 20px' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 11, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginRight: 4 }}>Brand</span>
             {BRANDS.map((b) => (
@@ -108,7 +108,7 @@ export default function Events() {
         <div style={{ textAlign: 'center', marginTop: 60 }}>
           <Link
             to={isPast ? '/events' : '/events?page=past'}
-            style={{ display: 'inline-block', padding: '12px 30px', background: '#fffcf6', border: '1px solid #ddd4c0', color: '#8a9a7e', textDecoration: 'none', borderRadius: 14, fontSize: 16, letterSpacing: 2 }}
+            style={{ display: 'inline-block', padding: '12px 30px', background: '#ffffff', border: '1px solid #dddde8', color: '#8a9a7e', textDecoration: 'none', borderRadius: 14, fontSize: 16, letterSpacing: 2 }}
           >
             {isPast ? '現在のイベントを見る' : '過去のイベントを見る'}
           </Link>

@@ -56,11 +56,11 @@ export default function Ei8htPlants() {
         </section>
       </div>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>Concept</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
             <img src="/img/logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
@@ -76,7 +76,7 @@ export default function Ei8htPlants() {
         </div>
       </section>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       <section id="store" className="brand-section" ref={(el) => { sectionRefs.current.store = el }}
         style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>

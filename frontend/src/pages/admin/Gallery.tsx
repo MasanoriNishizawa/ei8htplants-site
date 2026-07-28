@@ -55,13 +55,13 @@ export default function AdminGallery() {
     load()
   }
 
-  const inputStyle: React.CSSProperties = { padding: '10px 14px', border: '1px solid #ddd4c0', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', background: '#fffcf6' }
+  const inputStyle: React.CSSProperties = { padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', background: '#ffffff' }
 
   return (
     <div>
       <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>ギャラリー管理</h2>
       <form onSubmit={add} style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ width: 88, height: 88, borderRadius: 8, border: '1px solid #ddd4c0', overflow: 'hidden', flexShrink: 0, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2ede4', opacity: uploading ? 0.5 : 1 }}>
+        <label style={{ width: 88, height: 88, borderRadius: 8, border: '1px solid #dddde8', overflow: 'hidden', flexShrink: 0, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f8', opacity: uploading ? 0.5 : 1 }}>
           {url ? (
             <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
@@ -80,7 +80,7 @@ export default function AdminGallery() {
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
         {images.map((img, idx) => (
-          <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1/1', background: '#f0ebe0' }}>
+          <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1/1', background: '#f0f0f5' }}>
             <img
               src={img.url}
               alt={img.alt ?? ''}

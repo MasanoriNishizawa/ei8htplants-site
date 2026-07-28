@@ -41,7 +41,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
   const urgentBadge = days !== null && days >= 0 && days <= 7
 
   const cardStyle: React.CSSProperties = {
-    background: '#fffcf6',
+    background: '#ffffff',
     marginBottom: isNext ? 0 : 60,
     overflow: 'hidden',
     boxShadow: '0 2px 24px rgba(40,35,20,0.08), 0 1px 4px rgba(40,35,20,0.04)',
@@ -51,7 +51,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
   }
 
   const imageSection = images.length > 0 && (
-    <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#ede7dc' }}>
+    <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#e8e8f0' }}>
       {urgentBadge && (
         <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: days === 0 ? '#c0392b' : '#e67e22', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: 0.5 }}>
           {days === 0 ? '本日開催' : `あと${days}日`}
@@ -100,7 +100,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
         {event.name}
       </h2>
 
-      <div style={{ fontSize: 16, color: '#3a4535', background: '#f2ede4', padding: '15px 18px', borderRadius: 10, border: '1px solid #ddd4c0' }}>
+      <div style={{ fontSize: 16, color: '#3a4535', background: '#f5f5f8', padding: '15px 18px', borderRadius: 10, border: '1px solid #dddde8' }}>
         <div style={{ marginBottom: 8 }}>{formatDate(event.start_date, event.end_date)}</div>
         {event.time && <div style={{ marginBottom: 8 }}>{event.time}</div>}
         <div style={{ fontWeight: 'bold', marginBottom: event.booth_number || event.address ? 8 : 0 }}>{event.location}</div>
@@ -134,18 +134,18 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
       </div>
 
       {event.has_workshop && (
-        <div style={{ background: '#f2ede2', border: '1px solid #c8b49a', padding: 20, marginTop: 20, borderRadius: 14 }}>
-          <span style={{ display: 'block', fontWeight: 500, color: '#5c3d22', fontSize: 16, marginBottom: 5 }}>
+        <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: 20, marginTop: 20, borderRadius: 14 }}>
+          <span style={{ display: 'block', fontWeight: 500, color: '#2c3a4a', fontSize: 16, marginBottom: 5 }}>
             Habitat Style Workshop
           </span>
-          <span style={{ fontSize: 15, color: '#7a5a3a', lineHeight: 1.6, display: 'block' }}>
+          <span style={{ fontSize: 15, color: '#4a5568', lineHeight: 1.6, display: 'block' }}>
             現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。
           </span>
           {!event.is_past && event.ws_requires_reservation && (
             <a
               href={`/reserve?event_id=${event.id}`}
               onClick={(e) => e.stopPropagation()}
-              style={{ display: 'inline-block', marginTop: 12, background: '#5c3d22', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}
+              style={{ display: 'inline-block', marginTop: 12, background: '#2c3a4a', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}
             >
               ワークショップを予約する
             </a>

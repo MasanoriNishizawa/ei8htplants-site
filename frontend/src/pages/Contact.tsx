@@ -37,7 +37,7 @@ export default function Contact() {
     <>
     <PageMeta title="Contact" description="ei8ht plants へのお問い合わせはこちらから。" />
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '48px 20px 80px' }}>
-      <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #ddd4c0' }}>
+      <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #dddde8' }}>
         <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>ei8ht plants</p>
         <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: '#1c2417' }}>Contact</h1>
         <p style={{ fontSize: 16, color: '#8a9a7e', lineHeight: 1.8, margin: 0 }}>
@@ -52,7 +52,7 @@ export default function Contact() {
           内容を確認次第、ご連絡いたします。
         </div>
       ) : (
-        <form onSubmit={submit} style={{ background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 14, padding: '40px' }}>
+        <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 14, padding: '40px' }}>
           <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#aaa', margin: '0 0 16px', paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>お客様情報</p>
 
           <div style={{ marginBottom: 20 }}>

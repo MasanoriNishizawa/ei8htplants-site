@@ -44,7 +44,7 @@ export default function HabitatOidesWorkshop() {
       <PageMeta title="Habitat Style Workshop" description="ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_workshop_main.jpg" />
       <nav className="brand-subnav" style={{ top: 60 }}>
         <div className="brand-subnav-inner">
-          <Link to="/habitatoides" style={{ borderRight: '1px solid #ddd4c0', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#8a9a7e', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
+          <Link to="/habitatoides" style={{ borderRight: '1px solid #dddde8', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#8a9a7e', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
             ← Habitat Oides
           </Link>
           {SECTIONS.map((id) => (
@@ -68,11 +68,11 @@ export default function HabitatOidesWorkshop() {
         </p>
       </section>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       <section id="about" className="brand-section" ref={(el) => { sectionRefs.current.about = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>About Workshop</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>About Workshop</h2>
           <div className="wspage-about-grid">
             <div style={{ aspectRatio: '1/1', borderRadius: 14, overflow: 'hidden', background: '#e8e0d4' }}>
               <img
@@ -99,11 +99,11 @@ export default function HabitatOidesWorkshop() {
         </div>
       </section>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       <section id="contents" className="brand-section" ref={(el) => { sectionRefs.current.contents = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>Contents</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Contents</h2>
           <div className="wspage-features">
             {FEATURES.map(({ bg, title, text }) => (
               <div key={title} style={{ background: bg, borderRadius: 14, padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -115,14 +115,14 @@ export default function HabitatOidesWorkshop() {
         </div>
       </section>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #ddd4c0', margin: 0 }} />
+      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       <section id="flow" className="brand-section" ref={(el) => { sectionRefs.current.flow = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #ddd4c0' }}>Flow</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Flow</h2>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {FLOW.map(({ num, title, text }) => (
-              <div key={num} style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 24, padding: '28px 0', borderBottom: '1px solid #ddd4c0', alignItems: 'start' }}>
+              <div key={num} style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 24, padding: '28px 0', borderBottom: '1px solid #dddde8', alignItems: 'start' }}>
                 <div style={{ fontSize: 32, fontWeight: 200, color: '#ddd', lineHeight: 1, letterSpacing: '-0.02em', paddingTop: 2 }}>{num}</div>
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 500, letterSpacing: '0.04em', color: '#1c2417', margin: '0 0 8px' }}>{title}</h3>

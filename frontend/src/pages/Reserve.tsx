@@ -148,7 +148,7 @@ export default function Reserve() {
     <>
       <PageMeta title="Workshop 予約" description="Habitat Style Workshop へのご予約はこちらから。" />
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '48px 20px 80px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #ddd4c0' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #dddde8' }}>
           <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>Habitat Oides</p>
           <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: '#1c2417' }}>Workshop 予約</h1>
           {event && (
@@ -168,7 +168,7 @@ export default function Reserve() {
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p style={{ fontSize: 18, color: '#c0392b', marginBottom: 16 }}>このセッションは満席になりました</p>
             <p style={{ fontSize: 14, color: '#8a9a7e', marginBottom: 24 }}>別の回をお選びいただくか、次回のワークショップをお待ちください。</p>
-            <button onClick={() => { setStatus('idle'); set('session_id', '') }} style={{ padding: '10px 24px', border: '1px solid #ddd4c0', borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 14 }}>
+            <button onClick={() => { setStatus('idle'); set('session_id', '') }} style={{ padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 14 }}>
               戻る
             </button>
           </div>
@@ -181,7 +181,7 @@ export default function Reserve() {
                 届かない場合は迷惑メールフォルダをご確認ください。
               </p>
             </div>
-            <div style={{ background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 12, padding: '24px 28px', textAlign: 'left', marginBottom: 32 }}>
+            <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 12, padding: '24px 28px', textAlign: 'left', marginBottom: 32 }}>
               <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 16px' }}>予約内容</p>
               {[
                 { label: 'お名前', value: form.name },
@@ -196,18 +196,18 @@ export default function Reserve() {
                 { label: '鉢持ち込み', value: form.bring_pot ? 'あり' : 'なし' },
                 ...(form.note ? [{ label: '備考', value: form.note }] : []),
               ].map(({ label, value }) => (
-                <div key={label} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0ebe0' }}>
+                <div key={label} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0f0f5' }}>
                   <span style={{ fontSize: 12, color: '#8a9a7e' }}>{label}</span>
                   <span style={{ fontSize: 14, color: '#1c2417' }}>{value}</span>
                 </div>
               ))}
             </div>
-            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #ddd4c0', borderRadius: 8, color: '#8a9a7e', textDecoration: 'none', fontSize: 14 }}>
+            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 8, color: '#8a9a7e', textDecoration: 'none', fontSize: 14 }}>
               イベント一覧へ戻る
             </Link>
           </div>
         ) : (
-          <form onSubmit={submit} style={{ background: '#fffcf6', border: '1px solid #ddd4c0', borderRadius: 14, padding: '40px' }}>
+          <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 14, padding: '40px' }}>
             <p style={sectionLabel}>お客様情報</p>
 
             <div style={{ marginBottom: 20 }}>
