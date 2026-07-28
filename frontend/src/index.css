@@ -97,7 +97,9 @@ body {
   gap: 20px;
   align-items: start;
 }
-
+.header-nav-desktop > *:not(:last-child) {
+  border-right: 1px solid #d0d0dc;
+}
 
 @media (max-width: 768px) {
   .menu-btn {
