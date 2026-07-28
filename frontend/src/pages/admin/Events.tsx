@@ -36,7 +36,7 @@ export default function AdminEvents() {
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
     await api.events.delete(id)
-    load()
+    setEvents((prev) => prev.filter((ev) => ev.id !== id))
   }
 
   const duplicate = async (ev: Event) => {
