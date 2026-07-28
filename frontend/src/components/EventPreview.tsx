@@ -45,7 +45,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
   const hasSite = hasPageContent(event.page_content)
   const images = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
   const dateLabel = formatDate(event.start_date, event.end_date)
-  const address = pc.venue?.address ?? event.address
+  const address = pc.venue?.address || event.address
   const mapsUrl = address
     ? `https://www.google.com/maps/search/${encodeURIComponent(address)}`
     : null
