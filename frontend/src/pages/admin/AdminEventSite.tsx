@@ -102,7 +102,7 @@ export default function AdminEventSite() {
         ...saved,
         hero: { ...emptyContent().hero, ...saved.hero },
         venue: { ...emptyContent().venue, ...saved.venue },
-        workshop: ev.has_workshop ? (saved.workshop ?? { title: '', description: '', note: '' }) : null,
+        workshop: saved.workshop ?? null,
         archive: { ...emptyContent().archive, ...saved.archive, enabled: saved.archive?.enabled ?? false },
       })
     })
@@ -236,21 +236,6 @@ export default function AdminEventSite() {
             + ラインナップを追加
           </button>
         </Card>
-
-        {/* ワークショップ */}
-        {event.has_workshop && pc.workshop !== null && pc.workshop !== undefined && (
-          <Card title="ワークショップ">
-            <Field label="タイトル">
-              <input value={pc.workshop.title ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, title: e.target.value })} style={inputStyle} />
-            </Field>
-            <Field label="説明">
-              <textarea value={pc.workshop.description ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, description: e.target.value })} rows={8} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.8 }} />
-            </Field>
-            <Field label="備考（定員・持ち物など）">
-              <input value={pc.workshop.note ?? ''} onChange={(e) => set('workshop', { ...pc.workshop!, note: e.target.value })} placeholder="定員 8名" style={inputStyle} />
-            </Field>
-          </Card>
-        )}
 
         {/* ゲスト・出展者 */}
         <Card title="ゲスト・出展者">

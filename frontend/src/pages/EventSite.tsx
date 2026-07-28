@@ -20,32 +20,6 @@ function formatDate(start: string, end: string | null): string {
   return `${fmt(s)}〜${fmt(e)}`
 }
 
-function ImageCarousel({ images }: { images: { url: string }[] }) {
-  const [idx, setIdx] = useState(0)
-  if (images.length === 0) return null
-  return (
-    <div style={{ position: 'relative', background: '#ede7dc' }}>
-      <img
-        src={images[idx].url}
-        alt=""
-        style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }}
-      />
-      {images.length > 1 && (
-        <>
-          <button
-            onClick={() => setIdx((i) => (i - 1 + images.length) % images.length)}
-            style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}
-          >&#10094;</button>
-          <button
-            onClick={() => setIdx((i) => (i + 1) % images.length)}
-            style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}
-          >&#10095;</button>
-        </>
-      )}
-    </div>
-  )
-}
-
 export default function EventSite() {
   const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<Event | null>(null)
@@ -69,130 +43,136 @@ export default function EventSite() {
     <>
       <PageMeta title={event.name} description={`${dateLabel} / ${event.location}`} ogImage={ogImage} />
 
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 20px 80px', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px 80px', boxSizing: 'border-box' }}>
+        <div className={validImages.length > 0 ? 'event-site-layout' : ''}>
 
-        {/* 画像カルーセル */}
-        <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 28, boxShadow: '0 2px 24px rgba(40,35,20,0.08)' }}>
-          <ImageCarousel images={validImages} />
-        </div>
-
-        {/* ブランドバッジ */}
-        {event.brands.length > 0 && (
-          <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {event.brands.map((brand) => (
-              <a key={brand} href={BRAND_IG[brand] ?? '#'} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 12, background: '#1c2417', color: '#fff', padding: '6px 12px', borderRadius: 20, letterSpacing: 1, textDecoration: 'none', fontWeight: 500 }}>
-                {brand}
-              </a>
-            ))}
-          </div>
-        )}
-
-        {/* イベント名 */}
-        {isArchived && (
-          <div style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 2, marginBottom: 8 }}>Archived</div>
-        )}
-        <h1 style={{ fontSize: 26, margin: '0 0 20px', fontWeight: 500, lineHeight: 1.4, color: '#1c2417' }}>
-          {event.name}
-        </h1>
-
-        {/* コンセプト */}
-        {pc.concept && (
-          <div style={{ margin: '32px 0', padding: '24px 20px', background: '#fffcf6', borderRadius: 10, border: '1px solid #ddd4c0' }}>
-            <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 14 }}>Concept</div>
-            <p style={{ fontSize: 15, lineHeight: 2.2, color: '#3a4535', margin: 0, whiteSpace: 'pre-line' }}>{pc.concept}</p>
-          </div>
-        )}
-
-        {/* ワークショップ */}
-        {event.has_workshop && (
-          <div style={{ background: '#f2ede2', border: '1px solid #c8b49a', padding: 20, marginBottom: 20, borderRadius: 14 }}>
-            <span style={{ display: 'block', fontWeight: 500, color: '#5c3d22', fontSize: 16, marginBottom: 5 }}>
-              {pc.workshop?.title ?? 'Habitat Style Workshop'}
-            </span>
-            <span style={{ fontSize: 15, color: '#7a5a3a', lineHeight: 1.6, display: 'block' }}>
-              {pc.workshop?.description ?? '現地の風景を切り取ったような一鉢を作る、ハビタットスタイルのワークショップを開催します。'}
-            </span>
-            {pc.workshop?.note && (
-              <span style={{ fontSize: 13, color: '#9a7a5a', display: 'block', marginTop: 8 }}>{pc.workshop.note}</span>
-            )}
-            {!isArchived && event.ws_requires_reservation && (
-              <a href={`/reserve?event_id=${event.id}`}
-                style={{ display: 'inline-block', marginTop: 12, background: '#5c3d22', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
-                ワークショップを予約する
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* ラインナップ */}
-        {pc.lineup && pc.lineup.length > 0 && (
-          <div style={{ margin: '32px 0' }}>
-            <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #ddd4c0' }}>Lineup</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-              {pc.lineup.map((item, i) => (
-                <div key={i} style={{ background: '#f2ede4', borderRadius: 10, overflow: 'hidden', border: '1px solid #ddd4c0' }}>
-                  {item.image_url && (
-                    <img src={item.image_url} alt={item.title} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
-                  )}
-                  <div style={{ padding: '14px 16px' }}>
-                    <div style={{ fontSize: 15, fontWeight: 500, color: '#1c2417', marginBottom: 4 }}>{item.title}</div>
-                    {item.description && <div style={{ fontSize: 13, color: '#3a4535', lineHeight: 1.7 }}>{item.description}</div>}
-                  </div>
-                </div>
+          {/* Left: images */}
+          {validImages.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {validImages.map((img, i) => (
+                <img
+                  key={i}
+                  src={img.url}
+                  alt={event.name}
+                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 10, border: '1px solid #ede8de' }}
+                />
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ゲスト・出展者 */}
-        {pc.guests && pc.guests.length > 0 && (
-          <div style={{ margin: '32px 0' }}>
-            <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #ddd4c0' }}>Guests</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 24 }}>
-              {pc.guests.map((guest, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#f2ede4', borderRadius: 10, padding: '20px 16px', border: '1px solid #ddd4c0' }}>
-                  {guest.image_url ? (
-                    <img src={guest.image_url} alt={guest.name} style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', marginBottom: 12, border: '1px solid #ddd4c0' }} />
-                  ) : (
-                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#e8e2d8', marginBottom: 12, border: '1px solid #ddd4c0' }} />
-                  )}
-                  <div style={{ fontSize: 16, fontWeight: 500, color: '#1c2417', marginBottom: 2 }}>{guest.name}</div>
-                  {guest.role && <div style={{ fontSize: 11, letterSpacing: 1, color: '#8a9a7e', marginBottom: 8 }}>{guest.role}</div>}
-                  {guest.bio && <p style={{ fontSize: 13, color: '#3a4535', lineHeight: 1.8, margin: '0 0 8px' }}>{guest.bio}</p>}
-                  {guest.instagram_url && (
-                    <a href={guest.instagram_url} target="_blank" rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                      Instagram
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* アーカイブ */}
-        {isArchived && (
-          <div style={{ margin: '32px 0', textAlign: 'center', background: '#f2ede4', borderRadius: 10, padding: '40px 24px', border: '1px solid #ddd4c0' }}>
-            <h2 style={{ fontSize: 22, fontWeight: 400, color: '#1c2417', margin: '0 0 16px' }}>
-              {pc.archive?.title ?? 'ご来場ありがとうございました'}
-            </h2>
-            {pc.archive?.message && (
-              <p style={{ fontSize: 15, color: '#3a4535', lineHeight: 2.1, whiteSpace: 'pre-line', margin: '0 0 24px' }}>{pc.archive.message}</p>
-            )}
-            {pc.archive?.gallery && pc.archive.gallery.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, textAlign: 'left' }}>
-                {pc.archive.gallery.map((url, i) => (
-                  <div key={i} style={{ aspectRatio: '1/1', overflow: 'hidden', borderRadius: 8 }}>
-                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
+          {/* Right: info */}
+          <div>
+            {/* ブランドバッジ */}
+            {event.brands.length > 0 && (
+              <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {event.brands.map((brand) => (
+                  <a key={brand} href={BRAND_IG[brand] ?? '#'} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, background: '#1c2417', color: '#fff', padding: '6px 12px', borderRadius: 20, letterSpacing: 1, textDecoration: 'none', fontWeight: 500 }}>
+                    {brand}
+                  </a>
                 ))}
               </div>
             )}
-          </div>
-        )}
 
+            {/* イベント名 */}
+            {isArchived && (
+              <div style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 2, marginBottom: 8 }}>Archived</div>
+            )}
+            <h1 style={{ fontSize: 26, margin: '0 0 20px', fontWeight: 500, lineHeight: 1.4, color: '#1c2417' }}>
+              {event.name}
+            </h1>
+
+            {/* コンセプト */}
+            {pc.concept && (
+              <div style={{ marginBottom: 24, padding: '24px 20px', background: '#fffcf6', borderRadius: 10, border: '1px solid #ddd4c0' }}>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 14 }}>Concept</div>
+                <p style={{ fontSize: 15, lineHeight: 2.2, color: '#3a4535', margin: 0, whiteSpace: 'pre-line' }}>{pc.concept}</p>
+              </div>
+            )}
+
+            {/* ワークショップ */}
+            {event.has_workshop && (
+              <div style={{ background: '#f2ede2', border: '1px solid #c8b49a', padding: '16px 20px', marginBottom: 24, borderRadius: 14 }}>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 10 }}>Workshop</div>
+                {!isArchived && event.ws_requires_reservation && (
+                  <a href={`/reserve?event_id=${event.id}`}
+                    style={{ display: 'inline-block', background: '#5c3d22', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
+                    ワークショップを予約する
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* ラインナップ */}
+            {pc.lineup && pc.lineup.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #ddd4c0' }}>Lineup</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                  {pc.lineup.map((item, i) => (
+                    <div key={i} style={{ background: '#f2ede4', borderRadius: 10, overflow: 'hidden', border: '1px solid #ddd4c0' }}>
+                      {item.image_url && (
+                        <img src={item.image_url} alt={item.title} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+                      )}
+                      <div style={{ padding: '12px 14px' }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: '#1c2417', marginBottom: 4 }}>{item.title}</div>
+                        {item.description && <div style={{ fontSize: 12, color: '#3a4535', lineHeight: 1.7 }}>{item.description}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ゲスト・出展者 */}
+            {pc.guests && pc.guests.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #ddd4c0' }}>Guests</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
+                  {pc.guests.map((guest, i) => (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', background: '#f2ede4', borderRadius: 10, padding: '16px 12px', border: '1px solid #ddd4c0' }}>
+                      {guest.image_url ? (
+                        <img src={guest.image_url} alt={guest.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, border: '1px solid #ddd4c0' }} />
+                      ) : (
+                        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e8e2d8', marginBottom: 10, border: '1px solid #ddd4c0' }} />
+                      )}
+                      <div style={{ fontSize: 15, fontWeight: 500, color: '#1c2417', marginBottom: 2 }}>{guest.name}</div>
+                      {guest.role && <div style={{ fontSize: 11, letterSpacing: 1, color: '#8a9a7e', marginBottom: 6 }}>{guest.role}</div>}
+                      {guest.bio && <p style={{ fontSize: 12, color: '#3a4535', lineHeight: 1.8, margin: '0 0 8px' }}>{guest.bio}</p>}
+                      {guest.instagram_url && (
+                        <a href={guest.instagram_url} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                          Instagram
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* アーカイブ */}
+            {isArchived && (
+              <div style={{ textAlign: 'center', background: '#f2ede4', borderRadius: 10, padding: '40px 24px', border: '1px solid #ddd4c0' }}>
+                <h2 style={{ fontSize: 22, fontWeight: 400, color: '#1c2417', margin: '0 0 16px' }}>
+                  {pc.archive?.title ?? 'ご来場ありがとうございました'}
+                </h2>
+                {pc.archive?.message && (
+                  <p style={{ fontSize: 15, color: '#3a4535', lineHeight: 2.1, whiteSpace: 'pre-line', margin: '0 0 24px' }}>{pc.archive.message}</p>
+                )}
+                {pc.archive?.gallery && pc.archive.gallery.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, textAlign: 'left' }}>
+                    {pc.archive.gallery.map((url, i) => (
+                      <div key={i} style={{ aspectRatio: '1/1', overflow: 'hidden', borderRadius: 8 }}>
+                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
     </>
   )

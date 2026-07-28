@@ -76,6 +76,20 @@ body {
   }
 }
 
+/* ---- イベント固有サイト 2カラムレイアウト ---- */
+.event-site-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (min-width: 700px) {
+  .event-site-layout {
+    grid-template-columns: 2fr 3fr;
+    gap: 36px;
+  }
+}
+
 /* ---- イベントグリッド ---- */
 .events-grid {
   display: grid;
