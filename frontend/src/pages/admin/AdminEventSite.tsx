@@ -149,9 +149,6 @@ export default function AdminEventSite() {
 
         {/* Hero */}
         <Card title="Hero">
-          <Field label="メインビジュアル">
-            <ImageInput value={pc.hero?.image_url ?? ''} onChange={(v) => setHero('image_url', v)} />
-          </Field>
           <Field label="キャッチコピー">
             <input value={pc.hero?.tagline ?? ''} onChange={(e) => setHero('tagline', e.target.value)} placeholder="植物と出会う2日間" style={inputStyle} />
           </Field>
