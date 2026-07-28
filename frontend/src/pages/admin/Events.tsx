@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api, computeFinances, type Event, type EventFinances } from '../../lib/api'
 
 function fmt(n: number) {
@@ -11,6 +11,7 @@ export default function AdminEvents() {
   const [financeMap, setFinanceMap] = useState<Map<string, EventFinances>>(new Map())
   const [reservationCountMap, setReservationCountMap] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(true)
+  const location = useLocation()
 
   const load = () => {
     setLoading(true)
@@ -30,7 +31,7 @@ export default function AdminEvents() {
     }).finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [location.key])
 
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return

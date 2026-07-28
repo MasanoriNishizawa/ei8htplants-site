@@ -85,6 +85,19 @@ export default function AdminEventForm() {
   const setSession = (i: number, key: keyof SessionInput, value: string | number) =>
     setSessions((prev) => prev.map((s, j) => j === i ? { ...s, [key]: value } : s))
 
+  const autoSetSessions = () => {
+    const match = form.time.match(/(\d{1,2}):(\d{2})\s*[〜~\-]\s*(\d{1,2}):(\d{2})/)
+    if (!match) return
+    const eventStart = parseInt(match[1]) * 60 + parseInt(match[2])
+    const eventEnd = parseInt(match[3]) * 60 + parseInt(match[4])
+    const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+    const generated: SessionInput[] = []
+    for (let t = eventStart + 60; t + 60 <= eventEnd - 60; t += 60) {
+      generated.push({ time_label: `${fmt(t)}〜${fmt(t + 60)}`, max_participants: 4 })
+    }
+    if (generated.length > 0) setSessions(generated)
+  }
+
   const DOW_JA = ['日', '月', '火', '水', '木', '金', '土']
 
   const getDates = (start: string, end: string): string[] => {
@@ -289,10 +302,16 @@ export default function AdminEventForm() {
           <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <label style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</label>
-              <button type="button" onClick={addSession}
-                style={{ padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
-                + 追加
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={autoSetSessions} disabled={!form.time.match(/\d:\d{2}\s*[〜~\-]\s*\d:\d{2}/)}
+                  style={{ padding: '6px 14px', background: 'none', color: '#4a6741', border: '1px solid #4a6741', borderRadius: 2, fontSize: 13, cursor: 'pointer', opacity: form.time.match(/\d:\d{2}\s*[〜~\-]\s*\d:\d{2}/) ? 1 : 0.4 }}>
+                  自動設定
+                </button>
+                <button type="button" onClick={addSession}
+                  style={{ padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
+                  + 追加
+                </button>
+              </div>
             </div>
             {sessions.length === 0 && (
               <p style={{ fontSize: 13, color: '#8a9a7e', margin: 0 }}>セッションなし（時間指定なしで予約受付）</p>

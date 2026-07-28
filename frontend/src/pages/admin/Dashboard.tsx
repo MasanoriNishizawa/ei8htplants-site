@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api } from '../../lib/api'
 
 const ITEMS = [
@@ -15,10 +15,11 @@ interface Stats { unreadContacts: number; pendingReservations: number; activeEve
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const location = useLocation()
 
   useEffect(() => {
     api.stats().then(setStats).catch(() => {})
-  }, [])
+  }, [location.key])
 
   const statCards = [
     { label: '未読お問い合わせ', value: stats?.unreadContacts ?? '-', to: '/admin/contacts', urgent: (stats?.unreadContacts ?? 0) > 0 },
