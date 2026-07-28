@@ -127,12 +127,16 @@ export default function EventSite() {
             {event.has_workshop && (
               <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: '16px 20px', marginBottom: 24, borderRadius: 4 }}>
                 <div style={{ fontSize: 11, letterSpacing: 3, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 10 }}>Workshop</div>
-                {!isArchived && event.ws_requires_reservation && (
+                {(isArchived || event.is_past) ? (
+                  <p style={{ fontSize: 14, color: '#3a4535', margin: 0, lineHeight: 1.8 }}>
+                    ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。
+                  </p>
+                ) : event.ws_requires_reservation ? (
                   <a href={`/reserve?event_id=${event.id}`}
                     style={{ display: 'inline-block', background: '#2c3a4a', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
                     ワークショップを予約する
                   </a>
-                )}
+                ) : null}
               </div>
             )}
 
