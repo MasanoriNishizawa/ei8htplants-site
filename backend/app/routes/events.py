@@ -98,12 +98,12 @@ def get_sessions(event_id: str):
     if not sessions:
         return []
     session_ids = [s['id'] for s in sessions]
-    reservations = admin_supabase.table('workshop_reservations').select('session_id').in_('session_id', session_ids).neq('status', 'cancelled').execute().data
+    reservations = admin_supabase.table('workshop_reservations').select('session_id, participants').in_('session_id', session_ids).neq('status', 'cancelled').execute().data
     count_map: dict[str, int] = {}
     for r in reservations:
         sid = r.get('session_id')
         if sid:
-            count_map[sid] = count_map.get(sid, 0) + 1
+            count_map[sid] = count_map.get(sid, 0) + (r.get('participants') or 1)
     for s in sessions:
         s['reserved_count'] = count_map.get(s['id'], 0)
     return sessions
