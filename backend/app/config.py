@@ -10,6 +10,11 @@ RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 CONTACT_TO_EMAIL = os.getenv('CONTACT_TO_EMAIL', '')
 CONTACT_FROM_EMAIL = os.getenv('CONTACT_FROM_EMAIL', 'noreply@ei8htplants.com')
 
+SQUARE_ACCESS_TOKEN = os.getenv('SQUARE_ACCESS_TOKEN', '')
+SQUARE_LOCATION_ID = os.getenv('SQUARE_LOCATION_ID', '')
+# 'sandbox' or 'production'
+SQUARE_ENVIRONMENT = os.getenv('SQUARE_ENVIRONMENT', 'sandbox')
+
 # Resend の "from" フィールドに表示される送信者名
 SENDER = f'ei8ht plants <{CONTACT_FROM_EMAIL}>'
 

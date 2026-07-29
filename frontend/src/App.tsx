@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
+import { CartProvider } from './lib/cart'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -20,6 +21,10 @@ import HabitatOidesWorkshop from './pages/brands/HabitatOidesWorkshop'
 import Hue from './pages/brands/Hue'
 import Reserve from './pages/Reserve'
 import CancelReservation from './pages/CancelReservation'
+import Shop from './pages/Shop'
+import ShopProduct from './pages/ShopProduct'
+import Checkout from './pages/Checkout'
+import OrderComplete from './pages/OrderComplete'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminEvents from './pages/admin/Events'
@@ -32,44 +37,54 @@ import AdminContacts from './pages/admin/Contacts'
 import AdminEventFinance from './pages/admin/EventFinance'
 import AdminEventReservations from './pages/admin/EventReservations'
 import AdminEventSite from './pages/admin/AdminEventSite'
+import AdminProducts from './pages/admin/Products'
+import AdminOrders from './pages/admin/Orders'
 import EventSite from './pages/EventSite'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/gallery" element={<Gallery />} />
-          <Route path="/concept" element={<Concept />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/stockists" element={<Stockists />} />
-          <Route path="/collaborations" element={<Collaborations />} />
-          <Route path="/ei8htplants" element={<Ei8htPlants />} />
-          <Route path="/habitatoides" element={<HabitatOides />} />
-          <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
-          <Route path="/hue" element={<Hue />} />
-          <Route path="/reserve" element={<Reserve />} />
-          <Route path="/cancel" element={<CancelReservation />} />
-          <Route path="/events/:id" element={<EventSite />} />
-        </Route>
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="events" element={<AdminEvents />} />
-          <Route path="events/new" element={<AdminEventForm />} />
-          <Route path="events/:id/edit" element={<AdminEventForm />} />
-          <Route path="events/:id/finances" element={<AdminEventFinance />} />
-          <Route path="events/:id/reservations" element={<AdminEventReservations />} />
-          <Route path="events/:id/site" element={<AdminEventSite />} />
-          <Route path="gallery" element={<AdminGallery />} />
-          <Route path="stockists" element={<AdminStockists />} />
-          <Route path="reservations" element={<AdminReservations />} />
-          <Route path="collaborations" element={<AdminCollaborations />} />
-          <Route path="contacts" element={<AdminContacts />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <CartProvider>
+      <BrowserRouter>
+        <ScrollToTop />
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/concept" element={<Concept />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/stockists" element={<Stockists />} />
+            <Route path="/collaborations" element={<Collaborations />} />
+            <Route path="/ei8htplants" element={<Ei8htPlants />} />
+            <Route path="/habitatoides" element={<HabitatOides />} />
+            <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
+            <Route path="/hue" element={<Hue />} />
+            <Route path="/reserve" element={<Reserve />} />
+            <Route path="/cancel" element={<CancelReservation />} />
+            <Route path="/events/:id" element={<EventSite />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/shop/:id" element={<ShopProduct />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order/complete" element={<OrderComplete />} />
+          </Route>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="events" element={<AdminEvents />} />
+            <Route path="events/new" element={<AdminEventForm />} />
+            <Route path="events/:id/edit" element={<AdminEventForm />} />
+            <Route path="events/:id/finances" element={<AdminEventFinance />} />
+            <Route path="events/:id/reservations" element={<AdminEventReservations />} />
+            <Route path="events/:id/site" element={<AdminEventSite />} />
+            <Route path="gallery" element={<AdminGallery />} />
+            <Route path="stockists" element={<AdminStockists />} />
+            <Route path="reservations" element={<AdminReservations />} />
+            <Route path="collaborations" element={<AdminCollaborations />} />
+            <Route path="contacts" element={<AdminContacts />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="orders" element={<AdminOrders />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </CartProvider>
   )
 }

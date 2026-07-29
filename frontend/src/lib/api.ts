@@ -120,6 +120,31 @@ export const api = {
         body: JSON.stringify({ token }),
       }),
   },
+  products: {
+    list: (all = false) => request<Product[]>(`/products${all ? '?all=true' : ''}`),
+    get: (id: string) => request<Product>(`/products/${id}`),
+    create: (body: ProductBody) =>
+      authRequest<Product>('/products', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: string, body: ProductBody) =>
+      authRequest<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      authRequest<{ ok: boolean }>(`/products/${id}`, { method: 'DELETE' }),
+    updateStock: (id: string, stock: number) =>
+      authRequest<Product>(`/products/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ stock }) }),
+  },
+  shipping: {
+    getRate: (prefecture: string) =>
+      request<{ fee: number }>(`/shipping/rate?prefecture=${encodeURIComponent(prefecture)}`),
+    getPrefectures: () => request<string[]>('/shipping/prefectures'),
+  },
+  orders: {
+    create: (body: OrderPayload) =>
+      request<{ order_id: string }>('/orders', { method: 'POST', body: JSON.stringify(body) }),
+    list: () => authRequest<Order[]>('/orders'),
+    get: (id: string) => authRequest<OrderDetail>(`/orders/${id}`),
+    updateStatus: (id: string, status: string) =>
+      authRequest<Order>(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  },
   collaborations: {
     list: () => request<Collaboration[]>('/collaborations'),
     add: (body: CollaborationPayload) =>
@@ -327,6 +352,72 @@ export interface EventFinances {
 }
 
 export type EventFinancesBody = Omit<EventFinances, 'id' | 'event_id' | 'updated_at'>
+
+export interface Product {
+  id: string
+  name: string
+  description: string | null
+  price: number
+  stock: number
+  image_urls: string[]
+  is_published: boolean
+  display_order: number
+  created_at: string
+}
+
+export interface ProductBody {
+  name: string
+  description?: string | null
+  price: number
+  stock: number
+  image_urls: string[]
+  is_published: boolean
+  display_order: number
+}
+
+export interface OrderPayload {
+  customer_name: string
+  customer_email: string
+  customer_phone?: string
+  postal_code: string
+  prefecture: string
+  city: string
+  address_line1: string
+  address_line2?: string
+  note?: string
+  items: { product_id: string; quantity: number }[]
+  source_id: string
+}
+
+export interface Order {
+  id: string
+  customer_name: string
+  customer_email: string
+  customer_phone: string | null
+  postal_code: string
+  prefecture: string
+  city: string
+  address_line1: string
+  address_line2: string | null
+  note: string | null
+  subtotal: number
+  shipping_fee: number
+  total: number
+  status: string
+  square_payment_id: string | null
+  created_at: string
+}
+
+export interface OrderItem {
+  id: string
+  order_id: string
+  product_id: string | null
+  product_name: string
+  price: number
+  quantity: number
+}
+
+export type OrderDetail = Order & { items: OrderItem[] }
 
 export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   transport: number
