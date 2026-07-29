@@ -1,4 +1,6 @@
 import resend
+import secrets
+import string
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -34,6 +36,15 @@ class ReserveStatusPatch(BaseModel):
     status: str
 
 
+class CancelBody(BaseModel):
+    token: str
+
+
+def _generate_cancel_token() -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
+
+
 def _sync_reserved_count(session_id: str):
     result = admin_supabase.table('workshop_reservations') \
         .select('participants') \
@@ -65,6 +76,28 @@ def create_reservation(body: ReserveBody):
             print(f'[reserve] sync reserved_count failed: {e}')
     _send_confirmation(body)
     return row
+
+
+@router.post('/cancel')
+def cancel_by_token(body: CancelBody):
+    row = admin_supabase.table('workshop_reservations') \
+        .select('*') \
+        .eq('cancel_token', body.token) \
+        .single().execute().data
+    if not row:
+        raise HTTPException(404, 'キャンセルIDが見つかりません')
+    if row['status'] == 'cancelled':
+        raise HTTPException(400, 'すでにキャンセル済みです')
+    updated = admin_supabase.table('workshop_reservations') \
+        .update({'status': 'cancelled'}) \
+        .eq('id', row['id']) \
+        .execute().data[0]
+    if row.get('session_id'):
+        try:
+            _sync_reserved_count(row['session_id'])
+        except Exception as e:
+            print(f'[reserve] sync after cancel failed: {e}')
+    return updated
 
 
 def _send_confirmation(body: ReserveBody):
@@ -107,6 +140,31 @@ def _send_confirmation(body: ReserveBody):
     })
 
 
+def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
+    if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
+        return
+    cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
+    resend.api_key = RESEND_API_KEY
+    resend.Emails.send({
+        'from': SENDER,
+        'to': [reservation['email']],
+        'subject': f'[Habitat Oides] ワークショップ予約が確定しました: {event["name"]}',
+        'text': (
+            f'{reservation["name"]} 様\n\n'
+            f'ワークショップのご予約が確定いたしました。\n'
+            f'当日のご参加をお待ちしております。\n\n'
+            f'─────────────────\n'
+            f'キャンセルID: {cancel_token}\n\n'
+            f'ご都合によりキャンセルされる場合は、以下のリンクよりお手続きください。\n'
+            f'{cancel_url}\n'
+            f'─────────────────\n\n'
+            f'Habitat Oides\n'
+            f'https://ei8htplants.com'
+            + NO_REPLY_NOTE
+        ),
+    })
+
+
 @router.get('s')
 def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)):
     q = admin_supabase.table('workshop_reservations').select('*').order('created_at', desc=True)
@@ -117,11 +175,33 @@ def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)):
 
 @router.patch('s/{reservation_id}')
 def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=Depends(require_auth)):
-    row = admin_supabase.table('workshop_reservations').select('session_id').eq('id', reservation_id).single().execute().data
-    updated = admin_supabase.table('workshop_reservations').update(body.model_dump()).eq('id', reservation_id).execute().data[0]
-    if row and row.get('session_id'):
+    row = admin_supabase.table('workshop_reservations') \
+        .select('*') \
+        .eq('id', reservation_id) \
+        .single().execute().data
+    if not row:
+        raise HTTPException(404, 'Not found')
+
+    update_data: dict = {'status': body.status}
+    cancel_token = None
+    if body.status == 'confirmed' and not row.get('cancel_token'):
+        cancel_token = _generate_cancel_token()
+        update_data['cancel_token'] = cancel_token
+
+    updated = admin_supabase.table('workshop_reservations').update(update_data).eq('id', reservation_id).execute().data[0]
+
+    if row.get('session_id'):
         try:
             _sync_reserved_count(row['session_id'])
         except Exception as e:
             print(f'[reserve] sync reserved_count failed: {e}')
+
+    if cancel_token:
+        try:
+            event = supabase.table('events').select('name, start_date, location').eq('id', row['event_id']).single().execute().data
+            if event:
+                _send_cancel_link_email(row, event, cancel_token)
+        except Exception as e:
+            print(f'[reserve] cancel link email failed: {e}')
+
     return updated

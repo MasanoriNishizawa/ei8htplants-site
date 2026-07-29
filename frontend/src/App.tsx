@@ -19,6 +19,7 @@ import HabitatOides from './pages/brands/HabitatOides'
 import HabitatOidesWorkshop from './pages/brands/HabitatOidesWorkshop'
 import Hue from './pages/brands/Hue'
 import Reserve from './pages/Reserve'
+import CancelReservation from './pages/CancelReservation'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminEvents from './pages/admin/Events'
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
           <Route path="/hue" element={<Hue />} />
           <Route path="/reserve" element={<Reserve />} />
+          <Route path="/cancel" element={<CancelReservation />} />
           <Route path="/events/:id" element={<EventSite />} />
         </Route>
         <Route path="/admin" element={<AdminLayout />}>
