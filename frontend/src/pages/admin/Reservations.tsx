@@ -4,7 +4,7 @@ import { api, type Reservation } from '../../lib/api'
 const STATUS_LABELS: Record<string, string> = {
   pending: '未確認',
   confirmed: '確定',
-  cancelled: 'キャンセル済み',
+  cancelled: 'キャンセル',
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
