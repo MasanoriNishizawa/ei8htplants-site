@@ -249,8 +249,8 @@ export default function Reserve() {
               </div>
             )}
 
-            {/* 予約時間（event.time から自動生成） */}
-            {timeSlots.length > 0 && (
+            {/* 予約時間（WSセッション未設定時のみ表示） */}
+            {timeSlots.length > 0 && !hasSessions && (
               <div style={{ marginBottom: 20 }}>
                 <label style={labelStyle}>予約時間 <span style={{ color: '#c0392b' }}>*</span></label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
