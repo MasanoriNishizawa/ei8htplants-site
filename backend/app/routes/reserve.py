@@ -41,8 +41,7 @@ class CancelBody(BaseModel):
 
 
 def _generate_cancel_token() -> str:
-    alphabet = string.ascii_uppercase + string.digits
-    return ''.join(secrets.choice(alphabet) for _ in range(8))
+    return ''.join(secrets.choice(string.digits) for _ in range(8))
 
 
 def _sync_reserved_count(session_id: str):

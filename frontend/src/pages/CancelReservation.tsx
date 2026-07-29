@@ -15,7 +15,7 @@ export default function CancelReservation() {
       const res = await fetch('/api/reserve/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: token.trim().toUpperCase() }),
+        body: JSON.stringify({ token: token.trim() }),
       })
       if (res.ok) {
         setStatus('done')
@@ -33,9 +33,9 @@ export default function CancelReservation() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '12px 14px', border: '1px solid #ddd',
-    fontSize: 20, fontFamily: 'inherit', outline: 'none', background: '#fff',
+    fontSize: 24, fontFamily: 'monospace', outline: 'none', background: '#fff',
     boxSizing: 'border-box', color: '#1c2417', borderRadius: 0,
-    letterSpacing: '0.2em', textTransform: 'uppercase',
+    letterSpacing: '0.3em',
     WebkitAppearance: 'none', appearance: 'none',
   }
 
@@ -75,10 +75,12 @@ export default function CancelReservation() {
               </label>
               <input
                 required
+                inputMode="numeric"
+                pattern="[0-9]{8}"
                 style={inputStyle}
                 value={token}
-                onChange={(e) => setToken(e.target.value.toUpperCase())}
-                placeholder="XXXXXXXX"
+                onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                placeholder="00000000"
                 maxLength={8}
               />
             </div>
