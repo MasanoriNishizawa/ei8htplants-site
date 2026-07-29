@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
+import { api } from '../lib/api'
 import PageMeta from '../components/PageMeta'
 
 export default function CancelReservation() {
@@ -12,11 +13,7 @@ export default function CancelReservation() {
     if (!token.trim()) return
     setStatus('loading')
     try {
-      const res = await fetch('/api/reserve/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: token.trim() }),
-      })
+      const res = await api.reserve.cancel(token.trim())
       if (res.ok) {
         setStatus('done')
       } else if (res.status === 400) {

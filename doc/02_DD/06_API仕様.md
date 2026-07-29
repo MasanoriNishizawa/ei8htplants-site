@@ -17,10 +17,11 @@
 
 | HTTPステータス | 原因 |
 |---|---|
+| 400 Bad Request | すでにキャンセル済みの予約に対してキャンセル操作を行った |
 | 401 Unauthorized | Bearerトークン未送信または無効 |
+| 404 Not Found | リソースが存在しない |
 | 409 Conflict | WSセッションが満席 |
 | 422 Unprocessable Entity | Pydanticバリデーションエラー（型不一致・必須フィールド欠如等） |
-| 404 Not Found | リソースが存在しない |
 | 500 Internal Server Error | Supabase接続エラー・メール設定不備等 |
 
 ---
@@ -238,6 +239,32 @@
 ```
 
 `display_order` 昇順。セッションが未登録の場合は空配列 `[]`。
+
+---
+
+### PATCH /api/events/{event_id}/page
+
+イベント専用サイトのコンテンツを更新。
+
+**認証**: Bearer JWT 必須
+
+**リクエストボディ**
+
+```json
+{
+  "page_content": {
+    "hero": { "image_url": "https://...", "tagline": "...", "subtitle": "..." },
+    "venue": { "address": "...", "access": "...", "map_url": "..." },
+    "concept": "テキスト",
+    "lineup": [{ "title": "...", "description": "...", "image_url": "..." }],
+    "workshop": { "title": "...", "description": "...", "note": "..." },
+    "guests": [{ "name": "...", "role": "...", "bio": "...", "image_url": "...", "instagram_url": "..." }],
+    "archive": { "enabled": true, "title": "...", "message": "...", "gallery": ["url1"] }
+  }
+}
+```
+
+**レスポンス `200`**: 更新後のイベント（imagesを含む）
 
 ---
 
@@ -496,17 +523,21 @@
 
 ```json
 {
-  "event_id": "uuid",          // required
-  "name": "山田太郎",           // required
-  "email": "taro@example.com", // required, EmailStr
-  "phone": "090-0000-0000",    // optional
-  "participants": 2,           // optional, default 1
-  "note": "備考テキスト",       // optional
-  "session_id": "uuid",        // optional, WSセッションUUID
-  "bring_plant": false,        // optional, default false
-  "bring_pot": false           // optional, default false
+  "event_id": "uuid",           // required
+  "name": "山田太郎",            // required
+  "email": "taro@example.com",  // required, EmailStr
+  "phone": "090-0000-0000",     // optional
+  "participants": 2,            // optional, default 1
+  "note": "備考テキスト",        // optional
+  "session_id": "uuid",         // optional, WSセッションUUID
+  "bring_plant": false,         // optional, default false
+  "bring_pot": false,           // optional, default false
+  "preferred_date": "2025-10-01", // optional, 複数日イベントで選択した日付
+  "preferred_time": "13:00"     // optional（現在フロントから未使用）
 }
 ```
+
+定員チェックは `participants` カラムの合計値で行う（行数ではない）。
 
 **レスポンス `200`**: 作成されたレコード（statusは"pending"）  
 **レスポンス `409`**: `{"detail": "このセッションは満席です"}` （`session_id` 指定時に定員超過）
@@ -541,6 +572,8 @@
     "session_id": "uuid",
     "bring_plant": false,
     "bring_pot": true,
+    "preferred_date": "2025-10-01",
+    "preferred_time": null,
     "created_at": "2024-10-01T10:00:00+09:00"
   }
 ]
@@ -564,7 +597,37 @@
 }
 ```
 
+**副作用**: `status = "confirmed"` かつ `cancel_token` が未設定の場合:
+1. 8桁ランダム数字のキャンセルトークンを生成して保存
+2. キャンセルリンクを含む確定メールを予約者に送信（`_send_cancel_link_email`）
+3. `_sync_reserved_count(session_id)` でデノーマライズ値を更新
+
 **レスポンス `200`**: 更新後のレコード
+
+---
+
+### POST /api/reserve/cancel
+
+キャンセルトークンで予約をキャンセルする。認証不要（一般ユーザー向け）。
+
+**リクエストボディ**
+
+```json
+{
+  "token": "12345678"    // 8桁数字
+}
+```
+
+**処理**:
+1. `cancel_token = token` の予約を全件取得（ステータス不問）
+2. 1件も存在しない場合 → 404
+3. 未キャンセルのものが存在しない場合 → 400
+4. 最新の未キャンセル行を `cancelled` に更新
+5. `_sync_reserved_count(session_id)` でデノーマライズ値を更新
+
+**レスポンス `200`**: 更新後のレコード  
+**レスポンス `400`**: `{"detail": "この予約はすでにキャンセル済みです"}`  
+**レスポンス `404`**: `{"detail": "キャンセルIDが見つかりません"}`
 
 ---
 
@@ -642,6 +705,7 @@ api.events.getFinances(id)               → GET    /api/events/{id}/finances  (
 api.events.saveFinances(id, body)        → PUT    /api/events/{id}/finances  (auth)
 api.events.getSessions(id)               → GET    /api/events/{id}/sessions
 api.events.saveSessions(id, sessions)    → PUT    /api/events/{id}/sessions  (auth)
+api.events.savePageContent(id, content)  → PATCH  /api/events/{id}/page  (auth)
 api.gallery.list(brand?)                 → GET    /api/gallery[?brand=...]
 api.gallery.add(body)                    → POST   /api/gallery  (auth)
 api.gallery.updateOrder(id, n)           → PATCH  /api/gallery/{id}  (auth)
@@ -657,6 +721,7 @@ api.contact.reply(id, sub, body)         → POST   /api/contacts/{id}/reply  (a
 api.reserve.create(body)                 → POST   /api/reserve
 api.reserve.list(eventId?)               → GET    /api/reserves[?event_id={eventId}]  (auth)
 api.reserve.updateStatus(id, s)          → PATCH  /api/reserves/{id}  (auth)
+api.reserve.cancel(token)                → POST   /api/reserve/cancel  (Response 生で返す)
 api.collaborations.list()                → GET    /api/collaborations
 api.collaborations.add(body)             → POST   /api/collaborations  (auth)
 api.collaborations.delete(id)            → DELETE /api/collaborations/{id}  (auth)

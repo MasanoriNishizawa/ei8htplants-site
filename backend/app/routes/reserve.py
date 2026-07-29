@@ -5,15 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from ..db import admin_supabase, supabase
-from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL
+from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, SENDER, NO_REPLY_NOTE
 from ..auth import require_auth
-
-SENDER = f'ei8ht plants <{CONTACT_FROM_EMAIL}>'
-NO_REPLY_NOTE = (
-    '\n\n─────────────────\n'
-    '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
-    '  お問い合わせは https://ei8htplants.com/contact よりお願いいたします。'
-)
 
 router = APIRouter(prefix='/reserve', tags=['reserve'])
 
@@ -45,6 +38,8 @@ def _generate_cancel_token() -> str:
 
 
 def _sync_reserved_count(session_id: str):
+    # ws_sessions.reserved_count はデノーマライズ値。get_sessions はライブ計算で上書きするが、
+    # 管理画面など DB を直接参照するケース向けに変更のたびに同期する
     result = admin_supabase.table('workshop_reservations') \
         .select('participants') \
         .eq('session_id', session_id) \
@@ -64,6 +59,7 @@ def create_reservation(body: ReserveBody):
                 .eq('session_id', body.session_id) \
                 .neq('status', 'cancelled') \
                 .execute()
+            # 行数ではなく participants を合計する（複数人予約でも正しく定員を判定するため）
             used = sum(r['participants'] for r in (result.data or []))
             if used + body.participants > session['max_participants']:
                 raise HTTPException(409, 'このセッションは満席です')
@@ -79,16 +75,18 @@ def create_reservation(body: ReserveBody):
 
 @router.post('/cancel')
 def cancel_by_token(body: CancelBody):
-    # same token may exist on past events; find the most recent non-cancelled one
-    result = admin_supabase.table('workshop_reservations') \
-        .select('*') \
+    # トークンが存在するかをまず確認し、済みキャンセルと未登録を区別して返す
+    all_rows = admin_supabase.table('workshop_reservations') \
+        .select('id, status, session_id, created_at') \
         .eq('cancel_token', body.token) \
-        .neq('status', 'cancelled') \
         .order('created_at', desc=True) \
         .execute()
-    if not result.data:
+    if not all_rows.data:
         raise HTTPException(404, 'キャンセルIDが見つかりません')
-    row = result.data[0]
+    # 同トークンは過去イベントで再利用される可能性があるため、最新の未キャンセル行を対象にする
+    row = next((r for r in all_rows.data if r['status'] != 'cancelled'), None)
+    if not row:
+        raise HTTPException(400, 'この予約はすでにキャンセル済みです')
     updated = admin_supabase.table('workshop_reservations') \
         .update({'status': 'cancelled'}) \
         .eq('id', row['id']) \
@@ -185,6 +183,7 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
 
     update_data: dict = {'status': body.status}
     cancel_token = None
+    # 再確定時にトークンが変わるとメール済みのリンクが無効になるため、初回のみ生成する
     if body.status == 'confirmed' and not row.get('cancel_token'):
         cancel_token = _generate_cancel_token()
         update_data['cancel_token'] = cancel_token

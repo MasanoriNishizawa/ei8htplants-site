@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from ..db import supabase, admin_supabase
 from ..auth import require_auth
 
@@ -12,7 +12,7 @@ class StockistBody(BaseModel):
     area: Optional[str] = None
     address: Optional[str] = None
     url: Optional[str] = None
-    brands: List[str] = []
+    brands: list[str] = []
 
 
 @router.get('')

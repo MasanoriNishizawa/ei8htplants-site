@@ -111,6 +111,14 @@ export const api = {
       authRequest<Reservation[]>(eventId ? `/reserves?event_id=${eventId}` : '/reserves'),
     updateStatus: (id: string, status: string) =>
       authRequest<Reservation>(`/reserves/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    // 認証不要。ステータスコードで結果を判定するため Response をそのまま返す
+    cancel: (token: string) =>
+      fetch(`${BASE}/reserve/cancel`, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      }),
   },
   collaborations: {
     list: () => request<Collaboration[]>('/collaborations'),

@@ -25,7 +25,7 @@
 | Database | Supabase (PostgreSQL + Row Level Security) |
 | Auth | Supabase Auth (管理画面ログイン) |
 | Email | Resend SDK |
-| Styling | Tailwind CSS v3 + index.css |
+| Styling | インラインスタイル（React CSSProperties） |
 | Routing | react-router-dom v7 |
 
 ---
@@ -37,12 +37,15 @@ ei8htplants-site/
 ├── frontend/              # React SPA
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── api.ts       # API クライアント（request / authRequest / api.upload）
-│   │   │   └── supabase.ts  # 共有 Supabase クライアント
+│   │   │   ├── api.ts                   # API クライアント（request / authRequest / api.*）
+│   │   │   ├── reservationConstants.ts  # STATUS_LABELS / STATUS_COLORS（管理画面共有）
+│   │   │   └── supabase.ts              # 共有 Supabase クライアント
 │   │   ├── pages/
-│   │   │   ├── admin/       # 管理画面（認証必須）
-│   │   │   ├── brands/      # ブランドページ
-│   │   │   └── *.tsx        # 公開ページ
+│   │   │   ├── admin/              # 管理画面（認証必須）
+│   │   │   ├── brands/             # ブランドページ
+│   │   │   ├── Reserve.tsx         # WS予約フォーム
+│   │   │   ├── CancelReservation.tsx # 予約キャンセルページ（/cancel?id=）
+│   │   │   └── *.tsx               # その他公開ページ
 │   │   └── components/
 │   │       ├── EventCard.tsx  # イベントカード（あとN日バッジ付き）
 │   │       ├── PageMeta.tsx   # OGP / SEO メタタグ（全ページ共通）
@@ -122,9 +125,12 @@ npm run dev
 |---|---|
 | `/admin` | ダッシュボード（未読お問い合わせ・未確認予約・公開中イベント数の統計カード） |
 | `/admin/events` | イベント CRUD・複製・画像ファイルアップロード（プレビュー付き） |
+| `/admin/events/:id/reservations` | イベント別WS予約一覧・ステータス管理・セッション絞込・印刷・CSV |
+| `/admin/events/:id/finances` | イベント収支登録・精算計算 |
+| `/admin/events/:id/site` | イベント専用サイトのコンテンツ編集 |
 | `/admin/gallery` | ギャラリー画像追加・削除・表示順変更（上下ボタン）・ファイルアップロード |
 | `/admin/stockists` | 取扱店管理 |
-| `/admin/reservations` | WS 予約一覧・ステータス管理・CSV エクスポート |
+| `/admin/reservations` | 全イベント横断WS予約一覧・ステータス管理・CSV エクスポート |
 | `/admin/collaborations` | コラボレーション管理・画像ファイルアップロード |
 | `/admin/contacts` | お問い合わせ一覧・既読管理・返信モーダル（Resend 直送） |
 
@@ -139,10 +145,26 @@ npm run dev
 
 | ファイル | 内容 |
 |---|---|
-| `001_*.sql` | 初版スキーマ |
+| `001_*.sql` | 初版スキーマ（events / event_images / gallery_images / stockists / workshop_reservations） |
 | `002_admin_features.sql` | collaborations / contacts テーブル追加、brands・status カラム追加 |
 | `003_fix_rls.sql` | contacts の不要な anon INSERT ポリシーを削除 |
 | `004_site_assets.sql` | site_assets テーブル追加（将来の静的アセット管理用） |
+| `005_event_finances.sql` | event_finances テーブル追加（収支管理） |
+| `006_ws_sessions.sql` | ws_sessions テーブル追加、workshop_reservations に session_id / bring_plant / bring_pot 追加 |
+| `007_reservation_datetime.sql` | workshop_reservations に preferred_date / preferred_time 追加 |
+| `008_event_page_content.sql` | events に page_content (JSONB) 追加 |
+| `009_event_daily_times.sql` | events に daily_times (JSONB) 追加 |
+
+手動適用が必要な追加変更（SQL エディターで直接実行）:
+
+```sql
+-- ws_sessions: デノーマライズ済み予約数カラム
+ALTER TABLE ws_sessions ADD COLUMN IF NOT EXISTS reserved_count integer NOT NULL DEFAULT 0;
+
+-- workshop_reservations: キャンセルトークン（8桁数字）
+ALTER TABLE workshop_reservations ADD COLUMN IF NOT EXISTS cancel_token text;
+CREATE INDEX IF NOT EXISTS idx_reservations_cancel_token ON workshop_reservations (cancel_token);
+```
 
 ---
 

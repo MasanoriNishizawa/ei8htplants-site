@@ -22,6 +22,8 @@ const BLANK: FormState = {
 
 function parseDateRange(startDate: string, endDate: string | null): string[] {
   const dates: string[] = []
+  // 'T00:00:00' を付けてローカルタイムとして解釈させる。
+  // 省略すると UTC 0:00 として扱われ、UTC+9 環境では前日にズレる
   const start = new Date(startDate + 'T00:00:00')
   const end = endDate ? new Date(endDate + 'T00:00:00') : start
   const cur = new Date(start)
@@ -75,6 +77,8 @@ export default function Reserve() {
     : 0
   const sessionsDisabled = isMultiDay && !form.preferred_date
 
+  // sessions.length > 0 ではなく event.has_workshop を参照する。
+  // sessions の取得完了前でも true になるため、ページロード時にセクションが消える→現れるフラッシュを防げる
   const expectsSessions = !!event?.has_workshop
   const participantsDisabled = expectsSessions && !form.session_id
 

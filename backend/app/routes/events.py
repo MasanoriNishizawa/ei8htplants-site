@@ -98,11 +98,14 @@ def get_sessions(event_id: str):
     if not sessions:
         return []
     session_ids = [s['id'] for s in sessions]
+    # reserved_count は ws_sessions にも保存されているが、ステータス変更直後のズレを防ぐため
+    # 毎回 workshop_reservations からライブ計算した値で上書きする
     reservations = admin_supabase.table('workshop_reservations').select('session_id, participants').in_('session_id', session_ids).neq('status', 'cancelled').execute().data
     count_map: dict[str, int] = {}
     for r in reservations:
         sid = r.get('session_id')
         if sid:
+            # 行数ではなく participants を合計する（複数人予約でも正しく残席を計算するため）
             count_map[sid] = count_map.get(sid, 0) + (r.get('participants') or 1)
     for s in sessions:
         s['reserved_count'] = count_map.get(s['id'], 0)

@@ -1,14 +1,7 @@
 import resend
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
-from ..config import RESEND_API_KEY, CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL
-
-SENDER = f'ei8ht plants <{CONTACT_FROM_EMAIL}>'
-NO_REPLY_NOTE = (
-    '\n\n─────────────────\n'
-    '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
-    '  お問い合わせは https://ei8htplants.com/contact よりお願いいたします。'
-)
+from ..config import RESEND_API_KEY, CONTACT_TO_EMAIL, SENDER, NO_REPLY_NOTE
 from ..db import admin_supabase
 from ..auth import require_auth
 
