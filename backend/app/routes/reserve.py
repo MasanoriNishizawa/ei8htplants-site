@@ -34,15 +34,32 @@ class ReserveStatusPatch(BaseModel):
     status: str
 
 
+def _sync_reserved_count(session_id: str):
+    result = admin_supabase.table('workshop_reservations') \
+        .select('participants') \
+        .eq('session_id', session_id) \
+        .neq('status', 'cancelled') \
+        .execute()
+    total = sum(r['participants'] for r in (result.data or []))
+    admin_supabase.table('ws_sessions').update({'reserved_count': total}).eq('id', session_id).execute()
+
+
 @router.post('')
 def create_reservation(body: ReserveBody):
     if body.session_id:
         session = admin_supabase.table('ws_sessions').select('max_participants').eq('id', body.session_id).single().execute().data
         if session:
-            count = admin_supabase.table('workshop_reservations').select('id', count='exact').eq('session_id', body.session_id).neq('status', 'cancelled').execute().count or 0
-            if count >= session['max_participants']:
+            result = admin_supabase.table('workshop_reservations') \
+                .select('participants') \
+                .eq('session_id', body.session_id) \
+                .neq('status', 'cancelled') \
+                .execute()
+            used = sum(r['participants'] for r in (result.data or []))
+            if used + body.participants > session['max_participants']:
                 raise HTTPException(409, 'このセッションは満席です')
     row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
+    if body.session_id:
+        _sync_reserved_count(body.session_id)
     _send_confirmation(body)
     return row
 
@@ -97,4 +114,8 @@ def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)):
 
 @router.patch('s/{reservation_id}')
 def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=Depends(require_auth)):
-    return admin_supabase.table('workshop_reservations').update(body.model_dump()).eq('id', reservation_id).execute().data[0]
+    row = admin_supabase.table('workshop_reservations').select('session_id').eq('id', reservation_id).single().execute().data
+    updated = admin_supabase.table('workshop_reservations').update(body.model_dump()).eq('id', reservation_id).execute().data[0]
+    if row and row.get('session_id'):
+        _sync_reserved_count(row['session_id'])
+    return updated

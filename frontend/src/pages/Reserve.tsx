@@ -46,6 +46,7 @@ export default function Reserve() {
   const eventId = params.get('event_id') ?? ''
   const [event, setEvent] = useState<Event | null>(null)
   const [sessions, setSessions] = useState<WsSession[]>([])
+  const [sessionsLoaded, setSessionsLoaded] = useState(false)
   const [form, setForm] = useState<FormState>(BLANK)
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'full'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -59,7 +60,12 @@ export default function Reserve() {
         setForm((f) => ({ ...f, preferred_date: dates[0] }))
       }
       if (ev.has_workshop) {
-        api.events.getSessions(eventId).then(setSessions)
+        api.events.getSessions(eventId).then((data) => {
+          setSessions(data)
+          setSessionsLoaded(true)
+        })
+      } else {
+        setSessionsLoaded(true)
       }
     }).catch(() => {})
   }, [eventId])
@@ -257,8 +263,8 @@ export default function Reserve() {
               </div>
             )}
 
-            {/* Step 3: 参加人数 — セッション選択後に表示 */}
-            {(form.session_id || !hasSessions) && (
+            {/* Step 3: 参加人数 — sessions ロード完了後、セッション選択後に表示 */}
+            {sessionsLoaded && (form.session_id || !hasSessions) && (
               <div style={{ marginBottom: 20 }}>
                 <label style={labelStyle}>参加人数 <span style={{ color: '#c0392b' }}>*</span></label>
                 {hasSessions && selectedRemaining > 0 ? (
