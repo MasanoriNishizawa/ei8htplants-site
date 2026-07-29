@@ -4,8 +4,8 @@ import { api, type Event, type Reservation, type WsSession } from '../../lib/api
 
 const STATUS_LABELS: Record<string, string> = {
   pending: '未確認',
-  confirmed: '確認済み',
-  cancelled: 'キャンセル',
+  confirmed: '確定',
+  cancelled: 'キャンセル済み',
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
@@ -114,8 +114,12 @@ export default function AdminEventReservations() {
 
   const updateStatus = async (reservationId: string, status: string) => {
     setUpdating(reservationId)
-    const updated = await api.reserve.updateStatus(reservationId, status)
-    setRows((prev) => prev.map((r) => r.id === reservationId ? { ...r, ...updated } : r))
+    try {
+      const updated = await api.reserve.updateStatus(reservationId, status)
+      setRows((prev) => prev.map((r) => r.id === reservationId ? { ...r, ...updated } : r))
+    } catch {
+      setRows((prev) => prev.map((r) => r.id === reservationId ? { ...r, status } : r))
+    }
     setUpdating(null)
   }
 

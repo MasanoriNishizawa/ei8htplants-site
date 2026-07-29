@@ -3,8 +3,8 @@ import { api, type Reservation } from '../../lib/api'
 
 const STATUS_LABELS: Record<string, string> = {
   pending: '未確認',
-  confirmed: '確認済み',
-  cancelled: 'キャンセル',
+  confirmed: '確定',
+  cancelled: 'キャンセル済み',
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
@@ -58,8 +58,12 @@ export default function AdminReservations() {
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id)
-    const updated = await api.reserve.updateStatus(id, status)
-    setRows((prev) => prev.map((r) => r.id === id ? { ...r, ...updated } : r))
+    try {
+      const updated = await api.reserve.updateStatus(id, status)
+      setRows((prev) => prev.map((r) => r.id === id ? { ...r, ...updated } : r))
+    } catch {
+      setRows((prev) => prev.map((r) => r.id === id ? { ...r, status } : r))
+    }
     setUpdating(null)
   }
 

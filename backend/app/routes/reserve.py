@@ -59,7 +59,10 @@ def create_reservation(body: ReserveBody):
                 raise HTTPException(409, 'このセッションは満席です')
     row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
     if body.session_id:
-        _sync_reserved_count(body.session_id)
+        try:
+            _sync_reserved_count(body.session_id)
+        except Exception as e:
+            print(f'[reserve] sync reserved_count failed: {e}')
     _send_confirmation(body)
     return row
 
@@ -117,5 +120,8 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
     row = admin_supabase.table('workshop_reservations').select('session_id').eq('id', reservation_id).single().execute().data
     updated = admin_supabase.table('workshop_reservations').update(body.model_dump()).eq('id', reservation_id).execute().data[0]
     if row and row.get('session_id'):
-        _sync_reserved_count(row['session_id'])
+        try:
+            _sync_reserved_count(row['session_id'])
+        except Exception as e:
+            print(f'[reserve] sync reserved_count failed: {e}')
     return updated
