@@ -46,7 +46,6 @@ export default function Reserve() {
   const eventId = params.get('event_id') ?? ''
   const [event, setEvent] = useState<Event | null>(null)
   const [sessions, setSessions] = useState<WsSession[]>([])
-  const [sessionsLoaded, setSessionsLoaded] = useState(false)
   const [form, setForm] = useState<FormState>(BLANK)
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'full'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -60,12 +59,7 @@ export default function Reserve() {
         setForm((f) => ({ ...f, preferred_date: dates[0] }))
       }
       if (ev.has_workshop) {
-        api.events.getSessions(eventId).then((data) => {
-          setSessions(data)
-          setSessionsLoaded(true)
-        })
-      } else {
-        setSessionsLoaded(true)
+        api.events.getSessions(eventId).then(setSessions)
       }
     }).catch(() => {})
   }, [eventId])
@@ -75,15 +69,17 @@ export default function Reserve() {
 
   const dates = event ? parseDateRange(event.start_date, event.end_date) : []
   const isMultiDay = dates.length > 1
-  const hasSessions = sessions.length > 0
   const selectedSession = sessions.find((s) => s.id === form.session_id) ?? null
   const selectedRemaining = selectedSession
     ? selectedSession.max_participants - selectedSession.reserved_count
     : 0
   const sessionsDisabled = isMultiDay && !form.preferred_date
 
+  const expectsSessions = !!event?.has_workshop
+  const participantsDisabled = expectsSessions && !form.session_id
+
   const needsDate = isMultiDay && !form.preferred_date
-  const needsSession = hasSessions && !form.session_id
+  const needsSession = expectsSessions && !form.session_id
   const canSubmit = !needsDate && !needsSession
 
   const submit = async (e: React.FormEvent) => {
@@ -227,7 +223,7 @@ export default function Reserve() {
             )}
 
             {/* Step 2: 予約時間（WSセッション） */}
-            {hasSessions && (
+            {event?.has_workshop && (
               <div style={{ marginBottom: 20, opacity: sessionsDisabled ? 0.4 : 1, pointerEvents: sessionsDisabled ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
                 <label style={labelStyle}>
                   予約時間 <span style={{ color: '#c0392b' }}>*</span>
@@ -237,46 +233,53 @@ export default function Reserve() {
                     </span>
                   )}
                 </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {sessions.map((s) => {
-                    const rem = s.max_participants - s.reserved_count
-                    const full = rem <= 0
-                    return (
-                      <label key={s.id} style={radioCard(form.session_id === s.id, full)}>
-                        <input
-                          type="radio"
-                          name="session"
-                          value={s.id}
-                          disabled={full}
-                          checked={form.session_id === s.id}
-                          onChange={() => setForm((f) => ({ ...f, session_id: s.id, participants: 1 }))}
-                          style={{ accentColor: '#4a6741' }}
-                        />
-                        <span style={{ flex: 1, fontSize: 15, color: '#1c2417' }}>{s.time_label}</span>
-                        <span style={{ fontSize: 12, color: full ? '#c0392b' : '#8a9a7e' }}>
-                          {full ? '満席' : `残り ${rem} 名`}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
+                {sessions.length === 0 ? (
+                  <p style={{ fontSize: 14, color: '#bbb', margin: 0 }}>読み込み中...</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {sessions.map((s) => {
+                      const rem = s.max_participants - s.reserved_count
+                      const full = rem <= 0
+                      return (
+                        <label key={s.id} style={radioCard(form.session_id === s.id, full)}>
+                          <input
+                            type="radio"
+                            name="session"
+                            value={s.id}
+                            disabled={full}
+                            checked={form.session_id === s.id}
+                            onChange={() => setForm((f) => ({ ...f, session_id: s.id, participants: 1 }))}
+                            style={{ accentColor: '#4a6741' }}
+                          />
+                          <span style={{ flex: 1, fontSize: 15, color: '#1c2417' }}>{s.time_label}</span>
+                          <span style={{ fontSize: 12, color: full ? '#c0392b' : '#8a9a7e' }}>
+                            {full ? '満席' : `残り ${rem} 名`}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Step 3: 参加人数 — sessions ロード完了後、セッション選択後に表示 */}
-            {sessionsLoaded && (form.session_id || !hasSessions) && (
-              <div style={{ marginBottom: 20 }}>
+            {/* Step 3: 参加人数 — 常時表示、セッション未選択時は非活性 */}
+            {event && (
+              <div style={{ marginBottom: 20, opacity: participantsDisabled ? 0.4 : 1, transition: 'opacity 0.2s' }}>
                 <label style={labelStyle}>参加人数 <span style={{ color: '#c0392b' }}>*</span></label>
-                {hasSessions && selectedRemaining > 0 ? (
+                {expectsSessions ? (
                   <select
-                    required
-                    style={{ ...inputStyle, width: 120 }}
+                    disabled={participantsDisabled}
+                    style={{ ...inputStyle, width: 120, cursor: participantsDisabled ? 'not-allowed' : 'default' }}
                     value={form.participants}
                     onChange={(e) => set('participants', Number(e.target.value))}
                   >
-                    {Array.from({ length: selectedRemaining }, (_, i) => i + 1).map((n) => (
-                      <option key={n} value={n}>{n} 名</option>
-                    ))}
+                    {form.session_id && selectedRemaining > 0
+                      ? Array.from({ length: selectedRemaining }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>{n} 名</option>
+                        ))
+                      : <option value={1}>—</option>
+                    }
                   </select>
                 ) : (
                   <input required type="number" min={1} max={10} style={{ ...inputStyle, width: 100 }} value={form.participants} onChange={(e) => set('participants', Number(e.target.value))} />
