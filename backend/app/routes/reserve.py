@@ -6,6 +6,13 @@ from ..db import admin_supabase, supabase
 from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL
 from ..auth import require_auth
 
+SENDER = f'ei8ht plants <{CONTACT_FROM_EMAIL}>'
+NO_REPLY_NOTE = (
+    '\n\n─────────────────\n'
+    '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
+    '  お問い合わせは https://ei8htplants.com/contact よりお願いいたします。'
+)
+
 router = APIRouter(prefix='/reserve', tags=['reserve'])
 
 
@@ -46,13 +53,14 @@ def _send_confirmation(body: ReserveBody):
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
     if not event:
         return
-    session_line = ''
+    time_line = ''
     if body.session_id:
         session = admin_supabase.table('ws_sessions').select('time_label').eq('id', body.session_id).single().execute().data
         if session:
-            session_line = f'\nWSセッション: {session["time_label"]}'
+            time_line = f'\n予約時間: {session["time_label"]}'
+    elif body.preferred_time:
+        time_line = f'\n予約時間: {body.preferred_time}'
     date_line = f'\n予約日: {body.preferred_date}' if body.preferred_date else ''
-    time_line = f'\n予約時間: {body.preferred_time}' if body.preferred_time else ''
     bring_lines = ''
     if body.bring_plant:
         bring_lines += '\n植物持ち込み: あり'
@@ -61,7 +69,7 @@ def _send_confirmation(body: ReserveBody):
     note_line = f'\n備考: {body.note}' if body.note else ''
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
-        'from': CONTACT_FROM_EMAIL,
+        'from': SENDER,
         'to': [body.email],
         'subject': f'[ei8ht plants] ワークショップ予約を受け付けました: {event["name"]}',
         'text': (
@@ -70,11 +78,11 @@ def _send_confirmation(body: ReserveBody):
             f'以下の内容で予約を受け付けました。\n\n'
             f'イベント名: {event["name"]}\n'
             f'開催日: {event["start_date"]}\n'
-            f'会場: {event["location"]}{date_line}{time_line}{session_line}\n'
+            f'会場: {event["location"]}{date_line}{time_line}\n'
             f'参加人数: {body.participants} 名{bring_lines}{note_line}\n\n'
-            f'ご不明な点がございましたら、このメールに返信するか、\n'
-            f'お問い合わせフォームからご連絡ください。\n\n'
-            f'ei8ht plants'
+            f'ei8ht plants\n'
+            f'https://ei8htplants.com'
+            + NO_REPLY_NOTE
         ),
     })
 
