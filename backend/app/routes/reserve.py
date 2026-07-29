@@ -88,7 +88,7 @@ def _send_confirmation(body: ReserveBody):
     resend.Emails.send({
         'from': SENDER,
         'to': [body.email],
-        'subject': f'[ei8ht plants] ワークショップ予約を受け付けました: {event["name"]}',
+        'subject': f'[Habitat Oides] ワークショップ予約を受け付けました: {event["name"]}',
         'text': (
             f'{body.name} 様\n\n'
             f'ワークショップへのお申し込みありがとうございます。\n'
