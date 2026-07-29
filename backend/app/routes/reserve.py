@@ -97,7 +97,7 @@ def _send_confirmation(body: ReserveBody):
             f'開催日: {event["start_date"]}\n'
             f'会場: {event["location"]}{date_line}{time_line}\n'
             f'参加人数: {body.participants} 名{bring_lines}{note_line}\n\n'
-            f'ei8ht plants\n'
+            f'Habitat Oides\n'
             f'https://ei8htplants.com'
             + NO_REPLY_NOTE
         ),
