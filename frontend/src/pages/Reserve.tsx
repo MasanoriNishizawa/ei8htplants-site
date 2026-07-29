@@ -6,20 +6,18 @@ import PageMeta from '../components/PageMeta'
 type FormState = {
   name: string
   email: string
-  phone: string
   participants: number
   note: string
   session_id: string
   bring_plant: boolean
   bring_pot: boolean
   preferred_date: string
-  preferred_time: string
 }
 
 const BLANK: FormState = {
-  name: '', email: '', phone: '', participants: 1, note: '',
+  name: '', email: '', participants: 1, note: '',
   session_id: '', bring_plant: false, bring_pot: false,
-  preferred_date: '', preferred_time: '',
+  preferred_date: '',
 }
 
 function parseDateRange(startDate: string, endDate: string | null): string[] {
@@ -32,18 +30,6 @@ function parseDateRange(startDate: string, endDate: string | null): string[] {
     cur.setDate(cur.getDate() + 1)
   }
   return dates
-}
-
-function parseTimeSlots(timeStr: string): string[] {
-  const m = timeStr.match(/(\d{1,2}):(\d{2})[〜~\-–]\s*(\d{1,2}):(\d{2})/)
-  if (!m) return []
-  const startH = parseInt(m[1])
-  const endH = parseInt(m[3])
-  const slots: string[] = []
-  for (let h = startH + 1; h < endH - 1; h++) {
-    slots.push(`${String(h).padStart(2, '0')}:00〜${String(h + 1).padStart(2, '0')}:00`)
-  }
-  return slots
 }
 
 function fmtDate(d: string): string {
@@ -80,14 +66,16 @@ export default function Reserve() {
 
   const dates = event ? parseDateRange(event.start_date, event.end_date) : []
   const isMultiDay = dates.length > 1
-  const timeSlots = event?.time ? parseTimeSlots(event.time) : []
   const hasSessions = sessions.length > 0
   const selectedSession = sessions.find((s) => s.id === form.session_id) ?? null
+  const selectedRemaining = selectedSession
+    ? selectedSession.max_participants - selectedSession.reserved_count
+    : 0
+  const sessionsDisabled = isMultiDay && !form.preferred_date
 
   const needsDate = isMultiDay && !form.preferred_date
-  const needsTime = timeSlots.length > 0 && !form.preferred_time
   const needsSession = hasSessions && !form.session_id
-  const canSubmit = !needsDate && !needsTime && !needsSession
+  const canSubmit = !needsDate && !needsSession
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,14 +87,13 @@ export default function Reserve() {
         event_id: eventId,
         name: form.name,
         email: form.email,
-        phone: form.phone || undefined,
         participants: form.participants,
         note: form.note || undefined,
         session_id: form.session_id || undefined,
         bring_plant: form.bring_plant,
         bring_pot: form.bring_pot,
         preferred_date: form.preferred_date || undefined,
-        preferred_time: form.preferred_time || undefined,
+        preferred_time: selectedSession?.time_label,
       })
       setStatus('done')
     } catch (err: unknown) {
@@ -186,11 +173,9 @@ export default function Reserve() {
               {[
                 { label: 'お名前', value: form.name },
                 { label: 'メール', value: form.email },
-                { label: '電話番号', value: form.phone || '-' },
                 ...(event ? [{ label: 'イベント', value: event.name }] : []),
                 ...(form.preferred_date ? [{ label: '予約日', value: fmtDate(form.preferred_date) }] : []),
-                ...(form.preferred_time ? [{ label: '予約時間', value: form.preferred_time }] : []),
-                ...(selectedSession ? [{ label: 'WSセッション', value: selectedSession.time_label }] : []),
+                ...(selectedSession ? [{ label: '予約時間', value: selectedSession.time_label }] : []),
                 { label: '参加人数', value: `${form.participants} 名` },
                 { label: '植物持ち込み', value: form.bring_plant ? 'あり' : 'なし' },
                 { label: '鉢持ち込み', value: form.bring_pot ? 'あり' : 'なし' },
@@ -208,6 +193,88 @@ export default function Reserve() {
           </div>
         ) : (
           <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px' }}>
+            <p style={sectionLabel}>予約内容</p>
+
+            {/* Step 1: 予約日（複数日イベントのみ） */}
+            {isMultiDay && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>予約日 <span style={{ color: '#c0392b' }}>*</span></label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {dates.map((d) => (
+                    <label key={d} style={radioCard(form.preferred_date === d)}>
+                      <input
+                        type="radio"
+                        name="preferred_date"
+                        value={d}
+                        checked={form.preferred_date === d}
+                        onChange={() => setForm((f) => ({ ...f, preferred_date: d, session_id: '', participants: 1 }))}
+                        style={{ accentColor: '#4a6741' }}
+                      />
+                      <span style={{ fontSize: 15, color: '#1c2417' }}>{fmtDate(d)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: 予約時間（WSセッション） */}
+            {hasSessions && (
+              <div style={{ marginBottom: 20, opacity: sessionsDisabled ? 0.4 : 1, pointerEvents: sessionsDisabled ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
+                <label style={labelStyle}>
+                  予約時間 <span style={{ color: '#c0392b' }}>*</span>
+                  {sessionsDisabled && (
+                    <span style={{ textTransform: 'none', letterSpacing: 0, fontSize: 11, color: '#aaa', marginLeft: 8 }}>
+                      （日付を先に選択してください）
+                    </span>
+                  )}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {sessions.map((s) => {
+                    const rem = s.max_participants - s.reserved_count
+                    const full = rem <= 0
+                    return (
+                      <label key={s.id} style={radioCard(form.session_id === s.id, full)}>
+                        <input
+                          type="radio"
+                          name="session"
+                          value={s.id}
+                          disabled={full}
+                          checked={form.session_id === s.id}
+                          onChange={() => setForm((f) => ({ ...f, session_id: s.id, participants: 1 }))}
+                          style={{ accentColor: '#4a6741' }}
+                        />
+                        <span style={{ flex: 1, fontSize: 15, color: '#1c2417' }}>{s.time_label}</span>
+                        <span style={{ fontSize: 12, color: full ? '#c0392b' : '#8a9a7e' }}>
+                          {full ? '満席' : `残り ${rem} 名`}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: 参加人数 — セッション選択後に表示 */}
+            {(form.session_id || !hasSessions) && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>参加人数 <span style={{ color: '#c0392b' }}>*</span></label>
+                {hasSessions && selectedRemaining > 0 ? (
+                  <select
+                    required
+                    style={{ ...inputStyle, width: 120 }}
+                    value={form.participants}
+                    onChange={(e) => set('participants', Number(e.target.value))}
+                  >
+                    {Array.from({ length: selectedRemaining }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>{n} 名</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input required type="number" min={1} max={10} style={{ ...inputStyle, width: 100 }} value={form.participants} onChange={(e) => set('participants', Number(e.target.value))} />
+                )}
+              </div>
+            )}
+
             <p style={sectionLabel}>お客様情報</p>
 
             <div style={{ marginBottom: 20 }}>
@@ -220,93 +287,6 @@ export default function Reserve() {
               <input required type="email" style={inputStyle} value={form.email} onChange={(e) => set('email', e.target.value)} />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>電話番号（任意）</label>
-              <input type="tel" style={inputStyle} value={form.phone} onChange={(e) => set('phone', e.target.value)} />
-            </div>
-
-            <p style={sectionLabel}>予約内容</p>
-
-            {/* 予約日（複数日イベントのみ） */}
-            {isMultiDay && (
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>予約日 <span style={{ color: '#c0392b' }}>*</span></label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {dates.map((d) => (
-                    <label key={d} style={radioCard(form.preferred_date === d)}>
-                      <input
-                        type="radio"
-                        name="preferred_date"
-                        value={d}
-                        checked={form.preferred_date === d}
-                        onChange={() => set('preferred_date', d)}
-                        style={{ accentColor: '#4a6741' }}
-                      />
-                      <span style={{ fontSize: 15, color: '#1c2417' }}>{fmtDate(d)}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 予約時間（WSセッション未設定時のみ表示） */}
-            {timeSlots.length > 0 && !hasSessions && (
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>予約時間 <span style={{ color: '#c0392b' }}>*</span></label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {timeSlots.map((slot) => (
-                    <label key={slot} style={radioCard(form.preferred_time === slot)}>
-                      <input
-                        type="radio"
-                        name="preferred_time"
-                        value={slot}
-                        checked={form.preferred_time === slot}
-                        onChange={() => set('preferred_time', slot)}
-                        style={{ accentColor: '#4a6741' }}
-                      />
-                      <span style={{ fontSize: 15, color: '#1c2417' }}>{slot}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* WSセッション選択 */}
-            {hasSessions && (
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>WSセッション <span style={{ color: '#c0392b' }}>*</span></label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {sessions.map((s) => {
-                    const remaining = s.max_participants - s.reserved_count
-                    const full = remaining <= 0
-                    return (
-                      <label key={s.id} style={radioCard(form.session_id === s.id, full)}>
-                        <input
-                          type="radio"
-                          name="session"
-                          value={s.id}
-                          disabled={full}
-                          checked={form.session_id === s.id}
-                          onChange={() => set('session_id', s.id)}
-                          style={{ accentColor: '#4a6741' }}
-                        />
-                        <span style={{ flex: 1, fontSize: 15, color: '#1c2417' }}>{s.time_label}</span>
-                        <span style={{ fontSize: 12, color: full ? '#c0392b' : '#8a9a7e' }}>
-                          {full ? '満席' : `残り ${remaining} 名`}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>参加人数 <span style={{ color: '#c0392b' }}>*</span></label>
-              <input required type="number" min={1} max={10} style={{ ...inputStyle, width: 100 }} value={form.participants} onChange={(e) => set('participants', Number(e.target.value))} />
-            </div>
-
-            {/* 持ち込み */}
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>持ち込み（任意）</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -335,9 +315,9 @@ export default function Reserve() {
             >
               {status === 'loading' ? '送信中...' : '予約する'}
             </button>
-            {(needsDate || needsTime || needsSession) && (
+            {(needsDate || needsSession) && (
               <p style={{ textAlign: 'center', fontSize: 12, color: '#c0392b', marginTop: 8 }}>
-                {needsDate ? '予約日を選択してください' : needsTime ? '予約時間を選択してください' : 'WSセッションを選択してください'}
+                {needsDate ? '予約日を選択してください' : '予約時間を選択してください'}
               </p>
             )}
           </form>
