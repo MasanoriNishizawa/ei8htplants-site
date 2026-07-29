@@ -26,7 +26,10 @@ function parseDateRange(startDate: string, endDate: string | null): string[] {
   const end = endDate ? new Date(endDate + 'T00:00:00') : start
   const cur = new Date(start)
   while (cur <= end) {
-    dates.push(cur.toISOString().slice(0, 10))
+    const y = cur.getFullYear()
+    const m = String(cur.getMonth() + 1).padStart(2, '0')
+    const day = String(cur.getDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${day}`)
     cur.setDate(cur.getDate() + 1)
   }
   return dates
