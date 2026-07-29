@@ -79,14 +79,16 @@ def create_reservation(body: ReserveBody):
 
 @router.post('/cancel')
 def cancel_by_token(body: CancelBody):
-    row = admin_supabase.table('workshop_reservations') \
+    # same token may exist on past events; find the most recent non-cancelled one
+    result = admin_supabase.table('workshop_reservations') \
         .select('*') \
         .eq('cancel_token', body.token) \
-        .single().execute().data
-    if not row:
+        .neq('status', 'cancelled') \
+        .order('created_at', desc=True) \
+        .execute()
+    if not result.data:
         raise HTTPException(404, 'キャンセルIDが見つかりません')
-    if row['status'] == 'cancelled':
-        raise HTTPException(400, 'すでにキャンセル済みです')
+    row = result.data[0]
     updated = admin_supabase.table('workshop_reservations') \
         .update({'status': 'cancelled'}) \
         .eq('id', row['id']) \
