@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Article } from '../lib/api'
+import { parseBlocks } from '../components/BlockEditor'
 import PageMeta from '../components/PageMeta'
 
 const BG = '#faf9f7'
@@ -9,8 +10,13 @@ const SANS = "'Noto Sans JP', sans-serif"
 
 function excerpt(text: string | null, max = 100): string {
   if (!text) return ''
-  const plain = text.replace(/^## .+$/gm, '').replace(/\n+/g, ' ').trim()
-  return plain.length > max ? plain.slice(0, max) + '…' : plain
+  const blocks = parseBlocks(text)
+  const plain = blocks
+    .filter((b) => b.type === 'text')
+    .map((b) => (b as any).value as string)
+    .join(' ')
+  const src = plain || text.replace(/^## .+$/gm, '').replace(/\n+/g, ' ').trim()
+  return src.length > max ? src.slice(0, max) + '…' : src
 }
 
 function fmtDate(s: string | null): string {

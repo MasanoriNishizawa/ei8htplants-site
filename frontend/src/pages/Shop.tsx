@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Product } from '../lib/api'
 import { useCart } from '../lib/cart'
+import { parseBlocks } from '../components/BlockEditor'
 import PageMeta from '../components/PageMeta'
 
 const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
@@ -12,7 +13,13 @@ const SANS = "'Noto Sans JP', sans-serif"
 
 function excerpt(text: string | null, max = 80): string {
   if (!text) return ''
-  return text.length > max ? text.slice(0, max) + '…' : text
+  const blocks = parseBlocks(text)
+  const plain = blocks
+    .filter((b) => b.type === 'text')
+    .map((b) => (b as any).value as string)
+    .join(' ')
+  const src = plain || text
+  return src.length > max ? src.slice(0, max) + '…' : src
 }
 
 export default function Shop() {
