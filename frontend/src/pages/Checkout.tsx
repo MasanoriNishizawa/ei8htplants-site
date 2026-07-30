@@ -47,11 +47,7 @@ export default function Checkout() {
 
   // Square Web Payments SDK を動的ロード
   useEffect(() => {
-    console.error('[Square] useEffect start, appId=', SQUARE_APP_ID || '(empty)', 'hostname=', window.location.hostname)
-    if (!SQUARE_APP_ID) {
-      console.error('[Square] SQUARE_APP_ID is empty, aborting')
-      return
-    }
+    if (!SQUARE_APP_ID) return
 
     const hostname = window.location.hostname
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -65,32 +61,26 @@ export default function Checkout() {
     let cancelled = false
     const script = document.createElement('script')
     script.src = SQUARE_SDK_URL
-    console.error('[Square] loading script from', SQUARE_SDK_URL)
     script.onload = async () => {
       if (cancelled) return
       try {
-        console.log('[Square] script loaded, Square=', !!(window as any).Square)
         const payments = (window as any).Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID)
-        console.log('[Square] payments created')
         const card = await timeout(payments.card(), 10000) as any
-        console.log('[Square] card created')
         if (cancelled) { card.destroy?.(); return }
         await timeout(card.attach('#square-card-container'), 10000)
-        console.log('[Square] card attached')
         if (cancelled) { card.destroy?.(); return }
         cardRef.current = card
         setSdkReady(true)
       } catch (e: any) {
-        console.error('[Square] error:', e)
         if (!cancelled) {
           const msg = e?.message === 'timeout'
             ? 'カード入力フォームの読み込みがタイムアウトしました。ページを再読み込みしてください。'
-            : `カード入力フォームの読み込みに失敗しました。(${e?.message ?? 'unknown'})`
+            : 'カード入力フォームの読み込みに失敗しました。'
           setErrorMsg(msg)
         }
       }
     }
-    script.onerror = (e) => { console.error('[Square] script onerror:', e); if (!cancelled) setErrorMsg('決済システムの読み込みに失敗しました。') }
+    script.onerror = () => { if (!cancelled) setErrorMsg('決済システムの読み込みに失敗しました。') }
     document.head.appendChild(script)
     return () => {
       cancelled = true
