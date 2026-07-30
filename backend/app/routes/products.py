@@ -34,7 +34,7 @@ def list_products(all: bool = False):
 
 @router.get('/{product_id}')
 def get_product(product_id: str):
-    data = supabase.table('products').select('*').eq('id', product_id).single().execute().data
+    data = admin_supabase.table('products').select('*').eq('id', product_id).single().execute().data
     if not data:
         raise HTTPException(404, 'Not found')
     return data
