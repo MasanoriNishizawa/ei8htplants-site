@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type Product } from '../lib/api'
+import { parseBlocks } from '../components/BlockEditor'
 import { useCart } from '../lib/cart'
 import PageMeta from '../components/PageMeta'
 
@@ -61,27 +62,9 @@ export default function ShopProduct() {
   const maxQty = product.stock - cartQty
   const soldOut = product.stock === 0
 
-  // `## 見出し` で始まる行をセクションとして分割。なければ1段落ずつ扱う
-  const rawDesc = product.description ?? ''
-  type Section = { heading: string | null; body: string }
-  const sections: Section[] = (() => {
-    if (!rawDesc.trim()) return []
-    if (!rawDesc.includes('##')) {
-      return rawDesc.split(/\n\n+/).filter(Boolean).map((s) => ({ heading: null, body: s }))
-    }
-    const result: Section[] = []
-    let current: Section = { heading: null, body: '' }
-    for (const line of rawDesc.split('\n')) {
-      if (line.startsWith('## ')) {
-        if (current.body.trim() || current.heading) result.push(current)
-        current = { heading: line.replace(/^## /, ''), body: '' }
-      } else {
-        current.body += (current.body ? '\n' : '') + line
-      }
-    }
-    if (current.body.trim() || current.heading) result.push(current)
-    return result
-  })()
+  const allBlocks = parseBlocks(product.description)
+  const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!(b as any).url)
+  const heroUrl = heroImgIdx >= 0 ? (allBlocks[heroImgIdx] as any).url : (product.image_urls[0] ?? null)
 
   return (
     <>
@@ -118,46 +101,39 @@ export default function ShopProduct() {
             {soldOut && <span style={{ fontFamily: SANS, fontSize: 12, color: '#c0392b', marginLeft: 8 }}>売り切れ</span>}
           </div>
 
-          {/* メイン画像 */}
-          {product.image_urls[0] && (
+          {/* メイン画像（最初のimageブロック、またはimage_urls[0]） */}
+          {heroUrl && (
             <div style={{ marginBottom: 40, background: '#f0ede8', overflow: 'hidden', aspectRatio: '16/10' }}>
-              <img
-                src={product.image_urls[0]}
-                alt={product.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
+              <img src={heroUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           )}
 
-          {/* 本文（セクションごとに見出し・テキスト・画像を交互配置） */}
+          {/* 本文ブロック */}
           <div style={{ marginBottom: 48 }}>
-            {sections.map((sec, i) => (
-              <div key={i} style={{ marginBottom: 40 }}>
-                {sec.heading && (
-                  <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 400, color: '#1c1c1c', margin: '0 0 16px', letterSpacing: '0.04em', lineHeight: 1.6 }}>
-                    {sec.heading}
-                  </h2>
-                )}
-                {sec.body.trim() && (
-                  <p style={{ fontFamily: SANS, fontSize: 15, color: '#3a3a3a', lineHeight: 2.2, margin: '0 0 28px', whiteSpace: 'pre-wrap' }}>
-                    {sec.body.trim()}
-                  </p>
-                )}
-                {/* セクションごとに対応する追加画像を挿入 */}
-                {product.image_urls[i + 1] && (
-                  <div style={{ background: '#f0ede8', overflow: 'hidden', aspectRatio: '4/3' }}>
-                    <img
-                      src={product.image_urls[i + 1]}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
+            {allBlocks.map((block, i) => {
+              if (block.type === 'image') {
+                if (i === heroImgIdx) return null
+                return (block as any).url ? (
+                  <div key={i} style={{ marginBottom: 32, background: '#f0ede8', overflow: 'hidden', aspectRatio: '4/3' }}>
+                    <img src={(block as any).url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </div>
-                )}
-              </div>
-            ))}
+                ) : null
+              }
+              if (block.type === 'heading') return (
+                <h2 key={i} style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 400, color: '#1c1c1c', margin: '0 0 16px', letterSpacing: '0.04em', lineHeight: 1.6 }}>
+                  {block.value}
+                </h2>
+              )
+              if (block.type === 'text') return (
+                <p key={i} style={{ fontFamily: SANS, fontSize: 15, color: '#3a3a3a', lineHeight: 2.2, margin: '0 0 28px', whiteSpace: 'pre-wrap' }}>
+                  {block.value}
+                </p>
+              )
+              return null
+            })}
 
-            {/* 説明文がなく追加画像だけある場合のグリッド */}
-            {sections.length === 0 && product.image_urls.length > 1 && (
+            {/* ブロックなし・複数画像の場合グリッド表示 */}
+            {allBlocks.length === 0 && product.image_urls.length > 1 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
                 {product.image_urls.slice(1).map((url, i) => (
                   <div key={i} style={{ background: '#f0ede8', overflow: 'hidden', aspectRatio: '1/1' }}>

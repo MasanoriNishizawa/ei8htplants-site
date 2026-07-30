@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Product, type ProductBody } from '../../lib/api'
+import BlockEditor, { type Block, parseBlocks, serializeBlocks } from '../../components/BlockEditor'
 
 const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
@@ -14,17 +15,22 @@ export default function AdminProducts() {
   const [editing, setEditing] = useState<Product | null | 'new'>(null)
   const [form, setForm] = useState<ProductBody>(BLANK)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [tagInput, setTagInput] = useState('')
+  const [blocks, setBlocks] = useState<Block[]>([])
 
   const load = () => {
     api.products.list(true).then(setProducts).finally(() => setLoading(false))
   }
   useEffect(load, [])
 
-  const openNew = () => { setEditing('new'); setForm({ ...BLANK, display_order: products.length }); setTagInput('') }
-  const openEdit = (p: Product) => { setEditing(p); setForm({ name: p.name, description: p.description ?? '', price: p.price, stock: p.stock, image_urls: p.image_urls, tags: p.tags ?? [], is_published: p.is_published, display_order: p.display_order }); setTagInput('') }
-  const closeModal = () => { setEditing(null); setForm(BLANK) }
+  const openNew = () => { setEditing('new'); setForm({ ...BLANK, display_order: products.length }); setBlocks([]); setTagInput('') }
+  const openEdit = (p: Product) => {
+    setEditing(p)
+    setForm({ name: p.name, description: p.description ?? '', price: p.price, stock: p.stock, image_urls: p.image_urls, tags: p.tags ?? [], is_published: p.is_published, display_order: p.display_order })
+    setBlocks(parseBlocks(p.description))
+    setTagInput('')
+  }
+  const closeModal = () => { setEditing(null); setForm(BLANK); setBlocks([]) }
 
   const addTag = () => {
     const t = tagInput.trim()
@@ -36,29 +42,17 @@ export default function AdminProducts() {
   const set = <K extends keyof ProductBody>(k: K, v: ProductBody[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    try {
-      const url = await api.upload(file)
-      set('image_urls', [...form.image_urls, url])
-    } catch { /* ignore */ }
-    setUploading(false)
-    e.target.value = ''
-  }
-
-  const removeImage = (i: number) =>
-    set('image_urls', form.image_urls.filter((_, idx) => idx !== i))
-
   const handleSave = async () => {
     setSaving(true)
+    // ブロック内の画像URLをimage_urlsにも同期（後方互換）
+    const imageUrls = blocks.filter((b) => b.type === 'image').map((b) => (b as any).url).filter(Boolean)
+    const payload = { ...form, description: serializeBlocks(blocks), image_urls: imageUrls }
     try {
       if (editing === 'new') {
-        const p = await api.products.create(form)
+        const p = await api.products.create(payload)
         setProducts((prev) => [...prev, p])
       } else if (editing) {
-        const p = await api.products.update(editing.id, form)
+        const p = await api.products.update(editing.id, payload)
         setProducts((prev) => prev.map((x) => x.id === p.id ? p : x))
       }
       closeModal()
@@ -152,10 +146,6 @@ export default function AdminProducts() {
               <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>商品名 *</label>
               <input required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} />
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>説明</label>
-              <textarea style={{ ...inputStyle, height: 100, resize: 'vertical' }} value={form.description ?? ''} onChange={(e) => set('description', e.target.value)} />
-            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>価格（円・税込）*</label>
@@ -167,19 +157,8 @@ export default function AdminProducts() {
               </div>
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>画像</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                {form.image_urls.map((url, i) => (
-                  <div key={i} style={{ position: 'relative' }}>
-                    <img src={url} alt="" style={{ width: 64, height: 64, objectFit: 'cover', border: '1px solid #dddde8', display: 'block' }} />
-                    <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%', border: 'none', background: '#c0392b', color: '#fff', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
-                  </div>
-                ))}
-              </div>
-              <label style={{ display: 'inline-block', padding: '8px 16px', border: '1px solid #dddde8', fontSize: 12, cursor: 'pointer', color: '#3a4535' }}>
-                {uploading ? 'アップロード中...' : '+ 画像追加'}
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
-              </label>
+              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10 }}>本文・画像</label>
+              <BlockEditor blocks={blocks} onChange={setBlocks} />
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>タグ</label>

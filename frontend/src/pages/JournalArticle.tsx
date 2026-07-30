@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, type Article } from '../lib/api'
+import { parseBlocks } from '../components/BlockEditor'
 import PageMeta from '../components/PageMeta'
 
 const BG = '#faf9f7'
@@ -40,27 +41,9 @@ export default function JournalArticle() {
     )
   }
 
-  // `## 見出し` でセクション分割
-  type Section = { heading: string | null; body: string }
-  const rawContent = article.content ?? ''
-  const sections: Section[] = (() => {
-    if (!rawContent.trim()) return []
-    if (!rawContent.includes('##')) {
-      return rawContent.split(/\n\n+/).filter(Boolean).map((s) => ({ heading: null, body: s }))
-    }
-    const result: Section[] = []
-    let current: Section = { heading: null, body: '' }
-    for (const line of rawContent.split('\n')) {
-      if (line.startsWith('## ')) {
-        if (current.body.trim() || current.heading) result.push(current)
-        current = { heading: line.replace(/^## /, ''), body: '' }
-      } else {
-        current.body += (current.body ? '\n' : '') + line
-      }
-    }
-    if (current.body.trim() || current.heading) result.push(current)
-    return result
-  })()
+  const allBlocks = parseBlocks(article.content)
+  const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!(b as any).url)
+  const heroUrl = heroImgIdx >= 0 ? (allBlocks[heroImgIdx] as any).url : (article.image_urls[0] ?? null)
 
   return (
     <>
@@ -103,37 +86,39 @@ export default function JournalArticle() {
             )}
           </header>
 
-          {/* メイン画像 */}
-          {article.image_urls[0] && (
+          {/* メイン画像（最初のimageブロック、またはimage_urls[0]） */}
+          {heroUrl && (
             <div style={{ marginBottom: 44, background: '#f0ede8', overflow: 'hidden', aspectRatio: '16/10' }}>
-              <img src={article.image_urls[0]} alt={article.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src={heroUrl} alt={article.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           )}
 
-          {/* 本文（セクションと画像を交互配置） */}
+          {/* 本文ブロック */}
           <div>
-            {sections.map((sec, i) => (
-              <div key={i} style={{ marginBottom: 44 }}>
-                {sec.heading && (
-                  <h2 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 400, color: '#1c1c1c', margin: '0 0 16px', letterSpacing: '0.04em', lineHeight: 1.6 }}>
-                    {sec.heading}
-                  </h2>
-                )}
-                {sec.body.trim() && (
-                  <p style={{ fontFamily: SANS, fontSize: 15, color: '#3a3a3a', lineHeight: 2.3, margin: '0 0 28px', whiteSpace: 'pre-wrap' }}>
-                    {sec.body.trim()}
-                  </p>
-                )}
-                {article.image_urls[i + 1] && (
-                  <div style={{ background: '#f0ede8', overflow: 'hidden', aspectRatio: '4/3' }}>
-                    <img src={article.image_urls[i + 1]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            {allBlocks.map((block, i) => {
+              if (block.type === 'image') {
+                if (i === heroImgIdx) return null
+                return (block as any).url ? (
+                  <div key={i} style={{ marginBottom: 36, background: '#f0ede8', overflow: 'hidden', aspectRatio: '4/3' }}>
+                    <img src={(block as any).url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </div>
-                )}
-              </div>
-            ))}
+                ) : null
+              }
+              if (block.type === 'heading') return (
+                <h2 key={i} style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 400, color: '#1c1c1c', margin: '0 0 16px', letterSpacing: '0.04em', lineHeight: 1.6 }}>
+                  {block.value}
+                </h2>
+              )
+              if (block.type === 'text') return (
+                <p key={i} style={{ fontFamily: SANS, fontSize: 15, color: '#3a3a3a', lineHeight: 2.3, margin: '0 0 28px', whiteSpace: 'pre-wrap' }}>
+                  {block.value}
+                </p>
+              )
+              return null
+            })}
 
-            {/* 説明なしで追加画像だけある場合 */}
-            {sections.length === 0 && article.image_urls.length > 1 && (
+            {/* ブロックなし・複数画像の場合グリッド表示 */}
+            {allBlocks.length === 0 && article.image_urls.length > 1 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                 {article.image_urls.slice(1).map((url, i) => (
                   <div key={i} style={{ background: '#f0ede8', overflow: 'hidden', aspectRatio: '1/1' }}>

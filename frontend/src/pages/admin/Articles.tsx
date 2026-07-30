@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Article, type ArticleBody } from '../../lib/api'
+import BlockEditor, { type Block, parseBlocks, serializeBlocks } from '../../components/BlockEditor'
 
 const BLANK: ArticleBody = {
   title: '', content: '', image_urls: [], tags: [], is_published: false, display_order: 0,
@@ -16,20 +17,21 @@ export default function AdminArticles() {
   const [editing, setEditing] = useState<Article | 'new' | null>(null)
   const [form, setForm] = useState<ArticleBody>(BLANK)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [tagInput, setTagInput] = useState('')
+  const [blocks, setBlocks] = useState<Block[]>([])
 
   useEffect(() => {
     api.articles.list(true).then(setArticles).finally(() => setLoading(false))
   }, [])
 
-  const openNew = () => { setEditing('new'); setForm({ ...BLANK, display_order: articles.length }); setTagInput('') }
+  const openNew = () => { setEditing('new'); setForm({ ...BLANK, display_order: articles.length }); setBlocks([]); setTagInput('') }
   const openEdit = (a: Article) => {
     setEditing(a)
     setForm({ title: a.title, content: a.content ?? '', image_urls: a.image_urls, tags: a.tags, is_published: a.is_published, display_order: a.display_order })
+    setBlocks(parseBlocks(a.content))
     setTagInput('')
   }
-  const close = () => { setEditing(null); setForm(BLANK) }
+  const close = () => { setEditing(null); setForm(BLANK); setBlocks([]) }
 
   const set = <K extends keyof ArticleBody>(k: K, v: ArticleBody[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
@@ -41,26 +43,16 @@ export default function AdminArticles() {
   }
   const removeTag = (t: string) => set('tags', form.tags.filter((x) => x !== t))
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    try {
-      const url = await api.upload(file)
-      set('image_urls', [...form.image_urls, url])
-    } catch { /* ignore */ }
-    setUploading(false)
-    e.target.value = ''
-  }
-
   const handleSave = async () => {
     setSaving(true)
+    const imageUrls = blocks.filter((b) => b.type === 'image').map((b) => (b as any).url).filter(Boolean)
+    const payload = { ...form, content: serializeBlocks(blocks), image_urls: imageUrls }
     try {
       if (editing === 'new') {
-        const a = await api.articles.create(form)
+        const a = await api.articles.create(payload)
         setArticles((prev) => [a, ...prev])
       } else if (editing) {
-        const a = await api.articles.update(editing.id, form)
+        const a = await api.articles.update(editing.id, payload)
         setArticles((prev) => prev.map((x) => x.id === a.id ? a : x))
       }
       close()
@@ -163,36 +155,9 @@ export default function AdminArticles() {
               <input required style={inputStyle} value={form.title} onChange={(e) => set('title', e.target.value)} />
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>
-                本文（<code style={{ fontSize: 11 }}>## 見出し</code> で区切るとセクションに分かれます）
-              </label>
-              <textarea
-                style={{ ...inputStyle, height: 240, resize: 'vertical', lineHeight: 1.7 }}
-                value={form.content ?? ''}
-                onChange={(e) => set('content', e.target.value)}
-                placeholder={"## 最初の見出し\nここに本文を書きます。\n\n## 次の見出し\n続きの文章。"}
-              />
-            </div>
-
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>画像</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                {form.image_urls.map((url, i) => (
-                  <div key={i} style={{ position: 'relative' }}>
-                    <img src={url} alt="" style={{ width: 64, height: 64, objectFit: 'cover', border: '1px solid #dddde8', display: 'block' }} />
-                    <button
-                      onClick={() => set('image_urls', form.image_urls.filter((_, idx) => idx !== i))}
-                      style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%', border: 'none', background: '#c0392b', color: '#fff', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: 1 }}
-                    >×</button>
-                  </div>
-                ))}
-              </div>
-              <label style={{ display: 'inline-block', padding: '8px 16px', border: '1px solid #dddde8', fontSize: 12, cursor: 'pointer', color: '#3a4535' }}>
-                {uploading ? 'アップロード中...' : '+ 画像追加'}
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
-              </label>
-              <p style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>1枚目がメイン画像、以降は本文セクションに対応します</p>
+              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10 }}>本文・画像</label>
+              <BlockEditor blocks={blocks} onChange={setBlocks} />
             </div>
 
             <div style={{ marginBottom: 20 }}>
