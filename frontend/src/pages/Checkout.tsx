@@ -48,6 +48,16 @@ export default function Checkout() {
   // Square Web Payments SDK を動的ロード
   useEffect(() => {
     if (!SQUARE_APP_ID) return
+
+    const hostname = window.location.hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      setErrorMsg('Square決済はlocalhostでは動作しません。本番サイト（ei8htplants.com）でご確認ください。')
+      return
+    }
+
+    const timeout = (p: Promise<unknown>, ms: number) =>
+      Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
+
     let cancelled = false
     const script = document.createElement('script')
     script.src = SQUARE_SDK_URL
@@ -55,14 +65,19 @@ export default function Checkout() {
       if (cancelled) return
       try {
         const payments = (window as any).Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID)
-        const card = await payments.card()
+        const card = await timeout(payments.card(), 10000) as any
         if (cancelled) { card.destroy?.(); return }
-        await card.attach('#square-card-container')
+        await timeout(card.attach('#square-card-container'), 10000)
         if (cancelled) { card.destroy?.(); return }
         cardRef.current = card
         setSdkReady(true)
-      } catch (e) {
-        if (!cancelled) setErrorMsg('カード入力フォームの読み込みに失敗しました。')
+      } catch (e: any) {
+        if (!cancelled) {
+          const msg = e?.message === 'timeout'
+            ? 'カード入力フォームの読み込みがタイムアウトしました。ページを再読み込みしてください。'
+            : 'カード入力フォームの読み込みに失敗しました。'
+          setErrorMsg(msg)
+        }
       }
     }
     script.onerror = () => { if (!cancelled) setErrorMsg('決済システムの読み込みに失敗しました。') }
