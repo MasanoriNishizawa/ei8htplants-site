@@ -67,6 +67,7 @@ export default function AdminLayout() {
         <NavLink to="/admin/contacts" style={navStyle}>お問い合わせ</NavLink>
         <NavLink to="/admin/products" style={navStyle}>商品管理</NavLink>
         <NavLink to="/admin/orders" style={navStyle}>注文管理</NavLink>
+        <NavLink to="/admin/articles" style={navStyle}>記事管理</NavLink>
         <div style={{ marginTop: 'auto' }}>
           <button onClick={logout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', color: '#8a9a7e' }}>ログアウト</button>
         </div>

@@ -13,6 +13,7 @@ class ProductBody(BaseModel):
     price: int
     stock: int = 0
     image_urls: list[str] = []
+    tags: list[str] = []
     is_published: bool = False
     display_order: int = 0
 

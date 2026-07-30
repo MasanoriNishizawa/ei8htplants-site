@@ -145,6 +145,16 @@ export const api = {
     updateStatus: (id: string, status: string) =>
       authRequest<Order>(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   },
+  articles: {
+    list: (all = false) => request<Article[]>(`/articles${all ? '?all=true' : ''}`),
+    get: (id: string) => request<Article>(`/articles/${id}`),
+    create: (body: ArticleBody) =>
+      authRequest<Article>('/articles', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: string, body: ArticleBody) =>
+      authRequest<Article>(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      authRequest<{ ok: boolean }>(`/articles/${id}`, { method: 'DELETE' }),
+  },
   collaborations: {
     list: () => request<Collaboration[]>('/collaborations'),
     add: (body: CollaborationPayload) =>
@@ -353,6 +363,27 @@ export interface EventFinances {
 
 export type EventFinancesBody = Omit<EventFinances, 'id' | 'event_id' | 'updated_at'>
 
+export interface Article {
+  id: string
+  title: string
+  content: string | null
+  image_urls: string[]
+  tags: string[]
+  is_published: boolean
+  display_order: number
+  published_at: string | null
+  created_at: string
+}
+
+export interface ArticleBody {
+  title: string
+  content?: string | null
+  image_urls: string[]
+  tags: string[]
+  is_published: boolean
+  display_order: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -360,6 +391,7 @@ export interface Product {
   price: number
   stock: number
   image_urls: string[]
+  tags: string[]
   is_published: boolean
   display_order: number
   created_at: string
@@ -371,6 +403,7 @@ export interface ProductBody {
   price: number
   stock: number
   image_urls: string[]
+  tags: string[]
   is_published: boolean
   display_order: number
 }

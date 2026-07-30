@@ -39,6 +39,9 @@ import AdminEventReservations from './pages/admin/EventReservations'
 import AdminEventSite from './pages/admin/AdminEventSite'
 import AdminProducts from './pages/admin/Products'
 import AdminOrders from './pages/admin/Orders'
+import AdminArticles from './pages/admin/Articles'
+import Journal from './pages/Journal'
+import JournalArticle from './pages/JournalArticle'
 import EventSite from './pages/EventSite'
 
 export default function App() {
@@ -66,6 +69,8 @@ export default function App() {
             <Route path="/shop/:id" element={<ShopProduct />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order/complete" element={<OrderComplete />} />
+            <Route path="/journal" element={<Journal />} />
+            <Route path="/journal/:id" element={<JournalArticle />} />
           </Route>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
@@ -82,6 +87,7 @@ export default function App() {
             <Route path="contacts" element={<AdminContacts />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />
+            <Route path="articles" element={<AdminArticles />} />
           </Route>
         </Routes>
       </BrowserRouter>
