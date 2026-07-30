@@ -64,18 +64,23 @@ export default function Checkout() {
     script.onload = async () => {
       if (cancelled) return
       try {
+        console.log('[Square] script loaded, Square=', !!(window as any).Square)
         const payments = (window as any).Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID)
+        console.log('[Square] payments created')
         const card = await timeout(payments.card(), 10000) as any
+        console.log('[Square] card created')
         if (cancelled) { card.destroy?.(); return }
         await timeout(card.attach('#square-card-container'), 10000)
+        console.log('[Square] card attached')
         if (cancelled) { card.destroy?.(); return }
         cardRef.current = card
         setSdkReady(true)
       } catch (e: any) {
+        console.error('[Square] error:', e)
         if (!cancelled) {
           const msg = e?.message === 'timeout'
             ? 'カード入力フォームの読み込みがタイムアウトしました。ページを再読み込みしてください。'
-            : 'カード入力フォームの読み込みに失敗しました。'
+            : `カード入力フォームの読み込みに失敗しました。(${e?.message ?? 'unknown'})`
           setErrorMsg(msg)
         }
       }
