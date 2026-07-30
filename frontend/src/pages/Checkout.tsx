@@ -48,24 +48,30 @@ export default function Checkout() {
   // Square Web Payments SDK を動的ロード
   useEffect(() => {
     if (!SQUARE_APP_ID) return
+    let cancelled = false
     const script = document.createElement('script')
     script.src = SQUARE_SDK_URL
     script.onload = async () => {
+      if (cancelled) return
       try {
         const payments = (window as any).Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID)
         const card = await payments.card()
+        if (cancelled) { card.destroy?.(); return }
         await card.attach('#square-card-container')
+        if (cancelled) { card.destroy?.(); return }
         cardRef.current = card
         setSdkReady(true)
       } catch (e) {
-        setErrorMsg('カード入力フォームの読み込みに失敗しました。')
+        if (!cancelled) setErrorMsg('カード入力フォームの読み込みに失敗しました。')
       }
     }
-    script.onerror = () => setErrorMsg('決済システムの読み込みに失敗しました。')
+    script.onerror = () => { if (!cancelled) setErrorMsg('決済システムの読み込みに失敗しました。') }
     document.head.appendChild(script)
     return () => {
+      cancelled = true
       cardRef.current?.destroy?.()
-      document.head.removeChild(script)
+      cardRef.current = null
+      if (document.head.contains(script)) document.head.removeChild(script)
     }
   }, [])
 
