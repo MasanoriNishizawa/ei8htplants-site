@@ -131,142 +131,153 @@ export default function Checkout() {
     }
   }
 
+  const SERIF = "'Noto Serif JP', 'Hiragino Mincho ProN', serif"
+  const SANS = "'Noto Sans JP', sans-serif"
+  const BG = '#faf9f7'
+
   const inputStyle: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', padding: '10px 12px',
-    border: '1px solid #dddde8', fontSize: 15, fontFamily: 'inherit',
-    color: '#1c2417', background: '#fff', outline: 'none', borderRadius: 0,
+    width: '100%', boxSizing: 'border-box', padding: '11px 14px',
+    border: '1px solid #ddd', fontSize: 14, fontFamily: SANS,
+    color: '#1c1c1c', background: '#fff', outline: 'none', borderRadius: 0,
     WebkitAppearance: 'none', appearance: 'none',
   }
   const labelStyle: React.CSSProperties = {
-    display: 'block', fontSize: 11, letterSpacing: '1.5px',
-    textTransform: 'uppercase', color: '#999', marginBottom: 6,
+    display: 'block', fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px',
+    color: '#aaa', marginBottom: 7,
   }
   const sectionTitle: React.CSSProperties = {
-    fontSize: 12, letterSpacing: 2, textTransform: 'uppercase',
-    color: '#8a9a7e', borderBottom: '1px solid #dddde8',
-    paddingBottom: 10, marginBottom: 20,
+    fontFamily: SERIF, fontSize: 16, fontWeight: 400, color: '#1c1c1c',
+    borderBottom: '1px solid #e8e3da', paddingBottom: 12, marginBottom: 20, letterSpacing: '0.05em',
   }
 
   return (
     <>
-      <PageMeta title="Checkout | ei8ht plants" description="ご注文手続き" />
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '60px 24px 80px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>ei8ht plants</p>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, fontWeight: 300, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0, color: '#1c2417' }}>Checkout</h1>
+      <PageMeta title="ご注文手続き | ei8ht plants" description="ご注文手続き" />
+      <div style={{ background: BG, minHeight: '100vh' }}>
+
+        {/* ヘッダー */}
+        <div style={{ borderBottom: '1px solid #e8e3da', background: '#fff' }}>
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px' }}>
+            <p style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '3px', color: '#aaa', margin: '0 0 8px', textTransform: 'uppercase' }}>ei8ht plants</p>
+            <h1 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 300, margin: 0, color: '#1c1c1c', letterSpacing: '0.06em' }}>ご注文手続き</h1>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 40, alignItems: 'start' }}>
-          {/* フォーム */}
-          <form onSubmit={handleSubmit}>
-            <p style={sectionTitle}>お客様情報</p>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>お名前 *</label>
-              <input required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>メールアドレス *</label>
-              <input required type="email" style={inputStyle} value={form.email} onChange={(e) => set('email', e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 28 }}>
-              <label style={labelStyle}>電話番号</label>
-              <input type="tel" style={inputStyle} value={form.phone} onChange={(e) => set('phone', e.target.value)} />
-            </div>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 24px 80px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 48, alignItems: 'start' }}>
 
-            <p style={sectionTitle}>お届け先</p>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>郵便番号 *</label>
-              <input required style={{ ...inputStyle, maxWidth: 160 }} value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="000-0000" />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>都道府県 *</label>
-              <select required style={inputStyle} value={form.prefecture} onChange={(e) => set('prefecture', e.target.value)}>
-                <option value="">選択してください</option>
-                {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>市区町村 *</label>
-              <input required style={inputStyle} value={form.city} onChange={(e) => set('city', e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>番地・建物名 *</label>
-              <input required style={inputStyle} value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 28 }}>
-              <label style={labelStyle}>建物名・部屋番号</label>
-              <input style={inputStyle} value={form.addressLine2} onChange={(e) => set('addressLine2', e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 28 }}>
-              <label style={labelStyle}>備考</label>
-              <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={form.note} onChange={(e) => set('note', e.target.value)} />
-            </div>
-
-            <p style={sectionTitle}>お支払い</p>
-            <div
-              id="square-card-container"
-              style={{ border: '1px solid #dddde8', padding: '14px 12px', marginBottom: 8, minHeight: 60, background: sdkReady ? '#fff' : '#f5f5f8' }}
-            />
-            {!sdkReady && !errorMsg && <p style={{ fontSize: 12, color: '#8a9a7e', marginBottom: 16 }}>カード入力フォームを読み込み中...</p>}
-
-            {errorMsg && (
-              <p style={{ fontSize: 13, color: '#c0392b', marginBottom: 16, lineHeight: 1.6 }}>{errorMsg}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={status === 'loading' || !sdkReady}
-              style={{
-                width: '100%', padding: '15px 0', border: 'none',
-                background: status === 'loading' ? '#8a9a7e' : '#1c2417',
-                color: '#fff', fontSize: 14, letterSpacing: '2px',
-                cursor: status === 'loading' ? 'default' : 'pointer',
-                fontFamily: 'inherit', marginTop: 8,
-              }}
-            >
-              {status === 'loading' ? '処理中...' : `注文を確定する ${fmt(total)}`}
-            </button>
-
-            <p style={{ fontSize: 11, color: '#8a9a7e', marginTop: 12, textAlign: 'center', lineHeight: 1.8 }}>
-              ご注文確定と同時に決済が行われます。<br />
-              カード情報は Square により安全に処理されます。
-            </p>
-          </form>
-
-          {/* 注文サマリー */}
-          <div style={{ background: '#f5f5f8', padding: 28, border: '1px solid #dddde8' }}>
-            <p style={sectionTitle}>注文内容</p>
-            <div style={{ marginBottom: 20 }}>
-              {items.map((i) => (
-                <div key={i.product.id} style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'flex-start' }}>
-                  <div style={{ width: 56, height: 56, flexShrink: 0, background: '#fff', border: '1px solid #dddde8', overflow: 'hidden' }}>
-                    {i.product.image_urls[0] ? (
-                      <img src={i.product.image_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    ) : null}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: '#1c2417', margin: '0 0 2px', lineHeight: 1.4 }}>{i.product.name}</p>
-                    <p style={{ fontSize: 12, color: '#8a9a7e', margin: 0 }}>× {i.quantity}</p>
-                  </div>
-                  <p style={{ fontSize: 14, color: '#1c2417', margin: 0, whiteSpace: 'nowrap' }}>{fmt(i.product.price * i.quantity)}</p>
-                </div>
-              ))}
-            </div>
-            <div style={{ borderTop: '1px solid #dddde8', paddingTop: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: '#3a4535' }}>
-                <span>小計</span><span>{fmt(subtotal)}</span>
+            {/* フォーム */}
+            <form onSubmit={handleSubmit}>
+              <p style={sectionTitle}>お客様情報</p>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>お名前 *</label>
+                <input required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, color: '#3a4535' }}>
-                <span>送料{form.prefecture ? `（${form.prefecture}）` : ''}</span>
-                <span>{shippingFee !== null ? fmt(shippingFee) : '—'}</span>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>メールアドレス *</label>
+                <input required type="email" style={inputStyle} value={form.email} onChange={(e) => set('email', e.target.value)} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 500, color: '#1c2417', fontFamily: "'Cormorant Garamond', serif" }}>
-                <span>合計</span>
-                <span>{shippingFee !== null ? fmt(total) : '—'}</span>
+              <div style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>電話番号</label>
+                <input type="tel" style={inputStyle} value={form.phone} onChange={(e) => set('phone', e.target.value)} />
               </div>
-              {shippingFee === null && (
-                <p style={{ fontSize: 11, color: '#8a9a7e', marginTop: 6, textAlign: 'right' }}>都道府県選択後に確定</p>
+
+              <p style={sectionTitle}>お届け先</p>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>郵便番号 *</label>
+                <input required style={{ ...inputStyle, maxWidth: 160 }} value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="000-0000" />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>都道府県 *</label>
+                <select required style={inputStyle} value={form.prefecture} onChange={(e) => set('prefecture', e.target.value)}>
+                  <option value="">選択してください</option>
+                  {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>市区町村 *</label>
+                <input required style={inputStyle} value={form.city} onChange={(e) => set('city', e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>番地・建物名 *</label>
+                <input required style={inputStyle} value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>建物名・部屋番号</label>
+                <input style={inputStyle} value={form.addressLine2} onChange={(e) => set('addressLine2', e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>備考</label>
+                <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={form.note} onChange={(e) => set('note', e.target.value)} />
+              </div>
+
+              <p style={sectionTitle}>お支払い</p>
+              <div
+                id="square-card-container"
+                style={{ border: '1px solid #ddd', padding: '14px 12px', marginBottom: 8, minHeight: 60, background: '#fff' }}
+              />
+              {!sdkReady && !errorMsg && (
+                <p style={{ fontFamily: SANS, fontSize: 12, color: '#aaa', marginBottom: 16 }}>カード入力フォームを読み込み中...</p>
               )}
+              {errorMsg && (
+                <p style={{ fontFamily: SANS, fontSize: 13, color: '#c0392b', marginBottom: 16, lineHeight: 1.7 }}>{errorMsg}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={status === 'loading' || !sdkReady}
+                style={{
+                  width: '100%', padding: '16px 0', border: 'none', marginTop: 12,
+                  background: status === 'loading' ? '#a0a098' : '#1c1c1c',
+                  color: '#fff', fontFamily: SANS, fontSize: 13, letterSpacing: '2px',
+                  cursor: status === 'loading' ? 'default' : 'pointer',
+                }}
+              >
+                {status === 'loading' ? '処理中...' : `注文を確定する  ${fmt(total)}`}
+              </button>
+              <p style={{ fontFamily: SANS, fontSize: 11, color: '#aaa', marginTop: 12, textAlign: 'center', lineHeight: 1.9 }}>
+                ご注文確定と同時に決済が行われます。<br />
+                カード情報は Square により安全に処理されます。
+              </p>
+            </form>
+
+            {/* 注文サマリー */}
+            <div style={{ background: '#fff', border: '1px solid #e8e3da', padding: 28 }}>
+              <p style={{ fontFamily: SERIF, fontSize: 14, color: '#1c1c1c', margin: '0 0 20px', letterSpacing: '0.05em', borderBottom: '1px solid #e8e3da', paddingBottom: 12 }}>
+                ご注文内容
+              </p>
+              <div style={{ marginBottom: 20 }}>
+                {items.map((i) => (
+                  <div key={i.product.id} style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'flex-start' }}>
+                    <div style={{ width: 60, height: 60, flexShrink: 0, background: '#f0ede8', overflow: 'hidden' }}>
+                      {i.product.image_urls[0] && (
+                        <img src={i.product.image_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontFamily: SANS, fontSize: 13, color: '#1c1c1c', margin: '0 0 3px', lineHeight: 1.5 }}>{i.product.name}</p>
+                      <p style={{ fontFamily: SANS, fontSize: 12, color: '#aaa', margin: 0 }}>× {i.quantity}</p>
+                    </div>
+                    <p style={{ fontFamily: SERIF, fontSize: 14, color: '#1c1c1c', margin: 0, whiteSpace: 'nowrap' }}>{fmt(i.product.price * i.quantity)}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{ borderTop: '1px solid #e8e3da', paddingTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontFamily: SANS, fontSize: 13, color: '#717171' }}>
+                  <span>小計</span><span>{fmt(subtotal)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, fontFamily: SANS, fontSize: 13, color: '#717171' }}>
+                  <span>送料{form.prefecture ? `（${form.prefecture}）` : ''}</span>
+                  <span>{shippingFee !== null ? fmt(shippingFee) : '—'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: SERIF, fontSize: 19, color: '#1c1c1c' }}>
+                  <span>合計</span>
+                  <span>{shippingFee !== null ? fmt(total) : '—'}</span>
+                </div>
+                {shippingFee === null && (
+                  <p style={{ fontFamily: SANS, fontSize: 11, color: '#aaa', marginTop: 6, textAlign: 'right' }}>都道府県選択後に確定</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
