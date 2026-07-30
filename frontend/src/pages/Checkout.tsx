@@ -47,7 +47,11 @@ export default function Checkout() {
 
   // Square Web Payments SDK を動的ロード
   useEffect(() => {
-    if (!SQUARE_APP_ID) return
+    console.error('[Square] useEffect start, appId=', SQUARE_APP_ID || '(empty)', 'hostname=', window.location.hostname)
+    if (!SQUARE_APP_ID) {
+      console.error('[Square] SQUARE_APP_ID is empty, aborting')
+      return
+    }
 
     const hostname = window.location.hostname
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -61,6 +65,7 @@ export default function Checkout() {
     let cancelled = false
     const script = document.createElement('script')
     script.src = SQUARE_SDK_URL
+    console.error('[Square] loading script from', SQUARE_SDK_URL)
     script.onload = async () => {
       if (cancelled) return
       try {
@@ -85,7 +90,7 @@ export default function Checkout() {
         }
       }
     }
-    script.onerror = () => { if (!cancelled) setErrorMsg('決済システムの読み込みに失敗しました。') }
+    script.onerror = (e) => { console.error('[Square] script onerror:', e); if (!cancelled) setErrorMsg('決済システムの読み込みに失敗しました。') }
     document.head.appendChild(script)
     return () => {
       cancelled = true
