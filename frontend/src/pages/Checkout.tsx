@@ -65,7 +65,7 @@ export default function Checkout() {
       if (cancelled) return
       try {
         const payments = (window as any).Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID)
-        const card = await timeout(payments.card(), 10000) as any
+        const card = await timeout(payments.card({ postalCode: false }), 10000) as any
         if (cancelled) { card.destroy?.(); return }
         await timeout(card.attach('#square-card-container'), 10000)
         if (cancelled) { card.destroy?.(); return }
