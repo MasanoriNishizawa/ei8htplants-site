@@ -27,8 +27,12 @@ export default function Events() {
   }, [isPast])
 
   const sorted = useMemo(
-    () => [...events].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()),
-    [events]
+    () => [...events].sort((a, b) =>
+      isPast
+        ? new Date(b.start_date).getTime() - new Date(a.start_date).getTime()  // 過去: 当日に近い順
+        : new Date(a.start_date).getTime() - new Date(b.start_date).getTime()  // 今後: 今日に近い順
+    ),
+    [events, isPast]
   )
 
   const months = useMemo(
@@ -64,25 +68,35 @@ export default function Events() {
       </div>
 
       {!loading && events.length > 0 && (
-        <div style={{ background: '#f5f5f7', borderBottom: '1px solid #dddde8', padding: '12px 20px' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginRight: 4 }}>Brand</span>
-            {BRANDS.map((b) => (
-              <button key={b} style={filterBtnStyle(brandFilter === b)} onClick={() => setBrandFilter(brandFilter === b ? null : b)}>{b}</button>
-            ))}
+        <div style={{ background: '#f5f5f7', borderBottom: '1px solid #dddde8', padding: '14px 20px' }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+            {/* ブランドフィルター */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Brand</span>
+              {BRANDS.map((b) => (
+                <button key={b} style={filterBtnStyle(brandFilter === b)} onClick={() => setBrandFilter(brandFilter === b ? null : b)}>{b}</button>
+              ))}
+            </div>
+
+            {/* 月フィルター（複数月あるときのみ） */}
             {months.length > 1 && (
-              <>
-                <span style={{ fontSize: 11, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginLeft: 8, marginRight: 4 }}>Month</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingTop: 8, borderTop: '1px solid #e0e0ea' }}>
+                <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Month</span>
                 {months.map((m) => (
                   <button key={m} style={filterBtnStyle(monthFilter === m)} onClick={() => setMonthFilter(monthFilter === m ? null : m)}>{m}</button>
                 ))}
-              </>
+              </div>
             )}
+
+            {/* リセット */}
             {hasFilter && (
-              <button onClick={() => { setBrandFilter(null); setMonthFilter(null) }}
-                style={{ padding: '7px 14px', border: 'none', background: 'none', fontSize: 12, color: '#c0392b', cursor: 'pointer', fontFamily: 'inherit' }}>
-                リセット ×
-              </button>
+              <div style={{ paddingTop: 4 }}>
+                <button onClick={() => { setBrandFilter(null); setMonthFilter(null) }}
+                  style={{ padding: '5px 12px', border: 'none', background: 'none', fontSize: 12, color: '#c0392b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  フィルターをリセット ×
+                </button>
+              </div>
             )}
           </div>
         </div>
