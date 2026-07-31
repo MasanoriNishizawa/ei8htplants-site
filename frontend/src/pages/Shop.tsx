@@ -69,7 +69,7 @@ export default function Shop() {
                     cursor: 'pointer',
                   }}>
                     {/* 大きな画像 */}
-                    <div style={{ overflow: 'hidden', background: '#f0ede8', aspectRatio: '4/3' }}>
+                    <div style={{ overflow: 'hidden', background: '#f0ede8', aspectRatio: '4/3', position: 'relative' }}>
                       {hero.image_urls[0] ? (
                         <img
                           src={hero.image_urls[0]}
@@ -80,6 +80,11 @@ export default function Shop() {
                         />
                       ) : (
                         <div style={{ width: '100%', height: '100%', background: '#e8e3da' }} />
+                      )}
+                      {hero.stock === 0 && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontFamily: SANS, fontSize: 12, letterSpacing: '4px', color: '#fff', border: '1px solid rgba(255,255,255,0.7)', padding: '8px 22px' }}>SOLD OUT</span>
+                        </div>
                       )}
                     </div>
 
@@ -125,7 +130,7 @@ export default function Shop() {
                     cursor: 'pointer',
                   }}>
                     {/* 画像 */}
-                    <div style={{ order: idx % 2 === 0 ? 0 : 1, overflow: 'hidden', background: '#f0ede8', aspectRatio: '5/4' }}>
+                    <div style={{ order: idx % 2 === 0 ? 0 : 1, overflow: 'hidden', background: '#f0ede8', aspectRatio: '5/4', position: 'relative' }}>
                       {p.image_urls[0] ? (
                         <img
                           src={p.image_urls[0]}
@@ -136,6 +141,11 @@ export default function Shop() {
                         />
                       ) : (
                         <div style={{ width: '100%', height: '100%', background: '#e8e3da' }} />
+                      )}
+                      {p.stock === 0 && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontFamily: SANS, fontSize: 12, letterSpacing: '4px', color: '#fff', border: '1px solid rgba(255,255,255,0.7)', padding: '8px 22px' }}>SOLD OUT</span>
+                        </div>
                       )}
                     </div>
 

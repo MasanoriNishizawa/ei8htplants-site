@@ -36,7 +36,7 @@ const BLANK: FormState = {
 }
 
 export default function Checkout() {
-  const { items, clear } = useCart()
+  const { items, clear, remove, updateQty } = useCart()
   const navigate = useNavigate()
   const cardRef = useRef<any>(null)
   const [sdkReady, setSdkReady] = useState(false)
@@ -44,6 +44,28 @@ export default function Checkout() {
   const [shippingFee, setShippingFee] = useState<number | null>(null)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [stockWarnings, setStockWarnings] = useState<string[]>([])
+
+  // 最新在庫確認（Checkoutページ表示時）
+  useEffect(() => {
+    if (items.length === 0) return
+    const productIds = items.map((i) => i.product.id)
+    Promise.all(productIds.map((id) => api.products.get(id).catch(() => null))).then((results) => {
+      const warnings: string[] = []
+      results.forEach((latest, idx) => {
+        if (!latest) return
+        const cartItem = items[idx]
+        if (latest.stock === 0) {
+          warnings.push(`「${latest.name}」は売り切れのためカートから削除しました`)
+          remove(cartItem.product.id)
+        } else if (latest.stock < cartItem.quantity) {
+          warnings.push(`「${latest.name}」の在庫が${latest.stock}点になりました（数量を変更しました）`)
+          updateQty(cartItem.product.id, latest.stock)
+        }
+      })
+      setStockWarnings(warnings)
+    })
+  }, [])
 
   // Square Web Payments SDK を動的ロード
   useEffect(() => {
@@ -185,6 +207,16 @@ export default function Checkout() {
         </div>
 
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 24px 80px' }}>
+
+          {/* 在庫変動警告 */}
+          {stockWarnings.length > 0 && (
+            <div style={{ background: '#fff8e1', border: '1px solid #f0c040', padding: '16px 20px', marginBottom: 28, fontFamily: SANS }}>
+              {stockWarnings.map((w, i) => (
+                <p key={i} style={{ fontSize: 13, color: '#856404', margin: i === 0 ? 0 : '8px 0 0' }}>{w}</p>
+              ))}
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 48, alignItems: 'start' }}>
 
             {/* フォーム */}
@@ -244,11 +276,19 @@ export default function Checkout() {
                 <p style={{ fontFamily: SANS, fontSize: 13, color: '#c0392b', marginBottom: 16, lineHeight: 1.7 }}>{errorMsg}</p>
               )}
 
+              {/* キャンセル不可の案内 */}
+              <div style={{ background: '#f9f9f7', border: '1px solid #e8e3da', padding: '14px 18px', marginBottom: 16 }}>
+                <p style={{ fontFamily: SANS, fontSize: 12, color: '#555', margin: 0, lineHeight: 2 }}>
+                  ご注文確定後のキャンセル・返品はお承りしておりません。<br />
+                  商品の不良・破損があった場合のみ、到着後7日以内に<Link to="/contact" style={{ color: '#1c1c1c' }}>お問い合わせページ</Link>よりご連絡ください。
+                </p>
+              </div>
+
               <button
                 type="submit"
                 disabled={status === 'loading' || !sdkReady}
                 style={{
-                  width: '100%', padding: '16px 0', border: 'none', marginTop: 12,
+                  width: '100%', padding: '16px 0', border: 'none', marginTop: 4,
                   background: status === 'loading' ? '#a0a098' : '#1c1c1c',
                   color: '#fff', fontFamily: SANS, fontSize: 13, letterSpacing: '2px',
                   cursor: status === 'loading' ? 'default' : 'pointer',

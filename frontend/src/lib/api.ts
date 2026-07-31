@@ -9,7 +9,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...optHeaders },
     ...restOptions,
   })
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`
+    try {
+      const body = await res.json()
+      if (body.detail) msg = body.detail
+    } catch { /* ignore */ }
+    throw new Error(msg)
+  }
   return res.json()
 }
 
