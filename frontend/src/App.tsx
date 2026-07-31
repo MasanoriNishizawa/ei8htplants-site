@@ -43,6 +43,7 @@ import AdminArticles from './pages/admin/Articles'
 import Journal from './pages/Journal'
 import JournalArticle from './pages/JournalArticle'
 import EventSite from './pages/EventSite'
+import LegalPage from './pages/LegalPage'
 
 export default function App() {
   return (
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="/order/complete" element={<OrderComplete />} />
             <Route path="/journal" element={<Journal />} />
             <Route path="/journal/:id" element={<JournalArticle />} />
+            <Route path="/legal" element={<LegalPage />} />
           </Route>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
