@@ -369,6 +369,7 @@ export interface Article {
   content: string | null
   image_urls: string[]
   tags: string[]
+  product_ids: string[]
   is_published: boolean
   display_order: number
   published_at: string | null
@@ -380,6 +381,7 @@ export interface ArticleBody {
   content?: string | null
   image_urls: string[]
   tags: string[]
+  product_ids: string[]
   is_published: boolean
   display_order: number
 }

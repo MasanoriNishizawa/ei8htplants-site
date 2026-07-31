@@ -13,6 +13,7 @@ class ArticleBody(BaseModel):
     content: Optional[str] = None
     image_urls: list[str] = []
     tags: list[str] = []
+    product_ids: list[str] = []
     is_published: bool = False
     display_order: int = 0
 

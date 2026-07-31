@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { api, type Article, type ArticleBody } from '../../lib/api'
+import { api, type Article, type ArticleBody, type Product } from '../../lib/api'
 import BlockEditor, { type Block, parseBlocks, serializeBlocks } from '../../components/BlockEditor'
 
 const BLANK: ArticleBody = {
-  title: '', content: '', image_urls: [], tags: [], is_published: false, display_order: 0,
+  title: '', content: '', image_urls: [], tags: [], product_ids: [], is_published: false, display_order: 0,
 }
 
 function fmtDate(s: string | null): string {
@@ -13,6 +13,7 @@ function fmtDate(s: string | null): string {
 
 export default function AdminArticles() {
   const [articles, setArticles] = useState<Article[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Article | 'new' | null>(null)
   const [form, setForm] = useState<ArticleBody>(BLANK)
@@ -21,13 +22,32 @@ export default function AdminArticles() {
   const [blocks, setBlocks] = useState<Block[]>([])
 
   useEffect(() => {
-    api.articles.list(true).then(setArticles).finally(() => setLoading(false))
+    Promise.all([
+      api.articles.list(true),
+      api.products.list(true),
+    ]).then(([arts, prods]) => {
+      setArticles(arts)
+      setProducts(prods)
+    }).finally(() => setLoading(false))
   }, [])
 
-  const openNew = () => { setEditing('new'); setForm({ ...BLANK, display_order: articles.length }); setBlocks([]); setTagInput('') }
+  const openNew = () => {
+    setEditing('new')
+    setForm({ ...BLANK, display_order: articles.length })
+    setBlocks([])
+    setTagInput('')
+  }
   const openEdit = (a: Article) => {
     setEditing(a)
-    setForm({ title: a.title, content: a.content ?? '', image_urls: a.image_urls, tags: a.tags, is_published: a.is_published, display_order: a.display_order })
+    setForm({
+      title: a.title,
+      content: a.content ?? '',
+      image_urls: a.image_urls,
+      tags: a.tags,
+      product_ids: a.product_ids ?? [],
+      is_published: a.is_published,
+      display_order: a.display_order,
+    })
     setBlocks(parseBlocks(a.content))
     setTagInput('')
   }
@@ -42,6 +62,11 @@ export default function AdminArticles() {
     setTagInput('')
   }
   const removeTag = (t: string) => set('tags', form.tags.filter((x) => x !== t))
+
+  const toggleProduct = (id: string) => {
+    const current = form.product_ids ?? []
+    set('product_ids', current.includes(id) ? current.filter((x) => x !== id) : [...current, id])
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -67,7 +92,15 @@ export default function AdminArticles() {
   }
 
   const togglePublish = async (a: Article) => {
-    const updated = await api.articles.update(a.id, { ...a, content: a.content ?? '', is_published: !a.is_published })
+    const updated = await api.articles.update(a.id, {
+      title: a.title,
+      content: a.content ?? '',
+      image_urls: a.image_urls,
+      tags: a.tags,
+      product_ids: a.product_ids ?? [],
+      is_published: !a.is_published,
+      display_order: a.display_order,
+    })
     setArticles((prev) => prev.map((x) => x.id === updated.id ? updated : x))
   }
 
@@ -76,6 +109,8 @@ export default function AdminArticles() {
     border: '1px solid #dddde8', fontSize: 14, fontFamily: 'inherit',
     color: '#1c2417', background: '#fff', outline: 'none',
   }
+
+  const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
   return (
     <div>
@@ -181,6 +216,42 @@ export default function AdminArticles() {
                 <button onClick={addTag} style={{ padding: '9px 16px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>追加</button>
               </div>
             </div>
+
+            {/* 関連商品 */}
+            {products.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 8 }}>関連商品（記事から購入できる商品）</label>
+                <div style={{ border: '1px solid #dddde8', maxHeight: 220, overflowY: 'auto' }}>
+                  {products.map((p) => {
+                    const selected = (form.product_ids ?? []).includes(p.id)
+                    return (
+                      <label
+                        key={p.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                          borderBottom: '1px solid #f0f0f5', cursor: 'pointer',
+                          background: selected ? '#f0f7f0' : '#fff',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleProduct(p.id)}
+                          style={{ flexShrink: 0 }}
+                        />
+                        {p.image_urls[0] && (
+                          <img src={p.image_urls[0]} alt="" style={{ width: 36, height: 36, objectFit: 'cover', flexShrink: 0 }} />
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#8a9a7e' }}>{fmt(p.price)}{p.stock === 0 && <span style={{ color: '#c0392b', marginLeft: 8 }}>売り切れ</span>}</p>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: '#1c2417' }}>
