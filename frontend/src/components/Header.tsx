@@ -66,14 +66,8 @@ export default function Header() {
       <NavLink to="/stockists" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>STOCKISTS</NavLink>
       <NavLink to="/collaborations" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>COLLABORATIONS</NavLink>
       <NavLink to="/contact" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>CONTACT</NavLink>
-      <a
-        href="https://ei8htplants.square.site/s/shop"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={navItemStyle(false)}
-      >
-        ONLINE STORE
-      </a>
+      <NavLink to="/journal" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>JOURNAL</NavLink>
+      <NavLink to="/shop" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>SHOP</NavLink>
     </>
   )
 

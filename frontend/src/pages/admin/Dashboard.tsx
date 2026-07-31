@@ -9,9 +9,17 @@ const ITEMS = [
   { to: '/admin/reservations', label: 'WS予約一覧', desc: 'ワークショップ予約の確認・ステータス管理' },
   { to: '/admin/collaborations', label: 'コラボレーション', desc: 'コラボ記事の追加・削除' },
   { to: '/admin/contacts', label: 'お問い合わせ', desc: 'お問い合わせ内容の確認' },
+  { to: '/admin/products', label: '商品管理', desc: '商品の追加・編集・在庫管理' },
+  { to: '/admin/orders', label: '注文管理', desc: '注文の確認・発送ステータス管理' },
+  { to: '/admin/articles', label: '記事管理', desc: 'Journalの記事作成・編集・公開' },
 ]
 
-interface Stats { unreadContacts: number; pendingReservations: number; activeEvents: number }
+interface Stats {
+  unreadContacts: number
+  pendingReservations: number
+  activeEvents: number
+  pendingOrders: number
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -24,6 +32,7 @@ export default function Dashboard() {
   const statCards = [
     { label: '未読お問い合わせ', value: stats?.unreadContacts ?? '-', to: '/admin/contacts', urgent: (stats?.unreadContacts ?? 0) > 0 },
     { label: '未確認の予約', value: stats?.pendingReservations ?? '-', to: '/admin/reservations', urgent: (stats?.pendingReservations ?? 0) > 0 },
+    { label: '未発送の注文', value: stats?.pendingOrders ?? '-', to: '/admin/orders', urgent: (stats?.pendingOrders ?? 0) > 0 },
     { label: '公開中のイベント', value: stats?.activeEvents ?? '-', to: '/admin/events', urgent: false },
   ]
 

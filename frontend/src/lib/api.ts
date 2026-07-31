@@ -31,16 +31,18 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  stats: async (): Promise<{ unreadContacts: number; pendingReservations: number; activeEvents: number }> => {
-    const [contacts, reservations, events] = await Promise.all([
+  stats: async (): Promise<{ unreadContacts: number; pendingReservations: number; activeEvents: number; pendingOrders: number }> => {
+    const [contacts, reservations, events, orders] = await Promise.all([
       authRequest<ContactRecord[]>('/contacts'),
       authRequest<Reservation[]>('/reserves'),
       request<Event[]>('/events?past=false'),
+      authRequest<Order[]>('/orders'),
     ])
     return {
       unreadContacts: contacts.filter((c) => !c.is_read).length,
       pendingReservations: reservations.filter((r) => r.status === 'pending').length,
       activeEvents: events.length,
+      pendingOrders: orders.filter((o) => o.status === 'paid').length,
     }
   },
   upload: async (file: File): Promise<string> => {
@@ -149,8 +151,8 @@ export const api = {
       request<{ order_id: string }>('/orders', { method: 'POST', body: JSON.stringify(body) }),
     list: () => authRequest<Order[]>('/orders'),
     get: (id: string) => authRequest<OrderDetail>(`/orders/${id}`),
-    updateStatus: (id: string, status: string) =>
-      authRequest<Order>(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    updateStatus: (id: string, status: string, carrier?: string, trackingNumber?: string) =>
+      authRequest<Order>(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status, carrier, tracking_number: trackingNumber }) }),
   },
   articles: {
     list: (all = false) => request<Article[]>(`/articles${all ? '?all=true' : ''}`),
@@ -447,6 +449,8 @@ export interface Order {
   total: number
   status: string
   square_payment_id: string | null
+  carrier: string | null
+  tracking_number: string | null
   created_at: string
 }
 

@@ -13,6 +13,8 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   cancelled: { bg: '#f8d7da', color: '#721c24' },
 }
 
+const CARRIERS = ['ヤマト運輸', '佐川急便', '日本郵便（ゆうパック）', 'その他']
+
 function StatusBadge({ status }: { status: string }) {
   const s = STATUS_COLORS[status] ?? { bg: '#f0f0f5', color: '#666' }
   return (
@@ -28,16 +30,35 @@ export default function AdminOrders() {
   const [detail, setDetail] = useState<OrderDetail | null>(null)
   const [updating, setUpdating] = useState(false)
 
+  // 発送モーダル用
+  const [shipModal, setShipModal] = useState<{ orderId: string } | null>(null)
+  const [carrier, setCarrier] = useState(CARRIERS[0])
+  const [trackingNumber, setTrackingNumber] = useState('')
+
   useEffect(() => {
     api.orders.list().then(setOrders).finally(() => setLoading(false))
   }, [])
 
-  const openDetail = async (id: string) => {
-    const d = await api.orders.get(id)
-    setDetail(d)
+  const openShipModal = (orderId: string) => {
+    setCarrier(CARRIERS[0])
+    setTrackingNumber('')
+    setShipModal({ orderId })
+  }
+
+  const confirmShip = async () => {
+    if (!shipModal) return
+    setUpdating(true)
+    try {
+      const updated = await api.orders.updateStatus(shipModal.orderId, 'shipped', carrier, trackingNumber || undefined)
+      setOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o))
+      if (detail?.id === shipModal.orderId) setDetail((d) => d ? { ...d, status: 'shipped', carrier: updated.carrier, tracking_number: updated.tracking_number } : d)
+    } catch { /* ignore */ }
+    setUpdating(false)
+    setShipModal(null)
   }
 
   const handleStatusChange = async (id: string, status: string) => {
+    if (status === 'shipped') { openShipModal(id); return }
     setUpdating(true)
     try {
       const updated = await api.orders.updateStatus(id, status)
@@ -45,6 +66,11 @@ export default function AdminOrders() {
       if (detail?.id === id) setDetail((d) => d ? { ...d, status } : d)
     } catch { /* ignore */ }
     setUpdating(false)
+  }
+
+  const openDetail = async (id: string) => {
+    const d = await api.orders.get(id)
+    setDetail(d)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -106,6 +132,56 @@ export default function AdminOrders() {
         </div>
       )}
 
+      {/* 発送情報入力モーダル */}
+      {shipModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', maxWidth: 420, width: '100%', padding: 32 }}>
+            <h3 style={{ margin: '0 0 20px', fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20 }}>発送情報の入力</h3>
+            <p style={{ fontFamily: "'Noto Sans JP', sans-serif", fontSize: 13, color: '#555', margin: '0 0 20px', lineHeight: 1.8 }}>
+              発送済みに変更すると、お客様へ発送通知メールが送信されます。
+            </p>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>配送会社</label>
+              <select
+                value={carrier}
+                onChange={(e) => setCarrier(e.target.value)}
+                style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
+              >
+                {CARRIERS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>お問い合わせ番号（任意）</label>
+              <input
+                type="text"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                placeholder="例: 1234-5678-9012"
+                style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShipModal(null)}
+                style={{ padding: '10px 20px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmShip}
+                disabled={updating}
+                style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                {updating ? '処理中...' : '発送済みにする'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 詳細モーダル */}
       {detail && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setDetail(null)}>
@@ -148,6 +224,14 @@ export default function AdminOrders() {
               </div>
             </section>
 
+            {(detail.carrier || detail.tracking_number) && (
+              <section style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 11, letterSpacing: 1, color: '#999', margin: '0 0 10px' }}>配送情報</p>
+                {detail.carrier && <Row label="配送会社" value={detail.carrier} />}
+                {detail.tracking_number && <Row label="追跡番号" value={detail.tracking_number} mono />}
+              </section>
+            )}
+
             <section style={{ marginBottom: 24 }}>
               <p style={{ fontSize: 11, letterSpacing: 1, color: '#999', margin: '0 0 8px' }}>ステータス変更</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -157,8 +241,10 @@ export default function AdminOrders() {
                     disabled={updating || detail.status === v}
                     onClick={() => handleStatusChange(detail.id, v)}
                     style={{
-                      padding: '7px 16px', border: '1px solid #dddde8', fontSize: 12, cursor: detail.status === v ? 'default' : 'pointer',
-                      fontFamily: 'inherit', background: detail.status === v ? '#1c2417' : '#fff',
+                      padding: '7px 16px', border: '1px solid #dddde8', fontSize: 12,
+                      cursor: detail.status === v ? 'default' : 'pointer',
+                      fontFamily: 'inherit',
+                      background: detail.status === v ? '#1c2417' : '#fff',
                       color: detail.status === v ? '#fff' : '#3a4535',
                     }}
                   >

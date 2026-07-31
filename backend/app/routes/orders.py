@@ -44,6 +44,8 @@ class OrderBody(BaseModel):
 
 class OrderStatusPatch(BaseModel):
     status: str
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
 
 
 def _charge_square(source_id: str, amount_yen: int) -> str:
@@ -295,6 +297,71 @@ def get_order(order_id: str, _=Depends(require_auth)):
     return {**order, 'items': items}
 
 
+_CARRIER_TRACKING_URL = {
+    'ヤマト運輸': 'https://jizen.kuronekoyamato.co.jp/jizen/servlet/crjz.b.CRJZ00?id={}',
+    '佐川急便': 'https://k2k.sagawa-exp.co.jp/p/web/okurijosearch.do?okurijoNo={}',
+    '日本郵便（ゆうパック）': 'https://trackings.post.japanpost.jp/services/srv/search/direct?searchNum={}&locale=ja',
+    'その他': None,
+}
+
+
+def _send_shipping_notification(order: dict) -> None:
+    if not RESEND_API_KEY:
+        return
+    try:
+        order_no = order['id'].split('-')[0].upper()
+        address = f"〒{order['postal_code']} {order['prefecture']}{order['city']}{order['address_line1']}"
+        if order.get('address_line2'):
+            address += f" {order['address_line2']}"
+
+        tracking_lines = ''
+        carrier = order.get('carrier')
+        tracking_number = order.get('tracking_number')
+        if carrier or tracking_number:
+            tracking_lines += '\n【配送情報】\n'
+            if carrier:
+                tracking_lines += f'  配送会社: {carrier}\n'
+            if tracking_number:
+                tracking_lines += f'  お問い合わせ番号: {tracking_number}\n'
+                url_template = _CARRIER_TRACKING_URL.get(carrier or '')
+                if url_template:
+                    tracking_lines += f'  追跡URL: {url_template.format(tracking_number)}\n'
+
+        text = (
+            f"{order['customer_name']} 様\n\n"
+            'ご注文の商品を発送いたしました。\n\n'
+            '─────────────────\n'
+            f'【注文番号】  {order_no}\n'
+            f'【お届け先】\n{address}\n'
+            f'【合計金額】  {_FMT(order["total"])}（税込・送料込）'
+            f'{tracking_lines}'
+            '─────────────────\n\n'
+            '商品のお届けまでしばらくお待ちください。\n'
+            'ご不明な点は下記よりお問い合わせください。\n\n'
+            '■ お問い合わせ\n'
+            'https://ei8htplants.com/contact\n'
+            + NO_REPLY_NOTE
+        )
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            'from': SENDER,
+            'to': [order['customer_email']],
+            'subject': f'発送のお知らせ（注文番号: {order_no}）| ei8ht plants',
+            'text': text,
+        })
+    except Exception as e:
+        print(f'[orders] shipping notification failed: {e}')
+
+
 @router.patch('/{order_id}')
 def update_order_status(order_id: str, body: OrderStatusPatch, _=Depends(require_auth)):
-    return admin_supabase.table('orders').update({'status': body.status}).eq('id', order_id).execute().data[0]
+    patch: dict = {'status': body.status}
+    if body.status == 'shipped':
+        if body.carrier is not None:
+            patch['carrier'] = body.carrier
+        if body.tracking_number is not None:
+            patch['tracking_number'] = body.tracking_number
+    updated = admin_supabase.table('orders').update(patch).eq('id', order_id).execute().data[0]
+    if body.status == 'shipped':
+        _send_shipping_notification(updated)
+    return updated
