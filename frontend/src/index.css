@@ -4,6 +4,16 @@
 
 :root {
   color-scheme: only light;
+  /* カラーシステム */
+  --c-bg:        #f0ece5;   /* サイト全体の地 — ウォームクリーム */
+  --c-surface:   #fffdf9;   /* カード・パネルの白 */
+  --c-ink:       #1a1a18;   /* 見出し・強テキスト */
+  --c-body:      #3d3d3a;   /* 本文テキスト */
+  --c-muted:     #7a7570;   /* メタ情報・キャプション */
+  --c-faint:     #b4ada4;   /* ラベル・プレースホルダー */
+  --c-border:    #e2dbd0;   /* 区切り線 */
+  --c-green:     #2d4a27;   /* ei8ht plants ブランドグリーン */
+  --c-blue:      #1e3272;   /* Habitat Oides ブランドブルー */
 }
 
 * {
@@ -12,8 +22,8 @@
 
 body {
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  background-color: #f5f5f7;
-  color: #1c2417;
+  background-color: var(--c-bg);
+  color: var(--c-ink);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
@@ -364,6 +374,35 @@ body {
   .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 }
 
+/* ---- Journal グリッド ---- */
+.journal-featured-grid {
+  grid-template-columns: 1fr;
+}
+.journal-featured-img {
+  aspect-ratio: 16/9;
+}
+@media (min-width: 860px) {
+  .journal-featured-grid {
+    grid-template-columns: 1.55fr 1fr;
+    gap: 52px;
+    align-items: center;
+  }
+  .journal-featured-img {
+    aspect-ratio: 4/3;
+  }
+}
+.journal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px 36px;
+}
+@media (min-width: 600px) {
+  .journal-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 960px) {
+  .journal-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
 /* ---- Shop 4カラムグリッド ---- */
 .shop-grid {
   display: grid;
@@ -375,6 +414,50 @@ body {
 }
 @media (min-width: 900px) {
   .shop-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ---- Home ヒーロー グリッド ---- */
+.home-hero-grid {
+  grid-template-columns: 1fr;
+  gap: clamp(32px, 5vw, 48px);
+}
+@media (min-width: 700px) {
+  .home-hero-grid {
+    grid-template-columns: 1fr 1.6fr;
+    gap: clamp(48px, 6vw, 80px);
+  }
+}
+
+/* ---- Home ショップ グリッド ---- */
+.home-shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px 16px;
+}
+@media (min-width: 600px) {
+  .home-shop-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 900px) {
+  .home-shop-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ---- Home ジャーナル グリッド ---- */
+.home-journal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+.home-journal-featured {
+  grid-column: span 1;
+}
+@media (min-width: 700px) {
+  .home-journal-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+  .home-journal-featured {
+    grid-column: span 2;
+  }
 }
 
 /* ---- Admin レスポンシブ ---- */

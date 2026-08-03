@@ -161,12 +161,12 @@ export default function EventPreview({ event, horizontal = false }: Props) {
                 ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。
               </p>
             ) : event.ws_requires_reservation ? (
-              <a
-                href={`/reserve?event_id=${event.id}`}
-                style={{ display: 'inline-block', fontSize: 12, color: '#2c3a4a', textDecoration: 'none', padding: '7px 16px', borderRadius: 20, border: '1px solid #2c3a4a', letterSpacing: 0.5, fontWeight: 500 }}
+              <Link
+                to={`/reserve?event_id=${event.id}`}
+                style={{ display: 'inline-block', fontSize: 12, color: '#1e3272', textDecoration: 'none', padding: '7px 16px', borderRadius: 20, border: '1px solid #1e3272', letterSpacing: 0.5, fontWeight: 500 }}
               >
-                ワークショップを予約する
-              </a>
+                Habitat Style Workshop を予約する
+              </Link>
             ) : null}
           </div>
         )}
