@@ -28,8 +28,8 @@ export default function Ei8htPlants() {
 
   return (
     <>
-      <PageMeta title="ei8ht plants" description="アガベを中心に、個性的なフォルムと深みある色彩の植物を提案するラインです。" />
-      <h1 className="sr-only">ei8ht plants — アガベ専門ライン</h1>
+      <PageMeta title="ei8ht plants" description="アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。" />
+      <h1 className="sr-only">ei8ht plants — ビザールプランツ専門ライン</h1>
 
       <div className="hero-wrapper">
         <nav className="brand-subnav">
@@ -44,7 +44,7 @@ export default function Ei8htPlants() {
 
         <section className="ep-hero">
           <p style={{ fontSize: 14, letterSpacing: 4, textTransform: 'uppercase', color: '#666', marginBottom: 24, position: 'relative', zIndex: 2 }}>
-            Agave Specialist
+            Bizarre Plants
           </p>
           <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
             <img src="/img/text-logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9 }} />
@@ -65,10 +65,10 @@ export default function Ei8htPlants() {
             <img src="/img/logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
               <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: '#1c2417', margin: '0 0 20px', lineHeight: 1.4 }}>
-                Agave<br />Specialist
+                Bizarre<br />Plants
               </h2>
               <p style={{ fontSize: 16, color: '#3a4535', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
-                アガベが持つ個性的なフォルムと深みある色彩。その一株一株の表情に向き合いながら、初めての方からコレクターの方まで、育てる楽しさをともに見つけていきます。<br /><br />
+                アガベ・塊根植物・灌木など、個性的なフォルムと深みある色彩を持つビザールプランツを専門に扱います。その一株一株の表情に向き合いながら、初めての方からコレクターの方まで、育てる楽しさをともに見つけていきます。<br /><br />
                 育て方の相談から株選びまで、気軽に声をかけてください。
               </p>
             </div>

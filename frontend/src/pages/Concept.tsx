@@ -4,8 +4,8 @@ import PageMeta from '../components/PageMeta'
 const LINES = [
   {
     name: 'ei8ht plants',
-    subtitle: 'Agave Specialist',
-    teaser: 'アガベが持つ個性的なフォルムと深みある色彩。初めての一株からコレクター向けまで、育てる楽しさをともに見つけていきます。',
+    subtitle: 'Bizarre Plants',
+    teaser: 'アガベ・塊根植物・灌木など、個性的な姿を持つビザールプランツを専門に扱います。初めての一株からコレクター向けまで、育てる楽しさをともに見つけていきます。',
     to: '/ei8htplants',
   },
   {
@@ -25,7 +25,7 @@ const LINES = [
 export default function Concept() {
   return (
     <>
-      <PageMeta title="Concept" description="ei8ht plants のブランドコンセプト。アガベ・ハビタットスタイル・オーナメントプランツの3ラインをご紹介します。" />
+      <PageMeta title="Concept" description="ei8ht plants のブランドコンセプト。ビザールプランツ・ハビタットスタイル・オーナメントプランツの3ラインをご紹介します。" />
       <div style={{ textAlign: 'center', padding: '80px 20px', background: '#f5f5f7', borderBottom: '1px solid #dddde8' }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Concept</h1>
       </div>
