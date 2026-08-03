@@ -24,7 +24,7 @@ export default function Footer() {
         </div>
       )}
       <div style={{ color: '#999', fontSize: 12 }}>
-        &copy; 2026 ei8ht plants. All Rights Reserved.
+        &copy; {new Date().getFullYear()} ei8ht plants. All Rights Reserved.
       </div>
     </footer>
   )

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, type Article, type Product } from '../lib/api'
-import { parseBlocks } from '../components/BlockEditor'
+import { parseBlocks, blocksToText } from '../components/BlockEditor'
 import { useCart } from '../lib/cart'
 import PageMeta from '../components/PageMeta'
 
@@ -63,7 +63,7 @@ export default function JournalArticle() {
 
   return (
     <>
-      <PageMeta title={`${article.title} | ei8ht plants Journal`} description={article.content?.slice(0, 100) ?? article.title} />
+      <PageMeta title={`${article.title} | ei8ht plants Journal`} description={blocksToText(allBlocks) || article.title} ogImage={heroUrl ?? undefined} />
 
       <div style={{ background: BG, minHeight: '100vh' }}>
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, type GalleryImage } from '../lib/api'
 import PageMeta from '../components/PageMeta'
 
-const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE']
+const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
 export default function Gallery() {
   const [images, setImages] = useState<GalleryImage[]>([])

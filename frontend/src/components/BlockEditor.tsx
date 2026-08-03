@@ -21,6 +21,14 @@ export function serializeBlocks(blocks: Block[]): string {
   return JSON.stringify(blocks)
 }
 
+export function blocksToText(blocks: Block[], maxLen = 120): string {
+  return blocks
+    .filter((b): b is Extract<Block, { type: 'text' | 'heading' }> => b.type === 'text' || b.type === 'heading')
+    .map((b) => b.value.replace(/\n/g, ' '))
+    .join(' ')
+    .slice(0, maxLen)
+}
+
 export function parseBlocks(content: string | null | undefined): Block[] {
   if (!content) return []
   try {

@@ -10,7 +10,7 @@
 
 | ブランド | テーマ |
 |---|---|
-| **ei8ht plants** | アガベ専門ライン |
+| **ei8ht plants** | アガベ・塊根植物・灌木などビザールプランツ専門ライン |
 | **Habitat Oides** | 自生地の風景を再現するハビタットスタイルライン |
 | **HUE by ei8ht plants** | フィロデンドロン・カラテア・ビカクシダなどオーナメントプランツライン |
 
@@ -24,8 +24,9 @@
 | Backend | Python 3.12 / FastAPI / uvicorn |
 | Database | Supabase (PostgreSQL + Row Level Security) |
 | Auth | Supabase Auth (管理画面ログイン) |
+| Payment | Square Web Payments SDK + Square API |
 | Email | Resend SDK |
-| Styling | インラインスタイル（React CSSProperties） |
+| Styling | インラインスタイル（React CSSProperties）+ index.css |
 | Routing | react-router-dom v7 |
 
 ---
@@ -38,6 +39,7 @@ ei8htplants-site/
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # API クライアント（request / authRequest / api.*）
+│   │   │   ├── cart.tsx                 # カートコンテキスト（CartProvider / useCart）
 │   │   │   ├── reservationConstants.ts  # STATUS_LABELS / STATUS_COLORS（管理画面共有）
 │   │   │   └── supabase.ts              # 共有 Supabase クライアント
 │   │   ├── pages/
@@ -45,12 +47,17 @@ ei8htplants-site/
 │   │   │   ├── brands/             # ブランドページ
 │   │   │   ├── Reserve.tsx         # WS予約フォーム
 │   │   │   ├── CancelReservation.tsx # 予約キャンセルページ（/cancel?id=）
+│   │   │   ├── Shop.tsx / ShopProduct.tsx  # ショップ
+│   │   │   ├── Checkout.tsx / OrderComplete.tsx  # 決済フロー
+│   │   │   ├── Journal.tsx / JournalArticle.tsx  # ジャーナル
+│   │   │   ├── LegalPage.tsx       # 特定商取引法に基づく表示
 │   │   │   └── *.tsx               # その他公開ページ
 │   │   └── components/
-│   │       ├── EventCard.tsx  # イベントカード（あとN日バッジ付き）
-│   │       ├── PageMeta.tsx   # OGP / SEO メタタグ（全ページ共通）
-│   │       └── Layout.tsx     # グローバルレイアウト・ナビゲーション
-│   └── .env               # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+│   │       ├── EventPreview.tsx  # イベントカード（Events・Homeで使用）
+│   │       ├── BlockEditor.tsx   # ブロックエディタ（商品説明・記事本文）
+│   │       ├── PageMeta.tsx      # OGP / SEO メタタグ（全ページ共通）
+│   │       └── Header.tsx / Footer.tsx / AdminLayout.tsx
+│   └── .env               # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / VITE_SQUARE_*
 │
 ├── backend/
 │   ├── app/
@@ -58,7 +65,14 @@ ei8htplants-site/
 │   │   ├── auth.py          # Admin API 認証（Supabase JWT 検証）
 │   │   ├── config.py        # 環境変数
 │   │   ├── db.py            # Supabase クライアント（anon / service_role）
-│   │   └── routes/          # events / gallery / stockists / contact / reserve / collaborations / upload
+│   │   └── routes/
+│   │       ├── events.py / gallery.py / stockists.py
+│   │       ├── contact.py / reserve.py / collaborations.py
+│   │       ├── products.py  # 商品CRUD・在庫管理（decrement_stock / increment_stock RPC）
+│   │       ├── orders.py    # 注文作成・Square決済・発送通知メール
+│   │       ├── shipping.py  # 都道府県別送料テーブル
+│   │       ├── articles.py  # ジャーナル記事CRUD
+│   │       └── upload.py
 │   ├── migrations/          # Supabase SQL マイグレーション
 │   └── requirements.txt
 │
@@ -86,13 +100,19 @@ SUPABASE_SERVICE_ROLE_KEY=...
 RESEND_API_KEY=...
 CONTACT_TO_EMAIL=...
 CONTACT_FROM_EMAIL=noreply@ei8htplants.com
+SQUARE_ACCESS_TOKEN=...
+SQUARE_LOCATION_ID=...
+SQUARE_ENVIRONMENT=sandbox
 ```
 
-`frontend/.env`（フロントエンド用、anon キーのみ）:
+`frontend/.env`（フロントエンド用）:
 
 ```
 VITE_SUPABASE_URL=https://xxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=...
+VITE_SQUARE_APP_ID=...
+VITE_SQUARE_LOCATION_ID=...
+VITE_SQUARE_ENVIRONMENT=sandbox
 ```
 
 ### 2. バックエンド起動
@@ -115,27 +135,30 @@ npm run dev
 
 フロントエンド（`localhost:5173`）は `/api` を `localhost:8000` へプロキシします。
 
+> Note: Square 決済は localhost では動作しません。本番サイト（ei8htplants.com）で確認してください。
+
 ---
 
 ## Admin Panel
 
 管理画面は `/admin` から Supabase Auth でログイン後アクセス可能です。
+モバイルではハンバーガーメニューからサイドバーを開きます。
 
 | URL | 機能 |
 |---|---|
-| `/admin` | ダッシュボード（未読お問い合わせ・未確認予約・公開中イベント数の統計カード） |
-| `/admin/events` | イベント CRUD・複製・画像ファイルアップロード（プレビュー付き） |
-| `/admin/events/:id/reservations` | イベント別WS予約一覧・ステータス管理・セッション絞込・印刷・CSV |
+| `/admin` | ダッシュボード（未読お問い合わせ・未確認予約・未発送注文・公開中イベント数） |
+| `/admin/events` | イベントCRUD・複製・今後/過去分割表示 |
+| `/admin/events/:id/reservations` | イベント別WS予約一覧・ステータス管理・CSV |
 | `/admin/events/:id/finances` | イベント収支登録・精算計算 |
 | `/admin/events/:id/site` | イベント専用サイトのコンテンツ編集 |
-| `/admin/gallery` | ギャラリー画像追加・削除・表示順変更（上下ボタン）・ファイルアップロード |
+| `/admin/gallery` | ギャラリー画像追加・削除・表示順変更 |
 | `/admin/stockists` | 取扱店管理 |
-| `/admin/reservations` | 全イベント横断WS予約一覧・ステータス管理・CSV エクスポート |
-| `/admin/collaborations` | コラボレーション管理・画像ファイルアップロード |
-| `/admin/contacts` | お問い合わせ一覧・既読管理・返信モーダル（Resend 直送） |
-
-管理画面から発行する API リクエストには Supabase セッショントークン（Bearer）が自動付与され、バックエンドで検証されます。  
-画像ファイルは `POST /api/upload` 経由で Supabase Storage（`images` バケット）にアップロードされます。
+| `/admin/reservations` | 全イベント横断WS予約一覧・CSV エクスポート |
+| `/admin/collaborations` | コラボレーション管理 |
+| `/admin/contacts` | お問い合わせ一覧・既読管理・返信モーダル |
+| `/admin/products` | 商品CRUD・在庫管理・BlockEditorで説明文編集 |
+| `/admin/orders` | 注文一覧・ステータス管理・発送情報入力（配送会社・お問い合わせ番号）・発送通知メール |
+| `/admin/articles` | ジャーナル記事CRUD・商品リンク設定 |
 
 ---
 
@@ -146,22 +169,27 @@ npm run dev
 | ファイル | 内容 |
 |---|---|
 | `001_*.sql` | 初版スキーマ（events / event_images / gallery_images / stockists / workshop_reservations） |
-| `002_admin_features.sql` | collaborations / contacts テーブル追加、brands・status カラム追加 |
+| `002_admin_features.sql` | collaborations / contacts テーブル追加 |
 | `003_fix_rls.sql` | contacts の不要な anon INSERT ポリシーを削除 |
-| `004_site_assets.sql` | site_assets テーブル追加（将来の静的アセット管理用） |
-| `005_event_finances.sql` | event_finances テーブル追加（収支管理） |
-| `006_ws_sessions.sql` | ws_sessions テーブル追加、workshop_reservations に session_id / bring_plant / bring_pot 追加 |
+| `004_site_assets.sql` | site_assets テーブル追加 |
+| `005_event_finances.sql` | event_finances テーブル追加 |
+| `006_ws_sessions.sql` | ws_sessions テーブル追加、workshop_reservations に session_id 等追加 |
 | `007_reservation_datetime.sql` | workshop_reservations に preferred_date / preferred_time 追加 |
 | `008_event_page_content.sql` | events に page_content (JSONB) 追加 |
 | `009_event_daily_times.sql` | events に daily_times (JSONB) 追加 |
+| `010_shop.sql` | products / orders / order_items テーブル・decrement_stock RPC |
+| `011_articles_and_tags.sql` | articles テーブル追加 |
+| `012_article_product_links.sql` | articles に product_ids (uuid[]) 追加 |
+| `013_increment_stock.sql` | increment_stock RPC（在庫ロールバック用） |
+| `014_order_shipping_info.sql` | orders に carrier / tracking_number カラム追加 |
 
-手動適用が必要な追加変更（SQL エディターで直接実行）:
+手動適用が必要な追加変更:
 
 ```sql
 -- ws_sessions: デノーマライズ済み予約数カラム
 ALTER TABLE ws_sessions ADD COLUMN IF NOT EXISTS reserved_count integer NOT NULL DEFAULT 0;
 
--- workshop_reservations: キャンセルトークン（8桁数字）
+-- workshop_reservations: キャンセルトークン
 ALTER TABLE workshop_reservations ADD COLUMN IF NOT EXISTS cancel_token text;
 CREATE INDEX IF NOT EXISTS idx_reservations_cancel_token ON workshop_reservations (cancel_token);
 ```
@@ -173,6 +201,7 @@ CREATE INDEX IF NOT EXISTS idx_reservations_cancel_token ON workshop_reservation
 - `.env` および `secret_key.json` は `.gitignore` で管理し、絶対にコミットしないこと
 - `SUPABASE_SERVICE_ROLE_KEY` はバックエンドのみで使用し、フロントエンドには公開しないこと
 - Admin API は Supabase JWT で認証済みのリクエストのみ受け付ける
+- Square の本番キー（`SQUARE_ACCESS_TOKEN`）は絶対にフロントエンドに含めないこと
 
 ---
 
@@ -193,4 +222,4 @@ CREATE INDEX IF NOT EXISTS idx_reservations_cancel_token ON workshop_reservation
 
 ## License
 
-© 2026 ei8ht plants. All rights reserved.
+© ei8ht plants. All rights reserved.

@@ -153,7 +153,7 @@ export default function Checkout() {
         setStatus('idle')
         return
       }
-      await api.orders.create({
+      const { order_id } = await api.orders.create({
         customer_name: form.name,
         customer_email: form.email,
         customer_phone: form.phone || undefined,
@@ -167,7 +167,7 @@ export default function Checkout() {
         source_id: result.token,
       })
       clear()
-      navigate('/order/complete')
+      navigate('/order/complete', { state: { orderId: order_id, customerName: form.name, customerEmail: form.email } })
     } catch (err: any) {
       setErrorMsg(err.message ?? '注文処理に失敗しました。もう一度お試しください。')
       setStatus('idle')

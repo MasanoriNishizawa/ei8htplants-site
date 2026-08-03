@@ -363,3 +363,53 @@ body {
 @media (max-width: 600px) {
   .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 }
+
+/* ---- Shop 4カラムグリッド ---- */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px 20px;
+}
+@media (min-width: 600px) {
+  .shop-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 900px) {
+  .shop-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ---- Admin レスポンシブ ---- */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    display: none !important;
+  }
+  .admin-sidebar.drawer-open {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    z-index: 200 !important;
+    overflow-y: auto !important;
+  }
+  .admin-menu-close {
+    display: block !important;
+  }
+  .admin-mobile-header {
+    display: flex !important;
+  }
+}
+@media (min-width: 769px) {
+  .admin-sidebar {
+    display: flex !important;
+    position: static !important;
+    height: auto !important;
+    z-index: auto !important;
+    overflow-y: visible !important;
+  }
+  .admin-menu-close {
+    display: none !important;
+  }
+  .admin-mobile-header {
+    display: none !important;
+  }
+}

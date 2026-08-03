@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 
 const SECTIONS = ['concept', 'store'] as const
@@ -82,14 +83,12 @@ export default function Ei8htPlants() {
         style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
         <p style={{ fontSize: 13, letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
-        <a
-          href="https://ei8htplants.square.site/s/shop"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to="/shop"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#fff', textDecoration: 'none', border: '1px solid #444', padding: '16px 36px', borderRadius: 2, transition: 'background 0.2s' }}
         >
           Shop now →
-        </a>
+        </Link>
       </section>
     </>
   )

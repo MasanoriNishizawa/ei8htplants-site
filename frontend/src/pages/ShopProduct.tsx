@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type Product } from '../lib/api'
-import { parseBlocks } from '../components/BlockEditor'
+import { parseBlocks, blocksToText } from '../components/BlockEditor'
 import { useCart } from '../lib/cart'
 import PageMeta from '../components/PageMeta'
 
@@ -68,7 +68,7 @@ export default function ShopProduct() {
 
   return (
     <>
-      <PageMeta title={`${product.name} | ei8ht plants Shop`} description={product.description ?? product.name} />
+      <PageMeta title={`${product.name} | ei8ht plants Shop`} description={blocksToText(allBlocks) || product.name} ogImage={product.image_urls[0]} />
 
       <div style={{ background: BG, minHeight: '100vh' }}>
 

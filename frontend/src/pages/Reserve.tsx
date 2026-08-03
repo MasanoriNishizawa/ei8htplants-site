@@ -6,6 +6,7 @@ import PageMeta from '../components/PageMeta'
 type FormState = {
   name: string
   email: string
+  phone: string
   participants: number
   note: string
   session_id: string
@@ -15,7 +16,7 @@ type FormState = {
 }
 
 const BLANK: FormState = {
-  name: '', email: '', participants: 1, note: '',
+  name: '', email: '', phone: '', participants: 1, note: '',
   session_id: '', bring_plant: false, bring_pot: false,
   preferred_date: '',
 }
@@ -96,6 +97,7 @@ export default function Reserve() {
         event_id: eventId,
         name: form.name,
         email: form.email,
+        phone: form.phone || undefined,
         participants: form.participants,
         note: form.note || undefined,
         session_id: form.session_id || undefined,
@@ -182,6 +184,7 @@ export default function Reserve() {
               {[
                 { label: 'お名前', value: form.name },
                 { label: 'メール', value: form.email },
+                ...(form.phone ? [{ label: '電話番号', value: form.phone }] : []),
                 ...(event ? [{ label: 'イベント', value: event.name }] : []),
                 ...(form.preferred_date ? [{ label: '予約日', value: fmtDate(form.preferred_date) }] : []),
                 ...(selectedSession ? [{ label: '予約時間', value: selectedSession.time_label }] : []),
@@ -301,6 +304,11 @@ export default function Reserve() {
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>メールアドレス <span style={{ color: '#c0392b' }}>*</span></label>
               <input required type="email" style={inputStyle} value={form.email} onChange={(e) => set('email', e.target.value)} />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>電話番号（任意）</label>
+              <input type="tel" style={inputStyle} value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="090-0000-0000" />
             </div>
 
             <div style={{ marginBottom: 20 }}>

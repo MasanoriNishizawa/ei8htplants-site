@@ -14,15 +14,17 @@ export default function PageMeta({ title, description, ogImage, ogType = 'websit
   const fullTitle = title ? `${title} | ${SITE}` : SITE
   const desc = description ?? DEFAULT_DESC
   const img = ogImage ?? DEFAULT_OG_IMAGE
+  const pageUrl = ORIGIN + window.location.pathname
 
   return (
     <>
       <title>{fullTitle}</title>
       <meta name="description" content={desc} />
+      <link rel="canonical" href={pageUrl} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={desc} />
       <meta property="og:image" content={img} />
-      <meta property="og:url" content={ORIGIN} />
+      <meta property="og:url" content={pageUrl} />
       <meta property="og:type" content={ogType} />
       <meta property="og:site_name" content={SITE} />
       <meta name="twitter:card" content="summary_large_image" />

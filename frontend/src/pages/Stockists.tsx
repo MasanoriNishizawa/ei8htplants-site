@@ -5,7 +5,7 @@ import PageMeta from '../components/PageMeta'
 const BRAND_COLORS: Record<string, { bg: string; color: string }> = {
   'ei8ht plants': { bg: '#e8f0e8', color: '#2d4a2d' },
   'Habitat Oides': { bg: '#dde4f5', color: '#1e3272' },
-  'HUE': { bg: '#f5ead8', color: '#6b3c1a' },
+  'HUE by ei8ht plants': { bg: '#f5ead8', color: '#6b3c1a' },
 }
 
 export default function Stockists() {
