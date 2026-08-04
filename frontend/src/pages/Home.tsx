@@ -98,7 +98,7 @@ export default function Home() {
               Bizarre Plants &nbsp;·&nbsp; Habitat Style &nbsp;·&nbsp; Color Plants
             </p>
             <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(32px, 5.5vw, 64px)', fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 clamp(16px, 2.5vw, 28px)', lineHeight: 1.2, letterSpacing: '0.04em', fontStyle: 'italic' }}>
-              Plants that make<br />you look twice.
+              Collect<br />the strange.
             </h2>
             <p style={{ fontFamily: SANS, fontSize: 'clamp(13px, 1.4vw, 15px)', color: 'var(--c-muted)', lineHeight: 2.2, margin: '0 0 clamp(24px, 3vw, 40px)', maxWidth: 420 }}>
               アガベ・塊根植物・灌木などビザールプランツと、ハビタットスタイルの資材。植物との暮らしを、もっと深く。
