@@ -67,7 +67,15 @@ export default function Header() {
       <NavLink to="/collaborations" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>COLLABORATIONS</NavLink>
       <NavLink to="/contact" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>CONTACT</NavLink>
       <NavLink to="/journal" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>JOURNAL</NavLink>
-      <NavLink to="/shop" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>SHOP</NavLink>
+      <Link
+        to="/shop"
+        onClick={() => setMenuOpen(false)}
+        style={{ fontSize: 12, fontWeight: 600, letterSpacing: '2px', textDecoration: 'none', padding: '6px 16px', background: 'var(--c-ink)', color: '#fffdf9', whiteSpace: 'nowrap', transition: 'opacity 0.15s' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.8' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '1' }}
+      >
+        SHOP
+      </Link>
     </>
   )
 

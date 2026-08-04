@@ -8,6 +8,7 @@ function ScrollToTop() {
   return null
 }
 import Layout from './components/Layout'
+import StoreLayout from './components/StoreLayout'
 import Home from './pages/Home'
 import Events from './pages/Events'
 import Gallery from './pages/Gallery'
@@ -63,16 +64,18 @@ export default function App() {
             <Route path="/habitatoides" element={<HabitatOides />} />
             <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
             <Route path="/hue" element={<Hue />} />
-            <Route path="/reserve" element={<Reserve />} />
-            <Route path="/cancel" element={<CancelReservation />} />
             <Route path="/events/:id" element={<EventSite />} />
+            <Route path="/journal" element={<Journal />} />
+            <Route path="/journal/:id" element={<JournalArticle />} />
+            <Route path="/legal" element={<LegalPage />} />
+          </Route>
+          <Route element={<StoreLayout />}>
             <Route path="/shop" element={<Shop />} />
             <Route path="/shop/:id" element={<ShopProduct />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order/complete" element={<OrderComplete />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/journal/:id" element={<JournalArticle />} />
-            <Route path="/legal" element={<LegalPage />} />
+            <Route path="/reserve" element={<Reserve />} />
+            <Route path="/cancel" element={<CancelReservation />} />
           </Route>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
