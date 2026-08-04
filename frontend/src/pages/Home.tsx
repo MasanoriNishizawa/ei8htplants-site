@@ -101,7 +101,7 @@ export default function Home() {
               Collect<br />the strange.
             </h2>
             <p style={{ fontFamily: SANS, fontSize: 'clamp(13px, 1.4vw, 15px)', color: 'var(--c-muted)', lineHeight: 2.2, margin: '0 0 clamp(24px, 3vw, 40px)', maxWidth: 420 }}>
-              アガベ・塊根植物・灌木などビザールプランツと、ハビタットスタイル。植物との暮らしを、もっと深く。
+              植物との暮らしを、もっと深く。
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <Link to="/shop" style={{ display: 'inline-block', padding: 'clamp(11px, 1.5vw, 14px) clamp(24px, 3vw, 36px)', background: 'var(--c-ink)', color: '#fffdf9', textDecoration: 'none', fontFamily: SANS, fontSize: 12, letterSpacing: '2px', textTransform: 'uppercase' }}>
