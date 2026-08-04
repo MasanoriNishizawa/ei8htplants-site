@@ -66,7 +66,6 @@ export default function Header() {
       <NavLink to="/stockists" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>STOCKISTS</NavLink>
       <NavLink to="/collaborations" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>COLLABORATIONS</NavLink>
       <NavLink to="/contact" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>CONTACT</NavLink>
-      <NavLink to="/journal" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>JOURNAL</NavLink>
       <Link
         to="/shop"
         onClick={() => setMenuOpen(false)}

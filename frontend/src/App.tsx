@@ -65,13 +65,13 @@ export default function App() {
             <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
             <Route path="/hue" element={<Hue />} />
             <Route path="/events/:id" element={<EventSite />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/journal/:id" element={<JournalArticle />} />
             <Route path="/legal" element={<LegalPage />} />
           </Route>
           <Route element={<StoreLayout />}>
             <Route path="/shop" element={<Shop />} />
             <Route path="/shop/:id" element={<ShopProduct />} />
+            <Route path="/journal" element={<Journal />} />
+            <Route path="/journal/:id" element={<JournalArticle />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order/complete" element={<OrderComplete />} />
             <Route path="/reserve" element={<Reserve />} />

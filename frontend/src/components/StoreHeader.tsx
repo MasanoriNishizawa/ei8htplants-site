@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useCart } from '../lib/cart'
 
 const SANS = "'Noto Sans JP', sans-serif"
@@ -27,12 +27,22 @@ export default function StoreHeader() {
             style={{ height: 26, width: 'auto', objectFit: 'contain' }}
           />
         </Link>
-        <Link
-          to="/shop"
-          style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '2px', color: 'var(--c-muted)', textDecoration: 'none', textTransform: 'uppercase' }}
-        >
-          Shop
-        </Link>
+        <nav style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+          {[{ to: '/shop', label: 'Shop' }, { to: '/journal', label: 'Journal' }].map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              style={({ isActive }) => ({
+                fontFamily: SANS, fontSize: 10, letterSpacing: '2px', textDecoration: 'none', textTransform: 'uppercase',
+                color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+                borderBottom: isActive ? '1px solid var(--c-ink)' : '1px solid transparent',
+                paddingBottom: 2,
+              })}
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
       </div>
 
       {/* 右: ブランドサイトへ戻る + カート */}
