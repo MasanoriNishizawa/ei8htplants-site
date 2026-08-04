@@ -413,6 +413,13 @@ export interface ArticleBody {
   display_order: number
 }
 
+export const PRODUCT_CATEGORIES = [
+  'アガベ', '塊根植物', '灌木', 'サボテン',
+  '観葉植物', 'ハビタットスタイル', 'ハビタットスタイル資材', '園芸資材', '鉢',
+] as const
+
+export type ProductCategory = typeof PRODUCT_CATEGORIES[number]
+
 export interface Product {
   id: string
   name: string
@@ -423,6 +430,7 @@ export interface Product {
   tags: string[]
   is_published: boolean
   display_order: number
+  category: ProductCategory | null
   created_at: string
 }
 
@@ -435,6 +443,7 @@ export interface ProductBody {
   tags: string[]
   is_published: boolean
   display_order: number
+  category: ProductCategory | null
 }
 
 export interface OrderPayload {

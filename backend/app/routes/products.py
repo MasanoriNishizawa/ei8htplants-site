@@ -7,6 +7,12 @@ from ..auth import require_auth
 router = APIRouter(prefix='/products', tags=['products'])
 
 
+VALID_CATEGORIES = {
+    'アガベ', '塊根植物', '灌木', 'サボテン',
+    '観葉植物', 'ハビタットスタイル', 'ハビタットスタイル資材', '園芸資材', '鉢',
+}
+
+
 class ProductBody(BaseModel):
     name: str
     description: Optional[str] = None
@@ -16,6 +22,7 @@ class ProductBody(BaseModel):
     tags: list[str] = []
     is_published: bool = False
     display_order: int = 0
+    category: Optional[str] = None
 
 
 class StockPatch(BaseModel):

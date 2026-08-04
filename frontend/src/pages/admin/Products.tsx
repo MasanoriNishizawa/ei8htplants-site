@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { api, type Product, type ProductBody } from '../../lib/api'
+import { api, type Product, type ProductBody, type ProductCategory, PRODUCT_CATEGORIES } from '../../lib/api'
 import BlockEditor, { type Block, parseBlocks, serializeBlocks } from '../../components/BlockEditor'
 
 const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
 const BLANK: ProductBody = {
   name: '', description: '', price: 0, stock: 0,
-  image_urls: [], tags: [], is_published: false, display_order: 0,
+  image_urls: [], tags: [], is_published: false, display_order: 0, category: null,
 }
 
 export default function AdminProducts() {
@@ -26,7 +26,7 @@ export default function AdminProducts() {
   const openNew = () => { setEditing('new'); setForm({ ...BLANK, display_order: products.length }); setBlocks([]); setTagInput('') }
   const openEdit = (p: Product) => {
     setEditing(p)
-    setForm({ name: p.name, description: p.description ?? '', price: p.price, stock: p.stock, image_urls: p.image_urls, tags: p.tags ?? [], is_published: p.is_published, display_order: p.display_order })
+    setForm({ name: p.name, description: p.description ?? '', price: p.price, stock: p.stock, image_urls: p.image_urls, tags: p.tags ?? [], is_published: p.is_published, display_order: p.display_order, category: p.category ?? null })
     setBlocks(parseBlocks(p.description))
     setTagInput('')
   }
@@ -91,7 +91,7 @@ export default function AdminProducts() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
-                {['画像', '商品名', '価格', '在庫', '状態', '操作'].map((h) => (
+                {['画像', '商品名', 'カテゴリー', '価格', '在庫', '状態', '操作'].map((h) => (
                   <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -105,6 +105,7 @@ export default function AdminProducts() {
                     ) : <div style={{ width: 48, height: 48, background: '#f5f5f8', border: '1px solid #dddde8' }} />}
                   </td>
                   <td style={{ padding: '10px 14px' }}>{p.name}</td>
+                  <td style={{ padding: '10px 14px', fontSize: 12, color: '#8a9a7e', whiteSpace: 'nowrap' }}>{p.category ?? '—'}</td>
                   <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{fmt(p.price)}</td>
                   <td style={{ padding: '10px 14px', color: p.stock === 0 ? '#c0392b' : '#1c2417' }}>{p.stock}</td>
                   <td style={{ padding: '10px 14px' }}>
@@ -160,6 +161,32 @@ export default function AdminProducts() {
               <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10 }}>本文・画像</label>
               <BlockEditor blocks={blocks} onChange={setBlocks} />
             </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10 }}>カテゴリー</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#3a4535' }}>
+                  <input
+                    type="radio"
+                    name="category"
+                    checked={form.category === null}
+                    onChange={() => set('category', null)}
+                  />
+                  未設定
+                </label>
+                {PRODUCT_CATEGORIES.map((cat) => (
+                  <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#3a4535' }}>
+                    <input
+                      type="radio"
+                      name="category"
+                      checked={form.category === cat}
+                      onChange={() => set('category', cat as ProductCategory)}
+                    />
+                    {cat}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>タグ</label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>

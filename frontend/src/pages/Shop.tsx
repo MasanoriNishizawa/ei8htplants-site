@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, type Product, type Article } from '../lib/api'
+import { api, type Product, type Article, PRODUCT_CATEGORIES } from '../lib/api'
 import { useCart } from '../lib/cart'
 import PageMeta from '../components/PageMeta'
 
@@ -17,6 +17,7 @@ export default function Shop() {
   const [products, setProducts] = useState<Product[]>([])
   const [articles, setArticles] = useState<Article[]>([])
   const [backlogOpen, setBacklogOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const { items } = useCart()
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)
@@ -29,6 +30,10 @@ export default function Shop() {
 
   const latestArticles = articles.slice(0, 4)
   const backlogArticles = articles.slice(4)
+  const filteredProducts = activeCategory
+    ? products.filter((p) => p.category === activeCategory)
+    : products
+  const usedCategories = Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[]
 
   return (
     <>
@@ -92,18 +97,41 @@ export default function Shop() {
 
               {/* ── Products ── */}
               <section>
-                <div style={{ marginBottom: 20 }}>
+                <div style={{ marginBottom: 16 }}>
                   <p style={SECTION_LABEL}>Online Store</p>
                   <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.5vw, 26px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.05em', margin: 0, color: 'var(--c-ink)' }}>
                     All Items
                   </h2>
                 </div>
 
-                {products.length === 0 ? (
-                  <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-faint)', padding: '40px 0' }}>現在販売中の商品はありません。</p>
+                {/* カテゴリーフィルター */}
+                {usedCategories.length > 0 && (
+                  <div style={{ display: 'flex', gap: 0, overflowX: 'auto', borderBottom: '1px solid var(--c-border)', marginBottom: 28, scrollbarWidth: 'none' }}>
+                    <button
+                      onClick={() => setActiveCategory(null)}
+                      style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px', whiteSpace: 'nowrap', padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', color: activeCategory === null ? 'var(--c-ink)' : 'var(--c-faint)', borderBottom: activeCategory === null ? '2px solid var(--c-ink)' : '2px solid transparent', marginBottom: -1 }}
+                    >
+                      すべて
+                    </button>
+                    {PRODUCT_CATEGORIES.filter((c) => usedCategories.includes(c)).map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px', whiteSpace: 'nowrap', padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', color: activeCategory === cat ? 'var(--c-ink)' : 'var(--c-faint)', borderBottom: activeCategory === cat ? '2px solid var(--c-ink)' : '2px solid transparent', marginBottom: -1 }}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {filteredProducts.length === 0 ? (
+                  <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-faint)', padding: '40px 0' }}>
+                    {products.length === 0 ? '現在販売中の商品はありません。' : 'このカテゴリーの商品はありません。'}
+                  </p>
                 ) : (
                   <div className="shop-product-grid">
-                    {products.map((p) => (
+                    {filteredProducts.map((p) => (
                       <ProductCard key={p.id} product={p} />
                     ))}
                   </div>
