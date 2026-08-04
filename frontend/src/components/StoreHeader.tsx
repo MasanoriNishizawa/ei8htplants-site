@@ -49,9 +49,9 @@ export default function StoreHeader() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <Link
           to="/"
-          style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '1.5px', color: 'var(--c-faint)', textDecoration: 'none', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
+          style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '1.5px', color: 'var(--c-surface)', textDecoration: 'none', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'var(--c-muted)', padding: '5px 12px' }}
         >
-          ← Brand Site
+          Official Site
         </Link>
         {!isCheckout && cartCount > 0 && (
           <Link
