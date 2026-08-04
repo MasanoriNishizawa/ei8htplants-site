@@ -56,9 +56,6 @@ export default function Journal() {
                   Journal
                 </h1>
               </div>
-              <p style={{ fontFamily: SANS, fontSize: 13, color: '#8a9a7e', margin: 0, lineHeight: 2, maxWidth: 280 }}>
-                植物と暮らしについての考察。素材、育て方、美意識。
-              </p>
             </div>
           </div>
 
