@@ -4,6 +4,7 @@ import { api, type Article, type Product } from '../lib/api'
 import { parseBlocks, blocksToText } from '../components/BlockEditor'
 import { useCart } from '../lib/cart'
 import PageMeta from '../components/PageMeta'
+import ShareButtons from '../components/ShareButtons'
 
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
@@ -197,6 +198,9 @@ export default function JournalArticle() {
 
         {/* 戻るリンク */}
         <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 36, marginTop: linkedProducts.length > 0 ? 56 : 24 }}>
+          <div style={{ marginBottom: 24 }}>
+            <ShareButtons url={`${window.location.origin}/journal/${id}`} text={article.title} />
+          </div>
           <Link to="/journal" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase' }}>
             ← Back to Journal
           </Link>

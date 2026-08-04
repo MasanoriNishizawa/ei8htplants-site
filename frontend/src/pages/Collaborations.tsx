@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Collaboration } from '../lib/api'
 import PageMeta from '../components/PageMeta'
+import ShareButtons from '../components/ShareButtons'
 
 export default function Collaborations() {
   const [items, setItems] = useState<Collaboration[]>([])
@@ -77,10 +78,11 @@ export default function Collaborations() {
                   {item.title}
                 </h2>
                 {item.description && (
-                  <p style={{ fontSize: 16, color: '#3a4535', lineHeight: 1.9, margin: 0, whiteSpace: 'pre-wrap' }}>
+                  <p style={{ fontSize: 16, color: '#3a4535', lineHeight: 1.9, margin: '0 0 20px', whiteSpace: 'pre-wrap' }}>
                     {item.description}
                   </p>
                 )}
+                <ShareButtons url={`${window.location.origin}/collaborations`} text={item.title} />
               </div>
             </article>
           ))}

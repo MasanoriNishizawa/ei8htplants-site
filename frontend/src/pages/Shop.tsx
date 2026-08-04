@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api, type Product, type Article, PRODUCT_CATEGORIES } from '../lib/api'
 import { useCart } from '../lib/cart'
 import PageMeta from '../components/PageMeta'
+import ShareButtons from '../components/ShareButtons'
 
 const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
@@ -136,6 +137,10 @@ export default function Shop() {
                     ))}
                   </div>
                 )}
+
+                <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid var(--c-border)' }}>
+                  <ShareButtons url={`${window.location.origin}/shop`} text="ei8ht plants Shop" />
+                </div>
               </section>
             </>
           )}

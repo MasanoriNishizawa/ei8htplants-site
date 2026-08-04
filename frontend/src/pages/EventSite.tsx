@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, type Event, type PageContent } from '../lib/api'
 import PageMeta from '../components/PageMeta'
+import ShareButtons from '../components/ShareButtons'
 
 const BRAND_IG: Record<string, string> = {
   'ei8ht plants': 'https://www.instagram.com/ei8ht.plants/',
@@ -207,6 +208,11 @@ export default function EventSite() {
                 )}
               </div>
             )}
+
+            {/* シェアボタン */}
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #dddde8' }}>
+              <ShareButtons url={`${window.location.origin}/events/${id}`} text={event.name} />
+            </div>
           </div>
 
         </div>

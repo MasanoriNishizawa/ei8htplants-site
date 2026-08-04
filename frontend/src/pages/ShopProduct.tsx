@@ -4,6 +4,7 @@ import { api, type Product } from '../lib/api'
 import { parseBlocks, blocksToText } from '../components/BlockEditor'
 import { useCart } from '../lib/cart'
 import PageMeta from '../components/PageMeta'
+import ShareButtons from '../components/ShareButtons'
 
 const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
@@ -214,6 +215,9 @@ export default function ShopProduct() {
 
         {/* ショップに戻るリンク */}
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 24px 80px' }}>
+          <div style={{ marginBottom: 24 }}>
+            <ShareButtons url={`${window.location.origin}/shop/${id}`} text={`${product.name} | ei8ht plants Shop`} />
+          </div>
           <Link to="/shop" style={{ fontFamily: SANS, fontSize: 13, color: '#aaa', textDecoration: 'none', letterSpacing: 1 }}>
             ← Shop 一覧に戻る
           </Link>

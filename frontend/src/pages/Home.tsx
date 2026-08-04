@@ -4,6 +4,7 @@ import EventPreview from '../components/EventPreview'
 import { api, type Event, type GalleryImage, type Product, type Article } from '../lib/api'
 import { parseBlocks } from '../components/BlockEditor'
 import PageMeta from '../components/PageMeta'
+import ShareButtons from '../components/ShareButtons'
 
 const SLIDES = [
   { src: '/img/logo-ei8htplants.png', alt: 'ei8ht plants', scale: 1.4 },
@@ -69,49 +70,23 @@ export default function Home() {
       <PageMeta />
 
       {/* ─── HERO ─── */}
-      <section style={{ background: 'var(--c-surface)', borderBottom: '1px solid var(--c-border)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(48px, 8vw, 96px) clamp(20px, 4vw, 48px)', display: 'grid', alignItems: 'center', gap: 'clamp(32px, 5vw, 80px)' }} className="home-hero-grid">
-          {/* ロゴスライドショー */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: 'clamp(180px, 30vw, 320px)', aspectRatio: '1/1' }}>
-              {SLIDES.map(({ src, alt, scale }, i) => (
-                <img
-                  key={src}
-                  src={src}
-                  alt={alt}
-                  style={{
-                    position: 'absolute', top: '50%', left: '50%',
-                    transform: `translate(-50%, -50%) scale(${scale})`,
-                    width: '100%', height: '100%', objectFit: 'contain',
-                    opacity: slideIdx === i ? 1 : 0,
-                    transition: 'opacity 1.2s ease',
-                    pointerEvents: 'none',
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* テキスト */}
-          <div>
-            <p style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: 'var(--c-faint)', margin: '0 0 clamp(12px, 2vw, 20px)', textTransform: 'uppercase' }}>
-              Bizarre Plants &nbsp;·&nbsp; Habitat Style &nbsp;·&nbsp; Color Plants
-            </p>
-            <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(32px, 5.5vw, 64px)', fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 clamp(16px, 2.5vw, 28px)', lineHeight: 1.2, letterSpacing: '0.04em', fontStyle: 'italic' }}>
-              Collect<br />the strange.
-            </h2>
-            <p style={{ fontFamily: SANS, fontSize: 'clamp(13px, 1.4vw, 15px)', color: 'var(--c-muted)', lineHeight: 2.2, margin: '0 0 clamp(24px, 3vw, 40px)', maxWidth: 420 }}>
-              植物との暮らしを、もっと深く。
-            </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link to="/shop" style={{ display: 'inline-block', padding: 'clamp(11px, 1.5vw, 14px) clamp(24px, 3vw, 36px)', background: 'var(--c-ink)', color: '#fffdf9', textDecoration: 'none', fontFamily: SANS, fontSize: 12, letterSpacing: '2px', textTransform: 'uppercase' }}>
-                Shop
-              </Link>
-              <Link to="/concept" style={{ display: 'inline-block', padding: 'clamp(11px, 1.5vw, 14px) clamp(24px, 3vw, 36px)', border: '1px solid var(--c-border)', color: 'var(--c-body)', textDecoration: 'none', fontFamily: SANS, fontSize: 12, letterSpacing: '2px', textTransform: 'uppercase' }}>
-                About
-              </Link>
-            </div>
-          </div>
+      <section style={{ background: 'var(--c-surface)', borderBottom: '1px solid var(--c-border)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(56px, 10vw, 120px) clamp(20px, 4vw, 48px)' }}>
+        <div style={{ position: 'relative', width: 'clamp(200px, 32vw, 340px)', aspectRatio: '1/1' }}>
+          {SLIDES.map(({ src, alt, scale }, i) => (
+            <img
+              key={src}
+              src={src}
+              alt={alt}
+              style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: `translate(-50%, -50%) scale(${scale})`,
+                width: '100%', height: '100%', objectFit: 'contain',
+                opacity: slideIdx === i ? 1 : 0,
+                transition: 'opacity 1.2s ease',
+                pointerEvents: 'none',
+              }}
+            />
+          ))}
         </div>
       </section>
 
@@ -275,6 +250,9 @@ export default function Home() {
               />
             </a>
           ))}
+        </div>
+        <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center' }}>
+          <ShareButtons url={`${window.location.origin}/`} text="ei8ht plants — Collect the strange." />
         </div>
       </section>
     </>
