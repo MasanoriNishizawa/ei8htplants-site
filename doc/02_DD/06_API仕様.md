@@ -66,6 +66,34 @@
 
 ---
 
+### POST /api/upload/video
+
+動画ファイルを Supabase Storage `videos` バケットにアップロードし、公開URLを返す。
+
+**認証**: Bearer JWT 必須
+
+**リクエスト**: `multipart/form-data`
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `file` | File | アップロードするファイル |
+
+**制約**
+
+| 項目 | 値 |
+|---|---|
+| 許可 MIME タイプ | `video/mp4`, `video/quicktime`, `video/webm`, `video/x-m4v` |
+| 最大ファイルサイズ | 500MB |
+| ファイル名 | `{uuid}{拡張子}` で保存 |
+
+**レスポンス `200`**
+
+```json
+{ "url": "https://xxxx.supabase.co/storage/v1/object/public/videos/abcd-1234.mp4" }
+```
+
+---
+
 ## Events
 
 ### GET /api/events
@@ -725,4 +753,22 @@ api.reserve.cancel(token)                → POST   /api/reserve/cancel  (Respon
 api.collaborations.list()                → GET    /api/collaborations
 api.collaborations.add(body)             → POST   /api/collaborations  (auth)
 api.collaborations.delete(id)            → DELETE /api/collaborations/{id}  (auth)
+api.products.list(all?)                  → GET    /api/products[?all=true]
+api.products.get(id)                     → GET    /api/products/{id}
+api.products.create(body)                → POST   /api/products  (auth)
+api.products.update(id, body)            → PUT    /api/products/{id}  (auth)
+api.products.delete(id)                  → DELETE /api/products/{id}  (auth)
+api.products.updateStock(id, stock)      → PATCH  /api/products/{id}/stock  (auth)
+api.orders.create(body)                  → POST   /api/orders
+api.orders.list()                        → GET    /api/orders  (auth)
+api.orders.get(id)                       → GET    /api/orders/{id}  (auth)
+api.orders.updateStatus(id, status)      → PATCH  /api/orders/{id}  (auth)
+api.articles.list()                      → GET    /api/articles
+api.articles.get(id)                     → GET    /api/articles/{id}
+api.articles.create(body)                → POST   /api/articles  (auth)
+api.articles.update(id, body)            → PUT    /api/articles/{id}  (auth)
+api.articles.delete(id)                  → DELETE /api/articles/{id}  (auth)
+api.shipping.calculate(postalCode, subtotal) → POST /api/shipping/calculate
+api.upload(file)                         → POST   /api/upload  (auth)  ← 画像
+api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  ← 動画
 ```
