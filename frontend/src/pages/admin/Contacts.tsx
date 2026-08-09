@@ -82,7 +82,7 @@ export default function AdminContacts() {
       )}
 
       {loading ? (
-        <p style={{ color: '#8a9a7e' }}>読み込み中...</p>
+        <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {contacts.map((c) => (
@@ -95,32 +95,32 @@ export default function AdminContacts() {
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
                     {!c.is_read && <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#e8a020', flexShrink: 0 }} />}
                     <span style={{ fontWeight: 500 }}>{c.name}</span>
-                    <span style={{ fontSize: 13, color: '#8a9a7e' }}>{c.email}</span>
+                    <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>{c.email}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: '#8a9a7e' }}>
+                  <div style={{ fontSize: 13, color: 'var(--c-muted)' }}>
                     {new Date(c.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <button onClick={(e) => { e.stopPropagation(); toggleRead(c) }}
-                    style={{ padding: '6px 14px', border: '1px solid #dddde8', borderRadius: 2, fontSize: 12, cursor: 'pointer', background: '#fff', color: '#3a4535', whiteSpace: 'nowrap' }}>
+                    style={{ padding: '6px 14px', border: '1px solid #dddde8', borderRadius: 2, fontSize: 12, cursor: 'pointer', background: '#fff', color: 'var(--c-body)', whiteSpace: 'nowrap' }}>
                     {c.is_read ? '未読に戻す' : '既読にする'}
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); openReply(c) }}
                     style={{ padding: '6px 14px', border: '1px solid #4a6741', borderRadius: 2, fontSize: 12, cursor: 'pointer', background: '#f0f6f0', color: '#4a6741', whiteSpace: 'nowrap' }}>
                     返信
                   </button>
-                  <span style={{ fontSize: 14, color: '#8a9a7e', transform: expanded === c.id ? 'rotate(180deg)' : 'none', transition: '0.2s', display: 'inline-block' }}>▼</span>
+                  <span style={{ fontSize: 14, color: 'var(--c-muted)', transform: expanded === c.id ? 'rotate(180deg)' : 'none', transition: '0.2s', display: 'inline-block' }}>▼</span>
                 </div>
               </div>
               {expanded === c.id && (
                 <div style={{ padding: '0 18px 18px', borderTop: '1px solid #f0f0f5' }}>
-                  <p style={{ fontSize: 15, color: '#1c2417', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: '14px 0 0' }}>{c.message}</p>
+                  <p style={{ fontSize: 15, color: 'var(--c-ink)', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: '14px 0 0' }}>{c.message}</p>
                 </div>
               )}
             </div>
           ))}
-          {contacts.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: '#8a9a7e' }}>お問い合わせはありません。</p>}
+          {contacts.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>お問い合わせはありません。</p>}
         </div>
       )}
 
@@ -130,19 +130,19 @@ export default function AdminContacts() {
           <div style={{ background: '#fff', borderRadius: 4, padding: 32, width: '100%', maxWidth: 560, boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ margin: 0, fontWeight: 500, fontSize: 18 }}>返信: {reply.email}</h3>
-              <button onClick={() => setReply(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#8a9a7e', lineHeight: 1 }}>×</button>
+              <button onClick={() => setReply(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--c-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 11, letterSpacing: 1, color: '#8a9a7e', marginBottom: 6 }}>件名</label>
+              <label style={{ display: 'block', fontSize: 11, letterSpacing: 1, color: 'var(--c-muted)', marginBottom: 6 }}>件名</label>
               <input style={{ ...inputStyle, resize: undefined }} value={reply.subject} onChange={(e) => setReply({ ...reply, subject: e.target.value })} />
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 11, letterSpacing: 1, color: '#8a9a7e', marginBottom: 6 }}>本文</label>
+              <label style={{ display: 'block', fontSize: 11, letterSpacing: 1, color: 'var(--c-muted)', marginBottom: 6 }}>本文</label>
               <textarea rows={10} style={inputStyle} value={reply.body} onChange={(e) => setReply({ ...reply, body: e.target.value })} />
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setReply(null)} style={{ padding: '10px 20px', border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', fontSize: 14 }}>キャンセル</button>
-              <button onClick={sendReply} disabled={replySending} style={{ padding: '10px 24px', border: 'none', borderRadius: 4, background: '#1c2417', color: '#fff', cursor: 'pointer', fontSize: 14 }}>
+              <button onClick={sendReply} disabled={replySending} style={{ padding: '10px 24px', border: 'none', borderRadius: 4, background: 'var(--c-ink)', color: '#fff', cursor: 'pointer', fontSize: 14 }}>
                 {replySending ? '送信中...' : '送信する'}
               </button>
             </div>

@@ -13,7 +13,7 @@ const inputStyle: React.CSSProperties = {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: 12, letterSpacing: 1, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 6 }}>{label}</label>
+      <label style={{ display: 'block', fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 6 }}>{label}</label>
       {children}
     </div>
   )
@@ -138,7 +138,7 @@ export default function AdminEventSite() {
   const setGuestItem = (i: number, patch: Partial<GuestItem>) =>
     set('guests', (pc.guests ?? []).map((g, j) => j === i ? { ...g, ...patch } : g))
 
-  if (!event) return <p style={{ color: '#8a9a7e' }}>読み込み中...</p>
+  if (!event) return <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>
 
   const isArchived = pc.archive?.enabled ?? false
 
@@ -147,10 +147,10 @@ export default function AdminEventSite() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300, margin: '0 0 6px' }}>サイト編集</h2>
-          <p style={{ fontSize: 13, color: '#8a9a7e', margin: 0 }}>{event.name}</p>
+          <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>{event.name}</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Link to={`/events/${id}`} target="_blank" style={{ fontSize: 13, color: '#8a9a7e', textDecoration: 'none', borderBottom: '1px solid #dddde8', paddingBottom: 2 }}>
+          <Link to={`/events/${id}`} target="_blank" style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none', borderBottom: '1px solid #dddde8', paddingBottom: 2 }}>
             プレビュー →
           </Link>
           <button
@@ -178,7 +178,7 @@ export default function AdminEventSite() {
         {/* 開催情報 */}
         <Card title="開催情報">
           <Field label="住所（イベント情報から自動取得）">
-            <div style={{ padding: '9px 12px', background: '#f5f5f8', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, color: '#3a4535' }}>
+            <div style={{ padding: '9px 12px', background: '#f5f5f8', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, color: 'var(--c-body)' }}>
               {event.address ? (
                 <>
                   <span>{event.address}</span>
@@ -217,7 +217,7 @@ export default function AdminEventSite() {
           {(pc.lineup ?? []).map((item, i) => (
             <div key={i} style={{ border: '1px solid #e4e4ee', borderRadius: 4, padding: '16px 16px 4px', marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 1 }}>ラインナップ {i + 1}</span>
+                <span style={{ fontSize: 12, color: 'var(--c-muted)', letterSpacing: 1 }}>ラインナップ {i + 1}</span>
                 <button onClick={() => set('lineup', (pc.lineup ?? []).filter((_, j) => j !== i))} style={{ padding: '4px 10px', border: '1px solid #f0b8ae', borderRadius: 2, fontSize: 12, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
               </div>
               <Field label="名称">
@@ -232,7 +232,7 @@ export default function AdminEventSite() {
             </div>
           ))}
           <button onClick={() => set('lineup', [...(pc.lineup ?? []), { title: '', description: '', image_url: '' }])}
-            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 4, fontSize: 13, color: '#8a9a7e', background: 'none', cursor: 'pointer', width: '100%' }}>
+            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 4, fontSize: 13, color: 'var(--c-muted)', background: 'none', cursor: 'pointer', width: '100%' }}>
             + ラインナップを追加
           </button>
         </Card>
@@ -242,7 +242,7 @@ export default function AdminEventSite() {
           {(pc.guests ?? []).map((guest, i) => (
             <div key={i} style={{ border: '1px solid #e4e4ee', borderRadius: 4, padding: '16px 16px 4px', marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 1 }}>ゲスト {i + 1}</span>
+                <span style={{ fontSize: 12, color: 'var(--c-muted)', letterSpacing: 1 }}>ゲスト {i + 1}</span>
                 <button onClick={() => set('guests', (pc.guests ?? []).filter((_, j) => j !== i))} style={{ padding: '4px 10px', border: '1px solid #f0b8ae', borderRadius: 2, fontSize: 12, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
               </div>
               <Field label="名前">
@@ -263,14 +263,14 @@ export default function AdminEventSite() {
             </div>
           ))}
           <button onClick={() => set('guests', [...(pc.guests ?? []), { name: '', role: '', bio: '', image_url: '', instagram_url: '' }])}
-            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 4, fontSize: 13, color: '#8a9a7e', background: 'none', cursor: 'pointer', width: '100%' }}>
+            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 4, fontSize: 13, color: 'var(--c-muted)', background: 'none', cursor: 'pointer', width: '100%' }}>
             + ゲストを追加
           </button>
         </Card>
 
         {/* アーカイブ */}
         <Card title="アーカイブ">
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, cursor: 'pointer', fontSize: 14, color: '#3a4535' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, cursor: 'pointer', fontSize: 14, color: 'var(--c-body)' }}>
             <input type="checkbox" checked={isArchived} onChange={(e) => setArchive('enabled', e.target.checked)} style={{ width: 16, height: 16 }} />
             アーカイブ表示にする（イベント終了後）
           </label>

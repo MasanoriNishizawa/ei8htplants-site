@@ -32,8 +32,8 @@ export default function Concept() {
 
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
         <div style={{ marginTop: 80 }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 40px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Philosophy</h2>
-          <div style={{ maxWidth: 750, margin: '0 auto', lineHeight: 2.2, fontSize: 16, color: '#3a4535', textAlign: 'justify' }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 40px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Philosophy</h2>
+          <div style={{ maxWidth: 750, margin: '0 auto', lineHeight: 2.2, fontSize: 16, color: 'var(--c-body)', textAlign: 'justify' }}>
             植物は、育てるものであり、飾るもの。<br /><br />
             色と形に惹かれて手に取った一株が、日々の手入れを通じて少しずつ表情を変えていく—その過程そのものが、植物を育てることの醍醐味だと思っています。<br /><br />
             はじめての一株の選び方から、育て方の悩み、空間に合う植物探しまで。どんなことでも気軽にご相談ください。一緒に考えながら、あなたに合ったご提案をします。
@@ -41,7 +41,7 @@ export default function Concept() {
         </div>
 
         <div style={{ marginTop: 80, marginBottom: 100 }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 0', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Specialized Lines</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 0', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Specialized Lines</h2>
           <div className="brand-line-grid">
             {LINES.map(({ name, subtitle, teaser, to }) => (
               <Link
@@ -55,9 +55,9 @@ export default function Concept() {
                   onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                 >
                   <span style={{ display: 'block', fontSize: 16, fontWeight: 500, letterSpacing: 2, marginBottom: 6, borderBottom: '1px solid #dddde8', paddingBottom: 10 }}>{name}</span>
-                  <span style={{ display: 'block', fontSize: 12, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 16 }}>{subtitle}</span>
-                  <p style={{ fontSize: 15, lineHeight: 1.9, color: '#3a4535', margin: '0 0 20px' }}>{teaser}</p>
-                  <span style={{ fontSize: 13, letterSpacing: 1.5, color: '#8a9a7e', textTransform: 'uppercase' }}>詳しく見る →</span>
+                  <span style={{ display: 'block', fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 16 }}>{subtitle}</span>
+                  <p style={{ fontSize: 15, lineHeight: 1.9, color: 'var(--c-body)', margin: '0 0 20px' }}>{teaser}</p>
+                  <span style={{ fontSize: 13, letterSpacing: 1.5, color: 'var(--c-muted)', textTransform: 'uppercase' }}>詳しく見る →</span>
                 </div>
               </Link>
             ))}

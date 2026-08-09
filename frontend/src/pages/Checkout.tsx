@@ -121,8 +121,8 @@ export default function Checkout() {
   if (items.length === 0) {
     return (
       <div style={{ padding: '80px 24px', textAlign: 'center' }}>
-        <p style={{ color: '#8a9a7e', marginBottom: 20 }}>カートに商品がありません。</p>
-        <Link to="/shop" style={{ color: '#1c2417', fontSize: 13, letterSpacing: 1 }}>ショップへ戻る</Link>
+        <p style={{ color: 'var(--c-muted)', marginBottom: 20 }}>カートに商品がありません。</p>
+        <Link to="/shop" style={{ color: 'var(--c-ink)', fontSize: 13, letterSpacing: 1 }}>ショップへ戻る</Link>
       </div>
     )
   }
@@ -174,7 +174,7 @@ export default function Checkout() {
     }
   }
 
-  const SERIF = "'Noto Serif JP', 'Hiragino Mincho ProN', serif"
+  const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
   const SANS = "'Noto Sans JP', sans-serif"
   const BG = '#faf9f7'
 

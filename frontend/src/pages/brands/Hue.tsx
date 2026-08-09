@@ -66,14 +66,14 @@ export default function Hue() {
 
       <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
             <img src="/img/logo-hue.png" alt="HUE by ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
-              <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: '#1c2417', margin: '0 0 20px', lineHeight: 1.4 }}>
+              <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
                 Color &amp; Form<br />as Living Art
               </h2>
-              <p style={{ fontSize: 16, color: '#3a4535', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
+              <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
                 色と形が語る、植物の美学。<br />
                 鮮やかな色彩と独特のフォルムを持つ観葉植物から、インテリアに溶け込む一鉢を厳選してご提案します。<br /><br />
                 植物を「育てる」だけでなく、「飾る」という視点で—空間に彩りと生命感を。

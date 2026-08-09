@@ -129,7 +129,7 @@ export default function AdminEventReservations() {
 
   const btnStyle: React.CSSProperties = {
     padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4,
-    fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: '#3a4535',
+    fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--c-body)',
   }
 
   const headers = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '持込', '備考', 'ステータス']
@@ -137,7 +137,7 @@ export default function AdminEventReservations() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <Link to="/admin/events" style={{ fontSize: 13, color: '#8a9a7e', textDecoration: 'none' }}>
+        <Link to="/admin/events" style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}>
           &larr; イベント管理
         </Link>
       </div>
@@ -148,7 +148,7 @@ export default function AdminEventReservations() {
             {event ? event.name : '読み込み中...'}
           </h2>
           {event && (
-            <p style={{ margin: 0, fontSize: 13, color: '#8a9a7e' }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>
               {event.start_date}{event.end_date && event.end_date !== event.start_date ? ` 〜 ${event.end_date}` : ''}
               {event.time ? ` ${event.time}` : ''} / {event.location}
             </p>
@@ -164,7 +164,7 @@ export default function AdminEventReservations() {
 
       {!loading && rows.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: '#8a9a7e', marginRight: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--c-muted)', marginRight: 4 }}>
             全{nonCancelled.length}件 / {totalPeople}名
           </span>
           {sessions.length > 0 && (
@@ -193,14 +193,14 @@ export default function AdminEventReservations() {
       )}
 
       {loading ? (
-        <p style={{ color: '#8a9a7e' }}>読み込み中...</p>
+        <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
                 {headers.map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -210,7 +210,7 @@ export default function AdminEventReservations() {
                 const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
-                    <td style={{ padding: '12px 14px', color: '#8a9a7e', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(r.created_at).toLocaleDateString('ja-JP')}
                     </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
@@ -231,7 +231,7 @@ export default function AdminEventReservations() {
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>
                       {bringFlags || <span style={{ color: '#ccc' }}>-</span>}
                     </td>
-                    <td style={{ padding: '12px 14px', color: '#8a9a7e', maxWidth: 160 }}>{r.note ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', maxWidth: 160 }}>{r.note ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
@@ -255,7 +255,7 @@ export default function AdminEventReservations() {
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '40px 0', color: '#8a9a7e' }}>予約はありません。</p>
+            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>
           )}
         </div>
       )}

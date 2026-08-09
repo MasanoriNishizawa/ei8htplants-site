@@ -37,8 +37,13 @@ interface Props {
 export default function EventCard({ event, isNext = false, isHome = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
   const images = (event.images ?? []).filter((i) => i.url && !i.url.startsWith('blob:'))
-  const days = !event.is_past ? daysUntil(event.start_date) : null
-  const urgentBadge = days !== null && days >= 0 && days <= 7
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const startD = new Date(event.start_date); startD.setHours(0, 0, 0, 0)
+  const endD = event.end_date ? new Date(event.end_date) : new Date(event.start_date); endD.setHours(0, 0, 0, 0)
+  const isOngoing = !event.is_past && startD < today && today <= endD
+  const days = !event.is_past && !isOngoing ? daysUntil(event.start_date) : null
+  const urgentBadge = isOngoing || (days !== null && days >= 0 && days <= 7)
 
   const cardStyle: React.CSSProperties = {
     background: '#ffffff',
@@ -53,8 +58,8 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
   const imageSection = images.length > 0 && (
     <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#e8e8f0' }}>
       {urgentBadge && (
-        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: days === 0 ? '#c0392b' : '#e67e22', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: 0.5 }}>
-          {days === 0 ? '本日開催' : `あと${days}日`}
+        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: isOngoing ? 'var(--c-green)' : days === 0 ? '#c0392b' : 'var(--c-ink)', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: 0.5 }}>
+          {isOngoing ? '開催中' : days === 0 ? '本日開催' : `あと${days}日`}
         </div>
       )}
       <img
@@ -88,7 +93,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              style={{ fontSize: 12, background: '#1c2417', color: '#fff', padding: '6px 12px', borderRadius: 20, letterSpacing: 1, textDecoration: 'none', fontWeight: 500 }}
+              style={{ fontSize: 12, background: 'var(--c-ink)', color: '#fff', padding: '6px 12px', borderRadius: 20, letterSpacing: 1, textDecoration: 'none', fontWeight: 500 }}
             >
               {brand}
             </a>
@@ -100,7 +105,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
         {event.name}
       </h2>
 
-      <div style={{ fontSize: 16, color: '#3a4535', background: '#f5f5f8', padding: '15px 18px', borderRadius: 4, border: '1px solid #dddde8' }}>
+      <div style={{ fontSize: 16, color: 'var(--c-body)', background: '#f5f5f8', padding: '15px 18px', borderRadius: 4, border: '1px solid #dddde8' }}>
         <div style={{ marginBottom: 8 }}>{formatDate(event.start_date, event.end_date)}</div>
         {event.time && <div style={{ marginBottom: 8 }}>{event.time}</div>}
         <div style={{ fontWeight: 'bold', marginBottom: event.booth_number || event.address ? 8 : 0 }}>{event.location}</div>
@@ -145,7 +150,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
             <a
               href={`/reserve?event_id=${event.id}`}
               onClick={(e) => e.stopPropagation()}
-              style={{ display: 'inline-block', marginTop: 12, background: '#2c3a4a', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}
+              style={{ display: 'inline-block', marginTop: 12, background: 'var(--c-ink)', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}
             >
               ワークショップを予約する
             </a>

@@ -96,12 +96,12 @@ export default function EventFinance() {
     textAlign: 'right',
   }
 
-  if (loading) return <p style={{ color: '#8a9a7e' }}>読み込み中...</p>
+  if (loading) return <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>
 
   return (
     <div style={{ maxWidth: 580 }}>
       <div style={{ marginBottom: 24 }}>
-        <Link to="/admin/events" style={{ fontSize: 13, color: '#8a9a7e', textDecoration: 'none' }}>
+        <Link to="/admin/events" style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}>
           &larr; イベント管理
         </Link>
       </div>
@@ -110,7 +110,7 @@ export default function EventFinance() {
         収支管理
       </h2>
       {event && (
-        <p style={{ fontSize: 14, color: '#8a9a7e', marginBottom: 28 }}>
+        <p style={{ fontSize: 14, color: 'var(--c-muted)', marginBottom: 28 }}>
           {event.name} &mdash; {event.start_date}
         </p>
       )}
@@ -155,7 +155,7 @@ export default function EventFinance() {
               />
               <div>
                 <div style={{ fontWeight: 500, fontSize: 14 }}>手伝いあり（支払い計算モード）</div>
-                <div style={{ fontSize: 12, color: '#8a9a7e', marginTop: 3, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: 'var(--c-muted)', marginTop: 3, lineHeight: 1.6 }}>
                   ONにすると「支払い金額 = max(0, 売上 - 各支出) × 20% + WS売上 × 70%」で計算します
                 </div>
               </div>
@@ -212,7 +212,7 @@ export default function EventFinance() {
             background: net >= 0 ? '#f0f5ee' : '#fdf0ee',
             border: `1px solid ${net >= 0 ? '#b8d4ae' : '#f0b8ae'}`,
           }}>
-            <div style={{ fontSize: 12, letterSpacing: 1, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 10 }}>
               支払い金額（手伝い分）
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#5a6a55', marginBottom: 12 }}>
@@ -245,7 +245,7 @@ export default function EventFinance() {
             </span>
           </div>
         )}
-        <div style={{ textAlign: 'right', fontSize: 12, color: '#8a9a7e', marginBottom: 24 }}>
+        <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--c-muted)', marginBottom: 24 }}>
           {form.payment_flag && event?.has_workshop
             ? `売上利益 ${fmt(Math.max(0, form.sales - totalExpense))} 円 × 20% + WS ${fmt(wsSales)} 円 × 70%`
             : `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円`
@@ -254,7 +254,7 @@ export default function EventFinance() {
 
         {/* メモ */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 12, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
             メモ
           </div>
           <textarea
@@ -267,7 +267,7 @@ export default function EventFinance() {
         </div>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15 }}>
+          <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15 }}>
             {saving ? '保存中...' : '保存'}
           </button>
           {saved && <span style={{ fontSize: 13, color: '#4a6741' }}>保存しました</span>}
@@ -280,7 +280,7 @@ export default function EventFinance() {
 function SectionBox({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, letterSpacing: 2, color: '#8a9a7e', textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
       <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '0 16px' }}>
         {children}
       </div>
@@ -301,11 +301,11 @@ function NumInput({ value, onChange, style }: { value: number; onChange: (v: num
   return (
     <>
       <input type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value))} style={style} />
-      <span style={{ fontSize: 13, color: '#8a9a7e' }}>円</span>
+      <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>円</span>
     </>
   )
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
-  return <span style={{ fontSize: 12, color: '#8a9a7e' }}>{children}</span>
+  return <span style={{ fontSize: 12, color: 'var(--c-muted)' }}>{children}</span>
 }

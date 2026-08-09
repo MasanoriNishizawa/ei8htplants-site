@@ -46,17 +46,17 @@ export default function Dashboard() {
             <div style={{ fontSize: 32, fontWeight: 200, color: urgent ? '#c0392b' : '#1c2417', marginBottom: 6, lineHeight: 1 }}>
               {value}
             </div>
-            <div style={{ fontSize: 12, color: '#8a9a7e', letterSpacing: 0.5 }}>{label}</div>
+            <div style={{ fontSize: 12, color: 'var(--c-muted)', letterSpacing: 0.5 }}>{label}</div>
           </Link>
         ))}
       </div>
 
-      <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 16px' }}>管理メニュー</p>
+      <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 16px' }}>管理メニュー</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
         {ITEMS.map(({ to, label, desc }) => (
-          <Link key={to} to={to} style={{ display: 'block', padding: 24, background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, textDecoration: 'none', color: '#1c2417' }}>
+          <Link key={to} to={to} style={{ display: 'block', padding: 24, background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, textDecoration: 'none', color: 'var(--c-ink)' }}>
             <div style={{ fontWeight: 500, marginBottom: 8 }}>{label}</div>
-            <div style={{ fontSize: 13, color: '#8a9a7e' }}>{desc}</div>
+            <div style={{ fontSize: 13, color: 'var(--c-muted)' }}>{desc}</div>
           </Link>
         ))}
       </div>

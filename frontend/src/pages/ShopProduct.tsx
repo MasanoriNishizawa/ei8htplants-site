@@ -9,7 +9,7 @@ import ShareButtons from '../components/ShareButtons'
 const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
 const BG = '#faf9f7'
-const SERIF = "'Noto Serif JP', 'Hiragino Mincho ProN', serif"
+const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 
 export default function ShopProduct() {

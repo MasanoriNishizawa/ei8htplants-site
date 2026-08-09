@@ -96,7 +96,7 @@ export default function AdminCollaborations() {
           <input type="date" placeholder="開催日" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} style={inputStyle} />
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={{ display: 'block', fontSize: 13, color: '#8a9a7e', marginBottom: 8 }}>動画（任意）</label>
+          <label style={{ display: 'block', fontSize: 13, color: 'var(--c-muted)', marginBottom: 8 }}>動画（任意）</label>
           {form.video_url && form.video_url.length > 0 && !form.video_url.startsWith('blob:') ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <video
@@ -113,9 +113,9 @@ export default function AdminCollaborations() {
               </button>
             </div>
           ) : form.video_url?.startsWith('blob:') ? (
-            <p style={{ fontSize: 13, color: '#8a9a7e' }}>アップロード中…</p>
+            <p style={{ fontSize: 13, color: 'var(--c-muted)' }}>アップロード中…</p>
           ) : (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', border: '1px solid #dddde8', borderRadius: 4, cursor: uploadingVideo ? 'default' : 'pointer', opacity: uploadingVideo ? 0.6 : 1, fontSize: 13, color: '#3a4535', background: '#f5f5f8' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', border: '1px solid #dddde8', borderRadius: 4, cursor: uploadingVideo ? 'default' : 'pointer', opacity: uploadingVideo ? 0.6 : 1, fontSize: 13, color: 'var(--c-body)', background: '#f5f5f8' }}>
               {uploadingVideo ? 'アップロード中…' : '動画ファイルを選択 (.mp4 / .mov / .webm)'}
               <input
                 type="file"
@@ -150,7 +150,7 @@ export default function AdminCollaborations() {
           />
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <button type="submit" disabled={saving} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14 }}>
+          <button type="submit" disabled={saving} style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14 }}>
             {saving ? '追加中...' : '追加'}
           </button>
         </div>
@@ -164,9 +164,9 @@ export default function AdminCollaborations() {
             )}
             <div>
               <div style={{ fontWeight: 500, marginBottom: 4 }}>{item.title}</div>
-              {item.partner_name && <div style={{ fontSize: 13, color: '#8a9a7e' }}>{item.partner_name}</div>}
-              {item.event_date && <div style={{ fontSize: 13, color: '#8a9a7e' }}>{item.event_date}</div>}
-              {item.description && <div style={{ fontSize: 13, color: '#3a4535', marginTop: 6, lineHeight: 1.6 }}>{item.description}</div>}
+              {item.partner_name && <div style={{ fontSize: 13, color: 'var(--c-muted)' }}>{item.partner_name}</div>}
+              {item.event_date && <div style={{ fontSize: 13, color: 'var(--c-muted)' }}>{item.event_date}</div>}
+              {item.description && <div style={{ fontSize: 13, color: 'var(--c-body)', marginTop: 6, lineHeight: 1.6 }}>{item.description}</div>}
               {item.video_url && (
                 <video src={item.video_url} controls style={{ marginTop: 8, maxWidth: 240, maxHeight: 135, borderRadius: 4, background: '#000', display: 'block' }} />
               )}
@@ -174,7 +174,7 @@ export default function AdminCollaborations() {
             <button onClick={() => del(item.id)} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#c0392b', background: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>削除</button>
           </div>
         ))}
-        {items.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: '#8a9a7e' }}>コラボレーションがありません。</p>}
+        {items.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>コラボレーションがありません。</p>}
       </div>
     </div>
   )

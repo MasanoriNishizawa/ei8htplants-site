@@ -74,25 +74,25 @@ export default function AdminProducts() {
   const inputStyle: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', padding: '9px 12px',
     border: '1px solid #dddde8', fontSize: 14, fontFamily: 'inherit',
-    color: '#1c2417', background: '#fff', outline: 'none',
+    color: 'var(--c-ink)', background: '#fff', outline: 'none',
   }
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>商品管理</h2>
-        <button onClick={openNew} style={{ padding: '9px 20px', background: '#1c2417', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={openNew} style={{ padding: '9px 20px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
           + 商品追加
         </button>
       </div>
 
-      {loading ? <p style={{ color: '#8a9a7e' }}>読み込み中...</p> : (
+      {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
                 {['画像', '商品名', 'カテゴリー', '価格', '在庫', '状態', '操作'].map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -105,7 +105,7 @@ export default function AdminProducts() {
                     ) : <div style={{ width: 48, height: 48, background: '#f5f5f8', border: '1px solid #dddde8' }} />}
                   </td>
                   <td style={{ padding: '10px 14px' }}>{p.name}</td>
-                  <td style={{ padding: '10px 14px', fontSize: 12, color: '#8a9a7e', whiteSpace: 'nowrap' }}>{p.category ?? '—'}</td>
+                  <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{p.category ?? '—'}</td>
                   <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{fmt(p.price)}</td>
                   <td style={{ padding: '10px 14px', color: p.stock === 0 ? '#c0392b' : '#1c2417' }}>{p.stock}</td>
                   <td style={{ padding: '10px 14px' }}>
@@ -131,7 +131,7 @@ export default function AdminProducts() {
               ))}
             </tbody>
           </table>
-          {products.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: '#8a9a7e' }}>商品がありません。</p>}
+          {products.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>商品がありません。</p>}
         </div>
       )}
 
@@ -164,7 +164,7 @@ export default function AdminProducts() {
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10 }}>カテゴリー</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#3a4535' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--c-body)' }}>
                   <input
                     type="radio"
                     name="category"
@@ -174,7 +174,7 @@ export default function AdminProducts() {
                   未設定
                 </label>
                 {PRODUCT_CATEGORIES.map((cat) => (
-                  <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#3a4535' }}>
+                  <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--c-body)' }}>
                     <input
                       type="radio"
                       name="category"
@@ -210,7 +210,7 @@ export default function AdminProducts() {
             </div>
 
             <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: '#1c2417' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--c-ink)' }}>
                 <input type="checkbox" checked={form.is_published} onChange={(e) => set('is_published', e.target.checked)} />
                 公開する
               </label>
@@ -218,7 +218,7 @@ export default function AdminProducts() {
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button onClick={closeModal} style={{ padding: '10px 20px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>キャンセル</button>
-              <button onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>

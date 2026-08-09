@@ -147,7 +147,7 @@ export default function AdminEventForm() {
   }
 
   const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }
-  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1, color: '#3a4535' }
+  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1, color: 'var(--c-body)' }
 
   return (
     <div style={{ maxWidth: 700 }}>
@@ -179,7 +179,7 @@ export default function AdminEventForm() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <label style={{ ...labelStyle, marginBottom: 0 }}>開催時間</label>
                   {isMultiDay && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#3a4535' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--c-body)' }}>
                       <input
                         type="checkbox"
                         checked={dailyTimesMode}
@@ -201,7 +201,7 @@ export default function AdminEventForm() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: '#f6f6fa', borderRadius: 4, border: '1px solid #dddde8' }}>
                     {dates.map((d) => (
                       <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 13, color: '#3a4535', minWidth: 116, flexShrink: 0 }}>{fmtDay(d)}</span>
+                        <span style={{ fontSize: 13, color: 'var(--c-body)', minWidth: 116, flexShrink: 0 }}>{fmtDay(d)}</span>
                         <input
                           style={{ ...inputStyle, flex: 1 }}
                           placeholder="10:00〜16:00"
@@ -249,7 +249,7 @@ export default function AdminEventForm() {
                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, border: '1px solid #dddde8', opacity: isUploading ? 0.5 : 1, display: 'block' }}
                   />
                   {isUploading && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#8a9a7e' }}>...</div>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--c-muted)' }}>...</div>
                   )}
                   {!isUploading && (
                     <button
@@ -266,7 +266,7 @@ export default function AdminEventForm() {
             <label style={{
               width: 88, height: 88, border: '1.5px dashed #b0b0c4', borderRadius: 4,
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 4, cursor: uploadingIdx !== null ? 'default' : 'pointer', color: '#8a9a7e', flexShrink: 0,
+              gap: 4, cursor: uploadingIdx !== null ? 'default' : 'pointer', color: 'var(--c-muted)', flexShrink: 0,
               opacity: uploadingIdx !== null ? 0.5 : 1,
             }}>
               <span style={{ fontSize: 24, lineHeight: 1 }}>+</span>
@@ -314,7 +314,7 @@ export default function AdminEventForm() {
               </div>
             </div>
             {sessions.length === 0 && (
-              <p style={{ fontSize: 13, color: '#8a9a7e', margin: 0 }}>セッションなし（時間指定なしで予約受付）</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>セッションなし（時間指定なしで予約受付）</p>
             )}
             {sessions.map((s, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
@@ -326,7 +326,7 @@ export default function AdminEventForm() {
                   style={{ ...inputStyle, flex: 1 }}
                 />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 13, color: '#8a9a7e', whiteSpace: 'nowrap' }}>定員</span>
+                  <span style={{ fontSize: 13, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>定員</span>
                   <input
                     type="number"
                     min={1}
@@ -334,7 +334,7 @@ export default function AdminEventForm() {
                     onChange={(e) => setSession(i, 'max_participants', Number(e.target.value))}
                     style={{ ...inputStyle, width: 70, textAlign: 'right' }}
                   />
-                  <span style={{ fontSize: 13, color: '#8a9a7e' }}>名</span>
+                  <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>名</span>
                 </div>
                 <button type="button" onClick={() => removeSession(i)}
                   style={{ padding: '0 10px', height: 40, border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', color: '#c0392b', flexShrink: 0 }}>
@@ -346,7 +346,7 @@ export default function AdminEventForm() {
         )}
 
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-          <button type="submit" disabled={saving || uploadingIdx !== null} style={{ padding: '12px 32px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: saving || uploadingIdx !== null ? 'default' : 'pointer', opacity: saving || uploadingIdx !== null ? 0.6 : 1 }}>
+          <button type="submit" disabled={saving || uploadingIdx !== null} style={{ padding: '12px 32px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: saving || uploadingIdx !== null ? 'default' : 'pointer', opacity: saving || uploadingIdx !== null ? 0.6 : 1 }}>
             {saving ? '保存中...' : uploadingIdx !== null ? 'アップロード中...' : '保存する'}
           </button>
           <button type="button" onClick={() => navigate('/admin/events')} style={{ padding: '12px 24px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, background: 'none', cursor: 'pointer' }}>

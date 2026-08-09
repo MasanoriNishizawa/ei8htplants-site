@@ -104,9 +104,9 @@ export default function Header() {
         onClick={() => setMenuOpen(!menuOpen)}
         aria-label="menu"
       >
-        <span style={{ display: 'block', width: 25, height: 2, background: '#1c2417', margin: '5px 0', transition: '0.3s' }} />
-        <span style={{ display: 'block', width: 25, height: 2, background: '#1c2417', margin: '5px 0', transition: '0.3s' }} />
-        <span style={{ display: 'block', width: 25, height: 2, background: '#1c2417', margin: '5px 0', transition: '0.3s' }} />
+        <span style={{ display: 'block', width: 25, height: 2, background: 'var(--c-ink)', margin: '5px 0', transition: '0.3s' }} />
+        <span style={{ display: 'block', width: 25, height: 2, background: 'var(--c-ink)', margin: '5px 0', transition: '0.3s' }} />
+        <span style={{ display: 'block', width: 25, height: 2, background: 'var(--c-ink)', margin: '5px 0', transition: '0.3s' }} />
       </button>
 
       <nav className="header-nav-desktop" style={{ display: 'flex', gap: 2, alignItems: 'center' }}>

@@ -13,7 +13,7 @@ interface Props {
 
 const inputBase: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box', border: '1px solid #dddde8',
-  fontSize: 14, fontFamily: 'inherit', color: '#1c2417', background: '#fff',
+  fontSize: 14, fontFamily: 'inherit', color: 'var(--c-ink)', background: '#fff',
   outline: 'none', padding: '9px 12px',
 }
 

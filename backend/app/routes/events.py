@@ -72,8 +72,15 @@ def _attach_images(events: list[dict]) -> list[dict]:
 
 @router.get('')
 def list_events(past: bool = False):
-    data = supabase.table('events').select('*').eq('is_past', past).order('start_date').execute().data
-    return _attach_images(data)
+    today = date.today().isoformat()
+    data = supabase.table('events').select('*').order('start_date').execute().data
+    result = []
+    for e in data:
+        effective_end = e.get('end_date') or e.get('start_date', '')
+        e['is_past'] = effective_end < today
+        if e['is_past'] == past:
+            result.append(e)
+    return _attach_images(result)
 
 
 # IMPORTANT: static routes must be declared before /{event_id} to avoid
@@ -139,6 +146,8 @@ def get_event(event_id: str):
     data = supabase.table('events').select('*').eq('id', event_id).single().execute().data
     if not data:
         raise HTTPException(404)
+    today = date.today().isoformat()
+    data['is_past'] = (data.get('end_date') or data.get('start_date', '')) < today
     return _attach_images([data])[0]
 
 

@@ -54,9 +54,9 @@ export default function Gallery() {
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto 100px', padding: '40px 20px 0' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: '#8a9a7e' }}>読み込み中...</p>}
+        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>読み込み中...</p>}
         {!loading && images.length === 0 && (
-          <p style={{ textAlign: 'center', padding: '100px 0', color: '#8a9a7e', fontSize: 13 }}>まだ写真が追加されていません。</p>
+          <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)', fontSize: 13 }}>まだ写真が追加されていません。</p>
         )}
         <div className="gallery-grid">
           {images.map((img) => (

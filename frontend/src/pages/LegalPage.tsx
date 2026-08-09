@@ -1,6 +1,6 @@
 import PageMeta from '../components/PageMeta'
 
-const SERIF = "'Noto Serif JP', 'Hiragino Mincho ProN', serif"
+const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 const BG = '#faf9f7'
 

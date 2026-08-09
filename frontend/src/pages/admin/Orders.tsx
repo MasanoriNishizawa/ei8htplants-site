@@ -75,7 +75,7 @@ export default function AdminOrders() {
 
   const inputStyle: React.CSSProperties = {
     padding: '6px 10px', border: '1px solid #dddde8', fontSize: 13,
-    fontFamily: 'inherit', color: '#1c2417', background: '#fff',
+    fontFamily: 'inherit', color: 'var(--c-ink)', background: '#fff',
     cursor: 'pointer', outline: 'none',
   }
 
@@ -83,20 +83,20 @@ export default function AdminOrders() {
     <div>
       <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: '0 0 24px' }}>注文管理</h2>
 
-      {loading ? <p style={{ color: '#8a9a7e' }}>読み込み中...</p> : (
+      {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
                 {['日時', 'お名前', '都道府県', '合計', '状態', '操作'].map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
-                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', color: '#8a9a7e' }}>
+                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', color: 'var(--c-muted)' }}>
                     {new Date(o.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                   </td>
                   <td style={{ padding: '10px 14px' }}>{o.customer_name}</td>
@@ -127,7 +127,7 @@ export default function AdminOrders() {
             </tbody>
           </table>
           {orders.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '40px 0', color: '#8a9a7e' }}>注文がありません。</p>
+            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>注文がありません。</p>
           )}
         </div>
       )}
@@ -173,7 +173,7 @@ export default function AdminOrders() {
               <button
                 onClick={confirmShip}
                 disabled={updating}
-                style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 {updating ? '処理中...' : '発送済みにする'}
               </button>
@@ -213,14 +213,14 @@ export default function AdminOrders() {
               <p style={{ fontSize: 11, letterSpacing: 1, color: '#999', margin: '0 0 10px' }}>注文内容</p>
               {detail.items.map((item) => (
                 <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f5', fontSize: 13 }}>
-                  <span style={{ color: '#3a4535' }}>{item.product_name} × {item.quantity}</span>
-                  <span style={{ color: '#1c2417', whiteSpace: 'nowrap' }}>{fmt(item.price * item.quantity)}</span>
+                  <span style={{ color: 'var(--c-body)' }}>{item.product_name} × {item.quantity}</span>
+                  <span style={{ color: 'var(--c-ink)', whiteSpace: 'nowrap' }}>{fmt(item.price * item.quantity)}</span>
                 </div>
               ))}
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                <span style={{ fontSize: 13, color: '#8a9a7e' }}>小計: {fmt(detail.subtotal)}</span>
-                <span style={{ fontSize: 13, color: '#8a9a7e' }}>送料: {fmt(detail.shipping_fee)}</span>
-                <span style={{ fontSize: 17, fontFamily: "'Cormorant Garamond', serif", color: '#1c2417' }}>合計: {fmt(detail.total)}</span>
+                <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>小計: {fmt(detail.subtotal)}</span>
+                <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>送料: {fmt(detail.shipping_fee)}</span>
+                <span style={{ fontSize: 17, fontFamily: "'Cormorant Garamond', serif", color: 'var(--c-ink)' }}>合計: {fmt(detail.total)}</span>
               </div>
             </section>
 
@@ -269,8 +269,8 @@ export default function AdminOrders() {
 function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div style={{ display: 'flex', gap: 16, padding: '5px 0', borderBottom: '1px solid #f0f0f5', fontSize: 13 }}>
-      <span style={{ width: 120, flexShrink: 0, color: '#8a9a7e' }}>{label}</span>
-      <span style={{ color: '#1c2417', wordBreak: 'break-all', fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</span>
+      <span style={{ width: 120, flexShrink: 0, color: 'var(--c-muted)' }}>{label}</span>
+      <span style={{ color: 'var(--c-ink)', wordBreak: 'break-all', fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</span>
     </div>
   )
 }

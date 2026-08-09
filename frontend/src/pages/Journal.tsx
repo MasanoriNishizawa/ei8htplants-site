@@ -184,7 +184,7 @@ export default function Journal() {
                           {article.title}
                         </h2>
                         {article.content && (
-                          <p style={{ fontFamily: SANS, fontSize: 13, color: '#8a9a7e', lineHeight: 2, margin: '0 0 16px' }}>
+                          <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-muted)', lineHeight: 2, margin: '0 0 16px' }}>
                             {excerpt(article.content, 90)}
                           </p>
                         )}

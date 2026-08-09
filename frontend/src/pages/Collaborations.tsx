@@ -15,17 +15,17 @@ export default function Collaborations() {
     <>
       <PageMeta title="Collaborations" description="Habitat Oides のコラボレーション作品・活動記録。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.png" />
       <div style={{ textAlign: 'center', padding: '72px 20px 48px', background: '#f5f5f7' }}>
-        <p style={{ fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>Habitat Oides</p>
+        <p style={{ fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 14px' }}>Habitat Oides</p>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(32px, 6vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>
           Collaboration
         </h1>
       </div>
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '56px 20px 100px' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: '#8a9a7e' }}>読み込み中...</p>}
+        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>読み込み中...</p>}
 
         {!loading && items.length === 0 && (
-          <p style={{ textAlign: 'center', padding: '100px 0', color: '#8a9a7e', fontSize: 13 }}>
+          <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)', fontSize: 13 }}>
             コラボレーション情報は近日公開予定です。
           </p>
         )}
@@ -64,7 +64,7 @@ export default function Collaborations() {
               <div style={{ padding: '28px 32px' }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 12 }}>
                   {item.partner_name && (
-                    <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e' }}>
+                    <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--c-muted)' }}>
                       {item.partner_name}
                     </span>
                   )}
@@ -74,11 +74,11 @@ export default function Collaborations() {
                     </span>
                   )}
                 </div>
-                <h2 style={{ fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 300, letterSpacing: '0.06em', color: '#1c2417', margin: '0 0 16px', lineHeight: 1.4 }}>
+                <h2 style={{ fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 300, letterSpacing: '0.06em', color: 'var(--c-ink)', margin: '0 0 16px', lineHeight: 1.4 }}>
                   {item.title}
                 </h2>
                 {item.description && (
-                  <p style={{ fontSize: 16, color: '#3a4535', lineHeight: 1.9, margin: '0 0 20px', whiteSpace: 'pre-wrap' }}>
+                  <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 1.9, margin: '0 0 20px', whiteSpace: 'pre-wrap' }}>
                     {item.description}
                   </p>
                 )}

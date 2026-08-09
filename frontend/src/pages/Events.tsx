@@ -103,10 +103,10 @@ export default function Events() {
       )}
 
       <div style={{ maxWidth: 1200, margin: '40px auto', padding: '0 20px', width: '100%', boxSizing: 'border-box' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '100px 0', color: '#8a9a7e' }}>読み込み中...</p>}
+        {loading && <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)' }}>読み込み中...</p>}
 
         {!loading && filtered.length === 0 && (
-          <p style={{ textAlign: 'center', padding: '100px 0', color: '#8a9a7e' }}>
+          <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)' }}>
             {hasFilter ? '条件に一致するイベントはありません。' : isPast ? '過去のイベントはありません。' : '予定されているイベントはありません。'}
           </p>
         )}
@@ -122,7 +122,7 @@ export default function Events() {
         <div style={{ textAlign: 'center', marginTop: 60 }}>
           <Link
             to={isPast ? '/events' : '/events?page=past'}
-            style={{ display: 'inline-block', padding: '12px 30px', background: '#ffffff', border: '1px solid #dddde8', color: '#8a9a7e', textDecoration: 'none', borderRadius: 4, fontSize: 16, letterSpacing: 2 }}
+            style={{ display: 'inline-block', padding: '12px 30px', background: '#ffffff', border: '1px solid #dddde8', color: 'var(--c-muted)', textDecoration: 'none', borderRadius: 4, fontSize: 16, letterSpacing: 2 }}
           >
             {isPast ? '現在のイベントを見る' : '過去のイベントを見る'}
           </Link>

@@ -107,7 +107,7 @@ export default function AdminArticles() {
   const inputStyle: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', padding: '9px 12px',
     border: '1px solid #dddde8', fontSize: 14, fontFamily: 'inherit',
-    color: '#1c2417', background: '#fff', outline: 'none',
+    color: 'var(--c-ink)', background: '#fff', outline: 'none',
   }
 
   const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
@@ -116,18 +116,18 @@ export default function AdminArticles() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>記事管理</h2>
-        <button onClick={openNew} style={{ padding: '9px 20px', background: '#1c2417', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={openNew} style={{ padding: '9px 20px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
           + 記事追加
         </button>
       </div>
 
-      {loading ? <p style={{ color: '#8a9a7e' }}>読み込み中...</p> : (
+      {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
                 {['画像', 'タイトル', 'タグ', '公開日', '状態', '操作'].map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: '#3a4535', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -149,7 +149,7 @@ export default function AdminArticles() {
                       ))}
                     </div>
                   </td>
-                  <td style={{ padding: '10px 14px', color: '#8a9a7e', whiteSpace: 'nowrap' }}>{fmtDate(a.published_at)}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{fmtDate(a.published_at)}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <button
                       onClick={() => togglePublish(a)}
@@ -173,7 +173,7 @@ export default function AdminArticles() {
               ))}
             </tbody>
           </table>
-          {articles.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: '#8a9a7e' }}>記事がありません。</p>}
+          {articles.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>記事がありません。</p>}
         </div>
       )}
 
@@ -244,7 +244,7 @@ export default function AdminArticles() {
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ margin: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#8a9a7e' }}>{fmt(p.price)}{p.stock === 0 && <span style={{ color: '#c0392b', marginLeft: 8 }}>売り切れ</span>}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--c-muted)' }}>{fmt(p.price)}{p.stock === 0 && <span style={{ color: '#c0392b', marginLeft: 8 }}>売り切れ</span>}</p>
                         </div>
                       </label>
                     )
@@ -254,7 +254,7 @@ export default function AdminArticles() {
             )}
 
             <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: '#1c2417' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--c-ink)' }}>
                 <input type="checkbox" checked={form.is_published} onChange={(e) => set('is_published', e.target.checked)} />
                 公開する
               </label>
@@ -262,7 +262,7 @@ export default function AdminArticles() {
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button onClick={close} style={{ padding: '10px 20px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>キャンセル</button>
-              <button onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>

@@ -29,20 +29,20 @@ export default function Stockists() {
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Stockists</h1>
       </div>
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 20px 80px' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: '#8a9a7e' }}>読み込み中...</p>}
+        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>読み込み中...</p>}
         {Object.entries(byArea).map(([area, items]) => (
           <div key={area} style={{ marginBottom: 40 }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, letterSpacing: 2, borderBottom: '1px solid #dddde8', paddingBottom: 8, marginBottom: 16 }}>{area}</h2>
             {items.map((s) => (
               <div key={s.id} style={{ padding: '16px 0', borderBottom: '1px solid #f0f0f5' }}>
                 <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                  {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1c2417', textDecoration: 'underline', textUnderlineOffset: 3 }}>{s.name}</a> : s.name}
+                  {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>{s.name}</a> : s.name}
                 </div>
-                {s.address && <div style={{ fontSize: 14, color: '#8a9a7e', marginBottom: s.brands?.length ? 8 : 0 }}>{s.address}</div>}
+                {s.address && <div style={{ fontSize: 14, color: 'var(--c-muted)', marginBottom: s.brands?.length ? 8 : 0 }}>{s.address}</div>}
                 {s.brands?.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {s.brands.map((b) => {
-                      const c = BRAND_COLORS[b] ?? { bg: '#f0f0f5', color: '#3a4535' }
+                      const c = BRAND_COLORS[b] ?? { bg: '#f0f0f5', color: 'var(--c-body)' }
                       return (
                         <span key={b} style={{ fontSize: 11, padding: '2px 10px', borderRadius: 4, letterSpacing: '0.5px', background: c.bg, color: c.color }}>
                           {b}
@@ -56,9 +56,9 @@ export default function Stockists() {
           </div>
         ))}
         {!loading && (
-          <div style={{ marginTop: 48, padding: '20px 24px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, color: '#8a9a7e', lineHeight: 1.9 }}>
+          <div style={{ marginTop: 48, padding: '20px 24px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.9 }}>
             取扱のご相談・卸のお問い合わせは{' '}
-            <a href="/contact" style={{ color: '#1c2417', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
+            <a href="/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
             {' '}よりお気軽にご連絡ください。
           </div>
         )}

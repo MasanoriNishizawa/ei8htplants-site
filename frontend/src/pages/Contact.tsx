@@ -27,7 +27,7 @@ export default function Contact() {
     outline: 'none',
     background: '#fff',
     boxSizing: 'border-box',
-    color: '#1c2417',
+    color: 'var(--c-ink)',
     borderRadius: 0,
     WebkitAppearance: 'none',
     appearance: 'none',
@@ -38,9 +38,9 @@ export default function Contact() {
     <PageMeta title="Contact" description="ei8ht plants へのお問い合わせはこちらから。" />
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '48px 20px 80px' }}>
       <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #dddde8' }}>
-        <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>ei8ht plants</p>
-        <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: '#1c2417' }}>Contact</h1>
-        <p style={{ fontSize: 16, color: '#8a9a7e', lineHeight: 1.8, margin: 0 }}>
+        <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 14px' }}>ei8ht plants</p>
+        <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: 'var(--c-ink)' }}>Contact</h1>
+        <p style={{ fontSize: 16, color: 'var(--c-muted)', lineHeight: 1.8, margin: 0 }}>
           ご質問・ご依頼など、お気軽にお問い合わせください。<br />
           通常 2〜3 営業日以内にご返信いたします。
         </p>
@@ -90,7 +90,7 @@ export default function Contact() {
           <button
             type="submit"
             disabled={status === 'loading'}
-            style={{ width: '100%', padding: 16, background: '#1c2417', color: '#fff', border: 'none', fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', marginTop: 32, borderRadius: 4 }}
+            style={{ width: '100%', padding: 16, background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', marginTop: 32, borderRadius: 4 }}
           >
             {status === 'loading' ? '送信中...' : '送信する'}
           </button>

@@ -20,7 +20,7 @@ function EventRow({ ev, financeMap, reservationCountMap, del, duplicate }: {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 500 }}>{ev.name}</div>
-        <div style={{ fontSize: 13, color: '#8a9a7e', marginTop: 4 }}>{ev.start_date} / {ev.location}</div>
+        <div style={{ fontSize: 13, color: 'var(--c-muted)', marginTop: 4 }}>{ev.start_date} / {ev.location}</div>
       </div>
       {net !== null && (
         <div style={{ fontWeight: 600, color: net >= 0 ? '#2d5a27' : '#c0392b', minWidth: 90, textAlign: 'right', fontFamily: "'Cormorant Garamond', serif", fontSize: 16 }}>
@@ -28,7 +28,7 @@ function EventRow({ ev, financeMap, reservationCountMap, del, duplicate }: {
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#3a4535', textDecoration: 'none' }}>編集</Link>
+        <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: 'var(--c-body)', textDecoration: 'none' }}>編集</Link>
         <Link to={`/admin/events/${ev.id}/finances`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#4a6741', textDecoration: 'none' }}>収支</Link>
         <Link to={`/admin/events/${ev.id}/site`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#1e3272', textDecoration: 'none' }}>サイト</Link>
         {ev.has_workshop && (
@@ -113,7 +113,7 @@ export default function AdminEvents() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>イベント管理</h2>
-        <Link to="/admin/events/new" style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', textDecoration: 'none', borderRadius: 4, fontSize: 14 }}>
+        <Link to="/admin/events/new" style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', textDecoration: 'none', borderRadius: 4, fontSize: 14 }}>
           + 新規追加
         </Link>
       </div>
@@ -132,8 +132,8 @@ export default function AdminEvents() {
           justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: 12, letterSpacing: 1, color: '#8a9a7e', textTransform: 'uppercase' }}>収支合計</div>
-            <div style={{ fontSize: 11, color: '#8a9a7e', marginTop: 2 }}>{netsWithData.length} イベント（収支登録済み）</div>
+            <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>収支合計</div>
+            <div style={{ fontSize: 11, color: 'var(--c-muted)', marginTop: 2 }}>{netsWithData.length} イベント（収支登録済み）</div>
           </div>
           <div style={{ fontSize: 24, fontWeight: 600, color: totalNet >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', serif" }}>
             {totalNet >= 0 ? '+' : ''}{fmt(totalNet)} 円
@@ -141,10 +141,10 @@ export default function AdminEvents() {
         </div>
       )}
 
-      {loading ? <p style={{ color: '#8a9a7e' }}>読み込み中...</p> : (
+      {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
         <>
           {/* 今後のイベント */}
-          <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 12px' }}>今後のイベント</p>
+          <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>今後のイベント</p>
           {upcoming.length === 0 ? (
             <p style={{ color: '#bbb', fontSize: 13, marginBottom: 32 }}>予定なし</p>
           ) : (
@@ -154,7 +154,7 @@ export default function AdminEvents() {
           )}
 
           {/* 過去のイベント */}
-          <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 12px' }}>過去のイベント</p>
+          <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>過去のイベント</p>
           {past.length === 0 ? (
             <p style={{ color: '#bbb', fontSize: 13 }}>なし</p>
           ) : (

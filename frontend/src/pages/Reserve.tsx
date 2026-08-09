@@ -120,7 +120,7 @@ export default function Reserve() {
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '10px 12px', border: '1px solid #ddd',
     fontSize: 16, fontFamily: 'inherit', outline: 'none', background: '#fff',
-    boxSizing: 'border-box', color: '#1c2417', borderRadius: 0,
+    boxSizing: 'border-box', color: 'var(--c-ink)', borderRadius: 0,
     WebkitAppearance: 'none', appearance: 'none',
   }
 
@@ -147,16 +147,16 @@ export default function Reserve() {
       <PageMeta title="Workshop 予約" description="Habitat Style Workshop へのご予約はこちらから。" />
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '48px 20px 80px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #dddde8' }}>
-          <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 14px' }}>Habitat Oides</p>
-          <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: '#1c2417' }}>Workshop 予約</h1>
+          <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 14px' }}>Habitat Oides</p>
+          <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: 'var(--c-ink)' }}>Workshop 予約</h1>
           {event && (
-            <p style={{ fontSize: 15, color: '#3a4535', lineHeight: 1.7, margin: 0 }}>
+            <p style={{ fontSize: 15, color: 'var(--c-body)', lineHeight: 1.7, margin: 0 }}>
               {event.name}<br />
-              <span style={{ fontSize: 13, color: '#8a9a7e' }}>{event.start_date}{event.end_date && event.end_date !== event.start_date ? ` 〜 ${event.end_date}` : ''}{event.time ? ` ${event.time}` : ''} / {event.location}</span>
+              <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>{event.start_date}{event.end_date && event.end_date !== event.start_date ? ` 〜 ${event.end_date}` : ''}{event.time ? ` ${event.time}` : ''} / {event.location}</span>
             </p>
           )}
           {!event && (
-            <p style={{ fontSize: 16, color: '#8a9a7e', lineHeight: 1.8, margin: 0 }}>
+            <p style={{ fontSize: 16, color: 'var(--c-muted)', lineHeight: 1.8, margin: 0 }}>
               ご記入いただいた内容を確認後、折り返しご連絡いたします。
             </p>
           )}
@@ -165,7 +165,7 @@ export default function Reserve() {
         {status === 'full' ? (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p style={{ fontSize: 18, color: '#c0392b', marginBottom: 16 }}>このセッションは満席になりました</p>
-            <p style={{ fontSize: 14, color: '#8a9a7e', marginBottom: 24 }}>別の回をお選びいただくか、次回のワークショップをお待ちください。</p>
+            <p style={{ fontSize: 14, color: 'var(--c-muted)', marginBottom: 24 }}>別の回をお選びいただくか、次回のワークショップをお待ちください。</p>
             <button onClick={() => { setStatus('idle'); set('session_id', '') }} style={{ padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', fontSize: 14 }}>
               戻る
             </button>
@@ -174,13 +174,13 @@ export default function Reserve() {
           <div style={{ textAlign: 'center' }}>
             <div style={{ background: '#f0f6f0', border: '1px solid #b0d4b0', borderRadius: 4, padding: '36px 32px', marginBottom: 32 }}>
               <p style={{ fontSize: 22, fontWeight: 300, letterSpacing: '0.08em', color: '#2d5a2d', margin: '0 0 16px' }}>予約を受け付けました</p>
-              <p style={{ fontSize: 14, color: '#3a4535', lineHeight: 1.9, margin: 0 }}>
+              <p style={{ fontSize: 14, color: 'var(--c-body)', lineHeight: 1.9, margin: 0 }}>
                 確認メールを <strong>{form.email}</strong> にお送りしました。<br />
                 届かない場合は迷惑メールフォルダをご確認ください。
               </p>
             </div>
             <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '24px 28px', textAlign: 'left', marginBottom: 32 }}>
-              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#8a9a7e', margin: '0 0 16px' }}>予約内容</p>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 16px' }}>予約内容</p>
               {[
                 { label: 'お名前', value: form.name },
                 { label: 'メール', value: form.email },
@@ -194,12 +194,12 @@ export default function Reserve() {
                 ...(form.note ? [{ label: '備考', value: form.note }] : []),
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0f0f5' }}>
-                  <span style={{ fontSize: 12, color: '#8a9a7e' }}>{label}</span>
-                  <span style={{ fontSize: 14, color: '#1c2417' }}>{value}</span>
+                  <span style={{ fontSize: 12, color: 'var(--c-muted)' }}>{label}</span>
+                  <span style={{ fontSize: 14, color: 'var(--c-ink)' }}>{value}</span>
                 </div>
               ))}
             </div>
-            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: '#8a9a7e', textDecoration: 'none', fontSize: 14 }}>
+            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
               イベント一覧へ戻る
             </Link>
           </div>
@@ -222,7 +222,7 @@ export default function Reserve() {
                         onChange={() => setForm((f) => ({ ...f, preferred_date: d, session_id: '', participants: 1 }))}
                         style={{ accentColor: '#4a6741' }}
                       />
-                      <span style={{ fontSize: 15, color: '#1c2417' }}>{fmtDate(d)}</span>
+                      <span style={{ fontSize: 15, color: 'var(--c-ink)' }}>{fmtDate(d)}</span>
                     </label>
                   ))}
                 </div>
@@ -258,7 +258,7 @@ export default function Reserve() {
                             onChange={() => setForm((f) => ({ ...f, session_id: s.id, participants: 1 }))}
                             style={{ accentColor: '#4a6741' }}
                           />
-                          <span style={{ flex: 1, fontSize: 15, color: '#1c2417' }}>{s.time_label}</span>
+                          <span style={{ flex: 1, fontSize: 15, color: 'var(--c-ink)' }}>{s.time_label}</span>
                           <span style={{ fontSize: 12, color: full ? '#c0392b' : '#8a9a7e' }}>
                             {full ? '満席' : `残り ${rem} 名`}
                           </span>

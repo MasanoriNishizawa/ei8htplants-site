@@ -69,7 +69,7 @@ export default function AdminLayout() {
         <input required type="password" placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
           style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit' }} />
         {error && <p style={{ color: '#c0392b', fontSize: 13, margin: 0 }}>{error}</p>}
-        <button type="submit" style={{ padding: '12px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer' }}>ログイン</button>
+        <button type="submit" style={{ padding: '12px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer' }}>ログイン</button>
       </form>
     </div>
   )
@@ -102,7 +102,7 @@ export default function AdminLayout() {
           <button
             onClick={() => setMenuOpen(false)}
             className="admin-menu-close"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#8a9a7e', padding: '0 4px', lineHeight: 1 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--c-muted)', padding: '0 4px', lineHeight: 1 }}
           >
             ×
           </button>
@@ -119,7 +119,7 @@ export default function AdminLayout() {
           </NavLink>
         ))}
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-          <button onClick={logout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', color: '#8a9a7e' }}>ログアウト</button>
+          <button onClick={logout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', color: 'var(--c-muted)' }}>ログアウト</button>
         </div>
       </aside>
 
@@ -129,7 +129,7 @@ export default function AdminLayout() {
         <div className="admin-mobile-header" style={{ display: 'none', padding: '12px 16px', background: '#fff', borderBottom: '1px solid #dddde8', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 100 }}>
           <button
             onClick={() => setMenuOpen(true)}
-            style={{ background: 'none', border: '1px solid #dddde8', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', fontSize: 16, lineHeight: 1, color: '#3a4535' }}
+            style={{ background: 'none', border: '1px solid #dddde8', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', fontSize: 16, lineHeight: 1, color: 'var(--c-body)' }}
           >
             ☰
           </button>

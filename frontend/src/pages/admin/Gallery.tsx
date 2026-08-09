@@ -75,7 +75,7 @@ export default function AdminGallery() {
             <option value="">ブランド（任意）</option>
             {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
-          <button type="submit" disabled={!url || saving || uploading} style={{ padding: '10px 24px', background: '#1c2417', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', opacity: !url ? 0.5 : 1 }}>追加</button>
+          <button type="submit" disabled={!url || saving || uploading} style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', opacity: !url ? 0.5 : 1 }}>追加</button>
         </div>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>

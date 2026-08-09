@@ -98,7 +98,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
                 href={BRAND_IG[brand] ?? '#'}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: 10, background: '#1c2417', color: '#fff', padding: '4px 10px', borderRadius: 20, letterSpacing: 0.8, textDecoration: 'none', fontWeight: 500 }}
+                style={{ fontSize: 10, background: 'var(--c-ink)', color: '#fff', padding: '4px 10px', borderRadius: 20, letterSpacing: 0.8, textDecoration: 'none', fontWeight: 500 }}
               >
                 {brand}
               </a>
@@ -106,11 +106,11 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           </div>
         )}
 
-        <h3 style={{ fontSize: 15, margin: '0 0 12px', fontWeight: 500, lineHeight: 1.4, color: '#1c2417' }}>
+        <h3 style={{ fontSize: 15, margin: '0 0 12px', fontWeight: 500, lineHeight: 1.4, color: 'var(--c-ink)' }}>
           {event.name}
         </h3>
 
-        <div style={{ fontSize: 13, color: '#3a4535', background: '#f5f5f8', padding: '12px 14px', borderRadius: 4, border: '1px solid #dddde8', lineHeight: 1.8 }}>
+        <div style={{ fontSize: 13, color: 'var(--c-body)', background: '#f5f5f8', padding: '12px 14px', borderRadius: 4, border: '1px solid #dddde8', lineHeight: 1.8 }}>
           <div>{dateLabel}</div>
           {event.time && <div>{event.time}</div>}
           <div style={{ fontWeight: 600 }}>{event.location}</div>
@@ -157,7 +157,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
         {event.has_workshop && (
           <div style={{ marginTop: 14 }}>
             {event.is_past ? (
-              <p style={{ fontSize: 12, color: '#8a9a7e', margin: 0, lineHeight: 1.7 }}>
+              <p style={{ fontSize: 12, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>
                 ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。
               </p>
             ) : event.ws_requires_reservation ? (
