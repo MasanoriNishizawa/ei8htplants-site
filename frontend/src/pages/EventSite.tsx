@@ -74,6 +74,11 @@ export default function EventSite() {
                   style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }}
                   draggable={false}
                 />
+                {event.has_workshop && (
+                  <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, background: 'var(--c-blue)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, letterSpacing: 0.5 }}>
+                    Workshop
+                  </div>
+                )}
                 {validImages.length > 1 && (
                   <>
                     <button

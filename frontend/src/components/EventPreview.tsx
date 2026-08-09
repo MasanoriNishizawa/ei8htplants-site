@@ -85,6 +85,11 @@ export default function EventPreview({ event, horizontal = false }: Props) {
             style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }}
             draggable={false}
           />
+          {event.has_workshop && (
+            <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, background: 'var(--c-blue)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 20, letterSpacing: 0.5 }}>
+              Workshop
+            </div>
+          )}
           {images.length > 1 && (
             <>
               <button

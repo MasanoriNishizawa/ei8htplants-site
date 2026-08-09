@@ -80,6 +80,11 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
           {isOngoing ? '開催中' : days === 0 ? '本日開催' : `あと${days}日`}
         </div>
       )}
+      {event.has_workshop && (
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, background: 'var(--c-blue)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, letterSpacing: 0.5 }}>
+          Workshop
+        </div>
+      )}
       <img
         src={images[imgIdx].url}
         alt={event.name}
