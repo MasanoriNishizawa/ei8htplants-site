@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Event, PageContent } from '../lib/api'
+import ImageLightbox from './ImageLightbox'
 
 const BRAND_IG: Record<string, string> = {
   'ei8ht plants': 'https://www.instagram.com/ei8ht.plants/',
@@ -41,9 +42,12 @@ interface Props {
 
 export default function EventPreview({ event, horizontal = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const touchX = useRef<number | null>(null)
   const pc: PageContent = event.page_content ?? {}
   const hasSite = hasPageContent(event.page_content)
   const images = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
+  const imgUrls = images.map(i => i.url)
   const dateLabel = formatDate(event.start_date, event.end_date)
   const address = pc.venue?.address || event.address
   const mapsUrl = address
@@ -51,34 +55,47 @@ export default function EventPreview({ event, horizontal = false }: Props) {
     : null
 
   return (
+    <>
     <div className={horizontal ? 'ep-horizontal' : ''} style={{
       background: '#ffffff',
       borderRadius: 4,
       overflow: 'hidden',
       boxShadow: '0 2px 16px rgba(40,35,20,0.08)',
-      border: '1px solid #e8e8f0',
+      border: '1px solid var(--c-border)',
       display: 'flex',
       flexDirection: 'column',
     }}>
       {/* 画像 */}
       {images.length > 0 && (
-        <div style={{ position: 'relative', background: '#e8e8f0' }}>
+        <div
+          style={{ position: 'relative', background: 'var(--c-bg)', overflow: 'hidden' }}
+          onTouchStart={e => { touchX.current = e.touches[0].clientX }}
+          onTouchEnd={e => {
+            if (touchX.current === null) return
+            const d = touchX.current - e.changedTouches[0].clientX
+            if (d > 40) setImgIdx(i => (i + 1) % images.length)
+            else if (d < -40) setImgIdx(i => (i - 1 + images.length) % images.length)
+            touchX.current = null
+          }}
+        >
           <img
             src={images[imgIdx].url}
             alt={event.name}
-            style={{ width: '100%', height: 'auto', display: 'block' }}
+            onClick={() => setLightboxIdx(imgIdx)}
+            style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }}
+            draggable={false}
           />
           {images.length > 1 && (
             <>
               <button
                 onClick={() => setImgIdx((i) => (i - 1 + images.length) % images.length)}
-                style={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
+                style={{ position: 'absolute', top: 40, left: 6, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
               >&#10094;</button>
               <button
                 onClick={() => setImgIdx((i) => (i + 1) % images.length)}
-                style={{ position: 'absolute', top: '50%', right: 6, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
+                style={{ position: 'absolute', top: 40, right: 6, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
               >&#10095;</button>
-              <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4 }}>
+              <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4, pointerEvents: 'none' }}>
                 {images.map((_, i) => (
                   <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)' }} />
                 ))}
@@ -172,5 +189,14 @@ export default function EventPreview({ event, horizontal = false }: Props) {
         )}
       </div>
     </div>
+    {lightboxIdx !== null && (
+      <ImageLightbox
+        images={imgUrls}
+        index={lightboxIdx}
+        onClose={() => setLightboxIdx(null)}
+        onChange={setLightboxIdx}
+      />
+    )}
+    </>
   )
 }

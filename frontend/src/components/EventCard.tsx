@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Event } from '../lib/api'
+import ImageLightbox from './ImageLightbox'
 
 const BRAND_IG: Record<string, string> = {
   'ei8ht plants': 'https://www.instagram.com/ei8ht.plants/',
@@ -36,7 +37,10 @@ interface Props {
 
 export default function EventCard({ event, isNext = false, isHome = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const touchX = useRef<number | null>(null)
   const images = (event.images ?? []).filter((i) => i.url && !i.url.startsWith('blob:'))
+  const imgUrls = images.map(i => i.url)
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const startD = new Date(event.start_date); startD.setHours(0, 0, 0, 0)
@@ -44,6 +48,15 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
   const isOngoing = !event.is_past && startD < today && today <= endD
   const days = !event.is_past && !isOngoing ? daysUntil(event.start_date) : null
   const urgentBadge = isOngoing || (days !== null && days >= 0 && days <= 7)
+
+  const onSwipeStart = (e: React.TouchEvent) => { touchX.current = e.touches[0].clientX }
+  const onSwipeEnd = (e: React.TouchEvent) => {
+    if (touchX.current === null) return
+    const d = touchX.current - e.changedTouches[0].clientX
+    if (d > 40) setImgIdx(i => (i + 1) % images.length)
+    else if (d < -40) setImgIdx(i => (i - 1 + images.length) % images.length)
+    touchX.current = null
+  }
 
   const cardStyle: React.CSSProperties = {
     background: '#ffffff',
@@ -56,7 +69,12 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
   }
 
   const imageSection = images.length > 0 && (
-    <div className={isNext ? 'next-image-wrap' : ''} style={{ position: 'relative', width: '100%', background: '#e8e8f0' }}>
+    <div
+      className={isNext ? 'next-image-wrap' : ''}
+      style={{ position: 'relative', width: '100%', background: '#e8e8f0', overflow: 'hidden' }}
+      onTouchStart={onSwipeStart}
+      onTouchEnd={onSwipeEnd}
+    >
       {urgentBadge && (
         <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: isOngoing ? 'var(--c-green)' : days === 0 ? '#c0392b' : 'var(--c-ink)', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: 0.5 }}>
           {isOngoing ? '開催中' : days === 0 ? '本日開催' : `あと${days}日`}
@@ -65,18 +83,25 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
       <img
         src={images[imgIdx].url}
         alt={event.name}
-        style={{ width: '100%', height: isNext ? '100%' : 280, objectFit: 'cover', display: 'block' }}
+        onClick={e => { e.preventDefault(); e.stopPropagation(); setLightboxIdx(imgIdx) }}
+        style={{ width: '100%', height: isNext ? '100%' : 280, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
+        draggable={false}
       />
       {images.length > 1 && (
         <>
           <button
-            onClick={(e) => { e.preventDefault(); setImgIdx((i) => (i - 1 + images.length) % images.length) }}
-            style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIdx((i) => (i - 1 + images.length) % images.length) }}
+            style={{ position: 'absolute', top: 40, left: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
           >&#10094;</button>
           <button
-            onClick={(e) => { e.preventDefault(); setImgIdx((i) => (i + 1) % images.length) }}
-            style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIdx((i) => (i + 1) % images.length) }}
+            style={{ position: 'absolute', top: 40, right: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 'bold', zIndex: 10 }}
           >&#10095;</button>
+          <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4, pointerEvents: 'none' }}>
+            {images.map((_, i) => (
+              <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)' }} />
+            ))}
+          </div>
         </>
       )}
     </div>
@@ -167,14 +192,26 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     ? { external: event.official_url }
     : null
 
+  const lightbox = lightboxIdx !== null ? (
+    <ImageLightbox
+      images={imgUrls}
+      index={lightboxIdx}
+      onClose={() => setLightboxIdx(null)}
+      onChange={setLightboxIdx}
+    />
+  ) : null
+
   if (isHome) {
     return (
-      <div className="event-card" style={cardStyle}>
-        <a href="/events" style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
-          {imageSection}
-        </a>
-        {infoSection}
-      </div>
+      <>
+        <div className="event-card" style={cardStyle}>
+          <a href="/events" style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
+            {imageSection}
+          </a>
+          {infoSection}
+        </div>
+        {lightbox}
+      </>
     )
   }
 
@@ -187,17 +224,23 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
 
   if (cardLink && 'internal' in cardLink && cardLink.internal) {
     return (
-      <Link to={cardLink.internal} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-        {card}
-      </Link>
+      <>
+        <Link to={cardLink.internal} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+          {card}
+        </Link>
+        {lightbox}
+      </>
     )
   }
   if (cardLink && 'external' in cardLink) {
     return (
-      <a href={cardLink.external} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-        {card}
-      </a>
+      <>
+        <a href={cardLink.external} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+          {card}
+        </a>
+        {lightbox}
+      </>
     )
   }
-  return card
+  return <>{card}{lightbox}</>
 }

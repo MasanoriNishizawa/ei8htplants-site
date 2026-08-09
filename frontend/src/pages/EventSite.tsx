@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, type Event, type PageContent } from '../lib/api'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
+import ImageLightbox from '../components/ImageLightbox'
 
 const BRAND_IG: Record<string, string> = {
   'ei8ht plants': 'https://www.instagram.com/ei8ht.plants/',
@@ -25,6 +26,9 @@ export default function EventSite() {
   const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
+  const [imgIdx, setImgIdx] = useState(0)
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const touchX = useRef<number | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -40,6 +44,8 @@ export default function EventSite() {
   const validImages = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
   const ogImage = validImages[0]?.url
 
+  const imgUrls = validImages.map(i => i.url)
+
   return (
     <>
       <PageMeta title={event.name} description={`${dateLabel} / ${event.location}`} ogImage={ogImage} />
@@ -47,17 +53,45 @@ export default function EventSite() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px 80px', boxSizing: 'border-box' }}>
         <div className={validImages.length > 0 ? 'event-site-layout' : ''}>
 
-          {/* Left: images */}
+          {/* Left: images carousel */}
           {validImages.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {validImages.map((img, i) => (
+            <div>
+              <div
+                style={{ position: 'relative', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--c-border)', background: 'var(--c-bg)' }}
+                onTouchStart={e => { touchX.current = e.touches[0].clientX }}
+                onTouchEnd={e => {
+                  if (touchX.current === null) return
+                  const d = touchX.current - e.changedTouches[0].clientX
+                  if (d > 40) setImgIdx(i => (i + 1) % validImages.length)
+                  else if (d < -40) setImgIdx(i => (i - 1 + validImages.length) % validImages.length)
+                  touchX.current = null
+                }}
+              >
                 <img
-                  key={i}
-                  src={img.url}
+                  src={validImages[imgIdx].url}
                   alt={event.name}
-                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 4, border: '1px solid #e8e8f0' }}
+                  onClick={() => setLightboxIdx(imgIdx)}
+                  style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }}
+                  draggable={false}
                 />
-              ))}
+                {validImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setImgIdx(i => (i - 1 + validImages.length) % validImages.length)}
+                      style={{ position: 'absolute', top: 40, left: 8, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
+                    >&#10094;</button>
+                    <button
+                      onClick={() => setImgIdx(i => (i + 1) % validImages.length)}
+                      style={{ position: 'absolute', top: 40, right: 8, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
+                    >&#10095;</button>
+                    <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5, pointerEvents: 'none' }}>
+                      {validImages.map((_, i) => (
+                        <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)' }} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -217,6 +251,14 @@ export default function EventSite() {
 
         </div>
       </div>
+      {lightboxIdx !== null && (
+        <ImageLightbox
+          images={imgUrls}
+          index={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+          onChange={setLightboxIdx}
+        />
+      )}
     </>
   )
 }
