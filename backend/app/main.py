@@ -32,8 +32,8 @@ async def cache_control(request: Request, call_next):
         else:
             response.headers['Cache-Control'] = 'no-store'
             response.headers['CDN-Cache-Control'] = 'no-store'
-    elif path.startswith('/assets/'):
-        # Vite hashed assets are safe to cache forever
+    elif path.startswith(('/assets/', '/img/', '/favicon/')):
+        # Static files: Vite-hashed assets and images cached for 1 year
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     else:
         # HTML (index.html) must always be revalidated

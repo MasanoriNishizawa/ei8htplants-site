@@ -38,7 +38,10 @@ async def upload_image(file: UploadFile = File(...), _=Depends(require_auth)):
     filename = f"{uuid.uuid4()}.{ext}"
     _ensure_bucket()
     admin_supabase.storage.from_(BUCKET).upload(
-        filename, data, {'contentType': file.content_type or 'application/octet-stream'}
+        filename, data, {
+            'contentType': file.content_type or 'application/octet-stream',
+            'cacheControl': '31536000',
+        }
     )
     public_url = admin_supabase.storage.from_(BUCKET).get_public_url(filename)
     return {'url': public_url}
@@ -55,7 +58,10 @@ async def upload_video(file: UploadFile = File(...), _=Depends(require_auth)):
     filename = f"{uuid.uuid4()}.{ext}"
     _ensure_video_bucket()
     admin_supabase.storage.from_(VIDEO_BUCKET).upload(
-        filename, data, {'contentType': file.content_type or 'video/mp4'}
+        filename, data, {
+            'contentType': file.content_type or 'video/mp4',
+            'cacheControl': '31536000',
+        }
     )
     public_url = admin_supabase.storage.from_(VIDEO_BUCKET).get_public_url(filename)
     return {'url': public_url}
