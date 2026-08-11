@@ -27,17 +27,17 @@ async def cache_control(request: Request, call_next):
             and not request.headers.get('authorization')
         )
         if is_public_get:
-            # Public GET: browser caches 5 min (admin bypasses via cache: no-store on the client)
-            response.headers['Cache-Control'] = 'public, max-age=300'
+            # Cloudflare: 5 min / browser: 60 sec (admin bypasses via cache: no-store on the client)
+            response.headers['Cache-Control'] = 'public, s-maxage=300, max-age=60'
         else:
             response.headers['Cache-Control'] = 'no-store'
             response.headers['CDN-Cache-Control'] = 'no-store'
     elif path.startswith(('/assets/', '/img/', '/favicon/')):
-        # Static files: Vite-hashed assets and images cached for 1 year
-        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        # Cloudflare: 1 year / browser: 1 day — purge Cloudflare to force refresh within 1 day
+        response.headers['Cache-Control'] = 'public, s-maxage=31536000, max-age=86400, immutable'
     else:
-        # HTML (index.html) must always be revalidated
-        response.headers['Cache-Control'] = 'no-cache'
+        # HTML: Cloudflare revalidates, browser always checks
+        response.headers['Cache-Control'] = 'public, s-maxage=60, max-age=0, must-revalidate'
     return response
 
 app.include_router(events.router, prefix='/api')
