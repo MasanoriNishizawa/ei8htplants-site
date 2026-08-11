@@ -27,10 +27,9 @@ async def cache_control(request: Request, call_next):
             and not request.headers.get('authorization')
         )
         if is_public_get:
-            # Public GET endpoints: cache 5 min, allow stale for 10 min while revalidating
-            response.headers['Cache-Control'] = 'public, max-age=300, stale-while-revalidate=600'
+            # Public GET: browser caches 5 min (admin bypasses via cache: no-store on the client)
+            response.headers['Cache-Control'] = 'public, max-age=300'
         else:
-            # Mutations and authenticated requests must not be cached
             response.headers['Cache-Control'] = 'no-store'
             response.headers['CDN-Cache-Control'] = 'no-store'
     elif path.startswith('/assets/'):

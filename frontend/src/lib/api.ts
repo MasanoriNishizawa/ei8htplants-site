@@ -2,9 +2,14 @@ import { supabase } from './supabase'
 
 const BASE = '/api'
 
+function isAdminPage() {
+  return typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const { headers: optHeaders, ...restOptions } = options ?? {}
   const res = await fetch(`${BASE}${path}`, {
+    ...(isAdminPage() ? { cache: 'no-store' } : {}),
     headers: { 'Content-Type': 'application/json', ...optHeaders },
     ...restOptions,
   })
