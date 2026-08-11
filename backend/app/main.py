@@ -22,9 +22,17 @@ async def cache_control(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
     if path.startswith('/api/'):
-        # API responses must never be cached (CDN-Cache-Control targets Cloudflare specifically)
-        response.headers['Cache-Control'] = 'no-store'
-        response.headers['CDN-Cache-Control'] = 'no-store'
+        is_public_get = (
+            request.method == 'GET'
+            and not request.headers.get('authorization')
+        )
+        if is_public_get:
+            # Public GET endpoints: cache 5 min, allow stale for 10 min while revalidating
+            response.headers['Cache-Control'] = 'public, max-age=300, stale-while-revalidate=600'
+        else:
+            # Mutations and authenticated requests must not be cached
+            response.headers['Cache-Control'] = 'no-store'
+            response.headers['CDN-Cache-Control'] = 'no-store'
     elif path.startswith('/assets/'):
         # Vite hashed assets are safe to cache forever
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
