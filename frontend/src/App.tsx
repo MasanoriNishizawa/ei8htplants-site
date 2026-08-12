@@ -66,6 +66,8 @@ export default function App() {
             <Route path="/hue" element={<Hue />} />
             <Route path="/events/:id" element={<EventSite />} />
             <Route path="/legal" element={<LegalPage />} />
+            <Route path="/reserve" element={<Reserve />} />
+            <Route path="/cancel" element={<CancelReservation />} />
           </Route>
           <Route element={<StoreLayout />}>
             <Route path="/shop" element={<Shop />} />
@@ -74,8 +76,6 @@ export default function App() {
             <Route path="/journal/:id" element={<JournalArticle />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order/complete" element={<OrderComplete />} />
-            <Route path="/reserve" element={<Reserve />} />
-            <Route path="/cancel" element={<CancelReservation />} />
           </Route>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
