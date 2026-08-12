@@ -18,11 +18,13 @@ export default function Events() {
   const [loading, setLoading] = useState(true)
   const [brandFilter, setBrandFilter] = useState<string | null>(null)
   const [monthFilter, setMonthFilter] = useState<string | null>(null)
+  const [workshopFilter, setWorkshopFilter] = useState<boolean | null>(null)
 
   useEffect(() => {
     setLoading(true)
     setBrandFilter(null)
     setMonthFilter(null)
+    setWorkshopFilter(null)
     api.events.list(isPast).then(setEvents).finally(() => setLoading(false))
   }, [isPast])
 
@@ -44,9 +46,10 @@ export default function Events() {
     return sorted.filter((e) => {
       if (brandFilter && !e.brands.includes(brandFilter)) return false
       if (monthFilter && getMonthLabel(e.start_date) !== monthFilter) return false
+      if (workshopFilter !== null && e.has_workshop !== workshopFilter) return false
       return true
     })
-  }, [sorted, brandFilter, monthFilter])
+  }, [sorted, brandFilter, monthFilter, workshopFilter])
 
   const filterBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: '7px 16px', border: '1px solid #dddde8', borderRadius: 20, fontSize: 12,
@@ -56,7 +59,7 @@ export default function Events() {
     transition: 'all 0.15s',
   })
 
-  const hasFilter = brandFilter !== null || monthFilter !== null
+  const hasFilter = brandFilter !== null || monthFilter !== null || workshopFilter !== null
 
   return (
     <>
@@ -89,10 +92,16 @@ export default function Events() {
               </div>
             )}
 
+            {/* Workshopフィルター */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingTop: 8, borderTop: '1px solid #e0e0ea' }}>
+              <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>WS</span>
+              <button style={filterBtnStyle(workshopFilter === true)} onClick={() => setWorkshopFilter(workshopFilter === true ? null : true)}>Workshop 開催</button>
+            </div>
+
             {/* リセット */}
             {hasFilter && (
               <div style={{ paddingTop: 4 }}>
-                <button onClick={() => { setBrandFilter(null); setMonthFilter(null) }}
+                <button onClick={() => { setBrandFilter(null); setMonthFilter(null); setWorkshopFilter(null) }}
                   style={{ padding: '5px 12px', border: 'none', background: 'none', fontSize: 12, color: '#c0392b', cursor: 'pointer', fontFamily: 'inherit' }}>
                   フィルターをリセット ×
                 </button>
