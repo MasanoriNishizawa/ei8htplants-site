@@ -150,7 +150,7 @@ export default function AdminEventSite() {
           <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>{event.name}</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Link to={`/events/${id}`} target="_blank" style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none', borderBottom: '1px solid #dddde8', paddingBottom: 2 }}>
+          <Link to={`/events/${event.slug ?? id}`} target="_blank" style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none', borderBottom: '1px solid #dddde8', paddingBottom: 2 }}>
             プレビュー →
           </Link>
           <button

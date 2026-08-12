@@ -250,7 +250,7 @@ export default function EventSite() {
 
             {/* シェアボタン */}
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #dddde8' }}>
-              <ShareButtons url={`${window.location.origin}/events/${id}`} text={event.name} />
+              <ShareButtons url={`${window.location.origin}/events/${event.slug ?? id}`} text={event.name} />
             </div>
           </div>
 

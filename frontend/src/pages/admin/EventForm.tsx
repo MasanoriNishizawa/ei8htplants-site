@@ -5,15 +5,19 @@ import { api, type EventBody } from '../../lib/api'
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
 type FormState = {
-  name: string; start_date: string; end_date: string; time: string
+  name: string; slug: string; start_date: string; end_date: string; time: string
   location: string; booth_number: string; address: string; official_url: string
   brands: string[]; has_workshop: boolean; ws_requires_reservation: boolean
+}
+
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '')
 }
 
 type SessionInput = { time_label: string; max_participants: number }
 
 const empty: FormState = {
-  name: '', start_date: '', end_date: '', time: '', location: '',
+  name: '', slug: '', start_date: '', end_date: '', time: '', location: '',
   booth_number: '', address: '', official_url: '',
   brands: [], has_workshop: false, ws_requires_reservation: true,
 }
@@ -33,7 +37,7 @@ export default function AdminEventForm() {
     if (!id) return
     Promise.all([api.events.get(id), api.events.getSessions(id)]).then(([ev, sess]) => {
       setForm({
-        name: ev.name, start_date: ev.start_date, end_date: ev.end_date ?? '',
+        name: ev.name, slug: ev.slug ?? '', start_date: ev.start_date, end_date: ev.end_date ?? '',
         time: ev.time ?? '', location: ev.location, booth_number: ev.booth_number ?? '',
         address: ev.address ?? '', official_url: ev.official_url ?? '',
         brands: ev.brands, has_workshop: ev.has_workshop,
@@ -125,6 +129,7 @@ export default function AdminEventForm() {
     const isMultiDay = form.start_date && form.end_date && form.end_date > form.start_date
     const body: EventBody = {
       ...form,
+      slug: form.slug || null,
       daily_times: (dailyTimesMode && isMultiDay) ? dailyTimes : null,
       image_urls: imageUrls.filter((u) => u && !u.startsWith('blob:')),
     }
@@ -155,7 +160,32 @@ export default function AdminEventForm() {
         {id ? 'イベント編集' : '新規イベント'}
       </h2>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div><label style={labelStyle}>イベント名</label><input required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} /></div>
+        <div>
+          <label style={labelStyle}>イベント名</label>
+          <input required style={inputStyle} value={form.name} onChange={(e) => {
+            set('name', e.target.value)
+            if (!form.slug) set('slug', toSlug(e.target.value))
+          }} />
+        </div>
+        <div>
+          <label style={labelStyle}>URL スラッグ <span style={{ fontSize: 11, color: 'var(--c-muted)', fontWeight: 400 }}>（英数字・ハイフンのみ）</span></label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>/events/</span>
+            <input
+              style={{ ...inputStyle, fontFamily: 'monospace' }}
+              placeholder="plant-market-2026"
+              value={form.slug}
+              onChange={(e) => set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+            />
+            {form.name && (
+              <button type="button" onClick={() => set('slug', toSlug(form.name))}
+                style={{ padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', background: '#fff' }}>
+                自動生成
+              </button>
+            )}
+          </div>
+          {form.slug && <p style={{ fontSize: 11, color: 'var(--c-muted)', margin: '4px 0 0' }}>ei8htplants.com/events/{form.slug}</p>}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
             <label style={labelStyle}>開始日</label>

@@ -167,7 +167,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           ) : hasSite ? (
             <div style={{ marginTop: 4 }}>
               <Link
-                to={`/events/${event.id}`}
+                to={`/events/${event.slug ?? event.id}`}
                 style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
               >
                 公式サイト

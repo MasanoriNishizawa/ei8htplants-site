@@ -234,6 +234,7 @@ export interface PageContent {
 
 export interface Event {
   id: string
+  slug: string | null
   name: string
   start_date: string
   end_date: string | null
@@ -254,6 +255,7 @@ export interface Event {
 
 export interface EventBody {
   name: string
+  slug?: string | null
   start_date: string
   end_date?: string
   time?: string

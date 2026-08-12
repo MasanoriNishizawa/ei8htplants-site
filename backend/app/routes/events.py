@@ -10,6 +10,7 @@ router = APIRouter(prefix='/events', tags=['events'])
 
 class EventBody(BaseModel):
     name: str
+    slug: Optional[str] = None
     start_date: str
     end_date: Optional[str] = None
     time: Optional[str] = None
@@ -23,7 +24,7 @@ class EventBody(BaseModel):
     daily_times: Optional[dict] = None
     image_urls: list[str] = []
 
-    @field_validator('end_date', 'time', 'booth_number', 'address', 'official_url', mode='before')
+    @field_validator('slug', 'end_date', 'time', 'booth_number', 'address', 'official_url', mode='before')
     @classmethod
     def empty_str_to_none(cls, v: object) -> object:
         return None if v == '' else v
@@ -143,7 +144,12 @@ def save_page_content(event_id: str, body: PageContentBody, _=Depends(require_au
 
 @router.get('/{event_id}')
 def get_event(event_id: str):
-    data = supabase.table('events').select('*').eq('id', event_id).single().execute().data
+    # slug で検索、なければ UUID にフォールバック
+    result = supabase.table('events').select('*').eq('slug', event_id).execute()
+    data = result.data[0] if result.data else None
+    if not data:
+        result = supabase.table('events').select('*').eq('id', event_id).execute()
+        data = result.data[0] if result.data else None
     if not data:
         raise HTTPException(404)
     today = date.today().isoformat()

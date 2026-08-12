@@ -192,7 +192,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
 
   const hasSite = event.page_content !== null
   const cardLink = hasSite
-    ? { internal: `/events/${event.id}` }
+    ? { internal: `/events/${event.slug ?? event.id}` }
     : event.official_url
     ? { external: event.official_url }
     : null
