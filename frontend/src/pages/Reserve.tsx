@@ -145,23 +145,44 @@ export default function Reserve() {
   return (
     <>
       <PageMeta title="Workshop 予約" description="Habitat Style Workshop へのご予約はこちらから。" />
-      <div style={{ maxWidth: 560, margin: '0 auto', padding: '48px 20px 80px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid #dddde8' }}>
-          <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 14px' }}>Habitat Oides</p>
-          <h1 style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 12px', color: 'var(--c-ink)' }}>Workshop 予約</h1>
-          {event && (
-            <p style={{ fontSize: 15, color: 'var(--c-body)', lineHeight: 1.7, margin: 0 }}>
-              {event.name}<br />
-              <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>{event.start_date}{event.end_date && event.end_date !== event.start_date ? ` 〜 ${event.end_date}` : ''}{event.time ? ` ${event.time}` : ''} / {event.location}</span>
-            </p>
-          )}
-          {!event && (
-            <p style={{ fontSize: 16, color: 'var(--c-muted)', lineHeight: 1.8, margin: 0 }}>
-              ご記入いただいた内容を確認後、折り返しご連絡いたします。
-            </p>
-          )}
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) clamp(20px, 4vw, 48px) 80px' }}>
+
+        {/* ヘッダー */}
+        <div style={{ marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid var(--c-border)' }}>
+          <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 10px' }}>Habitat Oides</p>
+          <h1 style={{ fontSize: 'clamp(24px, 4vw, 38px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0, color: 'var(--c-ink)' }}>Workshop 予約</h1>
         </div>
 
+        {/* 2カラム */}
+        <div className="reserve-layout">
+
+          {/* 左：イベント情報 */}
+          <div style={{ color: 'var(--c-body)' }}>
+            {event ? (
+              <>
+                <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 10px' }}>Event</p>
+                <p style={{ fontSize: 17, fontWeight: 500, color: 'var(--c-ink)', margin: '0 0 12px', lineHeight: 1.5 }}>{event.name}</p>
+                <div style={{ fontSize: 14, color: 'var(--c-body)', lineHeight: 2.1, background: 'var(--c-surface)', border: '1px solid var(--c-border)', padding: '16px 20px', borderRadius: 4 }}>
+                  <div>{event.start_date}{event.end_date && event.end_date !== event.start_date ? ` 〜 ${event.end_date}` : ''}</div>
+                  {event.time && <div>{event.time}</div>}
+                  <div style={{ fontWeight: 500 }}>{event.location}</div>
+                </div>
+                <div style={{ marginTop: 28, padding: '20px', background: 'var(--c-bg)', borderRadius: 4, border: '1px solid var(--c-border)' }}>
+                  <p style={{ fontSize: 13, color: 'var(--c-muted)', lineHeight: 1.9, margin: 0 }}>
+                    ご記入いただいた内容を確認後、メールにて予約確認をお送りします。<br />
+                    ご不明な点は <a href="/contact" style={{ color: 'var(--c-green)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせ</a> ください。
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p style={{ fontSize: 15, color: 'var(--c-muted)', lineHeight: 1.9 }}>
+                ご記入いただいた内容を確認後、折り返しご連絡いたします。
+              </p>
+            )}
+          </div>
+
+          {/* 右：フォーム */}
+          <div>
         {status === 'full' ? (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p style={{ fontSize: 18, color: '#c0392b', marginBottom: 16 }}>このセッションは満席になりました</p>
@@ -346,6 +367,8 @@ export default function Reserve() {
             )}
           </form>
         )}
+          </div>{/* 右カラム end */}
+        </div>{/* reserve-layout end */}
       </div>
     </>
   )

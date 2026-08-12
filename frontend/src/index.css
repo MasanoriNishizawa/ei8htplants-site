@@ -69,6 +69,20 @@ body {
   flex: 1;
 }
 
+/* ---- 予約ページ 2カラムレイアウト ---- */
+.reserve-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: start;
+}
+@media (min-width: 720px) {
+  .reserve-layout {
+    grid-template-columns: 2fr 3fr;
+    gap: 56px;
+  }
+}
+
 /* ---- EventPreview 横並びレイアウト（Home用） ---- */
 .ep-horizontal {
   flex-direction: column !important;
