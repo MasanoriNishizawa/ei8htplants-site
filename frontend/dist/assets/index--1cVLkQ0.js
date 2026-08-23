@@ -96,7 +96,7 @@ ${R}`}class tt extends Error{constructor({message:n,code:r,cause:l,name:c}){var 
     <td>${i.session_time??"-"}</td>
     <td style="text-align:center">${i.participants}</td>
     <td>${n||"-"}</td>
-    <td>${i.note??"-"}</td>
+    <td class="col-note">${i.note??"-"}</td>
     <td>${Vi[i.status]??i.status}</td>
   </tr>`}function Hw(i){return`<tr class="empty-row">
     <td></td><td></td><td></td><td></td>
@@ -117,6 +117,7 @@ ${R}`}class tt extends Error{constructor({message:n,code:r,cause:l,name:c}){var 
     table { width: 100%; border-collapse: collapse; }
     th { background: #f0f0f4; font-weight: 600; font-size: 10px; letter-spacing: 0.5px; border: 1px solid #ccc; padding: 5px 8px; text-align: left; white-space: nowrap; }
     td { border: 1px solid #ddd; padding: 5px 8px; vertical-align: top; }
+    td.col-note { max-width: 160px; white-space: normal; word-break: break-word; }
     tr.date-header td { background: #2c3a28; color: #fff; font-weight: 600; font-size: 12px; border: 1px solid #1a2416; padding: 7px 8px; }
     tr.date-break { break-before: page; }
     tr.session-header td { background: #e8e8f0; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; border: 1px solid #b0b0c8; }
