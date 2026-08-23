@@ -66,8 +66,9 @@ function printReservations(
     const dates = getDateRange(event.start_date, event.end_date)
     const noSession: ReservationWithTime[] = []
 
-    for (const date of dates) {
-      tableBody += `<tr class="date-header"><td colspan="9">${fmtDate(date)}</td></tr>`
+    for (let di = 0; di < dates.length; di++) {
+      const date = dates[di]
+      tableBody += `<tr class="date-header${di > 0 ? ' date-break' : ''}"><td colspan="9">${fmtDate(date)}</td></tr>`
 
       for (const session of eventSessions) {
         const sessionRows = rows.filter(
@@ -116,6 +117,7 @@ function printReservations(
     th { background: #f0f0f4; font-weight: 600; font-size: 10px; letter-spacing: 0.5px; border: 1px solid #ccc; padding: 5px 8px; text-align: left; white-space: nowrap; }
     td { border: 1px solid #ddd; padding: 5px 8px; vertical-align: top; }
     tr.date-header td { background: #2c3a28; color: #fff; font-weight: 600; font-size: 12px; border: 1px solid #1a2416; padding: 7px 8px; }
+    tr.date-break { break-before: page; }
     tr.session-header td { background: #e8e8f0; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; border: 1px solid #b0b0c8; }
     tr.empty-row td { background: #fafafa; height: 28px; border: 1px dashed #ccc; }
     .summary { margin-top: 12px; font-size: 11px; color: #444; }
