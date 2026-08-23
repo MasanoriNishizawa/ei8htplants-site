@@ -114,6 +114,15 @@ body {
   }
 }
 
+/* ---- イベントフィルター PC/モバイル切り替え ---- */
+.filter-pc     { display: flex; flex-direction: column; gap: 10px; }
+.filter-mobile { display: none; }
+
+@media (max-width: 719px) {
+  .filter-pc     { display: none; }
+  .filter-mobile { display: flex; flex-direction: column; gap: 12px; }
+}
+
 /* ---- イベントグリッド ---- */
 .events-grid {
   display: grid;

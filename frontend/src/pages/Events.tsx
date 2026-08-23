@@ -59,6 +59,16 @@ export default function Events() {
     transition: 'all 0.15s',
   })
 
+  const selectStyle: React.CSSProperties = {
+    flex: 1, padding: '8px 10px', border: '1px solid #dddde8', borderRadius: 4,
+    fontSize: 13, fontFamily: 'inherit', background: '#ffffff', color: 'var(--c-body)', cursor: 'pointer',
+  }
+
+  const resetBtn: React.CSSProperties = {
+    padding: '5px 12px', border: 'none', background: 'none', fontSize: 12,
+    color: '#c0392b', cursor: 'pointer', fontFamily: 'inherit',
+  }
+
   const hasFilter = brandFilter !== null || monthFilter !== null || workshopFilter !== null
 
   return (
@@ -72,41 +82,72 @@ export default function Events() {
 
       {!loading && events.length > 0 && (
         <div style={{ background: '#f5f5f7', borderBottom: '1px solid #dddde8', padding: '14px 20px' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
-            {/* ブランドフィルター */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Brand</span>
-              {BRANDS.map((b) => (
-                <button key={b} style={filterBtnStyle(brandFilter === b)} onClick={() => setBrandFilter(brandFilter === b ? null : b)}>{b}</button>
-              ))}
-            </div>
-
-            {/* 月フィルター（複数月あるときのみ） */}
-            {months.length > 1 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingTop: 8, borderTop: '1px solid #e0e0ea' }}>
-                <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Month</span>
-                {months.map((m) => (
-                  <button key={m} style={filterBtnStyle(monthFilter === m)} onClick={() => setMonthFilter(monthFilter === m ? null : m)}>{m}</button>
+            {/* PC フィルター: ボタン行 */}
+            <div className="filter-pc">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Brand</span>
+                {BRANDS.map((b) => (
+                  <button key={b} style={filterBtnStyle(brandFilter === b)} onClick={() => setBrandFilter(brandFilter === b ? null : b)}>{b}</button>
                 ))}
               </div>
-            )}
-
-            {/* Workshopフィルター */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingTop: 8, borderTop: '1px solid #e0e0ea' }}>
-              <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>WS</span>
-              <button style={filterBtnStyle(workshopFilter === true)} onClick={() => setWorkshopFilter(workshopFilter === true ? null : true)}>Workshop 開催</button>
+              {months.length > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingTop: 8, borderTop: '1px solid #e0e0ea' }}>
+                  <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Month</span>
+                  {months.map((m) => (
+                    <button key={m} style={filterBtnStyle(monthFilter === m)} onClick={() => setMonthFilter(monthFilter === m ? null : m)}>{m}</button>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingTop: 8, borderTop: '1px solid #e0e0ea' }}>
+                <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>WS</span>
+                <button style={filterBtnStyle(workshopFilter === true)} onClick={() => setWorkshopFilter(workshopFilter === true ? null : true)}>Workshop 開催</button>
+              </div>
+              {hasFilter && (
+                <div style={{ paddingTop: 4 }}>
+                  <button onClick={() => { setBrandFilter(null); setMonthFilter(null); setWorkshopFilter(null) }} style={resetBtn}>
+                    フィルターをリセット ×
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* リセット */}
-            {hasFilter && (
-              <div style={{ paddingTop: 4 }}>
-                <button onClick={() => { setBrandFilter(null); setMonthFilter(null); setWorkshopFilter(null) }}
-                  style={{ padding: '5px 12px', border: 'none', background: 'none', fontSize: 12, color: '#c0392b', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {/* モバイルフィルター: プルダウン + チェックボックス */}
+            <div className="filter-mobile">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Brand</span>
+                <select value={brandFilter ?? ''} onChange={(e) => setBrandFilter(e.target.value || null)} style={selectStyle}>
+                  <option value="">すべてのブランド</option>
+                  {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              {months.length > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>Month</span>
+                  <select value={monthFilter ?? ''} onChange={(e) => setMonthFilter(e.target.value || null)} style={selectStyle}>
+                    <option value="">すべての月</option>
+                    {months.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', paddingTop: 2 }}>
+                <span style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', width: 48, flexShrink: 0 }}>WS</span>
+                <input
+                  type="checkbox"
+                  checked={workshopFilter === true}
+                  onChange={(e) => setWorkshopFilter(e.target.checked ? true : null)}
+                  style={{ width: 16, height: 16, accentColor: '#1c2417', flexShrink: 0 }}
+                />
+                <span style={{ fontSize: 13, color: 'var(--c-body)' }}>Workshop 開催のみ</span>
+              </label>
+              {hasFilter && (
+                <button onClick={() => { setBrandFilter(null); setMonthFilter(null); setWorkshopFilter(null) }} style={resetBtn}>
                   フィルターをリセット ×
                 </button>
-              </div>
-            )}
+              )}
+            </div>
+
           </div>
         </div>
       )}
