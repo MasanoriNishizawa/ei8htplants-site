@@ -1,32 +1,85 @@
 import { useEffect, useState } from 'react'
-import { api, type Reservation, type Event } from '../../lib/api'
+import { api, type Reservation, type Event, type WsSession } from '../../lib/api'
 import { STATUS_LABELS, STATUS_COLORS } from '../../lib/reservationConstants'
 
 type ReservationWithTime = Reservation & { session_time?: string }
 
-function printReservations(rows: ReservationWithTime[], eventName: string) {
+function renderPrintRow(r: ReservationWithTime): string {
+  const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
+  return `<tr>
+    <td>${new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
+    <td>${r.name}</td>
+    <td>${r.email}</td>
+    <td>${r.phone ?? '-'}</td>
+    <td>${r.preferred_date ?? '-'}</td>
+    <td>${r.preferred_time ?? '-'}</td>
+    <td>${r.session_time ?? '-'}</td>
+    <td style="text-align:center">${r.participants}</td>
+    <td>${bringFlags || '-'}</td>
+    <td>${r.note ?? '-'}</td>
+    <td>${STATUS_LABELS[r.status] ?? r.status}</td>
+  </tr>`
+}
+
+function renderEmptyRow(sessionLabel: string, index: number): string {
+  return `<tr class="empty-row">
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td>
+    <td style="color:#bbb;font-size:10px">${sessionLabel} 空枠 ${index + 1}</td>
+    <td></td><td></td><td></td><td></td>
+  </tr>`
+}
+
+function printReservations(
+  rows: ReservationWithTime[],
+  eventName: string,
+  sessionsData: Map<string, WsSession>,
+  eventId: string | null,
+) {
   const win = window.open('', '_blank')
   if (!win) return
 
   const totalParticipants = rows.reduce((s, r) => s + r.participants, 0)
 
-  const tableRows = rows.map((r) => {
-    const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
-    return `
-      <tr>
-        <td>${new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
-        <td>${r.name}</td>
-        <td>${r.email}</td>
-        <td>${r.phone ?? '-'}</td>
-        <td>${r.preferred_date ?? '-'}</td>
-        <td>${r.preferred_time ?? '-'}</td>
-        <td>${r.session_time ?? '-'}</td>
-        <td style="text-align:center">${r.participants}</td>
-        <td>${bringFlags || '-'}</td>
-        <td>${r.note ?? '-'}</td>
-        <td>${STATUS_LABELS[r.status] ?? r.status}</td>
+  const eventSessions = eventId
+    ? [...sessionsData.values()]
+        .filter((s) => s.event_id === eventId)
+        .sort((a, b) => a.display_order - b.display_order)
+    : []
+
+  let tableBody = ''
+
+  if (eventSessions.length > 0) {
+    const bySession = new Map<string, ReservationWithTime[]>()
+    const noSession: ReservationWithTime[] = []
+    rows.forEach((r) => {
+      if (r.session_id) {
+        if (!bySession.has(r.session_id)) bySession.set(r.session_id, [])
+        bySession.get(r.session_id)!.push(r)
+      } else {
+        noSession.push(r)
+      }
+    })
+
+    for (const session of eventSessions) {
+      const sessionRows = bySession.get(session.id) ?? []
+      const remaining = Math.max(0, session.max_participants - sessionRows.length)
+      tableBody += `<tr class="session-header">
+        <td colspan="11">${session.time_label}　${sessionRows.length} / ${session.max_participants} 名</td>
       </tr>`
-  }).join('')
+      sessionRows.forEach((r) => { tableBody += renderPrintRow(r) })
+      for (let i = 0; i < remaining; i++) {
+        tableBody += renderEmptyRow(session.time_label, i)
+      }
+    }
+
+    if (noSession.length > 0) {
+      tableBody += `<tr class="session-header"><td colspan="11">セッション未指定</td></tr>`
+      noSession.forEach((r) => { tableBody += renderPrintRow(r) })
+    }
+  } else {
+    rows.forEach((r) => { tableBody += renderPrintRow(r) })
+  }
 
   win.document.write(`<!DOCTYPE html>
 <html lang="ja">
@@ -41,7 +94,8 @@ function printReservations(rows: ReservationWithTime[], eventName: string) {
     table { width: 100%; border-collapse: collapse; }
     th { background: #f0f0f4; font-weight: 600; font-size: 10px; letter-spacing: 0.5px; border: 1px solid #ccc; padding: 5px 8px; text-align: left; white-space: nowrap; }
     td { border: 1px solid #ddd; padding: 5px 8px; vertical-align: top; }
-    tr:nth-child(even) td { background: #fafafa; }
+    tr.session-header td { background: #e8e8f0; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; border: 1px solid #b0b0c8; }
+    tr.empty-row td { background: #fafafa; height: 28px; border: 1px dashed #ccc; }
     .summary { margin-top: 12px; font-size: 11px; color: #444; }
     @media print { @page { size: A4 landscape; margin: 10mm; } }
   </style>
@@ -57,7 +111,7 @@ function printReservations(rows: ReservationWithTime[], eventName: string) {
         <th>持込</th><th>備考</th><th>ステータス</th>
       </tr>
     </thead>
-    <tbody>${tableRows}</tbody>
+    <tbody>${tableBody}</tbody>
   </table>
   <div class="summary">合計参加人数: ${totalParticipants} 名</div>
   <script>window.onload = () => { window.print() }<\/script>
@@ -69,6 +123,7 @@ function printReservations(rows: ReservationWithTime[], eventName: string) {
 export default function AdminReservations() {
   const [rows, setRows] = useState<ReservationWithTime[]>([])
   const [eventsMap, setEventsMap] = useState<Map<string, string>>(new Map())
+  const [sessionsData, setSessionsData] = useState<Map<string, WsSession>>(new Map())
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   const [eventFilter, setEventFilter] = useState<string>('all')
@@ -84,12 +139,13 @@ export default function AdminReservations() {
       setEventsMap(eMap)
 
       const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
-      const sessionMap = new Map<string, string>()
+      const sMap = new Map<string, WsSession>()
       await Promise.all(eventIds.map(async (eid) => {
         const sessions = await api.events.getSessions(eid)
-        sessions.forEach((s) => sessionMap.set(s.id, s.time_label))
+        sessions.forEach((s) => sMap.set(s.id, s))
       }))
-      setRows(reservations.map((r) => ({ ...r, session_time: r.session_id ? sessionMap.get(r.session_id) : undefined })))
+      setSessionsData(sMap)
+      setRows(reservations.map((r) => ({ ...r, session_time: r.session_id ? sMap.get(r.session_id)?.time_label : undefined })))
     }).finally(() => setLoading(false))
   }, [])
 
@@ -138,7 +194,7 @@ export default function AdminReservations() {
           )}
           {filtered.length > 0 && (
             <button
-              onClick={() => printReservations(filtered, selectedEventName)}
+              onClick={() => printReservations(filtered, selectedEventName, sessionsData, eventFilter === 'all' ? null : eventFilter)}
               style={{ padding: '8px 20px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--c-body)' }}
             >
               PDF で印刷
