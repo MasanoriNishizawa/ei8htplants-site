@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from typing import Optional
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
+
+_JST = timezone(timedelta(hours=9))
+
+def _today_jst() -> str:
+    return datetime.now(_JST).date().isoformat()
 from ..db import supabase, admin_supabase
 from ..auth import require_auth
 
@@ -32,7 +37,7 @@ class EventBody(BaseModel):
 
 def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
     try:
-        return date.fromisoformat(end_date or start_date) < date.today()
+        return date.fromisoformat(end_date or start_date).isoformat() < _today_jst()
     except Exception:
         return False
 
@@ -73,7 +78,7 @@ def _attach_images(events: list[dict]) -> list[dict]:
 
 @router.get('')
 def list_events(past: bool = False):
-    today = date.today().isoformat()
+    today = _today_jst()
     data = supabase.table('events').select('*').order('start_date').execute().data
     result = []
     for e in data:
@@ -152,7 +157,7 @@ def get_event(event_id: str):
         data = result.data[0] if result.data else None
     if not data:
         raise HTTPException(404)
-    today = date.today().isoformat()
+    today = _today_jst()
     data['is_past'] = (data.get('end_date') or data.get('start_date', '')) < today
     return _attach_images([data])[0]
 
