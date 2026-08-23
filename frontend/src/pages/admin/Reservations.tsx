@@ -164,7 +164,7 @@ export default function AdminReservations() {
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
                     {eventFilter === 'all' && (
-                      <td style={{ padding: '12px 14px', fontSize: 12, color: 'var(--c-muted)', whiteSpace: 'nowrap', maxWidth: 160 }}>
+                      <td style={{ padding: '12px 14px', fontSize: 12, color: 'var(--c-muted)', maxWidth: 160, wordBreak: 'break-all' }}>
                         {eventsMap.get(r.event_id) ?? '-'}
                       </td>
                     )}
