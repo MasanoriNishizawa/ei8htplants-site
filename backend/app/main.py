@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 import os
 
 from .routes import events, gallery, stockists, contact, reserve, collaborations, upload, products, shipping, orders, articles
@@ -15,6 +15,15 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+
+@app.middleware('http')
+async def redirect_render_domain(request: Request, call_next):
+    host = request.headers.get('host', '')
+    if 'onrender.com' in host:
+        url = str(request.url).replace(f'https://{host}', 'https://ei8htplants.com', 1)
+        return RedirectResponse(url=url, status_code=301)
+    return await call_next(request)
 
 
 @app.middleware('http')
