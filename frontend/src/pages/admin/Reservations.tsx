@@ -105,7 +105,16 @@ export default function AdminReservations() {
   }
 
   const eventIds = [...new Set(rows.map((r) => r.event_id))]
-  const filtered = eventFilter === 'all' ? rows : rows.filter((r) => r.event_id === eventFilter)
+  const filtered = (eventFilter === 'all' ? rows : rows.filter((r) => r.event_id === eventFilter))
+    .slice()
+    .sort((a, b) => {
+      const dateA = a.preferred_date ?? ''
+      const dateB = b.preferred_date ?? ''
+      if (dateA !== dateB) return dateA < dateB ? -1 : 1
+      const timeA = a.preferred_time ?? ''
+      const timeB = b.preferred_time ?? ''
+      return timeA < timeB ? -1 : timeA > timeB ? 1 : 0
+    })
   const selectedEventName = eventFilter === 'all' ? 'WS予約一覧' : (eventsMap.get(eventFilter) ?? 'イベント')
 
   const headers = ['受付日', 'お名前', 'メール', '電話', '希望日', '希望時間', 'WSセッション', '人数', '持込', '備考', 'ステータス']
