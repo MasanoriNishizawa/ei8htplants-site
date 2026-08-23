@@ -105,9 +105,9 @@ ${w}`}class tt extends Error{constructor({message:n,code:r,cause:l,name:c}){var 
     <td></td><td></td>
     <td style="color:#bbb;font-size:10px">${i} 空枠 ${n+1}</td>
     <td></td><td></td><td></td><td></td>
-  </tr>`}function $w(i,n,r,l){const c=window.open("","_blank");if(!c)return;const u=i.reduce((p,m)=>p+m.participants,0),h=l?[...r.values()].filter(p=>p.event_id===l).sort((p,m)=>p.display_order-m.display_order):[];let g="";if(h.length>0){const p=new Map,m=[];i.forEach(y=>{y.session_id?(p.has(y.session_id)||p.set(y.session_id,[]),p.get(y.session_id).push(y)):m.push(y)});for(const y of h){const v=p.get(y.id)??[],b=Math.max(0,y.max_participants-v.length);g+=`<tr class="session-header">
+  </tr>`}function $w(i,n,r,l){const c=window.open("","_blank");if(!c)return;const u=i.reduce((p,m)=>p+m.participants,0),h=l?[...r.values()].filter(p=>p.event_id===l).sort((p,m)=>p.display_order-m.display_order):[];let g="";if(h.length>0){const p=new Map,m=[];i.forEach(y=>{y.session_id?(p.has(y.session_id)||p.set(y.session_id,[]),p.get(y.session_id).push(y)):m.push(y)});for(const y of h){const v=p.get(y.id)??[],b=v.reduce((T,k)=>T+k.participants,0),S=Math.max(0,y.max_participants-b);g+=`<tr class="session-header">
         <td colspan="11">${y.time_label}　${v.length} / ${y.max_participants} 名</td>
-      </tr>`,v.forEach(S=>{g+=nd(S)});for(let S=0;S<b;S++)g+=Mw(y.time_label,S)}m.length>0&&(g+='<tr class="session-header"><td colspan="11">セッション未指定</td></tr>',m.forEach(y=>{g+=nd(y)}))}else i.forEach(p=>{g+=nd(p)});c.document.write(`<!DOCTYPE html>
+      </tr>`,v.forEach(T=>{g+=nd(T)});for(let T=0;T<S;T++)g+=Mw(y.time_label,T)}m.length>0&&(g+='<tr class="session-header"><td colspan="11">セッション未指定</td></tr>',m.forEach(y=>{g+=nd(y)}))}else i.forEach(p=>{g+=nd(p)});c.document.write(`<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">

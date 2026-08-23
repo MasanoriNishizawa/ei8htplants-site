@@ -63,7 +63,8 @@ function printReservations(
 
     for (const session of eventSessions) {
       const sessionRows = bySession.get(session.id) ?? []
-      const remaining = Math.max(0, session.max_participants - sessionRows.length)
+      const reservedCount = sessionRows.reduce((s, r) => s + r.participants, 0)
+      const remaining = Math.max(0, session.max_participants - reservedCount)
       tableBody += `<tr class="session-header">
         <td colspan="11">${session.time_label}　${sessionRows.length} / ${session.max_participants} 名</td>
       </tr>`
