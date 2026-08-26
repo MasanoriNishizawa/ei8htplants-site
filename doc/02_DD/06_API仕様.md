@@ -251,6 +251,12 @@
 
 イベントに紐付くWSセッション一覧と各セッションの予約数を取得。
 
+**クエリパラメータ**
+
+| パラメータ | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| `date` | string (YYYY-MM-DD) | なし | 指定すると該当日の予約数のみを `reserved_count` に反映する。複数日イベントで日付ごとの空き枠を表示する際に使用。省略時は全日合計 |
+
 **レスポンス `200`**
 
 ```json
@@ -267,6 +273,8 @@
 ```
 
 `display_order` 昇順。セッションが未登録の場合は空配列 `[]`。
+
+`reserved_count` はライブ計算値（毎回DBから集計）。`ws_sessions.reserved_count` カラムのデノーマライズ値を使わず、`workshop_reservations` の `participants` 合計で算出する。`session_id` が無効な予約は `preferred_time` 文字列でフォールバック照合する。
 
 ---
 
@@ -731,7 +739,7 @@ api.events.delete(id)                    → DELETE /api/events/{id}  (auth)
 api.events.getAllFinances()              → GET    /api/events/finances  (auth)
 api.events.getFinances(id)               → GET    /api/events/{id}/finances  (auth)
 api.events.saveFinances(id, body)        → PUT    /api/events/{id}/finances  (auth)
-api.events.getSessions(id)               → GET    /api/events/{id}/sessions
+api.events.getSessions(id, date?)         → GET    /api/events/{id}/sessions[?date=YYYY-MM-DD]
 api.events.saveSessions(id, sessions)    → PUT    /api/events/{id}/sessions  (auth)
 api.events.savePageContent(id, content)  → PATCH  /api/events/{id}/page  (auth)
 api.gallery.list(brand?)                 → GET    /api/gallery[?brand=...]
