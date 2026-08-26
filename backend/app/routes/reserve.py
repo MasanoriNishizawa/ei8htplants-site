@@ -1,12 +1,22 @@
 import resend
 import secrets
 import string
+import threading
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from ..db import admin_supabase, supabase
 from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, SENDER, NO_REPLY_NOTE
 from ..auth import require_auth
+
+_session_locks: dict[str, threading.Lock] = {}
+_session_locks_mu = threading.Lock()
+
+def _session_lock(session_id: str) -> threading.Lock:
+    with _session_locks_mu:
+        if session_id not in _session_locks:
+            _session_locks[session_id] = threading.Lock()
+        return _session_locks[session_id]
 
 router = APIRouter(prefix='/reserve', tags=['reserve'])
 
@@ -52,29 +62,30 @@ def _sync_reserved_count(session_id: str):
 @router.post('')
 def create_reservation(body: ReserveBody):
     if body.session_id:
-        session = admin_supabase.table('ws_sessions').select('max_participants, time_label').eq('id', body.session_id).single().execute().data
-        if session:
-            # session_id による件数
-            by_sid = admin_supabase.table('workshop_reservations') \
-                .select('participants') \
-                .eq('session_id', body.session_id) \
-                .neq('status', 'cancelled') \
-                .execute()
-            used = sum(r['participants'] for r in (by_sid.data or []))
-            # preferred_time フォールバック（session_id が無い古い予約も含める）
-            q = admin_supabase.table('workshop_reservations') \
-                .select('participants') \
-                .eq('event_id', body.event_id) \
-                .eq('preferred_time', session['time_label']) \
-                .is_('session_id', 'null') \
-                .neq('status', 'cancelled')
-            if body.preferred_date:
-                q = q.eq('preferred_date', body.preferred_date)
-            by_time = q.execute()
-            used += sum(r['participants'] for r in (by_time.data or []))
-            if used + body.participants > session['max_participants']:
-                raise HTTPException(409, 'このセッションは満席です')
-    row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
+        with _session_lock(body.session_id):
+            session = admin_supabase.table('ws_sessions').select('max_participants, time_label').eq('id', body.session_id).single().execute().data
+            if session:
+                by_sid = admin_supabase.table('workshop_reservations') \
+                    .select('participants') \
+                    .eq('session_id', body.session_id) \
+                    .neq('status', 'cancelled') \
+                    .execute()
+                used = sum(r['participants'] for r in (by_sid.data or []))
+                q = admin_supabase.table('workshop_reservations') \
+                    .select('participants') \
+                    .eq('event_id', body.event_id) \
+                    .eq('preferred_time', session['time_label']) \
+                    .is_('session_id', 'null') \
+                    .neq('status', 'cancelled')
+                if body.preferred_date:
+                    q = q.eq('preferred_date', body.preferred_date)
+                by_time = q.execute()
+                used += sum(r['participants'] for r in (by_time.data or []))
+                if used + body.participants > session['max_participants']:
+                    raise HTTPException(409, 'このセッションは満席です')
+            row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
+    else:
+        row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
     if body.session_id:
         try:
             _sync_reserved_count(body.session_id)
