@@ -100,8 +100,8 @@ export const api = {
       authRequest<EventFinances>(`/events/${id}/finances`, { method: 'PUT', body: JSON.stringify(body) }),
     getAllFinances: () =>
       authRequest<EventFinances[]>('/events/finances'),
-    getSessions: (id: string) =>
-      request<WsSession[]>(`/events/${id}/sessions`),
+    getSessions: (id: string, date?: string) =>
+      request<WsSession[]>(`/events/${id}/sessions${date ? `?date=${encodeURIComponent(date)}` : ''}`),
     saveSessions: (id: string, sessions: { time_label: string; max_participants: number }[]) =>
       authRequest<WsSession[]>(`/events/${id}/sessions`, { method: 'PUT', body: JSON.stringify({ sessions }) }),
     savePageContent: (id: string, page_content: PageContent) =>

@@ -106,14 +106,18 @@ class WsSessionsBody(BaseModel):
 
 
 @router.get('/{event_id}/sessions')
-def get_sessions(event_id: str):
+def get_sessions(event_id: str, date: Optional[str] = None):
     sessions = admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).order('display_order').execute().data
     if not sessions:
         return []
     session_ids = [s['id'] for s in sessions]
     # reserved_count は ws_sessions にも保存されているが、ステータス変更直後のズレを防ぐため
     # 毎回 workshop_reservations からライブ計算した値で上書きする
-    reservations = admin_supabase.table('workshop_reservations').select('session_id, participants').in_('session_id', session_ids).neq('status', 'cancelled').execute().data
+    query = admin_supabase.table('workshop_reservations').select('session_id, participants').in_('session_id', session_ids).neq('status', 'cancelled')
+    if date:
+        # 複数日イベントでは日付ごとの残枠を返す
+        query = query.eq('preferred_date', date)
+    reservations = query.execute().data
     count_map: dict[str, int] = {}
     for r in reservations:
         sid = r.get('session_id')

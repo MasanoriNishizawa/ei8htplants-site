@@ -53,6 +53,7 @@ export default function Reserve() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'full'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
 
+  // イベント情報の取得
   useEffect(() => {
     if (!eventId) return
     api.events.get(eventId).then((ev) => {
@@ -61,11 +62,15 @@ export default function Reserve() {
       if (dates.length === 1) {
         setForm((f) => ({ ...f, preferred_date: dates[0] }))
       }
-      if (ev.has_workshop) {
-        api.events.getSessions(eventId).then(setSessions)
-      }
     }).catch(() => {})
   }, [eventId])
+
+  // 日付が決まったらその日のセッション空き枠を取得
+  useEffect(() => {
+    if (!event?.has_workshop || !form.preferred_date) return
+    setSessions([])
+    api.events.getSessions(eventId, form.preferred_date).then(setSessions)
+  }, [event, form.preferred_date, eventId])
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
