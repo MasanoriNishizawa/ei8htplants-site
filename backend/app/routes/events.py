@@ -110,20 +110,29 @@ def get_sessions(event_id: str, date: Optional[str] = None):
     sessions = admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).order('display_order').execute().data
     if not sessions:
         return []
-    session_ids = [s['id'] for s in sessions]
-    # reserved_count は ws_sessions にも保存されているが、ステータス変更直後のズレを防ぐため
-    # 毎回 workshop_reservations からライブ計算した値で上書きする
-    query = admin_supabase.table('workshop_reservations').select('session_id, participants').in_('session_id', session_ids).neq('status', 'cancelled')
+
+    session_id_set = {s['id'] for s in sessions}
+    # time_label → session_id のマップ（session_id が無効な予約をフォールバックで照合するため）
+    time_to_sid = {s['time_label']: s['id'] for s in sessions}
+
+    # event_id 単位で全予約を取得（session_id が古くなった予約も漏れなく拾う）
+    query = admin_supabase.table('workshop_reservations') \
+        .select('session_id, participants, preferred_time') \
+        .eq('event_id', event_id) \
+        .neq('status', 'cancelled')
     if date:
-        # 複数日イベントでは日付ごとの残枠を返す
         query = query.eq('preferred_date', date)
     reservations = query.execute().data
+
     count_map: dict[str, int] = {}
     for r in reservations:
         sid = r.get('session_id')
+        # session_id が存在しないか、セッション再作成で無効化された場合は preferred_time で照合
+        if not sid or sid not in session_id_set:
+            sid = time_to_sid.get(r.get('preferred_time') or '')
         if sid:
-            # 行数ではなく participants を合計する（複数人予約でも正しく残席を計算するため）
             count_map[sid] = count_map.get(sid, 0) + (r.get('participants') or 1)
+
     for s in sessions:
         s['reserved_count'] = count_map.get(s['id'], 0)
     return sessions

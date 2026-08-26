@@ -52,15 +52,26 @@ def _sync_reserved_count(session_id: str):
 @router.post('')
 def create_reservation(body: ReserveBody):
     if body.session_id:
-        session = admin_supabase.table('ws_sessions').select('max_participants').eq('id', body.session_id).single().execute().data
+        session = admin_supabase.table('ws_sessions').select('max_participants, time_label').eq('id', body.session_id).single().execute().data
         if session:
-            result = admin_supabase.table('workshop_reservations') \
+            # session_id による件数
+            by_sid = admin_supabase.table('workshop_reservations') \
                 .select('participants') \
                 .eq('session_id', body.session_id) \
                 .neq('status', 'cancelled') \
                 .execute()
-            # 行数ではなく participants を合計する（複数人予約でも正しく定員を判定するため）
-            used = sum(r['participants'] for r in (result.data or []))
+            used = sum(r['participants'] for r in (by_sid.data or []))
+            # preferred_time フォールバック（session_id が無い古い予約も含める）
+            q = admin_supabase.table('workshop_reservations') \
+                .select('participants') \
+                .eq('event_id', body.event_id) \
+                .eq('preferred_time', session['time_label']) \
+                .is_('session_id', 'null') \
+                .neq('status', 'cancelled')
+            if body.preferred_date:
+                q = q.eq('preferred_date', body.preferred_date)
+            by_time = q.execute()
+            used += sum(r['participants'] for r in (by_time.data or []))
             if used + body.participants > session['max_participants']:
                 raise HTTPException(409, 'このセッションは満席です')
     row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
