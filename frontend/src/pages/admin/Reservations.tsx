@@ -64,16 +64,27 @@ function printReservations(
 
   if (eventSessions.length > 0 && event) {
     const dates = getDateRange(event.start_date, event.end_date)
-    const noSession: ReservationWithTime[] = []
+    // セッション再保存で UUID が変わった場合のフォールバック照合用
+    const validSessionIds = new Set(eventSessions.map((s) => s.id))
+    const assignedRowIds = new Set<string>()
 
     for (let di = 0; di < dates.length; di++) {
       const date = dates[di]
       tableBody += `<tr class="date-header${di > 0 ? ' date-break' : ''}"><td colspan="9">${fmtDate(date)}</td></tr>`
 
       for (const session of eventSessions) {
-        const sessionRows = rows.filter(
-          (r) => r.session_id === session.id && (r.preferred_date === date || (!r.preferred_date && dates.length === 1))
-        )
+        const sessionRows = rows.filter((r) => {
+          if (assignedRowIds.has(r.id)) return false
+          const dateMatch = r.preferred_date === date || (!r.preferred_date && dates.length === 1)
+          if (!dateMatch) return false
+          const directMatch = r.session_id === session.id
+          // session_id が null またはセッション再保存後に無効化された場合は preferred_time で照合
+          const fallbackMatch =
+            (!r.session_id || !validSessionIds.has(r.session_id)) &&
+            r.preferred_time === session.time_label
+          return directMatch || fallbackMatch
+        })
+        sessionRows.forEach((r) => assignedRowIds.add(r.id))
         const reservedCount = sessionRows.reduce((s, r) => s + r.participants, 0)
         const remaining = Math.max(0, session.max_participants - reservedCount)
 
@@ -85,19 +96,12 @@ function printReservations(
           tableBody += renderEmptyRow(i)
         }
       }
-
-      const dateNoSession = rows.filter(
-        (r) => !r.session_id && r.preferred_date === date
-      )
-      dateNoSession.forEach((r) => { noSession.push(r) })
     }
 
-    // preferred_date 未設定かつ session なし
-    const orphans = rows.filter((r) => !r.session_id && !r.preferred_date)
-    const allNoSession = [...noSession, ...orphans]
-    if (allNoSession.length > 0) {
+    const unassigned = rows.filter((r) => !assignedRowIds.has(r.id))
+    if (unassigned.length > 0) {
       tableBody += `<tr class="session-header"><td colspan="9">セッション未指定</td></tr>`
-      allNoSession.forEach((r) => { tableBody += renderPrintRow(r) })
+      unassigned.forEach((r) => { tableBody += renderPrintRow(r) })
     }
   } else {
     rows.forEach((r) => { tableBody += renderPrintRow(r) })
