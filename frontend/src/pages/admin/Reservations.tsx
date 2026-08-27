@@ -27,7 +27,7 @@ function renderPrintRow(r: ReservationWithTime): string {
     <td>${r.name}</td>
     <td>${r.email}</td>
     <td>${r.phone ?? '-'}</td>
-    <td>${r.session_time ?? '-'}</td>
+    <td>${r.session_time ?? r.preferred_time ?? '-'}</td>
     <td style="text-align:center">${r.participants}</td>
     <td>${bringFlags || '-'}</td>
     <td class="col-note">${r.note ?? '-'}</td>
@@ -205,7 +205,7 @@ export default function AdminReservations() {
     })
   const selectedEventName = eventFilter === 'all' ? 'WS予約一覧' : (eventsMap.get(eventFilter) ?? 'イベント')
 
-  const headers = ['受付日', 'お名前', 'メール', '電話', '希望日', '希望時間', 'WSセッション', '人数', '持込', '備考', 'ステータス']
+  const headers = ['受付日', 'お名前', 'メール', '電話', '希望日', 'WSセッション', '人数', '持込', '備考', 'ステータス']
 
   return (
     <div>
@@ -270,8 +270,7 @@ export default function AdminReservations() {
                     <td style={{ padding: '12px 14px' }}><a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a></td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>{r.preferred_date ?? '-'}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_time ? '#1c2417' : '#ccc' }}>{r.preferred_time ?? '-'}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.session_time ? '#1c2417' : '#ccc' }}>{r.session_time ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: (r.session_time ?? r.preferred_time) ? '#1c2417' : '#ccc' }}>{r.session_time ?? r.preferred_time ?? '-'}</td>
                     <td style={{ padding: '12px 14px' }}>{r.participants}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>
                       {bringFlags || <span style={{ color: '#ccc' }}>-</span>}
