@@ -505,19 +505,18 @@ export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   net: number
   salesShare: number
   wsShare: number
+  paymentAmount: number
 } {
   const transport = Math.round((fin.distance * 2 / 10) * fin.gas_price)
   const totalExpense = fin.booth_fee + transport + fin.expressway_toll + fin.accommodation + fin.other_expenses
+  const wsSales = hasWorkshop ? fin.ws_participants * 1000 : 0
+  const net = fin.sales - totalExpense
 
-  if (hasWorkshop && fin.payment_flag) {
-    // WS開催 + 手伝いあり: max(0, 売上 - WS売上 - 各支出) × 20% + WS売上 × 70%
-    const wsSales = fin.ws_participants * 1000
+  if (fin.payment_flag) {
     const salesShare = Math.round(Math.max(0, fin.sales - wsSales - totalExpense) * 0.2)
     const wsShare = Math.round(wsSales * 0.7)
-    return { transport, wsSales, totalExpense, net: salesShare + wsShare, salesShare, wsShare }
+    return { transport, wsSales, totalExpense, net, salesShare, wsShare, paymentAmount: salesShare + wsShare }
   }
 
-  // WS非開催、またはWS開催でも手伝いなし: 売上 - 各支出
-  const wsSales = hasWorkshop ? fin.ws_participants * 1000 : 0
-  return { transport, wsSales, totalExpense, net: fin.sales - totalExpense, salesShare: 0, wsShare: 0 }
+  return { transport, wsSales, totalExpense, net, salesShare: 0, wsShare: 0, paymentAmount: 0 }
 }

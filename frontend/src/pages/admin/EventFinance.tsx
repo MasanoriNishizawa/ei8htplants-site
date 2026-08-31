@@ -57,7 +57,7 @@ export default function EventFinance() {
   }
 
   const computed = computeFinances({ event_id: id ?? '', ...form }, event?.has_workshop ?? false)
-  const { transport, wsSales, totalExpense, net, salesShare, wsShare } = computed
+  const { transport, wsSales, totalExpense, net, salesShare, wsShare, paymentAmount } = computed
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -137,31 +137,29 @@ export default function EventFinance() {
           {!event?.has_workshop && <div style={{ height: 2 }} />}
         </SectionBox>
 
-        {/* 支払いフラグ（WS開催時のみ） */}
-        {event?.has_workshop && (
-          <div style={{ marginBottom: 20 }}>
-            <label style={{
-              display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
-              padding: '14px 16px',
-              background: form.payment_flag ? '#f0f5ee' : '#ffffff',
-              border: `1px solid ${form.payment_flag ? '#b8d4ae' : '#dddde8'}`,
-              borderRadius: 4,
-            }}>
-              <input
-                type="checkbox"
-                checked={form.payment_flag}
-                onChange={(e) => set('payment_flag', e.target.checked)}
-                style={{ marginTop: 2, width: 16, height: 16, cursor: 'pointer', accentColor: '#4a6741', flexShrink: 0 }}
-              />
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 14 }}>手伝いあり（支払い計算モード）</div>
-                <div style={{ fontSize: 12, color: 'var(--c-muted)', marginTop: 3, lineHeight: 1.6 }}>
-                  ONにすると「支払い金額 = max(0, 売上 - WS売上 - 各支出) × 20% + WS売上 × 70%」で計算します
-                </div>
+        {/* 支払いフラグ */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
+            padding: '14px 16px',
+            background: form.payment_flag ? '#f0f5ee' : '#ffffff',
+            border: `1px solid ${form.payment_flag ? '#b8d4ae' : '#dddde8'}`,
+            borderRadius: 4,
+          }}>
+            <input
+              type="checkbox"
+              checked={form.payment_flag}
+              onChange={(e) => set('payment_flag', e.target.checked)}
+              style={{ marginTop: 2, width: 16, height: 16, cursor: 'pointer', accentColor: '#4a6741', flexShrink: 0 }}
+            />
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 14 }}>手伝いあり（支払い計算モード）</div>
+              <div style={{ fontSize: 12, color: 'var(--c-muted)', marginTop: 3, lineHeight: 1.6 }}>
+                ONにすると「支払い金額 = max(0, 売上 - WS売上 - 各支出) × 20% + WS売上 × 70%」で計算します
               </div>
-            </label>
-          </div>
-        )}
+            </div>
+          </label>
+        </div>
 
         {/* 支出 */}
         <SectionBox label="支出">
@@ -205,52 +203,54 @@ export default function EventFinance() {
           支出合計: {fmt(totalExpense)} 円
         </div>
 
-        {/* 収支 / 支払い金額 */}
-        {form.payment_flag && event?.has_workshop ? (
-          <div style={{
-            padding: '18px 22px', borderRadius: 4, marginBottom: 8,
-            background: net >= 0 ? '#f0f5ee' : '#fdf0ee',
-            border: `1px solid ${net >= 0 ? '#b8d4ae' : '#f0b8ae'}`,
-          }}>
-            <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 10 }}>
-              支払い金額（手伝い分）
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#5a6a55', marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>売上利益分 <Hint>(max(0, 売上−WS売上−支出) × 20%)</Hint></span>
-                <span>{fmt(salesShare)} 円</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>WS売上分 <Hint>(WS売上 × 70%)</Hint></span>
-                <span>{fmt(wsShare)} 円</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #d4e8cc', paddingTop: 10 }}>
-              <span style={{ fontWeight: 500 }}>合計支払い金額</span>
-              <span style={{ fontSize: 22, fontWeight: 600, color: net >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', serif" }}>
-                {fmt(net)} 円
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div style={{
-            padding: '18px 22px', borderRadius: 4, marginBottom: 8,
-            background: net >= 0 ? '#f0f5ee' : '#fdf0ee',
-            border: `1px solid ${net >= 0 ? '#b8d4ae' : '#f0b8ae'}`,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span style={{ fontWeight: 500 }}>収支</span>
-            <span style={{ fontSize: 22, fontWeight: 600, color: net >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', serif" }}>
-              {net >= 0 ? '+' : ''}{fmt(net)} 円
-            </span>
-          </div>
-        )}
-        <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--c-muted)', marginBottom: 24 }}>
-          {form.payment_flag && event?.has_workshop
-            ? `売上利益 ${fmt(Math.max(0, form.sales - wsSales - totalExpense))} 円 × 20% + WS ${fmt(wsSales)} 円 × 70%`
-            : `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円`
-          }
+        {/* 収支 */}
+        <div style={{
+          padding: '18px 22px', borderRadius: 4, marginBottom: form.payment_flag ? 12 : 8,
+          background: net >= 0 ? '#f0f5ee' : '#fdf0ee',
+          border: `1px solid ${net >= 0 ? '#b8d4ae' : '#f0b8ae'}`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span style={{ fontWeight: 500 }}>収支</span>
+          <span style={{ fontSize: 22, fontWeight: 600, color: net >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', serif" }}>
+            {net >= 0 ? '+' : ''}{fmt(net)} 円
+          </span>
         </div>
+        <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--c-muted)', marginBottom: form.payment_flag ? 20 : 24 }}>
+          {`売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円`}
+        </div>
+
+        {/* 手伝い支払い金額 */}
+        {form.payment_flag && (
+          <>
+            <div style={{
+              padding: '18px 22px', borderRadius: 4, marginBottom: 8,
+              background: '#f5f0ee', border: '1px solid #d4c4ae',
+            }}>
+              <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 10 }}>
+                支払い金額（手伝い分）
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#6a5a45', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>売上利益分 <Hint>(max(0, 売上−WS売上−支出) × 20%)</Hint></span>
+                  <span>{fmt(salesShare)} 円</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>WS売上分 <Hint>(WS売上 × 70%)</Hint></span>
+                  <span>{fmt(wsShare)} 円</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #d4c4ae', paddingTop: 10 }}>
+                <span style={{ fontWeight: 500 }}>合計支払い金額</span>
+                <span style={{ fontSize: 22, fontWeight: 600, color: '#7a5a30', fontFamily: "'Cormorant Garamond', serif" }}>
+                  {fmt(paymentAmount)} 円
+                </span>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--c-muted)', marginBottom: 24 }}>
+              {`売上利益 ${fmt(Math.max(0, form.sales - wsSales - totalExpense))} 円 × 20% + WS ${fmt(wsSales)} 円 × 70%`}
+            </div>
+          </>
+        )}
 
         {/* メモ */}
         <div style={{ marginBottom: 24 }}>
