@@ -14,7 +14,9 @@ function EventRow({ ev, reservationCountMap, del, duplicate }: {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 500 }}>{ev.name}</div>
-        <div style={{ fontSize: 13, color: 'var(--c-muted)', marginTop: 4 }}>{ev.start_date} / {ev.location}</div>
+        <div style={{ fontSize: 13, color: 'var(--c-muted)', marginTop: 4 }}>
+          {ev.start_date}{ev.end_date && ev.end_date !== ev.start_date ? ` 〜 ${ev.end_date}` : ''} / {ev.location}
+        </div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: 'var(--c-body)', textDecoration: 'none' }}>編集</Link>

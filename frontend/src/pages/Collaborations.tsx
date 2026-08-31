@@ -70,7 +70,7 @@ export default function Collaborations() {
                   )}
                   {item.event_date && (
                     <span style={{ fontSize: 11, letterSpacing: 2, color: '#aaa' }}>
-                      {new Date(item.event_date).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(item.event_date + 'T00:00:00').toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: 'long', day: 'numeric' })}
                     </span>
                   )}
                 </div>

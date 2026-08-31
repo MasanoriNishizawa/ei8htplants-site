@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/admin/products', label: '商品管理' },
   { to: '/admin/orders', label: '注文管理' },
   { to: '/admin/articles', label: '記事管理' },
+  { to: '/admin/finances', label: '収支一覧' },
 ]
 
 const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({

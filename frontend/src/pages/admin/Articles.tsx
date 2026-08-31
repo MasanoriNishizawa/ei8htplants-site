@@ -8,7 +8,7 @@ const BLANK: ArticleBody = {
 
 function fmtDate(s: string | null): string {
   if (!s) return '—'
-  return new Date(s).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  return new Date(s).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
 export default function AdminArticles() {

@@ -97,7 +97,7 @@ export default function AdminOrders() {
               {orders.map((o) => (
                 <tr key={o.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
                   <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', color: 'var(--c-muted)' }}>
-                    {new Date(o.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                    {new Date(o.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' })}
                   </td>
                   <td style={{ padding: '10px 14px' }}>{o.customer_name}</td>
                   <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{o.prefecture}</td>

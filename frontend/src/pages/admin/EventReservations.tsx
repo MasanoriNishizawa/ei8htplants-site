@@ -16,7 +16,7 @@ function buildPrintHtml(event: Event, rows: ReservationWithTime[]): string {
   const trs = rows.map((r) => {
     const bring = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
     return `<tr>
-      <td>${new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
+      <td>${new Date(r.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td>
       <td>${esc(r.name)}</td>
       <td>${esc(r.preferred_date ?? '-')}</td>
       <td>${esc(r.preferred_time ?? '-')}</td>
@@ -54,7 +54,7 @@ p.total{margin:8px 0 0;font-size:10px;color:#666;}
 function exportCsv(event: Event, rows: ReservationWithTime[]) {
   const header = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
   const lines = rows.map((r) => [
-    new Date(r.created_at).toLocaleDateString('ja-JP'),
+    new Date(r.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }),
     r.name, r.email, r.phone ?? '',
     r.preferred_date ?? '',
     r.preferred_time ?? '',
@@ -211,7 +211,7 @@ export default function AdminEventReservations() {
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
                     <td style={{ padding: '12px 14px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>
-                      {new Date(r.created_at).toLocaleDateString('ja-JP')}
+                      {new Date(r.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
                     </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
                     <td style={{ padding: '12px 14px' }}>
