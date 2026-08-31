@@ -510,9 +510,9 @@ export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   const totalExpense = fin.booth_fee + transport + fin.expressway_toll + fin.accommodation + fin.other_expenses
 
   if (hasWorkshop && fin.payment_flag) {
-    // WS開催 + 手伝いあり: max(0, 売上 - 各支出) × 20% + WS売上 × 70%
+    // WS開催 + 手伝いあり: max(0, 売上 - WS売上 - 各支出) × 20% + WS売上 × 70%
     const wsSales = fin.ws_participants * 1000
-    const salesShare = Math.round(Math.max(0, fin.sales - totalExpense) * 0.2)
+    const salesShare = Math.round(Math.max(0, fin.sales - wsSales - totalExpense) * 0.2)
     const wsShare = Math.round(wsSales * 0.7)
     return { transport, wsSales, totalExpense, net: salesShare + wsShare, salesShare, wsShare }
   }
