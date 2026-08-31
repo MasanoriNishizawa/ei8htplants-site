@@ -166,8 +166,8 @@ export default function EventFinance() {
           <Row style={rowStyle} label="出店料">
             <NumInput value={form.booth_fee} onChange={(v) => set('booth_fee', v)} style={inputStyle} plain />
           </Row>
-          <Row style={rowStyle} label={<span>距離 <Hint>(片道・km)</Hint></span>}>
-            <NumInput value={form.distance} onChange={(v) => set('distance', v)} style={inputStyle} plain />
+          <Row style={rowStyle} label={<span>距離 <Hint>(片道)</Hint></span>}>
+            <NumInput value={form.distance} onChange={(v) => set('distance', v)} style={inputStyle} unit="km" plain />
           </Row>
           <Row style={rowStyle} label={<span>ガソリン単価 <Hint>(円/L)</Hint></span>}>
             <NumInput value={form.gas_price} onChange={(v) => set('gas_price', v)} style={inputStyle} plain />
