@@ -57,7 +57,7 @@ class FinanceBody(BaseModel):
 
 
 _FINANCE_DEFAULTS = {
-    'sales': 0, 'booth_fee': 0, 'distance': 0, 'gas_price': 170,
+    'sales': 0, 'booth_fee': 0, 'distance': 0, 'gas_price': 160,
     'expressway_toll': 0, 'accommodation': 0, 'ws_participants': 0,
     'payment_flag': False, 'other_expenses': 0, 'other_expenses_note': None, 'notes': None,
 }

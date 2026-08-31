@@ -6,7 +6,7 @@ const BLANK: EventFinancesBody = {
   sales: 0,
   booth_fee: 0,
   distance: 0,
-  gas_price: 170,
+  gas_price: 160,
   expressway_toll: 0,
   accommodation: 0,
   ws_participants: 0,
@@ -120,12 +120,12 @@ export default function EventFinance() {
         {/* 収入 */}
         <SectionBox label="収入">
           <Row style={rowStyle} label="売上">
-            <NumInput value={form.sales} onChange={(v) => set('sales', v)} style={inputStyle} />
+            <NumInput value={form.sales} onChange={(v) => set('sales', v)} style={inputStyle} plain />
           </Row>
           {event?.has_workshop && (
             <>
               <Row style={rowStyle} label="WS参加人数">
-                <NumInput value={form.ws_participants} onChange={(v) => set('ws_participants', v)} style={inputStyle} />
+                <NumInput value={form.ws_participants} onChange={(v) => set('ws_participants', v)} style={inputStyle} unit="人" />
               </Row>
               <Row style={{ ...rowStyle, borderBottom: 'none' }} label={
                 <span>WS売上 <Hint>(人数 × ¥1,000)</Hint></span>
@@ -166,13 +166,13 @@ export default function EventFinance() {
         {/* 支出 */}
         <SectionBox label="支出">
           <Row style={rowStyle} label="出店料">
-            <NumInput value={form.booth_fee} onChange={(v) => set('booth_fee', v)} style={inputStyle} />
+            <NumInput value={form.booth_fee} onChange={(v) => set('booth_fee', v)} style={inputStyle} plain />
           </Row>
           <Row style={rowStyle} label={<span>距離 <Hint>(片道・km)</Hint></span>}>
-            <NumInput value={form.distance} onChange={(v) => set('distance', v)} style={inputStyle} />
+            <NumInput value={form.distance} onChange={(v) => set('distance', v)} style={inputStyle} plain />
           </Row>
           <Row style={rowStyle} label={<span>ガソリン単価 <Hint>(円/L)</Hint></span>}>
-            <NumInput value={form.gas_price} onChange={(v) => set('gas_price', v)} style={inputStyle} />
+            <NumInput value={form.gas_price} onChange={(v) => set('gas_price', v)} style={inputStyle} plain />
           </Row>
           <Row style={rowStyle} label={
             <span>移動費 <Hint>(往復{form.distance * 2}km, 10km/L)</Hint></span>
@@ -180,16 +180,16 @@ export default function EventFinance() {
             <span style={readonlyVal}>{fmt(transport)} 円</span>
           </Row>
           <Row style={rowStyle} label="高速代">
-            <NumInput value={form.expressway_toll} onChange={(v) => set('expressway_toll', v)} style={inputStyle} />
+            <NumInput value={form.expressway_toll} onChange={(v) => set('expressway_toll', v)} style={inputStyle} plain />
           </Row>
           <Row style={rowStyle} label="宿泊費">
-            <NumInput value={form.accommodation} onChange={(v) => set('accommodation', v)} style={inputStyle} />
+            <NumInput value={form.accommodation} onChange={(v) => set('accommodation', v)} style={inputStyle} plain />
           </Row>
           {/* その他支出 */}
           <div style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f5' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 8 }}>
               <span style={{ fontSize: 14 }}>その他支出</span>
-              <NumInput value={form.other_expenses} onChange={(v) => set('other_expenses', v)} style={inputStyle} />
+              <NumInput value={form.other_expenses} onChange={(v) => set('other_expenses', v)} style={inputStyle} plain />
             </div>
             <input
               type="text"
@@ -297,11 +297,31 @@ function Row({ label, children, style }: { label: React.ReactNode; children: Rea
   )
 }
 
-function NumInput({ value, onChange, style }: { value: number; onChange: (v: number) => void; style: React.CSSProperties }) {
+function NumInput({ value, onChange, style, unit = '円', plain = false }: {
+  value: number
+  onChange: (v: number) => void
+  style: React.CSSProperties
+  unit?: string
+  plain?: boolean
+}) {
+  const spinStyle: React.CSSProperties = plain
+    ? { MozAppearance: 'textfield' } as React.CSSProperties
+    : {}
   return (
     <>
-      <input type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value))} style={style} />
-      <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>円</span>
+      <input
+        type={plain ? 'text' : 'number'}
+        inputMode="numeric"
+        min={0}
+        value={value}
+        onChange={(e) => {
+          const n = Number(e.target.value.replace(/[^0-9]/g, ''))
+          onChange(isNaN(n) ? 0 : n)
+        }}
+        style={{ ...style, ...spinStyle }}
+        className={plain ? 'num-plain' : undefined}
+      />
+      <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>{unit}</span>
     </>
   )
 }

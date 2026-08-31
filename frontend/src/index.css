@@ -539,3 +539,9 @@ body {
     display: none !important;
   }
 }
+
+.num-plain::-webkit-outer-spin-button,
+.num-plain::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
