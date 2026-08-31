@@ -216,7 +216,10 @@ export default function EventFinance() {
           </span>
         </div>
         <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--c-muted)', marginBottom: form.payment_flag ? 20 : 24 }}>
-          {`売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円`}
+          {form.payment_flag
+            ? `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円 − 支払い ${fmt(paymentAmount)} 円`
+            : `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円`
+          }
         </div>
 
         {/* 手伝い支払い金額 */}

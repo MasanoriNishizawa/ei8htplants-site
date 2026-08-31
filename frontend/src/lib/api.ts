@@ -515,7 +515,8 @@ export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   if (fin.payment_flag) {
     const salesShare = Math.round(Math.max(0, fin.sales - wsSales - totalExpense) * 0.2)
     const wsShare = Math.round(wsSales * 0.7)
-    return { transport, wsSales, totalExpense, net, salesShare, wsShare, paymentAmount: salesShare + wsShare }
+    const paymentAmount = salesShare + wsShare
+    return { transport, wsSales, totalExpense, net: net - paymentAmount, salesShare, wsShare, paymentAmount }
   }
 
   return { transport, wsSales, totalExpense, net, salesShare: 0, wsShare: 0, paymentAmount: 0 }
