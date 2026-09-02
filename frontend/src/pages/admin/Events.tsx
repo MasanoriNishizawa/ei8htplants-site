@@ -11,8 +11,8 @@ function EventRow({ ev, reservationCountMap, del, duplicate }: {
 }) {
   const resCount = reservationCountMap.get(ev.id) ?? 0
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, gap: 12 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', padding: '16px 20px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, gap: 10 }}>
+      <div style={{ flex: 1, minWidth: 160 }}>
         <div style={{ fontWeight: 500 }}>{ev.name}</div>
         <div style={{ fontSize: 13, color: 'var(--c-muted)', marginTop: 4 }}>
           {ev.start_date}{ev.end_date && ev.end_date !== ev.start_date ? ` 〜 ${ev.end_date}` : ''} / {ev.location}

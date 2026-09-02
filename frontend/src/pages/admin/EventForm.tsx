@@ -330,7 +330,7 @@ export default function AdminEventForm() {
         {/* WSセッション管理 */}
         {form.has_workshop && (
           <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 8 }}>
               <label style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" onClick={autoSetSessions} disabled={!form.time.match(/\d{1,2}:\d{2}\s*[〜~\-]\s*\d{1,2}:\d{2}/)}

@@ -110,8 +110,8 @@ export default function AdminStockists() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {stockists.map((s) => (
-          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, gap: 12 }}>
-            <div style={{ flex: 1 }}>
+          <div key={s.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', padding: '14px 18px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 160 }}>
               <div style={{ fontWeight: 500 }}>{s.name}</div>
               <div style={{ fontSize: 13, color: 'var(--c-muted)', marginTop: 2 }}>{[s.area, s.address].filter(Boolean).join(' / ')}</div>
               {s.brands?.length > 0 && (
