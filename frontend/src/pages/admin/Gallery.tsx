@@ -11,6 +11,7 @@ export default function AdminGallery() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set())
+  const [brandFilter, setBrandFilter] = useState<string | null>(null)
 
   const load = () => api.gallery.list().then(setImages)
   useEffect(() => { load() }, [])
@@ -78,8 +79,18 @@ export default function AdminGallery() {
           <button type="submit" disabled={!url || saving || uploading} style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', opacity: !url ? 0.5 : 1 }}>追加</button>
         </div>
       </form>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        {[null, ...BRANDS].map((b) => (
+          <button key={b ?? 'all'} onClick={() => setBrandFilter(b)}
+            style={{ padding: '6px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', background: brandFilter === b ? 'var(--c-ink)' : '#fff', color: brandFilter === b ? '#fff' : 'var(--c-body)' }}>
+            {b ?? 'すべて'}
+          </button>
+        ))}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
-        {images.map((img, idx) => (
+        {images.filter((img) => brandFilter === null || img.brand === brandFilter).map((img) => {
+          const idx = images.indexOf(img)
+          return (
           <div key={img.id} style={{ position: 'relative', borderRadius: 4, overflow: 'hidden', aspectRatio: '1/1', background: '#f0f0f5' }}>
             <img
               src={img.url}
@@ -112,7 +123,7 @@ export default function AdminGallery() {
               </button>
             </div>
           </div>
-        ))}
+        )})}
       </div>
     </div>
   )
