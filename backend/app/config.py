@@ -30,5 +30,5 @@ NO_REPLY_NOTE = (
 HABITAT_NO_REPLY_NOTE = (
     '\n\n─────────────────\n'
     '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
-    '  ご不明な点は https://ei8htplants.com/contact または info@habitatoides.com までお問い合わせください。'
+    '  ご不明な点は公式HPお問い合わせ( https://ei8htplants.com/contact )または info@habitatoides.com までご連絡ください。'
 )
