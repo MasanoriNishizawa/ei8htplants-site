@@ -92,6 +92,10 @@ def create_reservation(body: ReserveBody):
         except Exception as e:
             print(f'[reserve] sync reserved_count failed: {e}')
     _send_confirmation(body)
+    try:
+        _send_admin_notification(body)
+    except Exception as e:
+        print(f'[reserve] admin notification failed: {e}')
     return row
 
 
@@ -157,6 +161,44 @@ def _send_confirmation(body: ReserveBody):
             f'Habitat Oides\n'
             f'https://ei8htplants.com'
             + NO_REPLY_NOTE
+        ),
+    })
+
+
+def _send_admin_notification(body: ReserveBody):
+    if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
+        return
+    event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
+    if not event:
+        return
+    time_line = ''
+    if body.session_id:
+        session = admin_supabase.table('ws_sessions').select('time_label').eq('id', body.session_id).single().execute().data
+        if session:
+            time_line = f'\n予約時間: {session["time_label"]}'
+    elif body.preferred_time:
+        time_line = f'\n予約時間: {body.preferred_time}'
+    date_line = f'\n予約日: {body.preferred_date}' if body.preferred_date else ''
+    bring_lines = ''
+    if body.bring_plant:
+        bring_lines += '\n植物持ち込み: あり'
+    if body.bring_pot:
+        bring_lines += '\n鉢持ち込み: あり'
+    note_line = f'\n備考: {body.note}' if body.note else ''
+    resend.api_key = RESEND_API_KEY
+    resend.Emails.send({
+        'from': SENDER,
+        'to': ['info@habitatoides.com'],
+        'subject': f'[予約通知] {event["name"]} に新しい予約が入りました',
+        'text': (
+            f'新しいワークショップ予約が入りました。\n\n'
+            f'イベント名: {event["name"]}\n'
+            f'開催日: {event["start_date"]}\n'
+            f'会場: {event["location"]}{date_line}{time_line}\n\n'
+            f'お名前: {body.name}\n'
+            f'メール: {body.email}\n'
+            f'電話番号: {body.phone or "未記入"}\n'
+            f'参加人数: {body.participants} 名{bring_lines}{note_line}\n'
         ),
     })
 
