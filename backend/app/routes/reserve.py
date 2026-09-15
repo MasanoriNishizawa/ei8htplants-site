@@ -159,7 +159,7 @@ def _send_confirmation(body: ReserveBody):
             f'会場: {event["location"]}{date_line}{time_line}\n'
             f'参加人数: {body.participants} 名{bring_lines}{note_line}\n\n'
             f'Habitat Oides\n'
-            f'https://habitatoides.com'
+            f'https://ei8htplants.com'
             + HABITAT_NO_REPLY_NOTE
         ),
     })
@@ -222,7 +222,7 @@ def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
             f'{cancel_url}\n'
             f'─────────────────\n\n'
             f'Habitat Oides\n'
-            f'https://habitatoides.com'
+            f'https://ei8htplants.com'
             + HABITAT_NO_REPLY_NOTE
         ),
     })
