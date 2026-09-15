@@ -206,7 +206,7 @@ def _send_admin_notification(body: ReserveBody):
 def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
     if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
         return
-    cancel_url = f'https://habitatoides.com/cancel?id={cancel_token}'
+    cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
