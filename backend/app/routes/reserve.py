@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from ..db import admin_supabase, supabase
-from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, SENDER, NO_REPLY_NOTE
+from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, SENDER, HABITAT_SENDER, NO_REPLY_NOTE
 from ..auth import require_auth
 
 _session_locks: dict[str, threading.Lock] = {}
@@ -147,7 +147,7 @@ def _send_confirmation(body: ReserveBody):
     note_line = f'\n備考: {body.note}' if body.note else ''
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
-        'from': SENDER,
+        'from': HABITAT_SENDER,
         'to': [body.email],
         'subject': f'[Habitat Oides] ワークショップ予約を受け付けました: {event["name"]}',
         'text': (
@@ -187,7 +187,7 @@ def _send_admin_notification(body: ReserveBody):
     note_line = f'\n備考: {body.note}' if body.note else ''
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
-        'from': SENDER,
+        'from': HABITAT_SENDER,
         'to': ['info@habitatoides.com'],
         'subject': f'[予約通知] {event["name"]} に新しい予約が入りました',
         'text': (
@@ -209,7 +209,7 @@ def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
     cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
-        'from': SENDER,
+        'from': HABITAT_SENDER,
         'to': [reservation['email']],
         'subject': f'[Habitat Oides] ワークショップ予約が確定しました: {event["name"]}',
         'text': (
