@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from ..db import admin_supabase, supabase
-from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, SENDER, HABITAT_SENDER, NO_REPLY_NOTE
+from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, SENDER, HABITAT_SENDER, NO_REPLY_NOTE, HABITAT_NO_REPLY_NOTE
 from ..auth import require_auth
 
 _session_locks: dict[str, threading.Lock] = {}
@@ -159,8 +159,8 @@ def _send_confirmation(body: ReserveBody):
             f'会場: {event["location"]}{date_line}{time_line}\n'
             f'参加人数: {body.participants} 名{bring_lines}{note_line}\n\n'
             f'Habitat Oides\n'
-            f'https://ei8htplants.com'
-            + NO_REPLY_NOTE
+            f'https://habitatoides.com'
+            + HABITAT_NO_REPLY_NOTE
         ),
     })
 
@@ -206,7 +206,7 @@ def _send_admin_notification(body: ReserveBody):
 def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
     if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
         return
-    cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
+    cancel_url = f'https://habitatoides.com/cancel?id={cancel_token}'
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
@@ -222,8 +222,8 @@ def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
             f'{cancel_url}\n'
             f'─────────────────\n\n'
             f'Habitat Oides\n'
-            f'https://ei8htplants.com'
-            + NO_REPLY_NOTE
+            f'https://habitatoides.com'
+            + HABITAT_NO_REPLY_NOTE
         ),
     })
 

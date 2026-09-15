@@ -20,9 +20,15 @@ SQUARE_ENVIRONMENT = os.getenv('SQUARE_ENVIRONMENT', 'sandbox')
 SENDER = f'ei8ht plants <{CONTACT_FROM_EMAIL}>'
 HABITAT_SENDER = f'Habitat Oides <{HABITAT_FROM_EMAIL}>'
 
-# 全メール共通フッター。返信不可を明示する
+# 返信不可フッター
 NO_REPLY_NOTE = (
     '\n\n─────────────────\n'
     '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
     '  お問い合わせは https://ei8htplants.com/contact よりお願いいたします。'
+)
+
+HABITAT_NO_REPLY_NOTE = (
+    '\n\n─────────────────\n'
+    '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
+    '  ご不明な点は https://habitatoides.com/contact または info@habitatoides.com までお問い合わせください。'
 )
