@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from ..db import admin_supabase, supabase
-from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, SENDER, HABITAT_SENDER, NO_REPLY_NOTE, HABITAT_NO_REPLY_NOTE
+from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, HABITAT_SENDER
 from ..auth import require_auth
 
 _session_locks: dict[str, threading.Lock] = {}
@@ -125,43 +125,94 @@ def cancel_by_token(body: CancelBody):
     return updated
 
 
+def _html_wrap(body_html: str) -> str:
+    return f'''<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f5f2;font-family:sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f2;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+        <tr><td style="background:#2d3a24;padding:24px 32px;">
+          <p style="margin:0;color:#ffffff;font-size:18px;letter-spacing:3px;">Habitat Oides</p>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          {body_html}
+        </td></tr>
+        <tr><td style="padding:16px 32px 24px;border-top:1px solid #eeeeee;">
+          <p style="margin:0;font-size:12px;color:#999999;line-height:1.8;">
+            ※ このメールは送信専用です。このメールへの返信はお受けできません。<br>
+            ご不明な点は<a href="https://ei8htplants.com/contact" style="color:#4a6741;">公式HPお問い合わせ</a>または
+            <a href="mailto:info@habitatoides.com" style="color:#4a6741;">info@habitatoides.com</a> までご連絡ください。
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>'''
+
+
+def _row(label: str, value: str) -> str:
+    return (
+        f'<tr>'
+        f'<td style="padding:8px 0;font-size:13px;color:#888888;width:120px;vertical-align:top;">{label}</td>'
+        f'<td style="padding:8px 0;font-size:14px;color:#333333;vertical-align:top;">{value}</td>'
+        f'</tr>'
+    )
+
+
 def _send_confirmation(body: ReserveBody):
     if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
         return
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
     if not event:
         return
-    time_line = ''
+    time_label = ''
     if body.session_id:
         session = admin_supabase.table('ws_sessions').select('time_label').eq('id', body.session_id).single().execute().data
         if session:
-            time_line = f'\n予約時間: {session["time_label"]}'
+            time_label = session['time_label']
     elif body.preferred_time:
-        time_line = f'\n予約時間: {body.preferred_time}'
-    date_line = f'\n予約日: {body.preferred_date}' if body.preferred_date else ''
-    bring_lines = ''
+        time_label = body.preferred_time
+
+    rows_html = _row('イベント名', event['name'])
+    rows_html += _row('開催日', event['start_date'])
+    rows_html += _row('会場', event['location'])
+    if body.preferred_date:
+        rows_html += _row('予約日', body.preferred_date)
+    if time_label:
+        rows_html += _row('予約時間', time_label)
+    rows_html += _row('参加人数', f'{body.participants} 名')
     if body.bring_plant:
-        bring_lines += '\n植物持ち込み: あり'
+        rows_html += _row('植物持ち込み', 'あり')
     if body.bring_pot:
-        bring_lines += '\n鉢持ち込み: あり'
-    note_line = f'\n備考: {body.note}' if body.note else ''
+        rows_html += _row('鉢持ち込み', 'あり')
+    if body.note:
+        rows_html += _row('備考', body.note)
+
+    content = f'''
+      <p style="margin:0 0 8px;font-size:16px;color:#333333;">{body.name} 様</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
+        ワークショップへのお申し込みありがとうございます。<br>
+        以下の内容で予約を受け付けました。
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
+        {rows_html}
+      </table>
+    '''
+    text = (
+        f'{body.name} 様\n\nワークショップへのお申し込みありがとうございます。\n'
+        f'イベント名: {event["name"]}\n開催日: {event["start_date"]}\n会場: {event["location"]}\n'
+        f'参加人数: {body.participants} 名\n\nHabitat Oides\nhttps://ei8htplants.com'
+    )
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': [body.email],
         'subject': f'[Habitat Oides] ワークショップ予約を受け付けました: {event["name"]}',
-        'text': (
-            f'{body.name} 様\n\n'
-            f'ワークショップへのお申し込みありがとうございます。\n'
-            f'以下の内容で予約を受け付けました。\n\n'
-            f'イベント名: {event["name"]}\n'
-            f'開催日: {event["start_date"]}\n'
-            f'会場: {event["location"]}{date_line}{time_line}\n'
-            f'参加人数: {body.participants} 名{bring_lines}{note_line}\n\n'
-            f'Habitat Oides\n'
-            f'https://ei8htplants.com'
-            + HABITAT_NO_REPLY_NOTE
-        ),
+        'html': _html_wrap(content),
+        'text': text,
     })
 
 
@@ -171,35 +222,49 @@ def _send_admin_notification(body: ReserveBody):
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
     if not event:
         return
-    time_line = ''
+    time_label = ''
     if body.session_id:
         session = admin_supabase.table('ws_sessions').select('time_label').eq('id', body.session_id).single().execute().data
         if session:
-            time_line = f'\n予約時間: {session["time_label"]}'
+            time_label = session['time_label']
     elif body.preferred_time:
-        time_line = f'\n予約時間: {body.preferred_time}'
-    date_line = f'\n予約日: {body.preferred_date}' if body.preferred_date else ''
-    bring_lines = ''
+        time_label = body.preferred_time
+
+    rows_html = _row('イベント名', event['name'])
+    rows_html += _row('開催日', event['start_date'])
+    rows_html += _row('会場', event['location'])
+    if body.preferred_date:
+        rows_html += _row('予約日', body.preferred_date)
+    if time_label:
+        rows_html += _row('予約時間', time_label)
+    rows_html += _row('お名前', body.name)
+    rows_html += _row('メール', f'<a href="mailto:{body.email}" style="color:#4a6741;">{body.email}</a>')
+    rows_html += _row('電話番号', body.phone or '未記入')
+    rows_html += _row('参加人数', f'{body.participants} 名')
     if body.bring_plant:
-        bring_lines += '\n植物持ち込み: あり'
+        rows_html += _row('植物持ち込み', 'あり')
     if body.bring_pot:
-        bring_lines += '\n鉢持ち込み: あり'
-    note_line = f'\n備考: {body.note}' if body.note else ''
+        rows_html += _row('鉢持ち込み', 'あり')
+    if body.note:
+        rows_html += _row('備考', body.note)
+
+    content = f'''
+      <p style="margin:0 0 24px;font-size:14px;color:#555555;">新しいワークショップ予約が入りました。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
+        {rows_html}
+      </table>
+    '''
+    text = (
+        f'新しいワークショップ予約が入りました。\n'
+        f'イベント名: {event["name"]}\nお名前: {body.name}\nメール: {body.email}\n参加人数: {body.participants} 名\n'
+    )
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': ['info@habitatoides.com'],
         'subject': f'[予約通知] {event["name"]} に新しい予約が入りました',
-        'text': (
-            f'新しいワークショップ予約が入りました。\n\n'
-            f'イベント名: {event["name"]}\n'
-            f'開催日: {event["start_date"]}\n'
-            f'会場: {event["location"]}{date_line}{time_line}\n\n'
-            f'お名前: {body.name}\n'
-            f'メール: {body.email}\n'
-            f'電話番号: {body.phone or "未記入"}\n'
-            f'参加人数: {body.participants} 名{bring_lines}{note_line}\n'
-        ),
+        'html': _html_wrap(content),
+        'text': text,
     })
 
 
@@ -207,24 +272,40 @@ def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
     if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
         return
     cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
+    content = f'''
+      <p style="margin:0 0 8px;font-size:16px;color:#333333;">{reservation["name"]} 様</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
+        ワークショップのご予約が確定いたしました。<br>
+        当日のご参加をお待ちしております。
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
+        {_row('イベント名', event['name'])}
+        {_row('開催日', event['start_date'])}
+        {_row('会場', event['location'])}
+      </table>
+      <div style="margin-top:28px;padding:20px 24px;background:#f8f8f4;border-radius:4px;border:1px solid #e8e8e0;">
+        <p style="margin:0 0 12px;font-size:13px;color:#555555;line-height:1.8;">
+          ご都合によりキャンセルされる場合は、以下のボタンよりお手続きください。
+        </p>
+        <a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#2d3a24;color:#ffffff;text-decoration:none;border-radius:4px;font-size:14px;">
+          予約をキャンセルする
+        </a>
+        <p style="margin:12px 0 0;font-size:11px;color:#aaaaaa;">
+          キャンセルID: {cancel_token}
+        </p>
+      </div>
+    '''
+    text = (
+        f'{reservation["name"]} 様\n\nワークショップのご予約が確定いたしました。\n'
+        f'キャンセルはこちら: {cancel_url}\n\nHabitat Oides\nhttps://ei8htplants.com'
+    )
     resend.api_key = RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': [reservation['email']],
         'subject': f'[Habitat Oides] ワークショップ予約が確定しました: {event["name"]}',
-        'text': (
-            f'{reservation["name"]} 様\n\n'
-            f'ワークショップのご予約が確定いたしました。\n'
-            f'当日のご参加をお待ちしております。\n\n'
-            f'─────────────────\n'
-            f'キャンセルID: {cancel_token}\n\n'
-            f'ご都合によりキャンセルされる場合は、以下のリンクよりお手続きください。\n'
-            f'{cancel_url}\n'
-            f'─────────────────\n\n'
-            f'Habitat Oides\n'
-            f'https://ei8htplants.com'
-            + HABITAT_NO_REPLY_NOTE
-        ),
+        'html': _html_wrap(content),
+        'text': text,
     })
 
 

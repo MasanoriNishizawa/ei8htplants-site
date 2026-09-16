@@ -95,12 +95,6 @@ export default function Contact() {
             {status === 'loading' ? '送信中...' : '送信する'}
           </button>
 
-          <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.8, marginTop: 20, textAlign: 'center' }}>
-            Instagram DM でのお問い合わせも受け付けています。<br />
-            <a href="https://www.instagram.com/ei8ht.plants/" target="_blank" rel="noopener noreferrer" style={{ color: '#888' }}>@ei8ht.plants</a>
-            &nbsp;/&nbsp;
-            <a href="https://www.instagram.com/habitatoides/" target="_blank" rel="noopener noreferrer" style={{ color: '#888' }}>@habitatoides</a>
-          </p>
         </form>
       )}
     </div>
