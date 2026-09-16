@@ -83,6 +83,7 @@ export default function AdminEventReservations() {
   const [loading, setLoading] = useState(true)
   const [activeSession, setActiveSession] = useState<string>('all')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -115,6 +116,14 @@ export default function AdminEventReservations() {
   const filtered = activeSession === 'all'
     ? rows
     : rows.filter((r) => r.session_id === activeSession)
+
+  const copyReserveLink = () => {
+    const url = `https://ei8htplants.com/reserve?event_id=${id}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const handlePrint = () => {
     if (!event) return
@@ -154,12 +163,20 @@ export default function AdminEventReservations() {
             </p>
           )}
         </div>
-        {rows.length > 0 && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={handlePrint} style={btnStyle}>印刷</button>
-            <button onClick={() => event && exportCsv(event, filtered)} style={btnStyle}>CSV</button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={copyReserveLink}
+            style={{ ...btnStyle, background: copied ? '#f0f6f0' : '#ffffff', color: copied ? '#4a6741' : 'var(--c-body)', borderColor: copied ? '#4a6741' : '#dddde8' }}
+          >
+            {copied ? 'コピーしました' : '予約ページリンクをコピー'}
+          </button>
+          {rows.length > 0 && (
+            <>
+              <button onClick={handlePrint} style={btnStyle}>印刷</button>
+              <button onClick={() => event && exportCsv(event, filtered)} style={btnStyle}>CSV</button>
+            </>
+          )}
+        </div>
       </div>
 
       {!loading && rows.length > 0 && (
