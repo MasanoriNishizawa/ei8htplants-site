@@ -59,6 +59,7 @@
 | PG-A11 | イベント収支管理 | `/admin/events/:id/finances` | FT-01, FT-12 |
 | PG-A12 | イベント予約一覧 | `/admin/events/:id/reservations` | FT-01, FT-11 |
 | PG-A13 | イベントサイト編集 | `/admin/events/:id/site` | FT-01, FT-12 |
+| PG-A14 | [収支一覧](pages/admin/11_Finances.md) | `/admin/finances` | FT-01, FT-23 |
 
 ---
 
