@@ -65,22 +65,21 @@ def create_reservation(body: ReserveBody):
         with _session_lock(body.session_id):
             session = admin_supabase.table('ws_sessions').select('max_participants, time_label').eq('id', body.session_id).single().execute().data
             if session:
-                by_sid = admin_supabase.table('workshop_reservations') \
-                    .select('participants') \
-                    .eq('session_id', body.session_id) \
-                    .neq('status', 'cancelled') \
-                    .execute()
-                used = sum(r['participants'] for r in (by_sid.data or []))
-                q = admin_supabase.table('workshop_reservations') \
-                    .select('participants') \
+                # get_sessions と同じロジックで集計（二重カウント防止）
+                res_q = admin_supabase.table('workshop_reservations') \
+                    .select('session_id, participants, preferred_time') \
                     .eq('event_id', body.event_id) \
-                    .eq('preferred_time', session['time_label']) \
-                    .is_('session_id', 'null') \
                     .neq('status', 'cancelled')
                 if body.preferred_date:
-                    q = q.eq('preferred_date', body.preferred_date)
-                by_time = q.execute()
-                used += sum(r['participants'] for r in (by_time.data or []))
+                    res_q = res_q.eq('preferred_date', body.preferred_date)
+                existing = res_q.execute().data or []
+                used = 0
+                for r in existing:
+                    sid = r.get('session_id')
+                    if sid == body.session_id:
+                        used += r.get('participants') or 1
+                    elif not sid and r.get('preferred_time') == session['time_label']:
+                        used += r.get('participants') or 1
                 if used + body.participants > session['max_participants']:
                     raise HTTPException(409, 'このセッションは満席です')
             row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
