@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from ..db import admin_supabase, supabase
-from ..config import RESEND_API_KEY, CONTACT_FROM_EMAIL, HABITAT_SENDER
+from ..config import RESEND_API_KEY, HABITAT_RESEND_API_KEY, CONTACT_FROM_EMAIL, HABITAT_SENDER
 from ..auth import require_auth
 
 _session_locks: dict[str, threading.Lock] = {}
@@ -166,7 +166,7 @@ def _row(label: str, value: str) -> str:
 
 
 def _send_confirmation(body: ReserveBody):
-    if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
+    if not HABITAT_RESEND_API_KEY:
         return
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
     if not event:
@@ -209,7 +209,7 @@ def _send_confirmation(body: ReserveBody):
         f'イベント名: {event["name"]}\n開催日: {event["start_date"]}\n会場: {event["location"]}\n'
         f'参加人数: {body.participants} 名\n\nHabitat Oides\nhttps://ei8htplants.com'
     )
-    resend.api_key = RESEND_API_KEY
+    resend.api_key = HABITAT_RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': [body.email],
@@ -220,7 +220,7 @@ def _send_confirmation(body: ReserveBody):
 
 
 def _send_admin_notification(body: ReserveBody):
-    if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
+    if not HABITAT_RESEND_API_KEY:
         return
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
     if not event:
@@ -261,7 +261,7 @@ def _send_admin_notification(body: ReserveBody):
         f'新しいワークショップ予約が入りました。\n'
         f'イベント名: {event["name"]}\nお名前: {body.name}\nメール: {body.email}\n参加人数: {body.participants} 名\n'
     )
-    resend.api_key = RESEND_API_KEY
+    resend.api_key = HABITAT_RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': ['info@habitatoides.com'],
@@ -272,7 +272,7 @@ def _send_admin_notification(body: ReserveBody):
 
 
 def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
-    if not RESEND_API_KEY or not CONTACT_FROM_EMAIL:
+    if not HABITAT_RESEND_API_KEY:
         return
     cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
     content = f'''
@@ -302,7 +302,7 @@ def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
         f'{reservation["name"]} 様\n\nワークショップのご予約が確定いたしました。\n'
         f'キャンセルはこちら: {cancel_url}\n\nHabitat Oides\nhttps://ei8htplants.com'
     )
-    resend.api_key = RESEND_API_KEY
+    resend.api_key = HABITAT_RESEND_API_KEY
     resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': [reservation['email']],
