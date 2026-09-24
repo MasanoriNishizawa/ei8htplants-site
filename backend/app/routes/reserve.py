@@ -91,7 +91,10 @@ def create_reservation(body: ReserveBody):
             _sync_reserved_count(body.session_id)
         except Exception as e:
             print(f'[reserve] sync reserved_count failed: {e}')
-    _send_confirmation(body)
+    try:
+        _send_confirmation(body)
+    except Exception as e:
+        print(f'[reserve] confirmation email failed: {e}')
     try:
         _send_admin_notification(body)
     except Exception as e:
