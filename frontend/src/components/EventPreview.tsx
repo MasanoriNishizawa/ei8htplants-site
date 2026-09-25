@@ -192,6 +192,17 @@ export default function EventPreview({ event, horizontal = false }: Props) {
             ) : null}
           </div>
         )}
+
+        {hasSite && (
+          <div style={{ marginTop: 16 }}>
+            <Link
+              to={`/events/${event.slug ?? event.id}`}
+              style={{ display: 'inline-block', fontSize: 13, color: '#fff', textDecoration: 'none', padding: '9px 22px', borderRadius: 20, background: 'var(--c-ink)', fontWeight: 500, letterSpacing: 0.5 }}
+            >
+              詳細を見る
+            </Link>
+          </div>
+        )}
       </div>
     </div>
     {lightboxIdx !== null && (
