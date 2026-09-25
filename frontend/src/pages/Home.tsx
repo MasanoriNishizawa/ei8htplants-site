@@ -6,10 +6,34 @@ import { parseBlocks } from '../components/BlockEditor'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
 
-const SLIDES = [
-  { src: '/img/logo-ei8htplants.png', alt: 'ei8ht plants', scale: 1.4 },
-  { src: '/img/logo-habitatoides.png', alt: 'Habitat Oides', scale: 1.0 },
-  { src: '/img/logo-hue.png', alt: 'HUE by ei8ht plants', scale: 1.15 },
+const BRAND_CARDS = [
+  {
+    to: '/ei8htplants',
+    name: 'ei8ht plants',
+    label: 'Plant Label',
+    desc: '珍しい多肉植物・サボテンの専門ブランド',
+    bg: '#2d4a27',
+    img: 'https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0',
+    logo: '/img/logo-ei8htplants.png',
+  },
+  {
+    to: '/habitatoides',
+    name: 'Habitat Oides',
+    label: 'Workshop',
+    desc: 'コウモリランなど着生植物のワークショップ',
+    bg: '#1e3272',
+    img: '/img/habitatOides/habitat_oides_hero.jpg',
+    logo: '/img/logo-habitatoides.png',
+  },
+  {
+    to: '/hue',
+    name: 'HUE',
+    label: 'Lifestyle',
+    desc: '植物と暮らすライフスタイルブランド',
+    bg: '#3d2a1a',
+    img: null,
+    logo: '/img/logo-hue.png',
+  },
 ]
 
 const IG_LINKS = [
@@ -44,7 +68,8 @@ export default function Home() {
   const [gallery, setGallery] = useState<GalleryImage[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [articles, setArticles] = useState<Article[]>([])
-  const [slideIdx, setSlideIdx] = useState(0)
+  const [activeCard, setActiveCard] = useState(0)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     api.events.list(false).then((events) => {
@@ -59,8 +84,8 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const id = setInterval(() => setSlideIdx((i) => (i + 1) % SLIDES.length), 4000)
-    return () => clearInterval(id)
+    const t = setTimeout(() => setLoaded(true), 60)
+    return () => clearTimeout(t)
   }, [])
 
   const marqueeImages = [...gallery, ...gallery]
@@ -69,25 +94,133 @@ export default function Home() {
     <>
       <PageMeta />
 
+      <style>{`
+        @keyframes heroReveal {
+          from { opacity: 0; transform: translateY(1.2em); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes heroFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 6px)); } }
+      `}</style>
+
       {/* ─── HERO ─── */}
-      <section style={{ background: 'var(--c-surface)', borderBottom: '1px solid var(--c-border)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(56px, 10vw, 120px) clamp(20px, 4vw, 48px)' }}>
-        <div style={{ position: 'relative', width: 'clamp(200px, 32vw, 340px)', aspectRatio: '1/1' }}>
-          {SLIDES.map(({ src, alt, scale }, i) => (
-            <img
-              key={src}
-              src={src}
-              alt={alt}
-              style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: `translate(-50%, -50%) scale(${scale})`,
-                width: '100%', height: '100%', objectFit: 'contain',
-                opacity: slideIdx === i ? 1 : 0,
-                transition: 'opacity 1.2s ease',
-                pointerEvents: 'none',
-              }}
-            />
-          ))}
+      <section style={{ padding: 'clamp(64px, 10vw, 120px) clamp(20px, 4vw, 48px) clamp(32px, 5vw, 64px)', maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ overflow: 'hidden' }}>
+          <p style={{
+            fontFamily: SERIF,
+            fontSize: 'clamp(40px, 7vw, 96px)',
+            fontWeight: 300, fontStyle: 'italic',
+            letterSpacing: '0.02em', lineHeight: 1.15,
+            color: 'var(--c-ink)', margin: 0,
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
+            transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.3s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.3s',
+          }}>
+            Collect<br />the strange.
+          </p>
         </div>
+        <p style={{
+          fontFamily: SANS,
+          fontSize: 'clamp(11px, 1.1vw, 13px)',
+          color: 'var(--c-muted)', letterSpacing: '0.08em',
+          margin: 'clamp(20px, 3vw, 36px) 0 0', lineHeight: 2,
+          fontWeight: 300,
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.6s',
+        }}>
+          珍しい植物と共に暮らすための専門ブランド
+        </p>
+      </section>
+
+      {/* ─── BRAND GROW-STRIP ─── */}
+      <section
+        style={{ overflow: 'hidden', height: 'clamp(260px, 38vw, 520px)', display: 'flex' }}
+        onMouseLeave={() => setActiveCard(0)}
+      >
+        {BRAND_CARDS.map((card, i) => (
+          <Link
+            key={card.to}
+            to={card.to}
+            onMouseEnter={() => setActiveCard(i)}
+            style={{
+              flex: activeCard === i ? '0 0 55%' : '1 1 0',
+              overflow: 'hidden',
+              position: 'relative',
+              transition: 'flex 0.85s cubic-bezier(.22,1,.36,1)',
+              textDecoration: 'none',
+              display: 'block',
+              background: card.bg,
+            }}
+          >
+            {card.img && (
+              <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                <img
+                  src={card.img}
+                  alt=""
+                  style={{
+                    width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                    transform: activeCard === i ? 'scale(1.05)' : 'scale(1)',
+                    transition: 'transform 1.2s cubic-bezier(.22,1,.36,1)',
+                  }}
+                />
+              </div>
+            )}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: `linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)`,
+            }} />
+
+            {/* 折りたたみ時のラベル（縦書き） */}
+            <div style={{
+              position: 'absolute', bottom: 24, left: 18,
+              opacity: activeCard === i ? 0 : 1,
+              transition: 'opacity 0.3s',
+              writingMode: 'vertical-rl',
+              fontSize: 10, letterSpacing: '0.2em',
+              color: 'rgba(255,255,255,0.75)',
+              textTransform: 'uppercase', fontWeight: 300,
+              whiteSpace: 'nowrap',
+            }}>
+              {card.name}
+            </div>
+
+            {/* 展開時の情報 */}
+            <div style={{
+              position: 'absolute', bottom: 32, left: 28, right: 28,
+              opacity: activeCard === i ? 1 : 0,
+              transform: activeCard === i ? 'translateY(0)' : 'translateY(16px)',
+              transition: 'opacity 0.5s cubic-bezier(.22,1,.36,1) 0.15s, transform 0.5s cubic-bezier(.22,1,.36,1) 0.15s',
+            }}>
+              <img
+                src={card.logo}
+                alt={card.name}
+                style={{
+                  height: 40, width: 'auto', objectFit: 'contain',
+                  display: 'block', marginBottom: 12,
+                  filter: 'brightness(0) invert(1)',
+                }}
+              />
+              <p style={{
+                fontSize: 12, color: 'rgba(255,255,255,0.85)',
+                letterSpacing: '0.06em', lineHeight: 1.8,
+                margin: '0 0 16px', fontWeight: 300,
+                fontFamily: SANS,
+              }}>
+                {card.desc}
+              </p>
+              <span style={{
+                fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.6)', fontWeight: 300, fontFamily: SANS,
+                borderBottom: '1px solid rgba(255,255,255,0.4)', paddingBottom: 2,
+              }}>
+                View Brand
+              </span>
+            </div>
+          </Link>
+        ))}
       </section>
 
       <hr style={divider} />
@@ -95,7 +228,7 @@ export default function Home() {
       {/* ─── NEXT EVENT ─── */}
       {nextEvent && (
         <>
-          <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) clamp(20px, 4vw, 48px)' }}>
+          <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Next Event
@@ -113,7 +246,7 @@ export default function Home() {
       {/* ─── SHOP ─── */}
       {products.length > 0 && (
         <>
-          <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) clamp(20px, 4vw, 48px)' }}>
+          <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Shop
@@ -129,19 +262,19 @@ export default function Home() {
                     onMouseEnter={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1.05)' }}
                     onMouseLeave={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1)' }}
                   >
-                    <div style={{ position: 'relative', aspectRatio: '1/1', background: '#e8e3da', overflow: 'hidden', marginBottom: 12 }}>
+                    <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--c-border)', overflow: 'hidden', marginBottom: 12 }}>
                       {p.image_urls[0] ? (
-                        <img src={p.image_urls[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.6s ease' }} />
+                        <img src={p.image_urls[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.6s cubic-bezier(.22,1,.36,1)' }} />
                       ) : (
-                        <div style={{ width: '100%', height: '100%', background: '#e0dbd2' }} />
+                        <div style={{ width: '100%', height: '100%', background: 'var(--c-faint)' }} />
                       )}
                       {p.stock === 0 && (
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,26,24,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: '#fffdf9', border: '1px solid rgba(255,253,249,0.65)', padding: '6px 16px' }}>SOLD OUT</span>
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: '#ffffff', border: '1px solid rgba(255,255,255,0.6)', padding: '6px 16px' }}>SOLD OUT</span>
                         </div>
                       )}
                     </div>
-                    <p style={{ fontFamily: SERIF, fontSize: 'clamp(14px, 1.4vw, 16px)', color: 'var(--c-ink)', margin: '0 0 5px', lineHeight: 1.4 }}>{p.name}</p>
+                    <p style={{ fontFamily: SERIF, fontSize: 'clamp(14px, 1.4vw, 16px)', color: 'var(--c-ink)', margin: '0 0 5px', lineHeight: 1.5 }}>{p.name}</p>
                     <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>{fmt(p.price)}</p>
                   </div>
                 </Link>
@@ -155,7 +288,7 @@ export default function Home() {
       {/* ─── JOURNAL ─── */}
       {articles.length > 0 && (
         <>
-          <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(40px, 6vw, 72px) clamp(20px, 4vw, 48px)' }}>
+          <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Journal
@@ -168,14 +301,14 @@ export default function Home() {
               {articles.map((a, idx) => (
                 <Link key={a.id} to={`/journal/${a.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', gridColumn: idx === 0 ? 'span 2' : undefined }} className={idx === 0 ? 'home-journal-featured' : ''}>
                   <div style={{ display: idx === 0 ? undefined : 'flex', flexDirection: idx === 0 ? undefined : 'column', height: '100%' }}>
-                    <div style={{ overflow: 'hidden', background: '#e8e3da', aspectRatio: idx === 0 ? '16/7' : '4/3', marginBottom: 16, position: 'relative' }}>
+                    <div style={{ overflow: 'hidden', background: 'var(--c-border)', aspectRatio: idx === 0 ? '16/7' : '4/3', marginBottom: 16, position: 'relative' }}>
                       {a.image_urls[0] ? (
-                        <img src={a.image_urls[0]} alt={a.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.6s ease' }}
+                        <img src={a.image_urls[0]} alt={a.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.6s cubic-bezier(.22,1,.36,1)' }}
                           onMouseEnter={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)' }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)' }}
                         />
                       ) : (
-                        <div style={{ width: '100%', height: '100%', background: '#e0dbd2' }} />
+                        <div style={{ width: '100%', height: '100%', background: 'var(--c-faint)' }} />
                       )}
                     </div>
                     {a.published_at && (
@@ -201,7 +334,7 @@ export default function Home() {
       {/* ─── GALLERY マーキー ─── */}
       {gallery.length > 0 && (
         <>
-          <section style={{ padding: 'clamp(32px, 5vw, 56px) 0' }}>
+          <section style={{ padding: 'clamp(56px, 8vw, 96px) 0' }}>
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 24 }}>
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Gallery
@@ -221,12 +354,11 @@ export default function Home() {
             </div>
           </section>
           <hr style={divider} />
-          <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 6px)); } }`}</style>
         </>
       )}
 
       {/* ─── INSTAGRAM ─── */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(48px, 7vw, 80px) clamp(20px, 4vw, 48px)', textAlign: 'center' }}>
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)', textAlign: 'center' }}>
         <p style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: 'var(--c-faint)', margin: '0 0 8px', textTransform: 'uppercase' }}>Follow us</p>
         <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 300, fontStyle: 'italic', color: 'var(--c-ink)', margin: '0 0 clamp(28px, 4vw, 44px)', letterSpacing: '0.06em' }}>Instagram</p>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'clamp(24px, 5vw, 60px)', flexWrap: 'wrap' }}>

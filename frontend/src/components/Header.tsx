@@ -1,35 +1,75 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, Link } from 'react-router-dom'
+
+const BRAND_ITEMS = [
+  { to: '/ei8htplants', label: 'ei8ht plants' },
+  { to: '/habitatoides', label: 'Habitat Oides' },
+  { to: '/hue', label: 'HUE by ei8ht plants' },
+]
+
+const NAV_ITEMS = [
+  { to: '/', label: 'Home', end: true },
+  { to: '/events', label: 'Event' },
+  { to: '/gallery', label: 'Gallery' },
+  { to: '/concept', label: 'Concept' },
+  { to: '/stockists', label: 'Stockists' },
+  { to: '/collaborations', label: 'Collabs' },
+  { to: '/contact', label: 'Contact' },
+]
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [brandOpen, setBrandOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 4)
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [menuOpen])
 
   const navItemStyle = (isActive: boolean): React.CSSProperties => ({
-    fontSize: 13, fontWeight: 500, letterSpacing: '1.5px',
-    textDecoration: 'none', padding: '5px 10px', borderRadius: 3,
-    color: isActive ? '#fff' : '#8a9a7e',
-    background: isActive ? '#1c2417' : 'transparent',
-    transition: 'background 0.15s, color 0.15s',
+    fontSize: 11,
+    fontWeight: 300,
+    letterSpacing: '0.14em',
+    textDecoration: 'none',
+    padding: '4px 0',
+    color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+    borderBottom: isActive ? '1px solid var(--c-ink)' : '1px solid transparent',
+    transition: 'color 0.2s, border-color 0.2s',
+    textTransform: 'uppercase' as const,
+    whiteSpace: 'nowrap' as const,
   })
 
-  const navItems = (
+  const desktopNav = (
     <>
-      <NavLink to="/" end style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>HOME</NavLink>
-      <NavLink to="/events" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>EVENT</NavLink>
-      <NavLink to="/gallery" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>GALLERY</NavLink>
+      {NAV_ITEMS.map(({ to, label, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          style={({ isActive }) => navItemStyle(isActive)}
+        >
+          {label}
+        </NavLink>
+      ))}
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <span
-          style={{ ...navItemStyle(false), cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
+          style={{ ...navItemStyle(false), cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, userSelect: 'none' }}
           onClick={() => setBrandOpen(!brandOpen)}
           onMouseEnter={() => setBrandOpen(true)}
           onMouseLeave={() => setBrandOpen(false)}
         >
-          BRAND
+          Brand
           <span style={{
-            display: 'inline-block', width: 5, height: 5,
-            borderRight: '1.5px solid currentColor', borderBottom: '1.5px solid currentColor',
+            display: 'inline-block', width: 4, height: 4,
+            borderRight: '1px solid currentColor', borderBottom: '1px solid currentColor',
             transform: 'rotate(45deg) translateY(-2px)',
           }} />
         </span>
@@ -38,22 +78,25 @@ export default function Header() {
             onMouseEnter={() => setBrandOpen(true)}
             onMouseLeave={() => setBrandOpen(false)}
             style={{
-              position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-              background: 'rgba(245,245,247,0.98)', border: '1px solid #dddde8',
-              boxShadow: '0 8px 32px rgba(40,35,20,0.10)', minWidth: 200,
-              zIndex: 200, padding: '8px 0', borderRadius: 4,
+              position: 'absolute', top: 'calc(100% + 14px)', left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'var(--c-surface)',
+              border: '1px solid var(--c-border)',
+              minWidth: 190, zIndex: 200, padding: '6px 0',
             }}
           >
-            {[
-              { to: '/ei8htplants', label: 'ei8ht plants' },
-              { to: '/habitatoides', label: 'Habitat Oides' },
-              { to: '/hue', label: 'HUE by ei8ht plants' },
-            ].map(({ to, label }) => (
+            {BRAND_ITEMS.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}
-                onClick={() => { setBrandOpen(false); setMenuOpen(false) }}
-                style={({ isActive }) => ({ display: 'block', padding: '11px 20px', fontSize: 12, letterSpacing: '1.5px', textTransform: 'uppercase', textDecoration: 'none', color: isActive ? '#fff' : '#8a9a7e', background: isActive ? '#1c2417' : 'transparent' })}
+                onClick={() => setBrandOpen(false)}
+                style={({ isActive }) => ({
+                  display: 'block', padding: '10px 20px',
+                  fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase',
+                  textDecoration: 'none', fontWeight: 300,
+                  color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+                  transition: 'color 0.2s',
+                })}
               >
                 {label}
               </NavLink>
@@ -62,67 +105,151 @@ export default function Header() {
         )}
       </div>
 
-      <NavLink to="/concept" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>CONCEPT</NavLink>
-      <NavLink to="/stockists" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>STOCKISTS</NavLink>
-      <NavLink to="/collaborations" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>COLLABORATIONS</NavLink>
-      <NavLink to="/contact" style={({ isActive }) => navItemStyle(isActive)} onClick={() => setMenuOpen(false)}>CONTACT</NavLink>
       <Link
         to="/shop"
-        onClick={() => setMenuOpen(false)}
-        style={{ fontSize: 12, fontWeight: 600, letterSpacing: '2px', textDecoration: 'none', padding: '6px 16px', background: 'var(--c-ink)', color: '#fffdf9', whiteSpace: 'nowrap', transition: 'opacity 0.15s' }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.8' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '1' }}
+        style={{
+          fontSize: 11, fontWeight: 300, letterSpacing: '0.14em',
+          textDecoration: 'none', padding: '5px 14px',
+          border: '1px solid var(--c-ink)', color: 'var(--c-ink)',
+          whiteSpace: 'nowrap', transition: 'background 0.2s, color 0.2s',
+          textTransform: 'uppercase',
+        }}
+        onMouseEnter={(e) => {
+          ;(e.currentTarget as HTMLAnchorElement).style.background = 'var(--c-ink)'
+          ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-bg)'
+        }}
+        onMouseLeave={(e) => {
+          ;(e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+          ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)'
+        }}
       >
-        SHOP
+        Shop
       </Link>
     </>
   )
 
   return (
-    <header
-      style={{
-        position: 'fixed', top: 0, left: 0, width: '100%',
-        background: 'rgba(245,245,247,0.97)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid #b0b0c4',
-        boxShadow: '0 2px 16px rgba(40,35,20,0.08)',
-        zIndex: 1000,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 30px', boxSizing: 'border-box', minHeight: 60,
-      }}
-    >
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-        <img
-          src="/img/text-logo-ei8htplants.png"
-          alt="ei8ht plants"
-          style={{ height: 32, width: 'auto', objectFit: 'contain' }}
-        />
-      </Link>
-
-      <button
-        className="menu-btn"
-        onClick={() => setMenuOpen(!menuOpen)}
-        aria-label="menu"
+    <>
+      <header
+        style={{
+          position: 'fixed', top: 0, left: 0, width: '100%',
+          background: 'var(--c-bg)',
+          borderBottom: scrolled ? '1px solid var(--c-border)' : '1px solid transparent',
+          zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 clamp(20px, 4vw, 48px)', boxSizing: 'border-box', height: 64,
+          transition: 'border-color 0.3s',
+        }}
       >
-        <span style={{ display: 'block', width: 25, height: 2, background: 'var(--c-ink)', margin: '5px 0', transition: '0.3s' }} />
-        <span style={{ display: 'block', width: 25, height: 2, background: 'var(--c-ink)', margin: '5px 0', transition: '0.3s' }} />
-        <span style={{ display: 'block', width: 25, height: 2, background: 'var(--c-ink)', margin: '5px 0', transition: '0.3s' }} />
-      </button>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <img
+            src="/img/text-logo-ei8htplants.png"
+            alt="ei8ht plants"
+            style={{ height: 26, width: 'auto', objectFit: 'contain' }}
+          />
+        </Link>
 
-      <nav className="header-nav-desktop" style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-        {navItems}
-      </nav>
+        <nav className="header-nav-desktop" style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+          {desktopNav}
+        </nav>
 
-      <nav className={`header-nav-overlay${menuOpen ? ' nav-open' : ''}`}>
-        {navItems}
-      </nav>
+        <button
+          className="menu-btn"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label={menuOpen ? 'close menu' : 'open menu'}
+          style={{ padding: 8, zIndex: 1100 }}
+        >
+          <span style={{
+            display: 'block', width: 22, height: 1,
+            background: 'var(--c-ink)',
+            transition: 'transform 0.35s cubic-bezier(.22,1,.36,1)',
+            transform: menuOpen ? 'translateY(4.5px) rotate(45deg)' : 'none',
+          }} />
+          <span style={{
+            display: 'block', height: 1,
+            background: 'var(--c-ink)',
+            transition: 'transform 0.35s cubic-bezier(.22,1,.36,1), width 0.35s cubic-bezier(.22,1,.36,1)',
+            width: menuOpen ? 22 : 11,
+            marginTop: 8,
+            transform: menuOpen ? 'translateY(-4.5px) rotate(-45deg)' : 'none',
+          }} />
+        </button>
+      </header>
 
-      {menuOpen && (
-        <div
+      {/* モバイルオーバーレイ */}
+      <div
+        onClick={() => setMenuOpen(false)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1040,
+          background: 'rgba(66,66,66,0.25)',
+          opacity: menuOpen ? 1 : 0,
+          visibility: menuOpen ? 'visible' : 'hidden',
+          transition: 'opacity 0.35s, visibility 0.35s',
+          backdropFilter: menuOpen ? 'blur(2px)' : 'none',
+        }}
+      />
+      <nav
+        style={{
+          position: 'fixed', top: 0, right: 0, height: '100vh',
+          width: 'min(320px, 85vw)',
+          background: 'var(--c-surface)',
+          zIndex: 1050,
+          display: 'flex', flexDirection: 'column',
+          padding: '96px 40px 48px',
+          gap: 32,
+          transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.4s cubic-bezier(.22,1,.36,1)',
+          overflowY: 'auto',
+        }}
+      >
+        {NAV_ITEMS.map(({ to, label, end }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            onClick={() => setMenuOpen(false)}
+            style={({ isActive }) => ({
+              fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
+              textDecoration: 'none', textTransform: 'uppercase',
+              color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+              borderBottom: isActive ? '1px solid var(--c-ink)' : '1px solid transparent',
+              paddingBottom: 4, display: 'inline-block',
+              transition: 'color 0.2s',
+            })}
+          >
+            {label}
+          </NavLink>
+        ))}
+        <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
+        {BRAND_ITEMS.map(({ to, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            onClick={() => setMenuOpen(false)}
+            style={({ isActive }) => ({
+              fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
+              textDecoration: 'none', textTransform: 'uppercase',
+              color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+              transition: 'color 0.2s',
+            })}
+          >
+            {label}
+          </NavLink>
+        ))}
+        <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
+        <NavLink
+          to="/shop"
           onClick={() => setMenuOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 1040, background: 'rgba(0,0,0,0.2)' }}
-        />
-      )}
-    </header>
+          style={({ isActive }) => ({
+            fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
+            textDecoration: 'none', textTransform: 'uppercase',
+            color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+            transition: 'color 0.2s',
+          })}
+        >
+          Shop
+        </NavLink>
+      </nav>
+    </>
   )
 }

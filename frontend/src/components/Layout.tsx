@@ -6,7 +6,7 @@ export default function Layout() {
   return (
     <>
       <Header />
-      <main className="site-main" style={{ paddingTop: 60, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className="site-main" style={{ paddingTop: 64, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </main>
       <Footer />

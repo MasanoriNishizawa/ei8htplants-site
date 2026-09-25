@@ -4,16 +4,15 @@
 
 :root {
   color-scheme: only light;
-  /* カラーシステム */
-  --c-bg:        #f0ece5;   /* サイト全体の地 — ウォームクリーム */
-  --c-surface:   #fffdf9;   /* カード・パネルの白 */
-  --c-ink:       #1a1a18;   /* 見出し・強テキスト */
-  --c-body:      #3d3d3a;   /* 本文テキスト */
-  --c-muted:     #7a7570;   /* メタ情報・キャプション */
-  --c-faint:     #b4ada4;   /* ラベル・プレースホルダー */
-  --c-border:    #e2dbd0;   /* 区切り線 */
-  --c-green:     #2d4a27;   /* ei8ht plants ブランドグリーン */
-  --c-blue:      #1e3272;   /* Habitat Oides ブランドブルー */
+  --c-bg:        #f2f2f2;
+  --c-surface:   #ffffff;
+  --c-ink:       #424242;
+  --c-body:      #424242;
+  --c-muted:     #9e9e9e;
+  --c-faint:     #bdbdbd;
+  --c-border:    #dadada;
+  --c-green:     #2d4a27;
+  --c-blue:      #1e3272;
 }
 
 * {
@@ -22,6 +21,9 @@
 
 body {
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-weight: 300;
+  line-height: 2.1;
+  letter-spacing: 0.04em;
   background-color: var(--c-bg);
   color: var(--c-ink);
   margin: 0;
@@ -47,7 +49,7 @@ body {
   right: -100%;
   width: 75%;
   height: 100vh;
-  background: rgba(245,245,247,0.99);
+  background: rgba(255,255,255,0.99);
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -130,9 +132,6 @@ body {
   gap: 20px;
   align-items: start;
 }
-.header-nav-desktop > *:not(:last-child) {
-  border-right: 1px solid #d0d0dc;
-}
 
 @media (max-width: 768px) {
   .menu-btn {
@@ -168,18 +167,18 @@ body {
 
 /* ---- Brand pages ---- */
 .hero-wrapper {
-  height: calc(100vh - 60px);
+  height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
 }
 
 .brand-subnav {
   position: sticky;
-  top: 60px;
+  top: 64px;
   z-index: 90;
-  background: rgba(255,255,255,0.96);
+  background: rgba(242,242,242,0.96);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid #dddde8;
+  border-bottom: 1px solid var(--c-border);
   flex-shrink: 0;
 }
 .brand-subnav-inner {
@@ -379,7 +378,7 @@ body {
 }
 
 @media (max-width: 768px) {
-  .hero-wrapper { height: auto; min-height: calc(100vh - 60px); }
+  .hero-wrapper { height: auto; min-height: calc(100vh - 64px); }
   .ep-hero, .ho-hero, .hue-hero { min-height: 50vh; }
 }
 @media (max-width: 700px) {
