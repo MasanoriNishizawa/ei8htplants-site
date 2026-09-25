@@ -113,6 +113,7 @@ export default function AdminEventSite() {
     setSaving(true)
     try {
       await api.events.savePageContent(id, pc)
+      try { localStorage.setItem(`event_dirty_${id}`, '1') } catch { /* ignore */ }
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } finally {

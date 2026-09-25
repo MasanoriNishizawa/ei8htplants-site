@@ -3,10 +3,14 @@ import { supabase } from './supabase'
 const BASE = '/api'
 
 
+function isAdminPage() {
+  return typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const { headers: optHeaders, ...restOptions } = options ?? {}
   const res = await fetch(`${BASE}${path}`, {
-    cache: 'no-store',
+    ...(isAdminPage() ? { cache: 'no-store' } : {}),
     headers: { 'Content-Type': 'application/json', ...optHeaders },
     ...restOptions,
   })
@@ -84,7 +88,7 @@ export const api = {
   },
   events: {
     list: (past = false) => request<Event[]>(`/events?past=${past}`),
-    get: (id: string) => request<Event>(`/events/${id}`),
+    get: (id: string, opts?: RequestInit) => request<Event>(`/events/${id}`, opts),
     create: (body: EventBody) =>
       authRequest<Event>('/events', { method: 'POST', body: JSON.stringify(body) }),
     update: (id: string, body: EventBody) =>

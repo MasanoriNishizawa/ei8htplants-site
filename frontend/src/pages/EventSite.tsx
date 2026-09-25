@@ -32,7 +32,14 @@ export default function EventSite() {
 
   useEffect(() => {
     if (!id) return
-    api.events.get(id).then(setEvent).catch(() => setEvent(null)).finally(() => setLoading(false))
+    let fetchOpts: RequestInit | undefined
+    try {
+      if (localStorage.getItem(`event_dirty_${id}`)) {
+        localStorage.removeItem(`event_dirty_${id}`)
+        fetchOpts = { cache: 'no-store' }
+      }
+    } catch { /* ignore */ }
+    api.events.get(id, fetchOpts).then(setEvent).catch(() => setEvent(null)).finally(() => setLoading(false))
   }, [id])
 
   if (loading) return <div style={{ padding: '120px 20px', textAlign: 'center', color: 'var(--c-muted)' }}>読み込み中...</div>
