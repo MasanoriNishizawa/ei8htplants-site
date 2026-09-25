@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Link } from 'react-router-dom'
+import { useLang } from '../lib/lang'
 
 const BRAND_ITEMS = [
   { to: '/ei8htplants', label: 'ei8ht plants' },
@@ -21,6 +22,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [brandOpen, setBrandOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const { lang, toggle: toggleLang } = useLang()
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 4)
@@ -59,12 +61,14 @@ export default function Header() {
         </NavLink>
       ))}
 
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <div
+        style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+        onMouseEnter={() => setBrandOpen(true)}
+        onMouseLeave={() => setBrandOpen(false)}
+      >
         <span
           style={{ ...navItemStyle(false), cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, userSelect: 'none' }}
           onClick={() => setBrandOpen(!brandOpen)}
-          onMouseEnter={() => setBrandOpen(true)}
-          onMouseLeave={() => setBrandOpen(false)}
         >
           Brand
           <span style={{
@@ -75,10 +79,8 @@ export default function Header() {
         </span>
         {brandOpen && (
           <div
-            onMouseEnter={() => setBrandOpen(true)}
-            onMouseLeave={() => setBrandOpen(false)}
             style={{
-              position: 'absolute', top: 'calc(100% + 14px)', left: '50%',
+              position: 'absolute', top: 'calc(100% + 4px)', left: '50%',
               transform: 'translateX(-50%)',
               background: 'var(--c-surface)',
               border: '1px solid var(--c-border)',
@@ -151,6 +153,19 @@ export default function Header() {
 
         <nav className="header-nav-desktop" style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
           {desktopNav}
+          <button
+            onClick={toggleLang}
+            style={{
+              fontSize: 10, fontWeight: 300, letterSpacing: '0.14em',
+              background: 'none', border: '1px solid var(--c-border)',
+              color: 'var(--c-muted)', cursor: 'pointer', padding: '4px 10px',
+              transition: 'color 0.2s, border-color 0.2s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--c-ink)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--c-ink)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--c-muted)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--c-border)' }}
+          >
+            {lang === 'ja' ? 'EN' : 'JA'}
+          </button>
         </nav>
 
         <button

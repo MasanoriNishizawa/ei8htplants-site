@@ -5,13 +5,14 @@ import { api, type Event, type GalleryImage, type Product, type Article } from '
 import { parseBlocks } from '../components/BlockEditor'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
+import { useT } from '../lib/lang'
 
 const BRAND_CARDS = [
   {
     to: '/ei8htplants',
     name: 'ei8ht plants',
-    label: 'Plant Label',
-    desc: '珍しい多肉植物・サボテンの専門ブランド',
+    descJa: '珍しい多肉植物・サボテンの専門ブランド',
+    descEn: 'Specialty succulents & cacti',
     bg: '#2d4a27',
     img: 'https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0',
     logo: '/img/logo-ei8htplants.png',
@@ -19,8 +20,8 @@ const BRAND_CARDS = [
   {
     to: '/habitatoides',
     name: 'Habitat Oides',
-    label: 'Workshop',
-    desc: 'コウモリランなど着生植物のワークショップ',
+    descJa: 'コウモリランなど着生植物のワークショップ',
+    descEn: 'Workshops for epiphytic plants',
     bg: '#1e3272',
     img: '/img/habitatOides/habitat_oides_hero.jpg',
     logo: '/img/logo-habitatoides.png',
@@ -28,8 +29,8 @@ const BRAND_CARDS = [
   {
     to: '/hue',
     name: 'HUE',
-    label: 'Lifestyle',
-    desc: '植物と暮らすライフスタイルブランド',
+    descJa: '植物と暮らすライフスタイルブランド',
+    descEn: 'A lifestyle brand for plant lovers',
     bg: '#3d2a1a',
     img: null,
     logo: '/img/logo-hue.png',
@@ -71,6 +72,7 @@ export default function Home() {
   const [activeCard, setActiveCard] = useState(0)
   const [loaded, setLoaded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const t = useT()
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
@@ -104,44 +106,85 @@ export default function Home() {
       <PageMeta />
 
       <style>{`
-        @keyframes heroReveal {
-          from { opacity: 0; transform: translateY(1.2em); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes heroFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+        @keyframes bgBlob {
+          0%,100% { transform: translate(-50%,-50%) scale(1); }
+          25% { transform: translate(-48%,-53%) scale(1.06); }
+          50% { transform: translate(-53%,-47%) scale(0.94); }
+          75% { transform: translate(-47%,-54%) scale(1.03); }
         }
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 6px)); } }
       `}</style>
 
       {/* ─── HERO ─── */}
-      <section style={{ padding: 'clamp(64px, 10vw, 120px) clamp(20px, 4vw, 48px) clamp(32px, 5vw, 64px)', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ overflow: 'hidden' }}>
-          <p style={{
-            fontFamily: SERIF,
-            fontSize: 'clamp(40px, 7vw, 96px)',
-            fontWeight: 300, fontStyle: 'italic',
-            letterSpacing: '0.02em', lineHeight: 1.15,
-            color: 'var(--c-ink)', margin: 0,
+      <section style={{
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: 'calc(100vh - 64px)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: 'clamp(48px, 7vw, 96px) clamp(20px, 4vw, 48px) clamp(48px, 7vw, 80px)',
+      }}>
+        {/* 背景アニメーション */}
+        <div style={{
+          position: 'absolute',
+          top: '50%', left: '50%',
+          width: '130%', height: '130%',
+          background: 'radial-gradient(ellipse 58% 48% at 55% 50%, rgba(255,255,255,0.7) 0%, transparent 68%)',
+          animation: 'bgBlob 16s ease-in-out infinite',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }} />
+
+        {/* ロゴ（上部） */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <img
+            src="/img/text-logo-ei8htplants.png"
+            alt="ei8ht plants"
+            style={{
+              width: 'clamp(180px, 20vw, 300px)',
+              height: 'auto', display: 'block',
+              opacity: loaded ? 1 : 0,
+              transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
+              transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.3s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.3s',
+            }}
+          />
+        </div>
+
+        {/* テキスト2カラム（下部） */}
+        <div className="hero-catch" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
             opacity: loaded ? 1 : 0,
             transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
-            transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.3s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.3s',
+            transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.6s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.6s',
           }}>
-            Collect<br />the strange.
-          </p>
+            <p style={{
+              fontFamily: SERIF, fontStyle: 'italic',
+              fontSize: 'clamp(13px, 1.1vw, 15px)',
+              fontWeight: 300, letterSpacing: '0.08em',
+              color: 'var(--c-muted)', margin: 0, lineHeight: 1.9,
+            }}>
+              Collect<br />the strange.
+            </p>
+          </div>
+          <div style={{
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
+            transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.85s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.85s',
+          }}>
+            <p style={{
+              fontFamily: SANS,
+              fontSize: 'clamp(22px, 3.6vw, 52px)',
+              fontWeight: 300, letterSpacing: '0.04em',
+              color: 'var(--c-ink)', margin: 0, lineHeight: 1.55,
+            }}>
+              {t(
+                <>珍しい植物と<br />共に暮らすための<br />専門ブランド</>,
+                <>A specialty brand<br />for living with<br />rare plants</>
+              )}
+            </p>
+          </div>
         </div>
-        <p style={{
-          fontFamily: SANS,
-          fontSize: 'clamp(11px, 1.1vw, 13px)',
-          color: 'var(--c-muted)', letterSpacing: '0.08em',
-          margin: 'clamp(20px, 3vw, 36px) 0 0', lineHeight: 2,
-          fontWeight: 300,
-          opacity: loaded ? 1 : 0,
-          transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.6s',
-        }}>
-          珍しい植物と共に暮らすための専門ブランド
-        </p>
       </section>
 
       {/* ─── BRAND GROW-STRIP ─── */}
@@ -218,7 +261,7 @@ export default function Home() {
                     letterSpacing: '0.06em', lineHeight: 1.8,
                     margin: '0 0 16px', fontWeight: 300, fontFamily: SANS,
                   }}>
-                    {card.desc}
+                    {t(card.descJa, card.descEn)}
                   </p>
                 )}
                 <span style={{
@@ -245,7 +288,7 @@ export default function Home() {
                 Next Event
               </h2>
               <Link to="/events" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                All Events →
+                {t('全イベント →', 'All Events →')}
               </Link>
             </div>
             <EventPreview event={nextEvent} horizontal />
@@ -370,7 +413,7 @@ export default function Home() {
 
       {/* ─── INSTAGRAM ─── */}
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)', textAlign: 'center' }}>
-        <p style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: 'var(--c-faint)', margin: '0 0 8px', textTransform: 'uppercase' }}>Follow us</p>
+        <p style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: 'var(--c-faint)', margin: '0 0 8px', textTransform: 'uppercase' }}>{t('フォロー', 'Follow us')}</p>
         <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 300, fontStyle: 'italic', color: 'var(--c-ink)', margin: '0 0 clamp(28px, 4vw, 44px)', letterSpacing: '0.06em' }}>Instagram</p>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'clamp(24px, 5vw, 60px)', flexWrap: 'wrap' }}>
           {IG_LINKS.map(({ href, src, cls }) => (

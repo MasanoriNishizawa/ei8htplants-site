@@ -458,6 +458,31 @@ body {
   .shop-product-grid { grid-template-columns: repeat(3, 1fr); gap: 36px 24px; }
 }
 
+/* ---- Home ヒーロー テキスト2カラム ---- */
+.hero-catch {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(24px, 5vw, 80px);
+  flex-wrap: wrap;
+}
+.hero-catch > *:first-child {
+  flex: 1 1 140px;
+}
+.hero-catch > *:last-child {
+  flex: 2.4 1 240px;
+}
+@media (max-width: 600px) {
+  .hero-catch {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .hero-catch > *:first-child,
+  .hero-catch > *:last-child {
+    flex: none;
+  }
+}
+
 /* ---- Brand grow-strip ---- */
 .brand-strip {
   overflow: hidden;

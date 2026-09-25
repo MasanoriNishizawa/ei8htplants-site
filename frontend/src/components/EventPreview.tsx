@@ -68,7 +68,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
       {/* 画像 */}
       {images.length > 0 && (
         <div
-          style={{ position: 'relative', background: 'var(--c-bg)', overflow: 'hidden' }}
+          style={{ position: 'relative', background: 'var(--c-bg)', overflow: 'hidden', aspectRatio: '4/3', maxHeight: 280 }}
           onTouchStart={e => { touchX.current = e.touches[0].clientX }}
           onTouchEnd={e => {
             if (touchX.current === null) return
@@ -82,7 +82,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
             src={images[imgIdx].url}
             alt={event.name}
             onClick={() => setLightboxIdx(imgIdx)}
-            style={{ width: '100%', height: 'auto', display: 'block', cursor: 'zoom-in' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
             draggable={false}
           />
           {event.has_workshop && (
