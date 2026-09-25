@@ -179,8 +179,8 @@ export default function Home() {
               color: 'var(--c-ink)', margin: 0, lineHeight: 1.55,
             }}>
               {t(
-                <>珍しい植物と<br />共に暮らすための<br />専門ブランド</>,
-                <>A specialty brand<br />for living with<br />rare plants</>
+                <>育て、仕立て、<br />ともに暮らす。</>,
+                <>Grow it. Style it.<br />Live with it.</>
               )}
             </p>
           </div>
