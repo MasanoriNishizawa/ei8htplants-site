@@ -70,6 +70,15 @@ export default function Home() {
   const [articles, setArticles] = useState<Article[]>([])
   const [activeCard, setActiveCard] = useState(0)
   const [loaded, setLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     api.events.list(false).then((events) => {
@@ -137,90 +146,92 @@ export default function Home() {
 
       {/* ─── BRAND GROW-STRIP ─── */}
       <section
-        style={{ overflow: 'hidden', height: 'clamp(260px, 38vw, 520px)', display: 'flex' }}
-        onMouseLeave={() => setActiveCard(0)}
+        className="brand-strip"
+        onMouseLeave={() => !isMobile && setActiveCard(0)}
       >
-        {BRAND_CARDS.map((card, i) => (
-          <Link
-            key={card.to}
-            to={card.to}
-            onMouseEnter={() => setActiveCard(i)}
-            style={{
-              flex: activeCard === i ? '0 0 55%' : '1 1 0',
-              overflow: 'hidden',
-              position: 'relative',
-              transition: 'flex 0.85s cubic-bezier(.22,1,.36,1)',
-              textDecoration: 'none',
-              display: 'block',
-              background: card.bg,
-            }}
-          >
-            {card.img && (
-              <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        {BRAND_CARDS.map((card, i) => {
+          const isActive = isMobile || activeCard === i
+          return (
+            <Link
+              key={card.to}
+              to={card.to}
+              className="brand-strip-item"
+              onMouseEnter={() => !isMobile && setActiveCard(i)}
+              style={{
+                flex: isMobile ? undefined : (isActive ? '0 0 55%' : '1 1 0'),
+                background: card.bg,
+              }}
+            >
+              {card.img && (
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  <img
+                    src={card.img}
+                    alt=""
+                    style={{
+                      width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                      transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'transform 1.2s cubic-bezier(.22,1,.36,1)',
+                    }}
+                  />
+                </div>
+              )}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)',
+              }} />
+
+              {/* 折りたたみ時のラベル（縦書き・デスクトップのみ） */}
+              {!isMobile && (
+                <div style={{
+                  position: 'absolute', bottom: 24, left: 18,
+                  opacity: isActive ? 0 : 1,
+                  transition: 'opacity 0.3s',
+                  writingMode: 'vertical-rl',
+                  fontSize: 10, letterSpacing: '0.2em',
+                  color: 'rgba(255,255,255,0.75)',
+                  textTransform: 'uppercase', fontWeight: 300,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {card.name}
+                </div>
+              )}
+
+              {/* 展開時の情報（モバイルは常に表示） */}
+              <div style={{
+                position: 'absolute', bottom: isMobile ? 20 : 32, left: isMobile ? 20 : 28, right: isMobile ? 20 : 28,
+                opacity: isActive ? 1 : 0,
+                transform: isActive ? 'translateY(0)' : 'translateY(16px)',
+                transition: isMobile ? 'none' : 'opacity 0.5s cubic-bezier(.22,1,.36,1) 0.15s, transform 0.5s cubic-bezier(.22,1,.36,1) 0.15s',
+              }}>
                 <img
-                  src={card.img}
-                  alt=""
+                  src={card.logo}
+                  alt={card.name}
                   style={{
-                    width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-                    transform: activeCard === i ? 'scale(1.05)' : 'scale(1)',
-                    transition: 'transform 1.2s cubic-bezier(.22,1,.36,1)',
+                    height: isMobile ? 28 : 36, width: 'auto', objectFit: 'contain',
+                    display: 'block', marginBottom: isMobile ? 6 : 12,
+                    filter: 'brightness(0) invert(1)',
                   }}
                 />
+                {!isMobile && (
+                  <p style={{
+                    fontSize: 12, color: 'rgba(255,255,255,0.85)',
+                    letterSpacing: '0.06em', lineHeight: 1.8,
+                    margin: '0 0 16px', fontWeight: 300, fontFamily: SANS,
+                  }}>
+                    {card.desc}
+                  </p>
+                )}
+                <span style={{
+                  fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.6)', fontWeight: 300, fontFamily: SANS,
+                  borderBottom: '1px solid rgba(255,255,255,0.4)', paddingBottom: 2,
+                }}>
+                  View Brand
+                </span>
               </div>
-            )}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: `linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)`,
-            }} />
-
-            {/* 折りたたみ時のラベル（縦書き） */}
-            <div style={{
-              position: 'absolute', bottom: 24, left: 18,
-              opacity: activeCard === i ? 0 : 1,
-              transition: 'opacity 0.3s',
-              writingMode: 'vertical-rl',
-              fontSize: 10, letterSpacing: '0.2em',
-              color: 'rgba(255,255,255,0.75)',
-              textTransform: 'uppercase', fontWeight: 300,
-              whiteSpace: 'nowrap',
-            }}>
-              {card.name}
-            </div>
-
-            {/* 展開時の情報 */}
-            <div style={{
-              position: 'absolute', bottom: 32, left: 28, right: 28,
-              opacity: activeCard === i ? 1 : 0,
-              transform: activeCard === i ? 'translateY(0)' : 'translateY(16px)',
-              transition: 'opacity 0.5s cubic-bezier(.22,1,.36,1) 0.15s, transform 0.5s cubic-bezier(.22,1,.36,1) 0.15s',
-            }}>
-              <img
-                src={card.logo}
-                alt={card.name}
-                style={{
-                  height: 40, width: 'auto', objectFit: 'contain',
-                  display: 'block', marginBottom: 12,
-                  filter: 'brightness(0) invert(1)',
-                }}
-              />
-              <p style={{
-                fontSize: 12, color: 'rgba(255,255,255,0.85)',
-                letterSpacing: '0.06em', lineHeight: 1.8,
-                margin: '0 0 16px', fontWeight: 300,
-                fontFamily: SANS,
-              }}>
-                {card.desc}
-              </p>
-              <span style={{
-                fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.6)', fontWeight: 300, fontFamily: SANS,
-                borderBottom: '1px solid rgba(255,255,255,0.4)', paddingBottom: 2,
-              }}>
-                View Brand
-              </span>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          )
+        })}
       </section>
 
       <hr style={divider} />
