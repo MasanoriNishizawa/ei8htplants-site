@@ -201,6 +201,13 @@ export const api = {
     delete: (id: string) =>
       authRequest<{ ok: boolean }>(`/pot-artists/${id}`, { method: 'DELETE' }),
   },
+  priceCalcEntries: {
+    list: () => authRequest<PriceCalcEntry[]>('/price-calc-entries'),
+    add: (body: PriceCalcEntryBody) =>
+      authRequest<PriceCalcEntry>('/price-calc-entries', { method: 'POST', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      authRequest<{ ok: boolean }>(`/price-calc-entries/${id}`, { method: 'DELETE' }),
+  },
 }
 
 export interface PageContent {
@@ -431,6 +438,24 @@ export interface PotArtist {
   id: string
   name: string
   created_at: string
+}
+
+export interface PriceCalcEntry {
+  id: string
+  brand: string
+  plant_name: string
+  pot_artist_name: string | null
+  cost: number
+  selling_price: number
+  created_at: string
+}
+
+export interface PriceCalcEntryBody {
+  brand: string
+  plant_name: string
+  pot_artist_name: string | null
+  cost: number
+  selling_price: number
 }
 
 export const PRODUCT_CATEGORIES = [
