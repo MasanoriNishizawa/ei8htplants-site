@@ -90,10 +90,20 @@ def create_reservation(body: ReserveBody):
             _sync_reserved_count(body.session_id)
         except Exception as e:
             print(f'[reserve] sync reserved_count failed: {e}')
+    email_ok = True
     try:
         _send_confirmation(body)
     except Exception as e:
         print(f'[reserve] confirmation email failed: {e}')
+        email_ok = False
+    if not email_ok:
+        try:
+            admin_supabase.table('workshop_reservations') \
+                .update({'email_failed': True}) \
+                .eq('id', row['id']).execute()
+            row['email_failed'] = True
+        except Exception as e:
+            print(f'[reserve] failed to set email_failed flag: {e}')
     try:
         _send_admin_notification(body)
     except Exception as e:

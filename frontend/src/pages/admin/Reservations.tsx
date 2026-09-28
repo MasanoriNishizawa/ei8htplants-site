@@ -266,7 +266,14 @@ export default function AdminReservations() {
                       </td>
                     )}
                     <td style={{ padding: '12px 14px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                      <span>{r.name}</span>
+                      {r.email_failed && (
+                        <span style={{ marginLeft: 8, display: 'inline-block', padding: '2px 7px', background: '#fff0f0', border: '1px solid #f0b0b0', borderRadius: 3, fontSize: 11, color: '#c0392b', fontWeight: 500, letterSpacing: 0.3 }}>
+                          メール未送信
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: '12px 14px' }}><a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a></td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>{r.preferred_date ?? '-'}</td>

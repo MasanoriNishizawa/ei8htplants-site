@@ -360,6 +360,7 @@ export interface Reservation {
   preferred_date: string | null
   preferred_time: string | null
   created_at: string
+  email_failed: boolean | null
 }
 
 export interface WsSession {
