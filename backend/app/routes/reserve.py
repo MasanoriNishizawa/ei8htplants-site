@@ -2,7 +2,7 @@ import resend
 import secrets
 import string
 import threading
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from ..db import admin_supabase, supabase
@@ -90,20 +90,26 @@ def create_reservation(body: ReserveBody):
             _sync_reserved_count(body.session_id)
         except Exception as e:
             print(f'[reserve] sync reserved_count failed: {e}')
+    resend_email_id = None
     email_ok = True
     try:
-        _send_confirmation(body)
+        resend_email_id = _send_confirmation(body)
     except Exception as e:
         print(f'[reserve] confirmation email failed: {e}')
         email_ok = False
+
+    update: dict = {}
+    if resend_email_id:
+        update['resend_email_id'] = resend_email_id
     if not email_ok:
+        update['email_failed'] = True
+    if update:
         try:
-            admin_supabase.table('workshop_reservations') \
-                .update({'email_failed': True}) \
-                .eq('id', row['id']).execute()
-            row['email_failed'] = True
+            admin_supabase.table('workshop_reservations').update(update).eq('id', row['id']).execute()
+            row.update(update)
         except Exception as e:
-            print(f'[reserve] failed to set email_failed flag: {e}')
+            print(f'[reserve] failed to update email fields: {e}')
+
     try:
         _send_admin_notification(body)
     except Exception as e:
@@ -174,12 +180,12 @@ def _row(label: str, value: str) -> str:
     )
 
 
-def _send_confirmation(body: ReserveBody):
+def _send_confirmation(body: ReserveBody) -> str | None:
     if not HABITAT_RESEND_API_KEY:
-        return
+        return None
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
     if not event:
-        return
+        return None
     time_label = ''
     if body.session_id:
         session = admin_supabase.table('ws_sessions').select('time_label').eq('id', body.session_id).single().execute().data
@@ -219,13 +225,14 @@ def _send_confirmation(body: ReserveBody):
         f'参加人数: {body.participants} 名\n\nHabitat Oides\nhttps://ei8htplants.com'
     )
     resend.api_key = HABITAT_RESEND_API_KEY
-    resend.Emails.send({
+    result = resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': [body.email],
         'subject': f'[Habitat Oides] ワークショップ予約を受け付けました: {event["name"]}',
         'html': _html_wrap(content),
         'text': text,
     })
+    return result.get('id') if isinstance(result, dict) else getattr(result, 'id', None)
 
 
 def _send_admin_notification(body: ReserveBody):
@@ -319,6 +326,25 @@ def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
         'html': _html_wrap(content),
         'text': text,
     })
+
+
+@router.post('/webhook/resend')
+async def resend_webhook(request: Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        return {'ok': True}
+    event_type = payload.get('type', '')
+    if event_type == 'email.bounced':
+        email_id = payload.get('data', {}).get('email_id') or payload.get('data', {}).get('id')
+        if email_id:
+            try:
+                admin_supabase.table('workshop_reservations') \
+                    .update({'email_failed': True}) \
+                    .eq('resend_email_id', email_id).execute()
+            except Exception as e:
+                print(f'[webhook] failed to set email_failed: {e}')
+    return {'ok': True}
 
 
 @router.get('s')
