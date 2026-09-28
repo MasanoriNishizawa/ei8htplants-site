@@ -11,8 +11,8 @@ const BRAND_CARDS = [
   {
     to: '/ei8htplants',
     name: 'ei8ht plants',
-    descJa: '珍しい多肉植物・サボテンの専門ブランド',
-    descEn: 'Specialty succulents & cacti',
+    descJa: 'アガベ・塊根植物など、個性的なフォルムを持つビザールプランツ専門ライン',
+    descEn: 'Bizarre Plants — agaves, succulents & rare specimens',
     bg: '#2d4a27',
     img: 'https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0',
     logo: '/img/logo-ei8htplants.png',
@@ -20,8 +20,8 @@ const BRAND_CARDS = [
   {
     to: '/habitatoides',
     name: 'Habitat Oides',
-    descJa: 'コウモリランなど着生植物のワークショップ',
-    descEn: 'Workshops for epiphytic plants',
+    descJa: '自生地の景色を鉢の中に再現する、ハビタットスタイルの作品とワークショップ',
+    descEn: 'Habitat-style compositions & workshops — nature in a pot',
     bg: '#1e3272',
     img: '/img/habitatOides/habitat_oides_hero.jpg',
     logo: '/img/logo-habitatoides.png',
@@ -29,8 +29,8 @@ const BRAND_CARDS = [
   {
     to: '/hue',
     name: 'HUE',
-    descJa: '植物と暮らすライフスタイルブランド',
-    descEn: 'A lifestyle brand for plant lovers',
+    descJa: '色彩と形を楽しむ、インテリアのためのオーナメントプランツ',
+    descEn: 'Color & Form as Living Art — plants for your space',
     bg: '#3d2a1a',
     img: null,
     logo: '/img/logo-hue.png',
