@@ -122,7 +122,7 @@ export default function Home() {
         minHeight: 'calc(100vh - 64px)',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         padding: 'clamp(48px, 7vw, 96px) clamp(20px, 4vw, 48px) clamp(48px, 7vw, 80px)',
       }}>
         {/* 背景アニメーション */}
@@ -151,8 +151,8 @@ export default function Home() {
           />
         </div>
 
-        {/* テキスト2カラム（下部） */}
-        <div className="hero-catch" style={{ position: 'relative', zIndex: 1 }}>
+        {/* テキスト2カラム */}
+        <div className="hero-catch" style={{ position: 'relative', zIndex: 1, marginTop: 'clamp(56px, 14vh, 160px)' }}>
           <div style={{
             opacity: loaded ? 1 : 0,
             transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
