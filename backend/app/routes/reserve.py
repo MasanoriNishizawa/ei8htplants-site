@@ -232,7 +232,13 @@ def _send_confirmation(body: ReserveBody) -> str | None:
         'html': _html_wrap(content),
         'text': text,
     })
-    return result.get('id') if isinstance(result, dict) else getattr(result, 'id', None)
+    email_id = None
+    if isinstance(result, dict):
+        email_id = result.get('id')
+    else:
+        email_id = getattr(result, 'id', None)
+    print(f'[reserve] confirmation sent, resend id: {email_id}')
+    return email_id
 
 
 def _send_admin_notification(body: ReserveBody):
