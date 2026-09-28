@@ -275,7 +275,7 @@ export default function AdminReservations() {
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>
                       {bringFlags || <span style={{ color: '#ccc' }}>-</span>}
                     </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', maxWidth: 160 }}>{r.note ?? '-'}</td>
+                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', minWidth: 240, maxWidth: 360, wordBreak: 'break-word' }}>{r.note ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
