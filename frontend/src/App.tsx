@@ -43,6 +43,7 @@ import AdminProducts from './pages/admin/Products'
 import AdminOrders from './pages/admin/Orders'
 import AdminArticles from './pages/admin/Articles'
 import AdminFinances from './pages/admin/Finances'
+import PriceCalc from './pages/admin/PriceCalc'
 import Journal from './pages/Journal'
 import JournalArticle from './pages/JournalArticle'
 import EventSite from './pages/EventSite'
@@ -97,6 +98,7 @@ export default function App() {
             <Route path="orders" element={<AdminOrders />} />
             <Route path="articles" element={<AdminArticles />} />
             <Route path="finances" element={<AdminFinances />} />
+            <Route path="price-calc" element={<PriceCalc />} />
           </Route>
         </Routes>
       </BrowserRouter>
