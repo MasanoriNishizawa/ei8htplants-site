@@ -335,7 +335,7 @@ async def resend_webhook(request: Request):
     except Exception:
         return {'ok': True}
     event_type = payload.get('type', '')
-    if event_type == 'email.bounced':
+    if event_type in ('email.bounced', 'email.failed'):
         email_id = payload.get('data', {}).get('email_id') or payload.get('data', {}).get('id')
         if email_id:
             try:
