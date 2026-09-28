@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { api, type PotArtist } from '../../lib/api'
 
 type Brand = 'ei8htplants' | 'habitatoides' | 'hue'
 type SourceType = 'purchase' | 'seedling'
@@ -134,6 +135,128 @@ function Ei8htPlantsCalc() {
   )
 }
 
+function HabitatOidesCalc() {
+  const [plantPrice, setPlantPrice] = useState('')
+  const [potPrice, setPotPrice] = useState('')
+  const [artistId, setArtistId] = useState('')
+  const [artists, setArtists] = useState<PotArtist[]>([])
+
+  useEffect(() => {
+    api.potArtists.list().then(setArtists).catch(() => {})
+  }, [])
+
+  const plant = parseFloat(plantPrice)
+  const pot = parseFloat(potPrice)
+  const totalCost = (!isNaN(plant) && plant > 0 ? plant : 0) + (!isNaN(pot) && pot > 0 ? pot : 0)
+  const sellingPrice = totalCost > 0 ? totalCost * 2 : null
+
+  const inputStyle: React.CSSProperties = {
+    padding: '10px 14px',
+    border: '1px solid #dddde8',
+    borderRadius: 4,
+    fontSize: 16,
+    fontFamily: 'inherit',
+    width: '100%',
+    maxWidth: 280,
+    boxSizing: 'border-box',
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {/* 植物仕入れ値 */}
+      <div>
+        <p style={{ fontSize: 13, color: '#666', margin: '0 0 12px', fontWeight: 600, letterSpacing: 1 }}>
+          植物仕入れ値
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 15 }}>¥</span>
+          <input
+            type="number"
+            min="0"
+            className="num-plain"
+            placeholder="例: 3000"
+            value={plantPrice}
+            onChange={(e) => setPlantPrice(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
+      {/* 鉢仕入れ値 */}
+      <div>
+        <p style={{ fontSize: 13, color: '#666', margin: '0 0 12px', fontWeight: 600, letterSpacing: 1 }}>
+          鉢仕入れ値
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 15 }}>¥</span>
+          <input
+            type="number"
+            min="0"
+            className="num-plain"
+            placeholder="例: 5000"
+            value={potPrice}
+            onChange={(e) => setPotPrice(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
+      {/* 鉢作家 */}
+      <div>
+        <p style={{ fontSize: 13, color: '#666', margin: '0 0 12px', fontWeight: 600, letterSpacing: 1 }}>
+          鉢作家
+        </p>
+        <select
+          value={artistId}
+          onChange={(e) => setArtistId(e.target.value)}
+          style={{ ...inputStyle, cursor: 'pointer' }}
+        >
+          <option value="">選択してください</option>
+          {artists.map((a) => (
+            <option key={a.id} value={a.id}>{a.name}</option>
+          ))}
+        </select>
+        {artists.length === 0 && (
+          <p style={{ fontSize: 12, color: '#aaa', margin: '8px 0 0' }}>
+            鉢作家が未登録です。管理ページから追加してください。
+          </p>
+        )}
+      </div>
+
+      {/* 販売価格 */}
+      <div style={{
+        background: sellingPrice ? '#f0f4ee' : '#f5f5f5',
+        border: `1px solid ${sellingPrice ? '#b8d0b0' : '#e0e0e0'}`,
+        borderRadius: 6,
+        padding: '20px 24px',
+        maxWidth: 320,
+        transition: 'background 0.2s, border-color 0.2s',
+      }}>
+        <p style={{ fontSize: 12, color: '#888', margin: '0 0 6px', letterSpacing: 1 }}>
+          推奨販売価格（× 2）
+        </p>
+        <p style={{
+          fontSize: 28,
+          fontWeight: 600,
+          margin: 0,
+          color: sellingPrice ? '#1c2417' : '#ccc',
+          letterSpacing: 1,
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          {sellingPrice ? fmt(sellingPrice) : '¥ —'}
+        </p>
+        {sellingPrice && (
+          <p style={{ fontSize: 12, color: '#666', margin: '6px 0 0' }}>
+            {!isNaN(plant) && plant > 0 ? `植物 ${fmt(plant)}` : ''}
+            {!isNaN(plant) && plant > 0 && !isNaN(pot) && pot > 0 ? ' + ' : ''}
+            {!isNaN(pot) && pot > 0 ? `鉢 ${fmt(pot)}` : ''} × 2
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ComingSoon({ brand }: { brand: string }) {
   return (
     <p style={{ color: '#aaa', fontSize: 14 }}>{brand} の計算機は準備中です。</p>
@@ -177,7 +300,7 @@ export default function PriceCalc() {
 
       {/* コンテンツ */}
       {tab === 'ei8htplants' && <Ei8htPlantsCalc />}
-      {tab === 'habitatoides' && <ComingSoon brand="Habitat Oides" />}
+      {tab === 'habitatoides' && <HabitatOidesCalc />}
       {tab === 'hue' && <ComingSoon brand="HUE" />}
     </div>
   )

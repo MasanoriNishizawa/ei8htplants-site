@@ -194,6 +194,13 @@ export const api = {
     delete: (id: string) =>
       authRequest<{ ok: boolean }>(`/collaborations/${id}`, { method: 'DELETE' }),
   },
+  potArtists: {
+    list: () => request<PotArtist[]>('/pot-artists'),
+    add: (name: string) =>
+      authRequest<PotArtist>('/pot-artists', { method: 'POST', body: JSON.stringify({ name }) }),
+    delete: (id: string) =>
+      authRequest<{ ok: boolean }>(`/pot-artists/${id}`, { method: 'DELETE' }),
+  },
 }
 
 export interface PageContent {
@@ -418,6 +425,12 @@ export interface ArticleBody {
   product_ids: string[]
   is_published: boolean
   display_order: number
+}
+
+export interface PotArtist {
+  id: string
+  name: string
+  created_at: string
 }
 
 export const PRODUCT_CATEGORIES = [
