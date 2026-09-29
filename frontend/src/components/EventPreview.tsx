@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Event, PageContent } from '../lib/api'
 import ImageLightbox from './ImageLightbox'
+import { useLang, useT } from '../lib/lang'
 
 const BRAND_IG: Record<string, string> = {
   'ei8ht plants': 'https://www.instagram.com/ei8ht.plants/',
@@ -9,8 +10,17 @@ const BRAND_IG: Record<string, string> = {
   'HUE by ei8ht plants': 'https://www.instagram.com/hue_by.ei8ht.plants/',
 }
 
-function formatDate(start: string, end: string | null): string {
+function formatDate(start: string, end: string | null, lang: 'ja' | 'en'): string {
   const s = new Date(start)
+  if (lang === 'en') {
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    if (!end || end === start) return fmt(s)
+    const e = new Date(end)
+    if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()) {
+      return `${s.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}–${e.getDate()}, ${e.getFullYear()}`
+    }
+    return `${fmt(s)} – ${fmt(e)}`
+  }
   const fmt = (d: Date) => `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
   if (!end || end === start) return fmt(s)
   const e = new Date(end)
@@ -44,11 +54,13 @@ export default function EventPreview({ event, horizontal = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const touchX = useRef<number | null>(null)
+  const { lang } = useLang()
+  const t = useT()
   const pc: PageContent = event.page_content ?? {}
   const hasSite = hasPageContent(event.page_content)
   const images = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
   const imgUrls = images.map(i => i.url)
-  const dateLabel = formatDate(event.start_date, event.end_date)
+  const dateLabel = formatDate(event.start_date, event.end_date, lang)
   const address = pc.venue?.address || event.address
   const mapsUrl = address
     ? `https://www.google.com/maps/search/${encodeURIComponent(address)}`
@@ -65,7 +77,6 @@ export default function EventPreview({ event, horizontal = false }: Props) {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* 画像 */}
       {images.length > 0 && (
         <div
           style={{ position: 'relative', background: 'var(--c-bg)', overflow: 'hidden', aspectRatio: '4/3', maxHeight: 280 }}
@@ -110,7 +121,6 @@ export default function EventPreview({ event, horizontal = false }: Props) {
         </div>
       )}
 
-      {/* 情報 */}
       <div style={{ padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         {event.brands.length > 0 && (
           <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -137,7 +147,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           {event.time && <div>{event.time}</div>}
           <div style={{ fontWeight: 600 }}>{event.location}</div>
           {event.booth_number && (
-            <div style={{ fontWeight: 600 }}>ブース: {event.booth_number}</div>
+            <div style={{ fontWeight: 600 }}>{t('ブース:', 'Booth:')} {event.booth_number}</div>
           )}
           {address && (
             <div>
@@ -161,7 +171,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
                 rel="noopener noreferrer"
                 style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
               >
-                公式サイト
+                {t('公式サイト', 'Official Site')}
               </a>
             </div>
           ) : hasSite ? (
@@ -170,7 +180,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
                 to={`/events/${event.slug ?? event.id}`}
                 style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
               >
-                公式サイト
+                {t('公式サイト', 'Official Site')}
               </Link>
             </div>
           ) : null}
@@ -180,14 +190,17 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           <div style={{ marginTop: 14 }}>
             {event.is_past ? (
               <p style={{ fontSize: 12, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>
-                ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。
+                {t(
+                  'ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。',
+                  'The workshop has concluded. Thank you to all who participated.'
+                )}
               </p>
             ) : event.ws_requires_reservation ? (
               <Link
                 to={`/reserve?event_id=${event.id}`}
                 style={{ display: 'inline-block', fontSize: 12, color: '#1e3272', textDecoration: 'none', padding: '7px 16px', borderRadius: 20, border: '1px solid #1e3272', letterSpacing: 0.5, fontWeight: 500 }}
               >
-                Habitat Style Workshop を予約する
+                {t('Habitat Style Workshop を予約する', 'Reserve Habitat Style Workshop')}
               </Link>
             ) : null}
           </div>
@@ -199,7 +212,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
               to={`/events/${event.slug ?? event.id}`}
               style={{ display: 'inline-block', fontSize: 13, color: '#fff', textDecoration: 'none', padding: '9px 22px', borderRadius: 20, background: 'var(--c-ink)', fontWeight: 500, letterSpacing: 0.5 }}
             >
-              詳細を見る
+              {t('詳細を見る', 'View Details')}
             </Link>
           </div>
         )}

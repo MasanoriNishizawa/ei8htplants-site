@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { api, type Collaboration } from '../lib/api'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
+import { useT } from '../lib/lang'
 
 export default function Collaborations() {
   const [items, setItems] = useState<Collaboration[]>([])
   const [loading, setLoading] = useState(true)
+  const t = useT()
 
   useEffect(() => {
     api.collaborations.list().then(setItems).finally(() => setLoading(false))
@@ -22,11 +24,11 @@ export default function Collaborations() {
       </div>
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '56px 20px 100px' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>読み込み中...</p>}
+        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>{t('読み込み中...', 'Loading...')}</p>}
 
         {!loading && items.length === 0 && (
           <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)', fontSize: 13 }}>
-            コラボレーション情報は近日公開予定です。
+            {t('コラボレーション情報は近日公開予定です。', 'Collaboration details coming soon.')}
           </p>
         )}
 

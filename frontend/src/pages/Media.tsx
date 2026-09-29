@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type MediaAppearance } from '../lib/api'
 import PageMeta from '../components/PageMeta'
+import { useLang, useT } from '../lib/lang'
 
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 
@@ -17,12 +18,13 @@ function getYouTubeId(url: string): string | null {
   return null
 }
 
-function fmtDate(s: string | null): string {
+function fmtDate(s: string | null, lang: 'ja' | 'en'): string {
   if (!s) return ''
-  return new Date(s).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })
+  return new Date(s).toLocaleDateString(lang === 'ja' ? 'ja-JP' : 'en-US', { year: 'numeric', month: 'long' })
 }
 
 function VideoCard({ item }: { item: MediaAppearance }) {
+  const { lang } = useLang()
   const videoId = getYouTubeId(item.youtube_url)
   const thumb = videoId
     ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
@@ -68,7 +70,7 @@ function VideoCard({ item }: { item: MediaAppearance }) {
       <div style={{ padding: '14px 0 0' }}>
         {item.published_at && (
           <p style={{ fontSize: 11, letterSpacing: 2, color: 'var(--c-muted)', margin: '0 0 6px', textTransform: 'uppercase' }}>
-            {fmtDate(item.published_at)}
+            {fmtDate(item.published_at, lang)}
           </p>
         )}
         <p style={{ fontSize: 15, fontWeight: 400, margin: '0 0 6px', color: 'var(--c-ink)', lineHeight: 1.5, letterSpacing: '0.02em' }}>
@@ -87,6 +89,7 @@ function VideoCard({ item }: { item: MediaAppearance }) {
 export default function Media() {
   const [items, setItems] = useState<MediaAppearance[]>([])
   const [loading, setLoading] = useState(true)
+  const t = useT()
 
   useEffect(() => {
     api.mediaAppearances.list().then(setItems).finally(() => setLoading(false))
@@ -102,14 +105,14 @@ export default function Media() {
             Media
           </p>
           <h1 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 300, letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)', lineHeight: 1.3 }}>
-            出演情報
+            {t('出演情報', 'Appearances')}
           </h1>
         </header>
 
         {loading ? (
-          <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>読み込み中...</p>
+          <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>{t('読み込み中...', 'Loading...')}</p>
         ) : items.length === 0 ? (
-          <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>まだ登録されていません。</p>
+          <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>{t('まだ登録されていません。', 'No appearances registered yet.')}</p>
         ) : (
           <div style={{
             display: 'grid',

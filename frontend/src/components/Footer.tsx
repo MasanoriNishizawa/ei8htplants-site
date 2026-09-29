@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useT } from '../lib/lang'
 
 const SHOP_PATHS = ['/shop', '/checkout', '/order']
 
@@ -31,6 +32,7 @@ const linkStyle: React.CSSProperties = {
 
 export default function Footer() {
   const { pathname } = useLocation()
+  const t = useT()
   const showLegal = SHOP_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
 
   return (
@@ -88,7 +90,7 @@ export default function Footer() {
 
         <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 28, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <p style={{ fontSize: 10, color: 'var(--c-faint)', margin: 0, letterSpacing: '0.5px', lineHeight: 1.8 }}>
-            ※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! の登録商標です。
+            {t('※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! の登録商標です。', '※ "HABITATSTYLE" is a registered trademark of Shabomaniac!')}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             {showLegal && (
@@ -96,7 +98,7 @@ export default function Footer() {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-muted)' }}
               >
-                特定商取引法
+                {t('特定商取引法', 'Legal Notice')}
               </Link>
             )}
             <span style={{ fontSize: 10, color: 'var(--c-faint)', letterSpacing: '0.5px' }}>

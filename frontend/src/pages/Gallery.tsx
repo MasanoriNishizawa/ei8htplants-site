@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type GalleryImage } from '../lib/api'
 import PageMeta from '../components/PageMeta'
+import { useT } from '../lib/lang'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
@@ -9,6 +10,7 @@ export default function Gallery() {
   const [loading, setLoading] = useState(true)
   const [activeBrand, setActiveBrand] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const t = useT()
 
   useEffect(() => {
     setLoading(true)
@@ -54,9 +56,9 @@ export default function Gallery() {
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto 100px', padding: '40px 20px 0' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>読み込み中...</p>}
+        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>{t('読み込み中...', 'Loading...')}</p>}
         {!loading && images.length === 0 && (
-          <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)', fontSize: 13 }}>まだ写真が追加されていません。</p>
+          <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)', fontSize: 13 }}>{t('まだ写真が追加されていません。', 'No photos yet.')}</p>
         )}
         <div className="gallery-grid">
           {images.map((img) => (

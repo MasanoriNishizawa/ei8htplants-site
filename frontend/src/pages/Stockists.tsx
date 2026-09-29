@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Stockist } from '../lib/api'
 import PageMeta from '../components/PageMeta'
+import { useT } from '../lib/lang'
 
 const BRAND_COLORS: Record<string, { bg: string; color: string }> = {
   'ei8ht plants': { bg: '#e8f0e8', color: '#2d4a2d' },
@@ -11,13 +12,14 @@ const BRAND_COLORS: Record<string, { bg: string; color: string }> = {
 export default function Stockists() {
   const [stockists, setStockists] = useState<Stockist[]>([])
   const [loading, setLoading] = useState(true)
+  const t = useT()
 
   useEffect(() => {
     api.stockists.list().then(setStockists).finally(() => setLoading(false))
   }, [])
 
   const byArea = stockists.reduce<Record<string, Stockist[]>>((acc, s) => {
-    const area = s.area ?? 'その他'
+    const area = s.area ?? t('その他', 'Other')
     ;(acc[area] ??= []).push(s)
     return acc
   }, {})
@@ -29,7 +31,7 @@ export default function Stockists() {
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Stockists</h1>
       </div>
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 20px 80px' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>読み込み中...</p>}
+        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>{t('読み込み中...', 'Loading...')}</p>}
         {Object.entries(byArea).map(([area, items]) => (
           <div key={area} style={{ marginBottom: 40 }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, letterSpacing: 2, borderBottom: '1px solid #dddde8', paddingBottom: 8, marginBottom: 16 }}>{area}</h2>
@@ -57,9 +59,17 @@ export default function Stockists() {
         ))}
         {!loading && (
           <div style={{ marginTop: 48, padding: '20px 24px', background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.9 }}>
-            取扱のご相談・卸のお問い合わせは{' '}
-            <a href="/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
-            {' '}よりお気軽にご連絡ください。
+            {t(
+              <>
+                取扱のご相談・卸のお問い合わせは{' '}
+                <a href="/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
+                {' '}よりお気軽にご連絡ください。
+              </>,
+              <>
+                For stockist inquiries, please use our{' '}
+                <a href="/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>contact form</a>.
+              </>
+            )}
           </div>
         )}
       </div>
