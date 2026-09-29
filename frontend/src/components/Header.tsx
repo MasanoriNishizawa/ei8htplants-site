@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/concept', label: 'Concept' },
   { to: '/stockists', label: 'Stockists' },
   { to: '/collaborations', label: 'Collabs' },
+  { to: '/media', label: 'Media' },
   { to: '/contact', label: 'Contact' },
 ]
 

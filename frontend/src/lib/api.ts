@@ -208,6 +208,13 @@ export const api = {
     delete: (id: string) =>
       authRequest<{ ok: boolean }>(`/price-calc-entries/${id}`, { method: 'DELETE' }),
   },
+  mediaAppearances: {
+    list: () => request<MediaAppearance[]>('/media-appearances'),
+    add: (body: MediaAppearanceBody) =>
+      authRequest<MediaAppearance>('/media-appearances', { method: 'POST', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      authRequest<{ ok: boolean }>(`/media-appearances/${id}`, { method: 'DELETE' }),
+  },
 }
 
 export interface PageContent {
@@ -433,6 +440,24 @@ export interface ArticleBody {
   product_ids: string[]
   is_published: boolean
   display_order: number
+}
+
+export interface MediaAppearance {
+  id: string
+  title: string
+  youtube_url: string
+  description: string | null
+  published_at: string | null
+  display_order: number
+  created_at: string
+}
+
+export interface MediaAppearanceBody {
+  title: string
+  youtube_url: string
+  description?: string | null
+  published_at?: string | null
+  display_order?: number
 }
 
 export interface PotArtist {

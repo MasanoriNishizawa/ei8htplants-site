@@ -45,6 +45,8 @@ import AdminArticles from './pages/admin/Articles'
 import AdminFinances from './pages/admin/Finances'
 import PriceCalc from './pages/admin/PriceCalc'
 import AdminPotArtists from './pages/admin/AdminPotArtists'
+import AdminMedia from './pages/admin/AdminMedia'
+import Media from './pages/Media'
 import Journal from './pages/Journal'
 import JournalArticle from './pages/JournalArticle'
 import EventSite from './pages/EventSite'
@@ -65,6 +67,7 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/stockists" element={<Stockists />} />
             <Route path="/collaborations" element={<Collaborations />} />
+            <Route path="/media" element={<Media />} />
             <Route path="/ei8htplants" element={<Ei8htPlants />} />
             <Route path="/habitatoides" element={<HabitatOides />} />
             <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
@@ -101,6 +104,7 @@ export default function App() {
             <Route path="finances" element={<AdminFinances />} />
             <Route path="price-calc" element={<PriceCalc />} />
             <Route path="pot-artists" element={<AdminPotArtists />} />
+            <Route path="media" element={<AdminMedia />} />
           </Route>
         </Routes>
       </BrowserRouter>
