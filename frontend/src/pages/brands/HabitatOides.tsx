@@ -54,6 +54,7 @@ export default function HabitatOides() {
         </nav>
 
         <section className="ho-hero">
+          <img className="ho-hero-bg-img" src="/img/habitatOides/habitat_oides_hero.jpg" alt="" aria-hidden />
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, rgba(220,200,175,0.5), transparent)' }} />
             <span style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(200,168,210,0.65)', textTransform: 'uppercase' }}>Scroll</span>

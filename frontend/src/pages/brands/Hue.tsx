@@ -48,13 +48,6 @@ export default function Hue() {
           <p style={{ fontSize: 14, letterSpacing: 4, textTransform: 'uppercase', color: '#a07840', marginBottom: 32, position: 'relative', zIndex: 2 }}>
             Color Plants Selection
           </p>
-          <div style={{ position: 'relative', maxWidth: 400, width: '85%', aspectRatio: '1/1', margin: '0 auto 20px', zIndex: 2 }}>
-            <img
-              src="/img/logo-hue.png"
-              alt="HUE by ei8ht plants"
-              style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(1.15)', width: '100%', height: '100%', objectFit: 'contain', opacity: 0.9 }}
-            />
-          </div>
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #b4b4c8, transparent)' }} />
             <span style={{ fontSize: 11, letterSpacing: 3, color: '#b4b4c8', textTransform: 'uppercase' }}>Scroll</span>

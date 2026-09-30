@@ -214,13 +214,22 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
   text-align: center;
-  padding: 60px 20px 20px;
+  padding: 0;
   position: relative;
   overflow: hidden;
 }
+.ep-hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 60px 20px 20px;
+  flex: 1;
+}
+.ep-hero-bg-img { display: none; }
 
 /* Habitat Oides hero */
 .ho-hero {
@@ -235,10 +244,11 @@ body {
   position: relative;
   overflow: hidden;
 }
+.ho-hero-bg-img { display: none; }
 
 /* HUE hero */
 .hue-hero {
-  background: #f8f8fb;
+  background: #f8f8fb url('/img/logo-hue.png') center / 55% auto no-repeat;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -248,14 +258,6 @@ body {
   padding: 40px 20px 60px;
   position: relative;
   overflow: hidden;
-}
-.hue-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(253,248,243,0.45);
-  pointer-events: none;
-  z-index: 1;
 }
 
 /* Workshop hero */
@@ -378,10 +380,27 @@ body {
 }
 
 @media (max-width: 768px) {
-  .hero-wrapper { height: auto; min-height: calc(100vh - 64px); }
-  .ep-hero, .ho-hero, .hue-hero { min-height: 50vh; }
-  .ep-hero { background-size: contain; background-position: center; }
-  .ho-hero { background-size: contain; background-position: center; }
+  .hero-wrapper { height: auto; min-height: 0; }
+  .hue-hero { min-height: 50vh; background-size: 80% auto; }
+
+  /* Grid stacking: <img> sizes the section, content overlays it */
+  .ep-hero, .ho-hero {
+    display: grid;
+    background-image: none;
+    min-height: 0;
+    padding: 0;
+  }
+  .ep-hero > *, .ho-hero > * { grid-area: 1/1; }
+  .ep-hero-bg-img, .ho-hero-bg-img {
+    display: block;
+    width: 100%; height: auto;
+    align-self: start;
+    z-index: 0;
+  }
+  .ep-hero-content {
+    padding: 40px 20px 20px;
+    z-index: 1;
+  }
 }
 @media (max-width: 700px) {
   .ho-workshop-feature { grid-template-columns: 1fr; }

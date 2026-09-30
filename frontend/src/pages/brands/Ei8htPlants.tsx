@@ -44,11 +44,14 @@ export default function Ei8htPlants() {
         </nav>
 
         <section className="ep-hero">
-          <p style={{ fontSize: 14, letterSpacing: 4, textTransform: 'uppercase', color: '#666', marginBottom: 24, position: 'relative', zIndex: 2 }}>
-            Bizarre Plants
-          </p>
-          <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-            <img src="/img/text-logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9 }} />
+          <img className="ep-hero-bg-img" src="https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0" alt="" aria-hidden />
+          <div className="ep-hero-content">
+            <p style={{ fontSize: 14, letterSpacing: 4, textTransform: 'uppercase', color: '#666', marginBottom: 24, position: 'relative', zIndex: 2 }}>
+              Bizarre Plants
+            </p>
+            <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+              <img src="/img/text-logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9 }} />
+            </div>
           </div>
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #999, transparent)' }} />
