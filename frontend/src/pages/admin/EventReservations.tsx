@@ -209,7 +209,7 @@ export default function AdminEventReservations() {
                     onClick={() => setActiveSession(s.id)}
                     style={{ ...btnStyle, background: activeSession === s.id ? '#1c2417' : '#ffffff', color: activeSession === s.id ? '#fff' : '#3a4535', border: `1px solid ${activeSession === s.id ? '#1c2417' : '#dddde8'}` }}
                   >
-                    {s.time_label}{count > 0 ? ` (${count})` : ''}
+                    {s.time_label}{count > 0 ? ` (${count}件)` : ''}
                   </button>
                 )
               })}
