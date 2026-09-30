@@ -111,9 +111,16 @@ export default function AdminEventReservations() {
     setUpdating(null)
   }
 
+  const validSessionIds = new Set(sessions.map((s) => s.id))
+
   const filtered = activeSession === 'all'
     ? rows
-    : rows.filter((r) => r.session_id === activeSession)
+    : rows.filter((r) => {
+        if (r.session_id === activeSession) return true
+        const session = sessions.find((s) => s.id === activeSession)
+        if (!session) return false
+        return (!r.session_id || !validSessionIds.has(r.session_id)) && r.preferred_time === session.time_label
+      })
 
   const copyReserveLink = () => {
     const url = `https://ei8htplants.com/reserve?event_id=${id}`
@@ -191,7 +198,11 @@ export default function AdminEventReservations() {
                 全て
               </button>
               {sessions.map((s) => {
-                const count = rows.filter((r) => r.session_id === s.id && r.status !== 'cancelled').length
+                const count = rows.filter((r) => {
+                  const matches = r.session_id === s.id ||
+                    ((!r.session_id || !validSessionIds.has(r.session_id)) && r.preferred_time === s.time_label)
+                  return matches && r.status !== 'cancelled'
+                }).length
                 return (
                   <button
                     key={s.id}
