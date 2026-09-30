@@ -19,8 +19,7 @@ function buildPrintHtml(event: Event, rows: ReservationWithTime[]): string {
       <td>${new Date(r.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td>
       <td>${esc(r.name)}</td>
       <td>${esc(r.preferred_date ?? '-')}</td>
-      <td>${esc(r.preferred_time ?? '-')}</td>
-      <td>${esc(r.session_time ?? '-')}</td>
+      <td>${esc(r.session_time ?? r.preferred_time ?? '-')}</td>
       <td>${r.participants}</td>
       <td>${esc(bring || '-')}</td>
       <td>${esc(r.note ?? '-')}</td>
@@ -43,7 +42,7 @@ p.total{margin:8px 0 0;font-size:10px;color:#666;}
 <h1>${esc(event.name)} ワークショップ予約一覧</h1>
 <p class="meta">${esc(dateRange)}${event.time ? ' ' + esc(event.time) : ''} / ${esc(event.location)}</p>
 <table><thead><tr>
-  <th>受付日</th><th>お名前</th><th>予約日</th><th>予約時間</th><th>WSセッション</th><th>人数</th><th>持込</th><th>備考</th><th>ステータス</th>
+  <th>受付日</th><th>お名前</th><th>予約日</th><th>予約時間</th><th>人数</th><th>持込</th><th>備考</th><th>ステータス</th>
 </tr></thead>
 <tbody>${trs}</tbody></table>
 <p class="total">合計 ${rows.length} 件 / ${totalPeople} 名</p>
@@ -52,13 +51,12 @@ p.total{margin:8px 0 0;font-size:10px;color:#666;}
 }
 
 function exportCsv(event: Event, rows: ReservationWithTime[]) {
-  const header = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
+  const header = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
   const lines = rows.map((r) => [
     new Date(r.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }),
     r.name, r.email, r.phone ?? '',
     r.preferred_date ?? '',
-    r.preferred_time ?? '',
-    r.session_time ?? '',
+    r.session_time ?? r.preferred_time ?? '',
     String(r.participants),
     r.bring_plant ? 'あり' : 'なし',
     r.bring_pot ? 'あり' : 'なし',
@@ -141,7 +139,7 @@ export default function AdminEventReservations() {
     fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--c-body)',
   }
 
-  const headers = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', 'WSセッション', '人数', '持込', '備考', 'ステータス']
+  const headers = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', '人数', '持込', '備考', 'ステータス']
 
   return (
     <div>
@@ -238,11 +236,8 @@ export default function AdminEventReservations() {
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>
                       {r.preferred_date ?? '-'}
                     </td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_time ? '#1c2417' : '#ccc' }}>
-                      {r.preferred_time ?? '-'}
-                    </td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.session_time ? '#1c2417' : '#ccc' }}>
-                      {r.session_time ?? '-'}
+                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: (r.session_time ?? r.preferred_time) ? '#1c2417' : '#ccc' }}>
+                      {r.session_time ?? r.preferred_time ?? '-'}
                     </td>
                     <td style={{ padding: '12px 14px' }}>{r.participants}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>
