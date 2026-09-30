@@ -97,6 +97,7 @@ def list_all_finances(_=Depends(require_auth)):
 
 
 class WsSessionInput(BaseModel):
+    id: Optional[str] = None
     time_label: str
     max_participants: int = 10
 
@@ -140,13 +141,36 @@ def get_sessions(event_id: str, date: Optional[str] = None):
 
 @router.put('/{event_id}/sessions')
 def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)):
-    admin_supabase.table('ws_sessions').delete().eq('event_id', event_id).execute()
-    if body.sessions:
-        rows = [
-            {'event_id': event_id, 'time_label': s.time_label, 'max_participants': s.max_participants, 'display_order': i}
-            for i, s in enumerate(body.sessions)
-        ]
-        admin_supabase.table('ws_sessions').insert(rows).execute()
+    existing = admin_supabase.table('ws_sessions').select('id, time_label').eq('event_id', event_id).execute().data or []
+    existing_by_id = {s['id']: s for s in existing}
+    existing_by_label = {s['time_label']: s['id'] for s in existing}
+
+    incoming_ids: set[str] = set()
+    for i, s in enumerate(body.sessions):
+        # id が送られてきた場合はそれを優先、なければ time_label で照合
+        sid = s.id if s.id and s.id in existing_by_id else existing_by_label.get(s.time_label)
+        if sid:
+            incoming_ids.add(sid)
+            admin_supabase.table('ws_sessions').update({
+                'time_label': s.time_label,
+                'max_participants': s.max_participants,
+                'display_order': i,
+            }).eq('id', sid).execute()
+        else:
+            result = admin_supabase.table('ws_sessions').insert({
+                'event_id': event_id,
+                'time_label': s.time_label,
+                'max_participants': s.max_participants,
+                'display_order': i,
+            }).execute()
+            if result.data:
+                incoming_ids.add(result.data[0]['id'])
+
+    # 送られてこなかった既存セッションを削除
+    for s in existing:
+        if s['id'] not in incoming_ids:
+            admin_supabase.table('ws_sessions').delete().eq('id', s['id']).execute()
+
     return get_sessions(event_id)
 
 

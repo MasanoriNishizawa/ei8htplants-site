@@ -103,7 +103,7 @@ export const api = {
       authRequest<EventFinances[]>('/events/finances'),
     getSessions: (id: string, date?: string) =>
       request<WsSession[]>(`/events/${id}/sessions${date ? `?date=${encodeURIComponent(date)}` : ''}`),
-    saveSessions: (id: string, sessions: { time_label: string; max_participants: number }[]) =>
+    saveSessions: (id: string, sessions: { id?: string; time_label: string; max_participants: number }[]) =>
       authRequest<WsSession[]>(`/events/${id}/sessions`, { method: 'PUT', body: JSON.stringify({ sessions }) }),
     savePageContent: (id: string, page_content: PageContent) =>
       authRequest<Event>(`/events/${id}/page`, { method: 'PATCH', body: JSON.stringify({ page_content }) }),

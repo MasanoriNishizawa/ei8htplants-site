@@ -14,7 +14,7 @@ function toSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '')
 }
 
-type SessionInput = { time_label: string; max_participants: number }
+type SessionInput = { id?: string; time_label: string; max_participants: number }
 
 const empty: FormState = {
   name: '', slug: '', start_date: '', end_date: '', time: '', location: '',
@@ -44,7 +44,7 @@ export default function AdminEventForm() {
         ws_requires_reservation: ev.ws_requires_reservation,
       })
       setImageUrls(ev.images.map((i) => i.url))
-      setSessions(sess.map((s) => ({ time_label: s.time_label, max_participants: s.max_participants })))
+      setSessions(sess.map((s) => ({ id: s.id, time_label: s.time_label, max_participants: s.max_participants })))
       const hasDailyTimes = !!ev.daily_times && Object.keys(ev.daily_times).length > 0
       setDailyTimesMode(hasDailyTimes)
       setDailyTimes(ev.daily_times ?? {})
