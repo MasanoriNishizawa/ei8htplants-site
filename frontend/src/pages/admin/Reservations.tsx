@@ -136,7 +136,7 @@ function printReservations(
     <thead>
       <tr>
         <th>受付日</th><th>お名前</th><th>メール</th><th>電話</th>
-        <th>WSセッション</th><th>人数</th>
+        <th>予約時間</th><th>人数</th>
         <th>持込</th><th>備考</th><th>ステータス</th>
       </tr>
     </thead>
@@ -205,7 +205,7 @@ export default function AdminReservations() {
     })
   const selectedEventName = eventFilter === 'all' ? 'WS予約一覧' : (eventsMap.get(eventFilter) ?? 'イベント')
 
-  const headers = ['受付日', 'お名前', 'メール', '電話', '希望日', 'WSセッション', '人数', '持込', '備考', 'ステータス']
+  const headers = ['受付日', 'お名前', 'メール', '電話', '希望日', '予約時間', '人数', '持込', '備考', 'ステータス']
 
   return (
     <div>
