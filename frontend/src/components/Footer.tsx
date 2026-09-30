@@ -90,7 +90,7 @@ export default function Footer() {
 
         <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 28, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <p style={{ fontSize: 10, color: 'var(--c-faint)', margin: 0, letterSpacing: '0.5px', lineHeight: 1.8 }}>
-            {t('※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! の登録商標です。', '※ "HABITATSTYLE" is a registered trademark of Shabomaniac!')}
+            {t('※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! (およびTHE SUCCULENTIST)の登録商標です。', '※ "HABITATSTYLE" is a registered trademark of Shabomaniac! (and THE SUCCULENTIST).')}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             {showLegal && (
