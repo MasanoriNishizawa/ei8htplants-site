@@ -93,7 +93,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
             src={images[imgIdx].url}
             alt={event.name}
             onClick={() => setLightboxIdx(imgIdx)}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', cursor: 'zoom-in' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
             draggable={false}
           />
           {event.has_workshop && (
