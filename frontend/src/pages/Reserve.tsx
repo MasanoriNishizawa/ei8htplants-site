@@ -109,7 +109,6 @@ export default function Reserve() {
         bring_plant: form.bring_plant,
         bring_pot: form.bring_pot,
         preferred_date: form.preferred_date || undefined,
-        preferred_time: selectedSession?.time_label,
       })
       setStatus('done')
     } catch (err: unknown) {
