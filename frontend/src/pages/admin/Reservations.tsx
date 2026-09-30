@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api, type Reservation, type Event, type WsSession } from '../../lib/api'
 import { STATUS_LABELS, STATUS_COLORS } from '../../lib/reservationConstants'
 
@@ -150,13 +151,14 @@ function printReservations(
 }
 
 export default function AdminReservations() {
+  const [searchParams] = useSearchParams()
   const [rows, setRows] = useState<ReservationWithTime[]>([])
   const [eventsMap, setEventsMap] = useState<Map<string, string>>(new Map())
   const [eventsDataMap, setEventsDataMap] = useState<Map<string, Event>>(new Map())
   const [sessionsData, setSessionsData] = useState<Map<string, WsSession>>(new Map())
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
-  const [eventFilter, setEventFilter] = useState<string>('all')
+  const [eventFilter, setEventFilter] = useState<string>(searchParams.get('event_id') ?? 'all')
 
   useEffect(() => {
     Promise.all([
