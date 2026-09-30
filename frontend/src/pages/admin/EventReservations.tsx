@@ -202,14 +202,14 @@ export default function AdminEventReservations() {
                   const matches = r.session_id === s.id ||
                     ((!r.session_id || !validSessionIds.has(r.session_id)) && r.preferred_time === s.time_label)
                   return matches && r.status !== 'cancelled'
-                }).length
+                }).reduce((sum, r) => sum + r.participants, 0)
                 return (
                   <button
                     key={s.id}
                     onClick={() => setActiveSession(s.id)}
                     style={{ ...btnStyle, background: activeSession === s.id ? '#1c2417' : '#ffffff', color: activeSession === s.id ? '#fff' : '#3a4535', border: `1px solid ${activeSession === s.id ? '#1c2417' : '#dddde8'}` }}
                   >
-                    {s.time_label}{count > 0 ? ` (${count}件)` : ''}
+                    {s.time_label}{count > 0 ? ` (${count}人)` : ''}
                   </button>
                 )
               })}
