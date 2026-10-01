@@ -48,7 +48,20 @@ class OrderStatusPatch(BaseModel):
     tracking_number: Optional[str] = None
 
 
+# Square APIを呼び出して決済を実行し、支払いIDを返す。失敗時は402エラー
 def _charge_square(source_id: str, amount_yen: int) -> str:
+    """Square API で決済を実行し、支払いIDを返す。
+
+    Args:
+        source_id: Squareが発行した支払いソースID（カードトークンなど）
+        amount_yen: 決済金額（日本円）
+
+    Returns:
+        Square が発行した支払いID（payment_id）
+
+    Raises:
+        HTTPException(402): Square API がエラーを返した場合
+    """
     res = http.post(
         f'{_SQUARE_BASE}/v2/payments',
         json={
@@ -72,7 +85,15 @@ def _charge_square(source_id: str, amount_yen: int) -> str:
     return data['payment']['id']
 
 
+# 確保済み在庫を元に戻すロールバック処理。決済失敗時に呼ぶ
 def _rollback_stock(reserved: list[tuple[str, int]]) -> None:
+    """在庫確保のロールバックを行い、確保した分の在庫を元に戻す。
+
+    個々のロールバック失敗は CRITICAL ログを出力して処理を継続する。
+
+    Args:
+        reserved: ロールバック対象の (product_id, quantity) タプルのリスト
+    """
     for pid, qty in reserved:
         try:
             admin_supabase.rpc('increment_stock', {
@@ -83,7 +104,18 @@ def _rollback_stock(reserved: list[tuple[str, int]]) -> None:
             print(f'[orders] CRITICAL: rollback failed for product {pid} qty {qty}: {e}')
 
 
+# 購入者に注文確認メールを送る。メール送信失敗は注文成立を妨げない
 def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_id: str) -> None:
+    """購入者に注文確認メールを送信する。メール送信失敗は注文成立を妨げない。
+
+    RESEND_API_KEY が未設定の場合は何もしない。
+
+    Args:
+        order: 作成された注文レコード（id・subtotal・shipping_fee・total を含む）
+        body: 注文リクエストボディ（顧客情報・商品リスト・配送先など）
+        product_map: product_id をキーとする商品情報の辞書
+        payment_id: Square が発行した支払いID
+    """
     if not RESEND_API_KEY:
         return
     try:
@@ -136,7 +168,17 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
         print(f'[orders] confirmation email failed: {e}')
 
 
+# 管理者に新規注文の通知メールを送る
 def _notify_admin(order: dict, body: OrderBody, product_map: dict) -> None:
+    """管理者に新規注文の通知メールを送信する。
+
+    RESEND_API_KEY または CONTACT_TO_EMAIL が未設定の場合は何もしない。
+
+    Args:
+        order: 作成された注文レコード
+        body: 注文リクエストボディ（顧客情報・商品リストなど）
+        product_map: product_id をキーとする商品情報の辞書
+    """
     if not RESEND_API_KEY or not CONTACT_TO_EMAIL:
         return
     try:
@@ -166,8 +208,27 @@ def _notify_admin(order: dict, body: OrderBody, product_map: dict) -> None:
         print(f'[orders] admin notify failed: {e}')
 
 
+# 注文を作成する。在庫確保→Square決済→DB保存の順で処理し、各段階でロールバック機構を持つ
 @router.post('')
 def create_order(body: OrderBody):
+    """注文を作成する。在庫確保→Square決済→DB保存の順で処理し、各段階でロールバックを持つ。
+
+    在庫は RPC によりアトミックに確保し、決済失敗時に返却する。
+    DB書き込み失敗時は課金済みであることを管理者にメール通知する。
+
+    Args:
+        body: 注文情報（顧客情報・配送先・商品リスト・Squareトークンなど）
+
+    Returns:
+        {"order_id": "<uuid>"} の辞書
+
+    Raises:
+        HTTPException(400): 未対応の都道府県、または購入不可商品の場合
+        HTTPException(402): Square 決済が失敗した場合
+        HTTPException(404): 商品が存在しない場合
+        HTTPException(409): 在庫不足または在庫競合の場合
+        HTTPException(500): Square 未設定、またはDB書き込み失敗の場合
+    """
     if not SQUARE_ACCESS_TOKEN:
         raise HTTPException(500, 'Square が設定されていません')
 
@@ -283,13 +344,21 @@ def create_order(body: OrderBody):
     return {'order_id': order['id']}
 
 
+# 全注文を新着順で取得する（管理者のみ）
 @router.get('')
 def list_orders(_=Depends(require_auth)):
+    """全注文を新着順で返す。"""
     return admin_supabase.table('orders').select('*').order('created_at', desc=True).execute().data
 
 
+# 注文詳細（注文情報＋注文明細）をIDで取得する（管理者のみ）
 @router.get('/{order_id}')
 def get_order(order_id: str, _=Depends(require_auth)):
+    """注文情報と注文明細を結合して返す。
+
+    Raises:
+        HTTPException(404): 注文が存在しない場合
+    """
     order = admin_supabase.table('orders').select('*').eq('id', order_id).single().execute().data
     if not order:
         raise HTTPException(404, 'Not found')
@@ -305,7 +374,15 @@ _CARRIER_TRACKING_URL = {
 }
 
 
+# 発送完了を購入者に通知するメールを送る。配送会社・追跡番号があればURLも付記する
 def _send_shipping_notification(order: dict) -> None:
+    """発送完了メールを購入者に送信する。配送会社と追跡番号が設定されていれば追跡URLも付記する。
+
+    RESEND_API_KEY が未設定の場合は何もしない。
+
+    Args:
+        order: 注文レコード（customer_name・customer_email・carrier・tracking_number などを含む）
+    """
     if not RESEND_API_KEY:
         return
     try:
@@ -353,8 +430,18 @@ def _send_shipping_notification(order: dict) -> None:
         print(f'[orders] shipping notification failed: {e}')
 
 
+# 注文ステータスを更新する。shippedに変更した場合は発送通知メールも送る
 @router.patch('/{order_id}')
 def update_order_status(order_id: str, body: OrderStatusPatch, _=Depends(require_auth)):
+    """注文ステータスを更新し、shipped に変更した場合は発送通知メールを送信する。
+
+    Args:
+        order_id: 更新対象の注文ID
+        body: 新しいステータス、および配送会社・追跡番号（shipped の場合のみ使用）
+
+    Returns:
+        更新後の注文レコード
+    """
     patch: dict = {'status': body.status}
     if body.status == 'shipped':
         if body.carrier is not None:

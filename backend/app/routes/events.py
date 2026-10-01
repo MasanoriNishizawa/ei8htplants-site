@@ -5,7 +5,9 @@ from datetime import date, datetime, timezone, timedelta
 
 _JST = timezone(timedelta(hours=9))
 
+# is_past 判定をJST基準で行うため、現在日付をJSTで取得する
 def _today_jst() -> str:
+    """現在のJST日付を ISO 8601 形式の文字列（YYYY-MM-DD）で返す。"""
     return datetime.now(_JST).date().isoformat()
 from ..db import supabase, admin_supabase
 from ..auth import require_auth
@@ -35,7 +37,17 @@ class EventBody(BaseModel):
         return None if v == '' else v
 
 
+# end_date があればそちらで、なければ start_date で過去イベント判定する
 def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
+    """イベントが過去かどうかをJST基準で判定して返す。
+
+    Args:
+        start_date: イベント開始日（YYYY-MM-DD）
+        end_date: イベント終了日（YYYY-MM-DD）。指定した場合はこちらで判定する
+
+    Returns:
+        過去のイベントであれば True、そうでなければ False
+    """
     try:
         return date.fromisoformat(end_date or start_date).isoformat() < _today_jst()
     except Exception:
@@ -63,7 +75,19 @@ _FINANCE_DEFAULTS = {
 }
 
 
+# event_images テーブルから画像をバッチ取得してイベントリストに付加する（N+1を避ける）
 def _attach_images(events: list[dict]) -> list[dict]:
+    """イベントリストに画像情報を一括で付加して返す。
+
+    event_images テーブルからバッチ取得することで N+1 クエリを回避する。
+    各イベントに 'images' キーとして画像レコードのリストを追加する。
+
+    Args:
+        events: イベントレコードのリスト
+
+    Returns:
+        各要素に 'images' リストが追加されたイベントレコードのリスト
+    """
     if not events:
         return events
     ids = [e['id'] for e in events]
@@ -76,8 +100,10 @@ def _attach_images(events: list[dict]) -> list[dict]:
     return events
 
 
+# イベント一覧を取得する。?past=true で過去イベント、デフォルトは今後のイベントのみ
 @router.get('')
 def list_events(past: bool = False):
+    """イベント一覧を返す。past=True で過去イベント、デフォルトは今後のイベントのみ。"""
     today = _today_jst()
     data = supabase.table('events').select('*').order('start_date').execute().data
     result = []
@@ -91,8 +117,10 @@ def list_events(past: bool = False):
 
 # IMPORTANT: static routes must be declared before /{event_id} to avoid
 # FastAPI matching the literal segment as a path parameter value.
+# 全イベントの収支情報を一覧取得する（管理者のみ）
 @router.get('/finances')
 def list_all_finances(_=Depends(require_auth)):
+    """全イベントの収支情報一覧を返す。"""
     return admin_supabase.table('event_finances').select('*').execute().data
 
 
@@ -106,8 +134,20 @@ class WsSessionsBody(BaseModel):
     sessions: list[WsSessionInput]
 
 
+# ワークショップセッション一覧を取得し、各セッションの予約済み人数を計算して付加する
 @router.get('/{event_id}/sessions')
 def get_sessions(event_id: str, date: Optional[str] = None):
+    """ワークショップセッション一覧を取得し、各セッションの予約済み人数を付加して返す。
+
+    session_id が古くなった予約も preferred_time による照合で漏れなく集計する。
+
+    Args:
+        event_id: 対象イベントのID
+        date: 絞り込む日付（YYYY-MM-DD）。指定しない場合は全日程を対象にする
+
+    Returns:
+        reserved_count が付加されたセッションレコードのリスト
+    """
     sessions = admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).order('display_order').execute().data
     if not sessions:
         return []
@@ -139,8 +179,20 @@ def get_sessions(event_id: str, date: Optional[str] = None):
     return sessions
 
 
+# セッション一覧をupsert形式で保存し、送られてこなかった既存セッションは削除する
 @router.put('/{event_id}/sessions')
 def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)):
+    """セッション一覧を upsert 形式で保存し、リクエストに含まれないセッションを削除する。
+
+    id が送られた場合はそれを優先してマッチし、なければ time_label でフォールバック照合する。
+
+    Args:
+        event_id: 対象イベントのID
+        body: 保存するセッションリスト（id・time_label・max_participants を含む）
+
+    Returns:
+        保存後の最新セッションリスト（reserved_count 付き）
+    """
     existing = admin_supabase.table('ws_sessions').select('id, time_label').eq('event_id', event_id).execute().data or []
     existing_by_id = {s['id']: s for s in existing}
     existing_by_label = {s['time_label']: s['id'] for s in existing}
@@ -178,14 +230,30 @@ class PageContentBody(BaseModel):
     page_content: dict
 
 
+# イベントページのJSONコンテンツを更新する（管理者のみ）
 @router.patch('/{event_id}/page')
 def save_page_content(event_id: str, body: PageContentBody, _=Depends(require_auth)):
+    """イベントの page_content フィールドを更新して最新のイベントレコードを返す。"""
     admin_supabase.table('events').update({'page_content': body.page_content}).eq('id', event_id).execute()
     return get_event(event_id)
 
 
+# イベントをslugまたはUUIDで取得する
 @router.get('/{event_id}')
 def get_event(event_id: str):
+    """イベントを slug または UUID で取得し、is_past フラグと画像情報を付加して返す。
+
+    slug で先に検索し、見つからなければ UUID でフォールバック検索する。
+
+    Args:
+        event_id: イベントのスラッグまたはUUID
+
+    Returns:
+        is_past・images が付加されたイベントレコード
+
+    Raises:
+        HTTPException(404): イベントが存在しない場合
+    """
     # slug で検索、なければ UUID にフォールバック
     result = supabase.table('events').select('*').eq('slug', event_id).execute()
     data = result.data[0] if result.data else None
@@ -199,8 +267,10 @@ def get_event(event_id: str):
     return _attach_images([data])[0]
 
 
+# 新規イベントを作成し、画像URLを紐付ける
 @router.post('')
 def create_event(body: EventBody, _=Depends(require_auth)):
+    """新規イベントを作成し、画像URLを event_images テーブルに紐付けて返す。"""
     row = body.model_dump(exclude={'image_urls'})
     row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     result = admin_supabase.table('events').insert(row).execute().data[0]
@@ -208,8 +278,10 @@ def create_event(body: EventBody, _=Depends(require_auth)):
     return get_event(result['id'])
 
 
+# イベントを更新する。画像は全削除後に再挿入する（順序変更に対応するため）
 @router.put('/{event_id}')
 def update_event(event_id: str, body: EventBody, _=Depends(require_auth)):
+    """イベントを更新する。画像は全削除後に再挿入して順序変更に対応する。"""
     row = body.model_dump(exclude={'image_urls'})
     row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     admin_supabase.table('events').update(row).eq('id', event_id).execute()
@@ -218,22 +290,28 @@ def update_event(event_id: str, body: EventBody, _=Depends(require_auth)):
     return get_event(event_id)
 
 
+# イベントを削除する（管理者のみ）
 @router.delete('/{event_id}')
 def delete_event(event_id: str, _=Depends(require_auth)):
+    """指定IDのイベントを削除する。"""
     admin_supabase.table('events').delete().eq('id', event_id).execute()
     return {'ok': True}
 
 
+# 指定イベントの収支情報を取得する。未登録の場合はデフォルト値を返す
 @router.get('/{event_id}/finances')
 def get_finances(event_id: str, _=Depends(require_auth)):
+    """指定イベントの収支情報を返す。未登録の場合はデフォルト値のオブジェクトを返す。"""
     result = admin_supabase.table('event_finances').select('*').eq('event_id', event_id).execute()
     if result.data:
         return result.data[0]
     return {'event_id': event_id, **_FINANCE_DEFAULTS}
 
 
+# 収支情報をupsertで保存する（存在すればupdate、なければinsert）
 @router.put('/{event_id}/finances')
 def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)):
+    """収支情報を upsert で保存して返す。既存レコードがあれば更新、なければ新規作成する。"""
     data = {**body.model_dump(), 'event_id': event_id, 'updated_at': 'now()'}
     existing = admin_supabase.table('event_finances').select('id').eq('event_id', event_id).execute()
     if existing.data:
@@ -241,7 +319,14 @@ def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)):
     return admin_supabase.table('event_finances').insert(data).execute().data[0]
 
 
+# 画像URLをevent_imagesテーブルに表示順を付けて一括挿入する
 def _save_images(event_id: str, urls: list[str]):
+    """画像URLリストを display_order 付きで event_images テーブルに一括挿入する。
+
+    Args:
+        event_id: 画像を紐付けるイベントのID
+        urls: 挿入する画像URLのリスト（順序がそのまま display_order になる）
+    """
     if not urls:
         return
     rows = [{'event_id': event_id, 'url': url, 'display_order': i} for i, url in enumerate(urls)]

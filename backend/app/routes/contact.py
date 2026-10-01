@@ -23,8 +23,19 @@ class ContactReply(BaseModel):
     body: str
 
 
+# お問い合わせをDBに保存し、管理者通知メールと送信者への自動返信メールを送る
 @router.post('')
 def send_contact(body: ContactBody):
+    """お問い合わせをDBに保存し、管理者通知と送信者への自動返信メールを送る。
+
+    メール送信失敗は保存成功を妨げない。RESEND_API_KEY が未設定の場合はメールを送らない。
+
+    Args:
+        body: お問い合わせ情報（名前・メールアドレス・本文）
+
+    Returns:
+        {"ok": True} の固定レスポンス
+    """
     admin_supabase.table('contacts').insert(body.model_dump()).execute()
     if RESEND_API_KEY and CONTACT_TO_EMAIL:
         try:
@@ -65,18 +76,36 @@ def send_contact(body: ContactBody):
     return {'ok': True}
 
 
+# お問い合わせ一覧を新着順で取得する（管理者のみ）
 @router.get('s')
 def list_contacts(_=Depends(require_auth)):
+    """お問い合わせ一覧を新着順で返す。"""
     return admin_supabase.table('contacts').select('*').order('created_at', desc=True).execute().data
 
 
+# お問い合わせの既読状態を更新する（管理者のみ）
 @router.patch('s/{contact_id}')
 def update_contact(contact_id: str, body: ContactPatch, _=Depends(require_auth)):
+    """お問い合わせの既読状態を更新して更新後のレコードを返す。"""
     return admin_supabase.table('contacts').update(body.model_dump()).eq('id', contact_id).execute().data[0]
 
 
+# お問い合わせに返信メールを送り、自動的に既読にする（管理者のみ）
 @router.post('s/{contact_id}/reply')
 def reply_contact(contact_id: str, body: ContactReply, _=Depends(require_auth)):
+    """お問い合わせに返信メールを送り、送信後に既読フラグを立てる。
+
+    Args:
+        contact_id: 返信対象のお問い合わせID
+        body: 件名と本文を含む返信内容
+
+    Returns:
+        {"ok": True} の固定レスポンス
+
+    Raises:
+        HTTPException(404): お問い合わせが存在しない場合
+        HTTPException(500): RESEND_API_KEY 未設定またはメール送信失敗の場合
+    """
     if not RESEND_API_KEY:
         raise HTTPException(500, 'RESEND_API_KEY が設定されていません')
     row = admin_supabase.table('contacts').select('email, name').eq('id', contact_id).single().execute().data

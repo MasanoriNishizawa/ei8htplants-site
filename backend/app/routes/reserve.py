@@ -9,10 +9,20 @@ from ..db import admin_supabase, supabase
 from ..config import RESEND_API_KEY, HABITAT_RESEND_API_KEY, CONTACT_FROM_EMAIL, HABITAT_SENDER
 from ..auth import require_auth
 
+# セッションIDごとのロックを管理する辞書。同一セッションへの同時予約を防ぐ
 _session_locks: dict[str, threading.Lock] = {}
 _session_locks_mu = threading.Lock()
 
+# セッションIDに対応するロックを取得（なければ新規作成）
 def _session_lock(session_id: str) -> threading.Lock:
+    """セッションIDに対応するスレッドロックを返す。存在しなければ新規作成する。
+
+    Args:
+        session_id: ワークショップセッションの一意識別子
+
+    Returns:
+        セッションIDに紐づいた threading.Lock インスタンス
+    """
     with _session_locks_mu:
         if session_id not in _session_locks:
             _session_locks[session_id] = threading.Lock()
@@ -44,11 +54,21 @@ class CancelBody(BaseModel):
     token: str
 
 
+# 8桁の数字でキャンセルトークンを生成（メールURLに埋め込む）
 def _generate_cancel_token() -> str:
+    """8桁のランダム数字列からなるキャンセルトークンを生成して返す。"""
     return ''.join(secrets.choice(string.digits) for _ in range(8))
 
 
 def _sync_reserved_count(session_id: str):
+    """ws_sessions.reserved_count をキャンセル除外の実予約合計で上書き同期する。
+
+    ws_sessions.reserved_count はデノーマライズ値のため、予約の追加・変更・キャンセルのたびに
+    呼び出して整合性を保つ。
+
+    Args:
+        session_id: 同期対象のワークショップセッションID
+    """
     # ws_sessions.reserved_count はデノーマライズ値。get_sessions はライブ計算で上書きするが、
     # 管理画面など DB を直接参照するケース向けに変更のたびに同期する
     result = admin_supabase.table('workshop_reservations') \
@@ -60,10 +80,26 @@ def _sync_reserved_count(session_id: str):
     admin_supabase.table('ws_sessions').update({'reserved_count': total}).eq('id', session_id).execute()
 
 
+# ワークショップ予約を作成し、確認メールと管理者通知を送信する
 @router.post('')
 def create_reservation(body: ReserveBody):
+    """ワークショップ予約を作成し、受付確認メールと管理者通知を送信する。
+
+    session_id が指定されている場合はセッションロックを取得して満席チェックと
+    DB挿入をアトミックに行う。メール送信失敗は予約成立を妨げない。
+
+    Args:
+        body: 予約情報（名前・メール・セッションID・参加人数・言語など）
+
+    Returns:
+        作成した予約レコード（cancel_token・resend_email_id などを含む）
+
+    Raises:
+        HTTPException(409): セッションが満席の場合
+    """
     cancel_token = _generate_cancel_token()
     if body.session_id:
+        # セッションロックを取得して満席チェックと挿入をアトミックに行う
         with _session_lock(body.session_id):
             session = admin_supabase.table('ws_sessions').select('max_participants, time_label').eq('id', body.session_id).single().execute().data
             if session:
@@ -123,8 +159,23 @@ def create_reservation(body: ReserveBody):
     return row
 
 
+# キャンセルトークンで予約を取り消し、キャンセル確認メールを送信する
 @router.post('/cancel')
 def cancel_by_token(body: CancelBody):
+    """キャンセルトークンで予約を取り消し、キャンセル確認メールを送信する。
+
+    同一トークンが複数イベントで再利用される可能性があるため、最新の未キャンセル行を対象にする。
+
+    Args:
+        body: キャンセルトークンを含むリクエストボディ
+
+    Returns:
+        キャンセル後の予約レコード
+
+    Raises:
+        HTTPException(404): トークンが存在しない場合
+        HTTPException(400): 予約がすでにキャンセル済みの場合
+    """
     # トークンが存在するかをまず確認し、済みキャンセルと未登録を区別して返す
     all_rows = admin_supabase.table('workshop_reservations') \
         .select('id, status, session_id, event_id, name, email, created_at') \
@@ -153,7 +204,16 @@ def cancel_by_token(body: CancelBody):
     return updated
 
 
+# メール本文をHabitat Oidesブランドのレイアウトで包むHTMLテンプレート
 def _html_wrap(body_html: str) -> str:
+    """メール本文をHabitat Oidesブランドのレイアウトで包んだHTML文字列を返す。
+
+    Args:
+        body_html: メイン本文のHTML断片
+
+    Returns:
+        完全なHTMLメール文字列
+    """
     return f'''<!DOCTYPE html>
 <html lang="ja">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -181,7 +241,17 @@ def _html_wrap(body_html: str) -> str:
 </html>'''
 
 
+# メール内の項目テーブルの1行HTMLを生成するヘルパー
 def _row(label: str, value: str) -> str:
+    """メール内の2カラム項目テーブルの1行分のHTMLを生成して返す。
+
+    Args:
+        label: 左カラムに表示するラベル文字列
+        value: 右カラムに表示する値文字列（HTMLを含む可能性あり）
+
+    Returns:
+        <tr>...</tr> 形式のHTML文字列
+    """
     return (
         f'<tr>'
         f'<td style="padding:8px 0;font-size:13px;color:#888888;width:120px;vertical-align:top;">{label}</td>'
@@ -190,7 +260,20 @@ def _row(label: str, value: str) -> str:
     )
 
 
+# 予約者に確認メール（日/英対応）を送信し、Resendのメールidを返す
 def _send_confirmation(body: ReserveBody, cancel_token: str) -> str | None:
+    """予約者に受付確認メールを送信し、ResendのメールIDを返す。
+
+    body.lang が 'en' の場合は英語メール、それ以外は日本語メールを送る。
+    HABITAT_RESEND_API_KEY が未設定の場合は何もせず None を返す。
+
+    Args:
+        body: 予約情報（言語・イベントID・セッションIDなどを含む）
+        cancel_token: メール本文に埋め込むキャンセル用トークン
+
+    Returns:
+        送信成功時は Resend が発行したメールID、失敗または未設定時は None
+    """
     if not HABITAT_RESEND_API_KEY:
         return None
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
@@ -308,7 +391,15 @@ def _send_confirmation(body: ReserveBody, cancel_token: str) -> str | None:
     return email_id
 
 
+# 新規予約をinfo@habitatoides.comへ管理者通知として送信する
 def _send_admin_notification(body: ReserveBody):
+    """新規予約の内容を管理者メールアドレスに通知メールとして送信する。
+
+    HABITAT_RESEND_API_KEY が未設定、またはイベント情報が取得できない場合は何もしない。
+
+    Args:
+        body: 予約情報（名前・メール・電話・参加人数・持ち込み情報などを含む）
+    """
     if not HABITAT_RESEND_API_KEY:
         return
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
@@ -360,7 +451,15 @@ def _send_admin_notification(body: ReserveBody):
     })
 
 
+# キャンセル完了を予約者に通知するメールを送信する
 def _send_cancel_confirmation(reservation: dict):
+    """予約キャンセル完了を予約者にメールで通知する。
+
+    HABITAT_RESEND_API_KEY が未設定、またはメールアドレスが取得できない場合は何もしない。
+
+    Args:
+        reservation: キャンセル対象の予約レコード（name・email・event_id などを含む辞書）
+    """
     if not HABITAT_RESEND_API_KEY:
         return
     name = reservation.get('name', '')
@@ -394,8 +493,20 @@ def _send_cancel_confirmation(reservation: dict):
     })
 
 
+# Resendからのメール配信失敗イベントを受け取り、予約レコードにemail_failedフラグを立てる
 @router.post('/webhook/resend')
 async def resend_webhook(request: Request):
+    """Resendのメール配信失敗Webhookを処理し、該当予約レコードにemail_failedフラグを設定する。
+
+    email.bounced または email.failed イベントの場合、resend_email_id で予約を特定して更新する。
+    JSONパース失敗など予期しないエラーは無視して常に {"ok": True} を返す。
+
+    Args:
+        request: WebhookリクエストのRawボディ（Resend形式のJSON）
+
+    Returns:
+        {"ok": True} の固定レスポンス
+    """
     try:
         payload = await request.json()
     except Exception:
@@ -413,16 +524,33 @@ async def resend_webhook(request: Request):
     return {'ok': True}
 
 
+# 予約一覧を取得する（管理者のみ）。event_id で絞り込み可能
 @router.get('s')
 def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)):
+    """予約一覧を新着順で返す。event_id を指定するとそのイベントの予約のみに絞り込む。"""
     q = admin_supabase.table('workshop_reservations').select('*').order('created_at', desc=True)
     if event_id:
         q = q.eq('event_id', event_id)
     return q.execute().data
 
 
+# 予約ステータスを更新する（管理者のみ）。キャンセル時はキャンセル確認メールも送る
 @router.patch('s/{reservation_id}')
 def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=Depends(require_auth)):
+    """予約ステータスを更新し、キャンセルに変更した場合はキャンセル確認メールを送信する。
+
+    session_id が存在する場合は reserved_count も同期する。
+
+    Args:
+        reservation_id: 更新対象の予約ID
+        body: 新しいステータス値を含むリクエストボディ
+
+    Returns:
+        更新後の予約レコード
+
+    Raises:
+        HTTPException(404): 予約が存在しない場合
+    """
     row = admin_supabase.table('workshop_reservations') \
         .select('*') \
         .eq('id', reservation_id) \
