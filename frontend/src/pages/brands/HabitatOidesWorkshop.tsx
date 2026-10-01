@@ -153,7 +153,7 @@ export default function HabitatOidesWorkshop() {
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
               <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>お子様連れ</p>
               <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>お子様も大歓迎</p>
-              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>親子でお楽しみいただけます。はじめての方もスタッフがサポートします。</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>親子でお楽しみいただけます。植物や資材の扱いが初めての方でも、スタッフがしっかりサポートします。</p>
             </div>
           </div>
         </div>
