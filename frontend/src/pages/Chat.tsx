@@ -28,7 +28,8 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const chatAreaRef = useRef<HTMLDivElement>(null)
+  const isFirstRender = useRef(true)
 
   // 初回表示時のウェルカムメッセージ
   useEffect(() => {
@@ -41,9 +42,11 @@ export default function Chat() {
     }])
   }, [])
 
-  // メッセージが追加されるたびに最下部へスクロール
+  // メッセージ追加時にチャットエリア内を最下部へスクロール（初回ウェルカムメッセージは除く）
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (isFirstRender.current) { isFirstRender.current = false; return }
+    const el = chatAreaRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [messages])
 
   const send = async () => {
@@ -115,7 +118,7 @@ export default function Chat() {
         </p>
 
         {/* チャット表示エリア */}
-        <div style={{
+        <div ref={chatAreaRef} style={{
           border: '1px solid #dddde8',
           borderRadius: 4,
           minHeight: 400,
@@ -163,7 +166,6 @@ export default function Chat() {
             </div>
           )}
 
-          <div ref={bottomRef} />
         </div>
 
         {/* 入力エリア */}
