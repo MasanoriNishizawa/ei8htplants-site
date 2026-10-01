@@ -119,7 +119,7 @@ export default function Home() {
       <section style={{
         position: 'relative',
         overflow: 'hidden',
-        minHeight: 'calc(100vh - 64px)',
+        minHeight: 'clamp(320px, 50vh, 560px)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start',
