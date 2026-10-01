@@ -569,11 +569,17 @@
   "bring_plant": false,         // optional, default false
   "bring_pot": false,           // optional, default false
   "preferred_date": "2025-10-01", // optional, 複数日イベントで選択した日付
-  "preferred_time": "13:00"     // optional（現在フロントから未使用）
+  "preferred_time": "13:00",    // optional（現在フロントから未使用）
+  "lang": "ja"                  // optional, "ja" | "en"。省略時は日本語メールを送信
 }
 ```
 
 定員チェックは `participants` カラムの合計値で行う（行数ではない）。
+
+**副作用**:
+1. キャンセルトークン（8桁ランダム数字）を生成して `cancel_token` に保存
+2. `_send_confirmation()` で予約受付メールを送信（キャンセルリンク含む。`lang` で日本語/英語を切り替え）
+3. `_send_admin_notification()` で管理者へ通知メールを送信
 
 **レスポンス `200`**: 作成されたレコード（statusは"pending"）  
 **レスポンス `409`**: `{"detail": "このセッションは満席です"}` （`session_id` 指定時に定員超過）
@@ -610,6 +616,9 @@
     "bring_pot": true,
     "preferred_date": "2025-10-01",
     "preferred_time": null,
+    "cancel_token": "12345678",
+    "lang": "ja",
+    "email_failed": null,
     "created_at": "2024-10-01T10:00:00+09:00"
   }
 ]
@@ -629,14 +638,16 @@
 
 ```json
 {
-  "status": "confirmed"    // "pending" | "confirmed" | "cancelled"
+  "status": "pending"    // "pending" | "confirmed" | "cancelled"
 }
 ```
 
-**副作用**: `status = "confirmed"` かつ `cancel_token` が未設定の場合:
-1. 8桁ランダム数字のキャンセルトークンを生成して保存
-2. キャンセルリンクを含む確定メールを予約者に送信（`_send_cancel_link_email`）
-3. `_sync_reserved_count(session_id)` でデノーマライズ値を更新
+`confirmed` は後方互換のため受け付けるが、新規では使用しない。実質的な遷移は `pending` → `cancelled`。
+
+**副作用**:
+1. DBの `status` カラムを更新
+2. `session_id` がある場合 → `_sync_reserved_count(session_id)` でデノーマライズ値を更新
+3. `status = 'cancelled'` の場合 → `_send_cancel_confirmation()` でキャンセル完了メールを予約者に送信
 
 **レスポンス `200`**: 更新後のレコード
 
