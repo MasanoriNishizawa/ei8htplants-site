@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 
-const SECTIONS = ['about', 'contents', 'flow'] as const
+const SECTIONS = ['about', 'contents', 'flow', 'fee'] as const
 
 const FEATURES = [
   { bg: '#3a58b8', title: '植物の選び方', text: 'ハビタットスタイルに向いた植物の種類や特性、組み合わせ方について解説します。' },
@@ -49,7 +49,7 @@ export default function HabitatOidesWorkshop() {
           </Link>
           {SECTIONS.map((id) => (
             <a key={id} href={`#${id}`} className={active === id ? 'subnav-active' : ''} onClick={scrollTo(id)}>
-              {id === 'about' ? 'About' : id === 'contents' ? 'Contents' : 'Flow'}
+              {id === 'about' ? 'About' : id === 'contents' ? 'Contents' : id === 'flow' ? 'Flow' : 'Fee'}
             </a>
           ))}
         </div>
@@ -130,6 +130,31 @@ export default function HabitatOidesWorkshop() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
+
+      <section id="fee" className="brand-section" ref={(el) => { sectionRefs.current.fee = el }}>
+        <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Fee & Info</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
+            <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>参加費</p>
+              <p style={{ fontSize: 28, fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 6px', letterSpacing: '0.04em' }}>1,000円</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>鉢・資材含む<br />植物は別途</p>
+            </div>
+            <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>持ち込み</p>
+              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>植物・鉢とも持込可</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>当店以外でご購入の植物・お手持ちの鉢でもご参加いただけます。</p>
+            </div>
+            <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>対象</p>
+              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>初心者〜上級者</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>植物や資材の扱いが初めての方でも、スタッフがしっかりサポートします。</p>
+            </div>
           </div>
         </div>
       </section>
