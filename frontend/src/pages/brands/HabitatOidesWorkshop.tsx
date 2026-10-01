@@ -151,9 +151,9 @@ export default function HabitatOidesWorkshop() {
               <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>当店以外でご購入の植物・お手持ちの鉢でもご参加いただけます。</p>
             </div>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
-              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>対象</p>
-              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>初心者〜上級者</p>
-              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>植物や資材の扱いが初めての方でも、スタッフがしっかりサポートします。</p>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>お子様連れ</p>
+              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>お子様も大歓迎</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>親子でお楽しみいただけます。はじめての方もスタッフがサポートします。</p>
             </div>
           </div>
         </div>
