@@ -37,6 +37,10 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: 1,
 }
 
+/**
+ * 推奨販売価格を強調表示するコンポーネント
+ * @param recommendedPrice - 表示する推奨価格。null の場合はプレースホルダーを表示する
+ */
 function PriceDisplay({ recommendedPrice }: { recommendedPrice: number | null }) {
   return (
     <div style={{
@@ -57,6 +61,13 @@ function PriceDisplay({ recommendedPrice }: { recommendedPrice: number | null })
   )
 }
 
+/**
+ * 価格登録ボタンコンポーネント
+ * @param label - ボタンに表示するラベル（登録価格を含む場合あり）
+ * @param disabled - 必須項目未入力時に無効化するフラグ
+ * @param saving - 登録処理中かどうか
+ * @param onClick - クリック時のコールバック
+ */
 function RegisterButton({ label, disabled, saving, onClick }: {
   label: string; disabled: boolean; saving: boolean; onClick: () => void
 }) {
@@ -78,6 +89,10 @@ function RegisterButton({ label, disabled, saving, onClick }: {
   )
 }
 
+/**
+ * ei8ht plants ブランドの価格計算コンポーネント
+ * @param onRegister - 価格エントリを登録するコールバック
+ */
 function Ei8htPlantsCalc({ onRegister }: { onRegister: (d: PriceCalcEntryBody) => Promise<void> }) {
   const [source, setSource] = useState<SourceType>('purchase')
   const [purchasePrice, setPurchasePrice] = useState('')
@@ -86,6 +101,7 @@ function Ei8htPlantsCalc({ onRegister }: { onRegister: (d: PriceCalcEntryBody) =
   const [customPrice, setCustomPrice] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // 仕入れの場合はそのまま、実生の場合は種子20粒の金額を1粒単価に換算してコストを算出する
   const raw = source === 'purchase' ? parseFloat(purchasePrice) : parseFloat(seedPrice) / 20
   const cost = isNaN(raw) || raw <= 0 ? null : raw
   const recommendedPrice = cost ? cost * 2 : null
@@ -192,6 +208,11 @@ function Ei8htPlantsCalc({ onRegister }: { onRegister: (d: PriceCalcEntryBody) =
   )
 }
 
+/**
+ * Habitat Oides ブランドの価格計算コンポーネント（植物+鉢の合計コストから推奨価格を計算）
+ * @param onRegister - 価格エントリを登録するコールバック
+ * @param potArtists - 鉢作家の選択肢一覧
+ */
 function HabitatOidesCalc({ onRegister, potArtists }: {
   onRegister: (d: PriceCalcEntryBody) => Promise<void>
   potArtists: PotArtist[]
@@ -303,10 +324,19 @@ function HabitatOidesCalc({ onRegister, potArtists }: {
   )
 }
 
+/**
+ * 未実装ブランドのプレースホルダーコンポーネント
+ * @param brand - ブランド名
+ */
 function ComingSoon({ brand }: { brand: string }) {
   return <p style={{ color: '#aaa', fontSize: 14 }}>{brand} の計算機は準備中です。</p>
 }
 
+/**
+ * 登録済みの価格計算エントリを一覧表示するコンポーネント
+ * @param entries - 表示するエントリ一覧
+ * @param onDelete - 削除ボタン押下時のコールバック
+ */
 function EntriesList({ entries, onDelete }: {
   entries: PriceCalcEntry[]
   onDelete: (id: string) => void
@@ -364,6 +394,7 @@ function EntriesList({ entries, onDelete }: {
   )
 }
 
+/** ブランド別の販売価格計算ツール。仕入れ値から推奨価格を算出し、登録リストとして保存する */
 export default function PriceCalc() {
   const [tab, setTab] = useState<Brand>('ei8htplants')
   const [entries, setEntries] = useState<PriceCalcEntry[]>([])

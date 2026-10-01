@@ -9,6 +9,12 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+/**
+ * 印刷用の HTML 文字列を生成する（新規ウィンドウで window.print() を自動実行）
+ * @param event - イベント情報（ヘッダー表示用）
+ * @param rows - 印刷対象の予約一覧
+ * @returns 印刷用 HTML 文字列
+ */
 function buildPrintHtml(event: Event, rows: ReservationWithTime[]): string {
   const dateRange = event.end_date && event.end_date !== event.start_date
     ? `${event.start_date} 〜 ${event.end_date}`
@@ -50,6 +56,11 @@ p.total{margin:8px 0 0;font-size:10px;color:#666;}
 </body></html>`
 }
 
+/**
+ * BOM 付き CSV としてダウンロードする（Excel での文字化けを防ぐため BOM を先頭に付与）
+ * @param event - ファイル名に使用するイベント情報
+ * @param rows - エクスポート対象の予約一覧
+ */
 function exportCsv(event: Event, rows: ReservationWithTime[]) {
   const header = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
   const lines = rows.map((r) => [
@@ -73,6 +84,7 @@ function exportCsv(event: Event, rows: ReservationWithTime[]) {
   URL.revokeObjectURL(url)
 }
 
+/** 特定イベントの WS 予約一覧。セッション別フィルタ・ステータス更新・CSV 出力・印刷に対応するページ */
 export default function AdminEventReservations() {
   const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<Event | null>(null)
@@ -83,6 +95,7 @@ export default function AdminEventReservations() {
   const [updating, setUpdating] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // イベント・セッション・予約を同時取得し、セッション ID から表示時間を解決して rows に付与する
   useEffect(() => {
     if (!id) return
     Promise.all([
@@ -100,6 +113,7 @@ export default function AdminEventReservations() {
     }).finally(() => setLoading(false))
   }, [id])
 
+  // ステータスを楽観的に更新する。API 失敗時は catch 内でも setRows を呼ぶため表示は維持される
   const updateStatus = async (reservationId: string, status: string) => {
     setUpdating(reservationId)
     try {
@@ -113,6 +127,7 @@ export default function AdminEventReservations() {
 
   const validSessionIds = new Set(sessions.map((s) => s.id))
 
+  // セッション再保存で UUID が変わった場合は preferred_time でフォールバック照合する
   const filtered = activeSession === 'all'
     ? rows
     : rows.filter((r) => {

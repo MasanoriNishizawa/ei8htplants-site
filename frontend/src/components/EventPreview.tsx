@@ -50,6 +50,11 @@ interface Props {
   horizontal?: boolean
 }
 
+/**
+ * Events ページ用のコンパクトなイベントカード（グリッド表示向け）
+ * @param event - 表示するイベントデータ
+ * @param horizontal - 水平レイアウト（ホームの Next Event セクションで使用）
+ */
 export default function EventPreview({ event, horizontal = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
@@ -57,10 +62,12 @@ export default function EventPreview({ event, horizontal = false }: Props) {
   const { lang } = useLang()
   const t = useT()
   const pc: PageContent = event.page_content ?? {}
+  // page_content に実際のコンテンツが入っているかどうかを判定
   const hasSite = hasPageContent(event.page_content)
   const images = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
   const imgUrls = images.map(i => i.url)
   const dateLabel = formatDate(event.start_date, event.end_date, lang)
+  // page_content の会場住所を優先し、なければ event.address を使用
   const address = pc.venue?.address || event.address
   const mapsUrl = address
     ? `https://www.google.com/maps/search/${encodeURIComponent(address)}`

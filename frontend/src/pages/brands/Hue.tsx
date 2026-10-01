@@ -5,11 +5,13 @@ import { useT } from '../../lib/lang'
 const SWATCHES = ['#d4a878','#a8c4a0','#e8b4b0','#c4d4c8','#e0c890','#b8a8d4','#f0d4b8']
 const SECTIONS = ['concept'] as const
 
+/** HUE by ei8ht plants ブランドページ。カラースウォッチと IntersectionObserver によるサブナビを含む */
 export default function Hue() {
   const t = useT()
   const [active, setActive] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
+  // 各セクションの中央付近がビューポートに入ったときにサブナビのアクティブ項目を更新する
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {

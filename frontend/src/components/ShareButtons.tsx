@@ -28,9 +28,15 @@ const btnStyle: React.CSSProperties = {
   transition: 'color 0.15s, border-color 0.15s',
 }
 
+/**
+ * X・Threads・Web Share API へのシェアボタンをまとめたコンポーネント
+ * @param url - シェアする URL
+ * @param text - シェアするテキスト（タイトルなど）
+ */
 export default function ShareButtons({ url, text }: Props) {
   const [canShare, setCanShare] = useState(false)
 
+  // Web Share API が利用可能かをクライアントサイドで確認（SSR 対策で useEffect 内で判定）
   useEffect(() => {
     setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
   }, [])

@@ -13,6 +13,7 @@ const BG = '#faf9f7'
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 
+/** 商品詳細ページ。ブロックコンテンツ・購入ボックス・フローティングカートボタンを提供する */
 export default function ShopProduct() {
   const t = useT()
   const { id } = useParams<{ id: string }>()

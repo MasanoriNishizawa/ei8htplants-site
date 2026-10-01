@@ -6,6 +6,11 @@ const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE']
 type Form = { name: string; area: string; address: string; url: string; brands: string[] }
 const empty: Form = { name: '', area: '', address: '', url: '', brands: [] }
 
+/**
+ * ブランドのチェックボックス群コンポーネント
+ * @param value - 現在選択されているブランドの配列
+ * @param onChange - 選択が変更された際のコールバック
+ */
 function BrandCheckboxes({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const toggle = (b: string) =>
     onChange(value.includes(b) ? value.filter((x) => x !== b) : [...value, b])
@@ -21,6 +26,7 @@ function BrandCheckboxes({ value, onChange }: { value: string[]; onChange: (v: s
   )
 }
 
+/** 取扱店（卸先）の追加・編集・削除を管理するページ */
 export default function AdminStockists() {
   const [stockists, setStockists] = useState<Stockist[]>([])
   const [form, setForm] = useState<Form>(empty)

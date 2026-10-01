@@ -3,6 +3,13 @@ import { Link, useLocation } from 'react-router-dom'
 import { api, type Event } from '../../lib/api'
 
 
+/**
+ * イベント一覧の1行コンポーネント。各種操作ボタンを含む
+ * @param ev - 表示するイベント情報
+ * @param reservationCountMap - イベント ID をキーにした予約件数マップ
+ * @param del - 削除ボタン押下時のコールバック
+ * @param duplicate - 複製ボタン押下時のコールバック
+ */
 function EventRow({ ev, reservationCountMap, del, duplicate }: {
   ev: Event
   reservationCountMap: Map<string, number>
@@ -34,6 +41,7 @@ function EventRow({ ev, reservationCountMap, del, duplicate }: {
   )
 }
 
+/** イベント管理一覧。今後・過去のイベントを分類して表示し、編集・収支・サイト・複製・削除が行えるページ */
 export default function AdminEvents() {
   const [reservationCountMap, setReservationCountMap] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -51,6 +59,7 @@ export default function AdminEvents() {
     ]).then(([upcomingData, pastData, reservations]) => {
       setUpcoming([...upcomingData].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()))
       setPast([...pastData].sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()))
+      // キャンセル以外の予約数をイベント別にカウントして「予約N件」バッジに使用する
       const countMap = new Map<string, number>()
       reservations.filter((r) => r.status !== 'cancelled').forEach((r) => {
         countMap.set(r.event_id, (countMap.get(r.event_id) ?? 0) + 1)
@@ -59,6 +68,7 @@ export default function AdminEvents() {
     }).finally(() => setLoading(false))
   }
 
+  // ページ遷移のたびに再ロードして最新データを表示する
   useEffect(() => { load() }, [location.key])
 
   const del = async (id: string) => {

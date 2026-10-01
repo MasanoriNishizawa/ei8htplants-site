@@ -28,6 +28,7 @@ const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => (
   whiteSpace: 'nowrap',
 })
 
+/** 管理画面全体のレイアウト。Supabase 認証を担い、未認証時はログインフォームを表示する */
 export default function AdminLayout() {
   const [checking, setChecking] = useState(true)
   const [authed, setAuthed] = useState(false)
@@ -36,6 +37,7 @@ export default function AdminLayout() {
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // 既存セッションの有無を確認して認証状態を初期化する
   useEffect(() => {
     if (!supabase) { setChecking(false); return }
     supabase.auth.getSession().then(({ data }) => {

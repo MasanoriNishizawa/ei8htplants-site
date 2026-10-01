@@ -2,11 +2,16 @@ import { supabase } from './supabase'
 
 const BASE = '/api'
 
-
+/** 現在のパスが管理画面かどうかを判定する（管理画面ではキャッシュを無効化するために使用） */
 function isAdminPage() {
   return typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
 }
 
+/**
+ * 共通 fetch ラッパー。管理画面では no-store キャッシュを適用し、エラー時は例外を投げる
+ * @param path - API パス（例: '/events'）
+ * @param options - fetch のオプション
+ */
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const { headers: optHeaders, ...restOptions } = options ?? {}
   const res = await fetch(`${BASE}${path}`, {
@@ -25,6 +30,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json()
 }
 
+/**
+ * Supabase セッションから JWT を取得して Authorization ヘッダーに付与する認証済みリクエスト
+ * @param path - API パス
+ * @param options - fetch のオプション
+ */
 async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
   const token = data.session?.access_token
@@ -35,7 +45,9 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
   })
 }
 
+/** バックエンドへの API 呼び出しをまとめたオブジェクト */
 export const api = {
+  /** ダッシュボード用の統計情報（未読問い合わせ・開催中イベント・未処理注文数）を一括取得 */
   stats: async (): Promise<{ unreadContacts: number; activeEvents: number; pendingOrders: number }> => {
     const [contacts, events, orders] = await Promise.all([
       authRequest<ContactRecord[]>('/contacts'),
@@ -562,6 +574,11 @@ export interface OrderItem {
 
 export type OrderDetail = Order & { items: OrderItem[] }
 
+/**
+ * イベント財務データから輸送費・ワークショップ収益・純利益などを計算するユーティリティ
+ * @param fin - イベント財務データ
+ * @param hasWorkshop - ワークショップ開催フラグ
+ */
 export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   transport: number
   wsSales: number
@@ -571,12 +588,14 @@ export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   wsShare: number
   paymentAmount: number
 } {
+  // 輸送費 = 距離の往復 × ガス代（10km あたり）
   const transport = Math.round((fin.distance * 2 / 10) * fin.gas_price)
   const totalExpense = fin.booth_fee + transport + fin.expressway_toll + fin.accommodation + fin.other_expenses
   const wsSales = hasWorkshop ? fin.ws_participants * 1000 : 0
   const net = fin.sales - totalExpense
 
   if (fin.payment_flag) {
+    // 支払フラグあり: 売上分 20%・WS分 70% を支払額として計算
     const salesShare = Math.round(Math.max(0, fin.sales - wsSales - totalExpense) * 0.2)
     const wsShare = Math.round(wsSales * 0.7)
     const paymentAmount = salesShare + wsShare

@@ -9,6 +9,7 @@ const BRAND_COLORS: Record<string, { bg: string; color: string }> = {
   'HUE by ei8ht plants': { bg: '#f5ead8', color: '#6b3c1a' },
 }
 
+/** 取扱店一覧ページ。エリア別にグループ化して表示する */
 export default function Stockists() {
   const [stockists, setStockists] = useState<Stockist[]>([])
   const [loading, setLoading] = useState(true)

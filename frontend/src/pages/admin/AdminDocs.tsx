@@ -10,6 +10,13 @@ type TreeNode = {
   children?: TreeNode[]
 }
 
+/**
+ * 設計書ファイルツリーを再帰的に描画するサイドバーコンポーネント
+ * @param nodes - 表示するツリーノード一覧
+ * @param selected - 現在選択中のファイルパス
+ * @param onSelect - ファイル選択時のコールバック
+ * @param depth - 現在のネスト深さ（インデント計算用）
+ */
 function FileTree({
   nodes,
   selected,
@@ -88,6 +95,7 @@ function FileTree({
   )
 }
 
+/** 設計書（Markdown ファイル）をサイドバーのツリーから選択してビューアーで閲覧するページ */
 export default function AdminDocs() {
   const [tree, setTree] = useState<TreeNode[]>([])
   const [selected, setSelected] = useState('')
@@ -95,6 +103,7 @@ export default function AdminDocs() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // 初回マウント時にファイルツリーを取得する（依存配列空 = マウント時1回のみ実行）
   useEffect(() => {
     fetch(`${API}/api/docs/tree`)
       .then((r) => r.json())

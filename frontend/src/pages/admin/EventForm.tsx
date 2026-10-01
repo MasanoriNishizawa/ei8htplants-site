@@ -10,6 +10,11 @@ type FormState = {
   brands: string[]; has_workshop: boolean; ws_requires_reservation: boolean
 }
 
+/**
+ * イベント名から URL スラッグを生成する（英小文字・数字・ハイフンのみ）
+ * @param name - 変換するイベント名
+ * @returns 生成したスラッグ文字列
+ */
 function toSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '')
 }
@@ -22,6 +27,7 @@ const empty: FormState = {
   brands: [], has_workshop: false, ws_requires_reservation: true,
 }
 
+/** イベントの新規作成・編集フォーム。画像アップロードや WS セッション管理も行うページ */
 export default function AdminEventForm() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -33,6 +39,7 @@ export default function AdminEventForm() {
   const [dailyTimesMode, setDailyTimesMode] = useState(false)
   const [dailyTimes, setDailyTimes] = useState<Record<string, string>>({})
 
+  // 編集時にイベント情報とWSセッション一覧を取得してフォームに反映する
   useEffect(() => {
     if (!id) return
     Promise.all([api.events.get(id), api.events.getSessions(id)]).then(([ev, sess]) => {
@@ -53,6 +60,7 @@ export default function AdminEventForm() {
 
   const set = (k: keyof FormState, v: unknown) => setForm((f) => ({ ...f, [k]: v }))
 
+  // 複数画像を同時アップロードする。blobURLで即時プレビューを表示し、完了後に実URLへ差し替える
   const handleImageFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     const fileArray = Array.from(files)
@@ -89,6 +97,7 @@ export default function AdminEventForm() {
   const setSession = (i: number, key: keyof SessionInput, value: string | number) =>
     setSessions((prev) => prev.map((s, j) => j === i ? { ...s, [key]: value } : s))
 
+  // 開催時間の文字列を解析してWSセッションを1時間刻みで自動生成する
   const autoSetSessions = () => {
     const match = form.time.match(/(\d{1,2}):(\d{2})\s*[〜~\-]\s*(\d{1,2}):(\d{2})/)
     if (!match) return

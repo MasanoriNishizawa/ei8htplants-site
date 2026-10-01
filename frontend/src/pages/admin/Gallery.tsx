@@ -3,6 +3,7 @@ import { api, type GalleryImage } from '../../lib/api'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE']
 
+/** ギャラリー画像の追加・削除・表示順変更を管理するページ */
 export default function AdminGallery() {
   const [images, setImages] = useState<GalleryImage[]>([])
   const [url, setUrl] = useState('')
@@ -10,6 +11,7 @@ export default function AdminGallery() {
   const [brand, setBrand] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  // 読み込みエラーになった画像 ID を追跡して「URL無効」バッジを表示する
   const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set())
   const [brandFilter, setBrandFilter] = useState<string | null>(null)
 
@@ -45,6 +47,7 @@ export default function AdminGallery() {
     setImages((prev) => prev.filter((img) => img.id !== id))
   }
 
+  // 隣接画像と display_order を交換して並び順を変更する
   const move = async (idx: number, dir: -1 | 1) => {
     const next = dir === -1 ? idx - 1 : idx + 1
     if (next < 0 || next >= images.length) return

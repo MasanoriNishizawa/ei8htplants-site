@@ -30,9 +30,11 @@ const linkStyle: React.CSSProperties = {
   fontWeight: 300,
 }
 
+/** サイト共通フッター。ショップ系ページのみ特定商取引法リンクを表示する */
 export default function Footer() {
   const { pathname } = useLocation()
   const t = useT()
+  // ショップ・チェックアウト・注文完了ページのみ特定商取引法リンクを表示
   const showLegal = SHOP_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
 
   return (

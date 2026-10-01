@@ -5,6 +5,7 @@ import PageMeta from '../components/PageMeta'
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 
+/** 決済完了後に表示される注文確認ページ。router state から注文番号・顧客名・メールを受け取る */
 export default function OrderComplete() {
   const t = useT()
   const { state } = useLocation()

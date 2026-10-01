@@ -9,6 +9,11 @@ const BG = '#f8f7f5'
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 
+/**
+ * 記事コンテンツからテキストブロックを抽出し、指定文字数で切り詰めた抜粋を返す
+ * @param text - ブロック JSON または生テキスト
+ * @param max - 抜粋の最大文字数（デフォルト 120）
+ */
 function excerpt(text: string | null, max = 120): string {
   if (!text) return ''
   const blocks = parseBlocks(text)
@@ -20,12 +25,17 @@ function excerpt(text: string | null, max = 120): string {
   return src.length > max ? src.slice(0, max) + '…' : src
 }
 
+/**
+ * ISO 日付文字列を英語形式の日付ラベルに変換する
+ * @param s - ISO 形式の日付文字列
+ */
 function fmtDate(s: string | null): string {
   if (!s) return ''
   const d = new Date(s)
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+/** ジャーナル（記事）一覧ページ。タグフィルター・フィーチャー記事グリッドを提供する */
 export default function Journal() {
   const t = useT()
   const [articles, setArticles] = useState<Article[]>([])

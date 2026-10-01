@@ -4,11 +4,13 @@ import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
 import { useT } from '../lib/lang'
 
+// Habitat Oides のコラボレーション作品・活動記録を一覧表示するページ
 export default function Collaborations() {
   const [items, setItems] = useState<Collaboration[]>([])
   const [loading, setLoading] = useState(true)
   const t = useT()
 
+  // 初回マウント時にコラボレーション一覧を取得
   useEffect(() => {
     api.collaborations.list().then(setItems).finally(() => setLoading(false))
   }, [])

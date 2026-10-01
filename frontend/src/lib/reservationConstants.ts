@@ -1,3 +1,4 @@
+/** 予約ステータスの表示ラベル・色・選択肢を定義する定数ファイル */
 export const STATUS_LABELS: Record<string, string> = {
   pending: '受付済',
   confirmed: '受付済',

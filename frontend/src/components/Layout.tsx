@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import Header from './Header'
 import Footer from './Footer'
 
+/** サイト全体（ブランドサイト側）の共通レイアウト。Header と Footer に挟んでページを描画する */
 export default function Layout() {
   return (
     <>

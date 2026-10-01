@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { api, type MediaAppearance } from '../../lib/api'
 
+/**
+ * YouTube URL からビデオ ID を抽出する（watch・短縮 URL・embed 形式に対応）
+ * @param url - 解析する YouTube URL
+ * @returns ビデオ ID。マッチしない場合は null
+ */
 function getYouTubeId(url: string): string | null {
   const patterns = [
     /youtube\.com\/watch\?v=([^&]+)/,
@@ -24,6 +29,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
+/** メディア出演（YouTube 動画）を登録・一覧表示・削除するページ */
 export default function AdminMedia() {
   const [items, setItems] = useState<MediaAppearance[]>([])
   const [loading, setLoading] = useState(true)

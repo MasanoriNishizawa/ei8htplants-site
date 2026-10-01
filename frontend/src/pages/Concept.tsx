@@ -32,6 +32,7 @@ const LINES = [
   },
 ]
 
+// ブランドのフィロソフィーと3つの専門ラインを紹介するコンセプトページ
 export default function Concept() {
   const t = useT()
 

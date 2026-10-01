@@ -9,6 +9,7 @@ const BLANK: ProductBody = {
   image_urls: [], tags: [], is_published: false, display_order: 0, category: null,
 }
 
+/** 商品管理。一覧表示・新規作成・編集・公開切替・削除を行うページ */
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,6 +67,7 @@ export default function AdminProducts() {
     setProducts((prev) => prev.filter((x) => x.id !== p.id))
   }
 
+  // 一覧から直接公開状態をトグルする（モーダルを開かずに切り替え可能）
   const togglePublish = async (p: Product) => {
     const updated = await api.products.update(p.id, { ...p, is_published: !p.is_published })
     setProducts((prev) => prev.map((x) => x.id === updated.id ? updated : x))

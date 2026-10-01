@@ -22,6 +22,11 @@ const BLANK: FormState = {
   preferred_date: '',
 }
 
+/**
+ * 開始日から終了日までの日付文字列（YYYY-MM-DD）配列を生成する
+ * @param startDate - 開始日（YYYY-MM-DD）
+ * @param endDate - 終了日（YYYY-MM-DD）。null の場合は開始日のみ
+ */
 function parseDateRange(startDate: string, endDate: string | null): string[] {
   const dates: string[] = []
   const start = new Date(startDate + 'T00:00:00')
@@ -37,6 +42,7 @@ function parseDateRange(startDate: string, endDate: string | null): string[] {
   return dates
 }
 
+/** ワークショップ予約フォームページ。日付・セッション選択と参加者情報の送信を行う */
 export default function Reserve() {
   const [params] = useSearchParams()
   const eventId = params.get('event_id') ?? ''
@@ -53,6 +59,7 @@ export default function Reserve() {
       month: 'long', day: 'numeric', weekday: 'short',
     })
 
+  // URL パラメータの event_id でイベントを取得し、単日イベントなら preferred_date を自動セットする
   useEffect(() => {
     if (!eventId) return
     api.events.get(eventId).then((ev) => {
@@ -64,6 +71,7 @@ export default function Reserve() {
     }).catch(() => {})
   }, [eventId])
 
+  // ワークショップありのイベントで日付が決まったらセッション一覧を再取得する
   useEffect(() => {
     if (!event?.has_workshop || !form.preferred_date) return
     setSessions([])

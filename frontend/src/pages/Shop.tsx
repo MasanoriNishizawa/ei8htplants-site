@@ -15,6 +15,7 @@ const SECTION_LABEL: React.CSSProperties = {
   color: 'var(--c-faint)', margin: '0 0 6px',
 }
 
+/** ショップページ。ジャーナル記事・カテゴリー別商品一覧・フローティングカートボタンを提供する */
 export default function Shop() {
   const t = useT()
   const [products, setProducts] = useState<Product[]>([])
@@ -166,6 +167,10 @@ export default function Shop() {
   )
 }
 
+/**
+ * ショップページ内で使うコンパクトな記事カード
+ * @param article - 表示する記事データ
+ */
 function ArticleCard({ article }: { article: Article }) {
   return (
     <Link to={`/journal/${article.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
@@ -188,6 +193,10 @@ function ArticleCard({ article }: { article: Article }) {
   )
 }
 
+/**
+ * 商品サムネイル・名前・価格を表示するカードコンポーネント
+ * @param product - 表示する商品データ
+ */
 function ProductCard({ product }: { product: Product }) {
   return (
     <Link to={`/shop/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>

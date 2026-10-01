@@ -10,6 +10,7 @@ const empty: CollaborationPayload = {
   event_date: '',
 }
 
+/** コラボレーション事例を管理するページ（動画・画像のアップロードを含む） */
 export default function AdminCollaborations() {
   const [items, setItems] = useState<Collaboration[]>([])
   const [form, setForm] = useState<CollaborationPayload>(empty)
@@ -37,6 +38,7 @@ export default function AdminCollaborations() {
     setSaving(false)
   }
 
+  // blobURLで即時プレビューしつつアップロード後に実URLへ差し替える
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -52,6 +54,7 @@ export default function AdminCollaborations() {
     }
   }
 
+  // 動画も同様にblobプレビュー→実URL差し替えで対応する
   const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return

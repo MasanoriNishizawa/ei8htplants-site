@@ -5,11 +5,13 @@ import { useT } from '../../lib/lang'
 
 const SECTIONS = ['concept', 'store'] as const
 
+/** ei8ht plants ブランドページ。IntersectionObserver でスクロール位置に応じたサブナビを更新する */
 export default function Ei8htPlants() {
   const t = useT()
   const [active, setActive] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
+  // 各セクションの中央付近がビューポートに入ったときにサブナビのアクティブ項目を更新する
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {

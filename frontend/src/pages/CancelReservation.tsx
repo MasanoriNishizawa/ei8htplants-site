@@ -4,9 +4,11 @@ import { api } from '../lib/api'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 
+// ワークショップ予約をキャンセルするページ。メールのキャンセルIDを入力して実行する
 export default function CancelReservation() {
   const t = useT()
   const [params] = useSearchParams()
+  // クエリパラメータ ?id= があれば初期値として設定
   const [token, setToken] = useState(params.get('id') ?? '')
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'already' | 'notfound' | 'error'>('idle')
 
@@ -19,8 +21,10 @@ export default function CancelReservation() {
       if (res.ok) {
         setStatus('done')
       } else if (res.status === 400) {
+        // すでにキャンセル済みの場合
         setStatus('already')
       } else if (res.status === 404) {
+        // キャンセルIDが見つからない場合
         setStatus('notfound')
       } else {
         setStatus('error')

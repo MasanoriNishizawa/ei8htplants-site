@@ -12,11 +12,16 @@ const SANS = "'Noto Sans JP', sans-serif"
 
 const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
+/**
+ * ISO 日付文字列を英語形式の日付ラベルに変換する
+ * @param s - ISO 形式の日付文字列
+ */
 function fmtDate(s: string | null): string {
   if (!s) return ''
   return new Date(s).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+/** 記事詳細ページ。ブロックコンテンツのレンダリング・関連商品表示・シェアボタンを提供する */
 export default function JournalArticle() {
   const t = useT()
   const { id } = useParams<{ id: string }>()
@@ -25,6 +30,7 @@ export default function JournalArticle() {
   const [loading, setLoading] = useState(true)
   const { add, items } = useCart()
 
+  // 記事を取得し、関連商品 ID があれば全商品リストから絞り込んで併せてセットする
   useEffect(() => {
     if (!id) return
     api.articles.get(id)

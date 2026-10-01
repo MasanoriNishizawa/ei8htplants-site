@@ -19,7 +19,12 @@ const Ctx = createContext<CartContext | null>(null)
 
 const STORAGE_KEY = 'ei8ht_cart'
 
+/**
+ * カート状態を管理し全体に提供する Context プロバイダー
+ * @param children - 子コンポーネント
+ */
 export function CartProvider({ children }: { children: ReactNode }) {
+  // 初期値は localStorage から復元。読み取り失敗時は空配列にフォールバック
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
@@ -28,6 +33,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   })
 
+  // カート内容が変わるたびに localStorage を同期
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
   }, [items])
@@ -36,6 +42,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id)
       if (existing) {
+        // 既存アイテムは数量を加算（在庫上限でクランプ）
         return prev.map((i) =>
           i.product.id === product.id
             ? { ...i, quantity: Math.min(i.quantity + quantity, product.stock) }
@@ -70,6 +77,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/** カートの操作関数と状態を取得するフック */
 export function useCart(): CartContext {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useCart must be used within CartProvider')

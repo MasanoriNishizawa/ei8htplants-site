@@ -5,6 +5,7 @@ import { useT } from '../../lib/lang'
 
 const SECTIONS = ['about', 'contents', 'flow', 'fee'] as const
 
+/** Habitat Style Workshop 詳細ページ。内容・フロー・参加費のセクション別サブナビを提供する */
 export default function HabitatOidesWorkshop() {
   const t = useT()
   const [active, setActive] = useState('')
@@ -22,6 +23,7 @@ export default function HabitatOidesWorkshop() {
     { num: '03', title: t('管理方法のレクチャー & お持ち帰り', 'Care Lecture & Take-Home'), text: t('完成後、アフターケアについてご説明します。制作物はそのままお持ち帰りいただけます。', 'After completion, we explain aftercare. You take your creation home with you.') },
   ]
 
+  // 各セクションの中央付近がビューポートに入ったときにサブナビのアクティブ項目を更新する
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {

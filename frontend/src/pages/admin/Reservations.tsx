@@ -5,6 +5,12 @@ import { STATUS_LABELS, STATUS_COLORS, STATUS_OPTIONS } from '../../lib/reservat
 
 type ReservationWithTime = Reservation & { session_time?: string }
 
+/**
+ * 開始日から終了日までの日付一覧を生成する
+ * @param start - 開始日（YYYY-MM-DD 形式）
+ * @param end - 終了日（YYYY-MM-DD 形式）。null の場合は start のみを返す
+ * @returns 日付文字列の配列
+ */
 function getDateRange(start: string, end: string | null): string[] {
   const dates: string[] = []
   const cur = new Date(start)
@@ -16,11 +22,21 @@ function getDateRange(start: string, end: string | null): string[] {
   return dates
 }
 
+/**
+ * ISO 日付文字列を日本語形式（例: 2025年10月5日）に変換する
+ * @param iso - YYYY-MM-DD 形式の日付文字列
+ * @returns 日本語形式の日付文字列
+ */
 function fmtDate(iso: string): string {
   const d = new Date(iso)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
 
+/**
+ * 1件の予約を印刷用 HTML の tr 要素文字列に変換する
+ * @param r - 変換する予約データ
+ * @returns HTML の tr 文字列
+ */
 function renderPrintRow(r: ReservationWithTime): string {
   const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
   return `<tr>
@@ -36,6 +52,11 @@ function renderPrintRow(r: ReservationWithTime): string {
   </tr>`
 }
 
+/**
+ * セッションの空き枠を印刷用 HTML の tr 要素文字列として生成する
+ * @param index - 空き枠番号（0始まり）
+ * @returns HTML の tr 文字列
+ */
 function renderEmptyRow(index: number): string {
   return `<tr class="empty-row">
     <td></td><td></td><td></td><td></td>
@@ -44,6 +65,13 @@ function renderEmptyRow(index: number): string {
   </tr>`
 }
 
+/**
+ * セッション別・日付別にグループ化して印刷用 HTML を新規ウィンドウに書き出し、自動印刷する
+ * @param rows - 印刷対象の予約一覧
+ * @param eventName - 印刷タイトルに使用するイベント名
+ * @param sessionsData - セッション ID をキーにしたセッション情報マップ
+ * @param event - セッション・日付グループ表示に使用するイベント情報（null の場合はフラット表示）
+ */
 function printReservations(
   rows: ReservationWithTime[],
   eventName: string,
@@ -150,6 +178,7 @@ function printReservations(
   win.document.close()
 }
 
+/** 全イベント横断の WS 予約一覧。イベント絞り込み・ステータス更新・印刷（PDF）に対応するページ */
 export default function AdminReservations() {
   const [searchParams] = useSearchParams()
   const [rows, setRows] = useState<ReservationWithTime[]>([])
@@ -158,6 +187,7 @@ export default function AdminReservations() {
   const [sessionsData, setSessionsData] = useState<Map<string, WsSession>>(new Map())
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
+  // URLクエリパラメータ event_id が指定されている場合は初期フィルタとして使用する
   const [eventFilter, setEventFilter] = useState<string>(searchParams.get('event_id') ?? 'all')
 
   useEffect(() => {
@@ -172,6 +202,7 @@ export default function AdminReservations() {
       setEventsMap(eMap)
       setEventsDataMap(edMap)
 
+      // session_id を持つ予約が存在するイベントのセッション情報を非同期で一括取得する
       const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
       const sMap = new Map<string, WsSession>()
       await Promise.all(eventIds.map(async (eid) => {

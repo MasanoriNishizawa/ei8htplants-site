@@ -17,10 +17,19 @@ const inputBase: React.CSSProperties = {
   outline: 'none', padding: '9px 12px',
 }
 
+/**
+ * ブロック配列を JSON 文字列にシリアライズする
+ * @param blocks - シリアライズするブロック配列
+ */
 export function serializeBlocks(blocks: Block[]): string {
   return JSON.stringify(blocks)
 }
 
+/**
+ * ブロックからテキストを抽出して OGP ディスクリプション等に使う
+ * @param blocks - ブロック配列
+ * @param maxLen - 最大文字数（デフォルト120）
+ */
 export function blocksToText(blocks: Block[], maxLen = 120): string {
   return blocks
     .filter((b): b is Extract<Block, { type: 'text' | 'heading' }> => b.type === 'text' || b.type === 'heading')
@@ -29,6 +38,10 @@ export function blocksToText(blocks: Block[], maxLen = 120): string {
     .slice(0, maxLen)
 }
 
+/**
+ * JSON 文字列またはレガシーテキスト形式をブロック配列にパースする
+ * @param content - JSON 文字列またはレガシー形式のテキスト（null/undefined は空配列を返す）
+ */
 export function parseBlocks(content: string | null | undefined): Block[] {
   if (!content) return []
   try {
@@ -52,6 +65,11 @@ export function parseBlocks(content: string | null | undefined): Block[] {
   return blocks
 }
 
+/**
+ * 見出し・テキスト・画像ブロックをドラッグ不要で並べ替え・追加・削除できるエディタ
+ * @param blocks - 現在のブロック配列
+ * @param onChange - ブロック配列変更時のコールバック
+ */
 export default function BlockEditor({ blocks, onChange }: Props) {
   const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
 

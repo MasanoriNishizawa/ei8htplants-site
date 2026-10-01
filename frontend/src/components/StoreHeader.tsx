@@ -3,10 +3,12 @@ import { useCart } from '../lib/cart'
 
 const SANS = "'Noto Sans JP', sans-serif"
 
+// ショップ・ジャーナル・チェックアウト用のコンパクトなヘッダー
 export default function StoreHeader() {
   const { items } = useCart()
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)
   const { pathname } = useLocation()
+  // チェックアウト・注文完了ページではカートボタンをリンクではなくテキスト表示にする
   const isCheckout = pathname === '/checkout' || pathname === '/order/complete'
 
   return (

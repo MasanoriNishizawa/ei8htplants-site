@@ -35,18 +35,27 @@ interface Props {
   isHome?: boolean
 }
 
+/**
+ * イベントを画像スライダー付きカードで表示するコンポーネント
+ * @param event - 表示するイベントデータ
+ * @param isNext - 「次のイベント」向け横長レイアウトを使用するか
+ * @param isHome - ホームページ用（リンク先を /events にする）か
+ */
 export default function EventCard({ event, isNext = false, isHome = false }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const touchX = useRef<number | null>(null)
+  // blob: URL はプレビュー用の未保存画像なので除外する
   const images = (event.images ?? []).filter((i) => i.url && !i.url.startsWith('blob:'))
   const imgUrls = images.map(i => i.url)
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const startD = new Date(event.start_date); startD.setHours(0, 0, 0, 0)
   const endD = event.end_date ? new Date(event.end_date) : new Date(event.start_date); endD.setHours(0, 0, 0, 0)
+  // 開催中かどうかを判定（startD <= today <= endD）
   const isOngoing = !event.is_past && startD < today && today <= endD
   const days = !event.is_past && !isOngoing ? daysUntil(event.start_date) : null
+  // 7日以内または開催中のイベントにバッジを表示する
   const urgentBadge = isOngoing || (days !== null && days >= 0 && days <= 7)
 
   const onSwipeStart = (e: React.TouchEvent) => { touchX.current = e.touches[0].clientX }
@@ -190,6 +199,7 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     </div>
   )
 
+  // page_content がある場合は内部サイトへ、なければ公式 URL、どちらもなければリンクなし
   const hasSite = event.page_content !== null
   const cardLink = hasSite
     ? { internal: `/events/${event.slug ?? event.id}` }

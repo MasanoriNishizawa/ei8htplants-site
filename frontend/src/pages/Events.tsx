@@ -7,6 +7,11 @@ import { useLang, useT } from '../lib/lang'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
+/**
+ * 日付文字列を言語に応じた月ラベルに変換する
+ * @param dateStr - ISO 形式の日付文字列
+ * @param lang - 表示言語（'ja' | 'en'）
+ */
 function getMonthLabel(dateStr: string, lang: 'ja' | 'en'): string {
   const d = new Date(dateStr)
   if (lang === 'en') {
@@ -15,6 +20,7 @@ function getMonthLabel(dateStr: string, lang: 'ja' | 'en'): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月`
 }
 
+/** イベント一覧ページ。ブランド・月・ワークショップ有無によるフィルターと過去/今後の切り替えを提供する */
 export default function Events() {
   const [params] = useSearchParams()
   const isPast = params.get('page') === 'past'
@@ -26,6 +32,7 @@ export default function Events() {
   const { lang } = useLang()
   const t = useT()
 
+  // isPast が切り替わるたびにフィルターをリセットして再取得する
   useEffect(() => {
     setLoading(true)
     setBrandFilter(null)

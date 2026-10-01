@@ -15,6 +15,10 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 
 const CARRIERS = ['ヤマト運輸', '佐川急便', '日本郵便（ゆうパック）', 'その他']
 
+/**
+ * 注文ステータスをバッジ形式で表示するコンポーネント
+ * @param status - 表示するステータスキー
+ */
 function StatusBadge({ status }: { status: string }) {
   const s = STATUS_COLORS[status] ?? { bg: '#f0f0f5', color: '#666' }
   return (
@@ -24,6 +28,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+/** 注文管理。一覧・ステータス変更・発送情報入力・詳細確認を行うページ */
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,6 +50,7 @@ export default function AdminOrders() {
     setShipModal({ orderId })
   }
 
+  // 発送確定。API 更新後に一覧と詳細モーダルの両方に carrier・tracking_number を反映する
   const confirmShip = async () => {
     if (!shipModal) return
     setUpdating(true)
@@ -266,6 +272,12 @@ export default function AdminOrders() {
   )
 }
 
+/**
+ * 注文詳細モーダル内のラベルと値を横並びで表示する行コンポーネント
+ * @param label - 左側のラベルテキスト
+ * @param value - 右側に表示する値
+ * @param mono - true の場合は等幅フォントで表示する（追跡番号など）
+ */
 function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div style={{ display: 'flex', gap: 16, padding: '5px 0', borderBottom: '1px solid #f0f0f5', fontSize: 13 }}>

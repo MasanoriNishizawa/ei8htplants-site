@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api, type PotArtist } from '../../lib/api'
 
+/** 鉢作家のマスターデータを管理するページ（PriceCalc の選択肢として使用される） */
 export default function AdminPotArtists() {
   const [artists, setArtists] = useState<PotArtist[]>([])
   const [newName, setNewName] = useState('')

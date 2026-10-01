@@ -47,6 +47,11 @@ const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 
+/**
+ * 記事コンテンツからテキストブロックを抽出し、指定文字数で切り詰めた抜粋を返す
+ * @param content - ブロック JSON または生テキスト
+ * @param max - 抜粋の最大文字数（デフォルト 90）
+ */
 function articleExcerpt(content: string | null, max = 90): string {
   if (!content) return ''
   const blocks = parseBlocks(content)
@@ -55,6 +60,10 @@ function articleExcerpt(content: string | null, max = 90): string {
   return src.length > max ? src.slice(0, max) + '…' : src
 }
 
+/**
+ * ISO 日付文字列を英語形式の短い日付ラベルに変換する
+ * @param s - ISO 形式の日付文字列
+ */
 function fmtDate(s: string | null): string {
   if (!s) return ''
   return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -64,6 +73,7 @@ const divider: React.CSSProperties = {
   border: 'none', borderTop: '1px solid var(--c-border)', margin: 0,
 }
 
+/** ホームページ。ヒーロー・ブランドストリップ・次回イベント・ショップ・ジャーナル・ギャラリーマーキーを表示する */
 export default function Home() {
   const [nextEvent, setNextEvent] = useState<Event | null>(null)
   const [gallery, setGallery] = useState<GalleryImage[]>([])
@@ -74,6 +84,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const t = useT()
 
+  // ブランドストリップの展開挙動をモバイルとデスクトップで切り替えるためにビューポート幅を監視する
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
     setIsMobile(mq.matches)
@@ -82,6 +93,7 @@ export default function Home() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
+  // 次回イベント・ギャラリー・商品・記事を並列で取得する
   useEffect(() => {
     api.events.list(false).then((events) => {
       const sorted = [...events].sort(
@@ -94,6 +106,7 @@ export default function Home() {
     api.articles.list().then((a) => setArticles(a.slice(0, 3))).catch(() => {})
   }, [])
 
+  // マウント直後に loaded フラグを立てて、ヒーローのフェードインアニメーションを開始する
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 60)
     return () => clearTimeout(t)

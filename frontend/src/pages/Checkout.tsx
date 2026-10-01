@@ -36,6 +36,7 @@ const BLANK: FormState = {
   addressLine1: '', addressLine2: '', note: '',
 }
 
+// Square 決済を使った注文手続きページ
 export default function Checkout() {
   const t = useT()
   const { items, clear, remove, updateQty } = useCart()

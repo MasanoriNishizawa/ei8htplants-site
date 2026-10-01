@@ -10,6 +10,11 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box',
 }
 
+/**
+ * ラベル付きフォームフィールドのラッパーコンポーネント
+ * @param label - フィールド上部に表示するラベルテキスト
+ * @param children - フィールドの入力要素
+ */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -19,6 +24,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+/**
+ * セクションを囲むカードコンポーネント
+ * @param title - カード上部に表示する見出しテキスト
+ * @param children - カード内のコンテンツ
+ */
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: 24 }}>
@@ -28,6 +38,11 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   )
 }
 
+/**
+ * 画像アップロード入力コンポーネント。ファイル選択後にアップロードして URL を返す
+ * @param value - 現在の画像 URL
+ * @param onChange - 画像 URL が変更された際のコールバック
+ */
 function ImageInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [uploading, setUploading] = useState(false)
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +100,7 @@ function emptyContent(): PageContent {
   }
 }
 
+/** イベントの公開ページコンテンツ（Hero・会場・コンセプト・ラインナップ・アーカイブ等）を編集するページ */
 export default function AdminEventSite() {
   const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<Event | null>(null)
@@ -92,6 +108,7 @@ export default function AdminEventSite() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // 既存の page_content を emptyContent とマージして初期化（欠落フィールドを補完する）
   useEffect(() => {
     if (!id) return
     api.events.get(id).then((ev) => {
@@ -113,6 +130,7 @@ export default function AdminEventSite() {
     setSaving(true)
     try {
       await api.events.savePageContent(id, pc)
+      // 公開サイト側のキャッシュ無効化フラグを立てる
       try { localStorage.setItem(`event_dirty_${id}`, '1') } catch { /* ignore */ }
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)

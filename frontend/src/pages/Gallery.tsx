@@ -5,6 +5,7 @@ import { useT } from '../lib/lang'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
+/** ブランド別フィルターと簡易ライトボックスを備えたギャラリーページ */
 export default function Gallery() {
   const [images, setImages] = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(true)
@@ -17,12 +18,14 @@ export default function Gallery() {
     api.gallery.list(activeBrand ?? undefined).then(setImages).finally(() => setLoading(false))
   }, [activeBrand])
 
+  // Esc キーでライトボックスを閉じる
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightbox(null) }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // ライトボックス表示中はページスクロールを禁止する
   useEffect(() => {
     document.body.style.overflow = lightbox ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }

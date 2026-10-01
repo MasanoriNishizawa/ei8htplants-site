@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
 
+// お問い合わせフォームページ。送信後に API 経由でメールを送信する
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')

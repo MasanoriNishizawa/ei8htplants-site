@@ -11,6 +11,7 @@ function fmtDate(s: string | null): string {
   return new Date(s).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
+/** Journal の記事を管理するページ（新規作成・編集・公開切替・削除） */
 export default function AdminArticles() {
   const [articles, setArticles] = useState<Article[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -21,6 +22,7 @@ export default function AdminArticles() {
   const [tagInput, setTagInput] = useState('')
   const [blocks, setBlocks] = useState<Block[]>([])
 
+  // 記事一覧と関連商品候補を同時取得する
   useEffect(() => {
     Promise.all([
       api.articles.list(true),
@@ -70,6 +72,7 @@ export default function AdminArticles() {
 
   const handleSave = async () => {
     setSaving(true)
+    // ブロックエディタから画像URLを抽出して image_urls にも同期する（後方互換）
     const imageUrls = blocks.filter((b) => b.type === 'image').map((b) => (b as any).url).filter(Boolean)
     const payload = { ...form, content: serializeBlocks(blocks), image_urls: imageUrls }
     try {
@@ -91,6 +94,7 @@ export default function AdminArticles() {
     setArticles((prev) => prev.filter((x) => x.id !== a.id))
   }
 
+  // 一覧から直接公開状態をトグルする（モーダルを開かずに切り替え可能）
   const togglePublish = async (a: Article) => {
     const updated = await api.articles.update(a.id, {
       title: a.title,

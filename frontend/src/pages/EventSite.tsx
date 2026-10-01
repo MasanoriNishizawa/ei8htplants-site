@@ -22,6 +22,7 @@ function formatDate(start: string, end: string | null): string {
   return `${fmt(s)}〜${fmt(e)}`
 }
 
+// イベント個別ページ。スラッグまたは ID でルーティングされ、page_content を元に詳細を表示する
 export default function EventSite() {
   const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<Event | null>(null)
@@ -34,6 +35,7 @@ export default function EventSite() {
     if (!id) return
     let fetchOpts: RequestInit | undefined
     try {
+      // 管理画面で保存直後の場合は no-store フラグが立っているのでキャッシュをバイパス
       if (localStorage.getItem(`event_dirty_${id}`)) {
         localStorage.removeItem(`event_dirty_${id}`)
         fetchOpts = { cache: 'no-store' }

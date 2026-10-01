@@ -19,18 +19,21 @@ const NAV_ITEMS = [
   { to: '/contact', label: 'Contact' },
 ]
 
+/** サイト共通ヘッダー。固定表示でスクロール検知・モバイルメニュー・言語切り替えを提供する */
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [brandOpen, setBrandOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { lang, toggle: toggleLang } = useLang()
 
+  // スクロール量が 4px を超えたらボーダーを表示してヘッダーを強調
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 4)
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
 
+  // モバイルメニュー表示中は body のスクロールを無効化
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }

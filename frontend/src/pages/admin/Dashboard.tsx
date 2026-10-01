@@ -20,10 +20,12 @@ interface Stats {
   pendingOrders: number
 }
 
+/** 管理画面のトップ。ステータス統計カードと各管理メニューへのナビゲーションを表示するページ */
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const location = useLocation()
 
+  // location.key を依存にすることで、ページ遷移のたびに統計を再取得する
   useEffect(() => {
     api.stats().then(setStats).catch(() => {})
   }, [location.key])

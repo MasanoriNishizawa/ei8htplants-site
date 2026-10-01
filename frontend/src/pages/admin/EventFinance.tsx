@@ -20,6 +20,7 @@ function fmt(n: number) {
   return n.toLocaleString('ja-JP')
 }
 
+/** 特定イベントの収支（売上・各支出・計算結果）を入力・保存するページ */
 export default function EventFinance() {
   const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<Event | null>(null)
@@ -28,6 +29,7 @@ export default function EventFinance() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // イベント情報と既存の収支データを同時取得してフォームに反映する
   useEffect(() => {
     if (!id) return
     Promise.all([
@@ -56,6 +58,7 @@ export default function EventFinance() {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  // 入力値をもとに移動費・WS売上・収支・手伝い支払い額をリアルタイムで計算する
   const computed = computeFinances({ event_id: id ?? '', ...form }, event?.has_workshop ?? false)
   const { transport, wsSales, totalExpense, net, salesShare, wsShare, paymentAmount } = computed
 
@@ -280,6 +283,11 @@ export default function EventFinance() {
   )
 }
 
+/**
+ * 収支フォームのセクションを囲むボックスコンポーネント
+ * @param label - セクションの見出しラベル
+ * @param children - セクション内のコンテンツ
+ */
 function SectionBox({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -291,6 +299,12 @@ function SectionBox({ label, children }: { label: string; children: React.ReactN
   )
 }
 
+/**
+ * ラベルと値を横並びに表示する1行コンポーネント
+ * @param label - 左側のラベル
+ * @param children - 右側のコンテンツ（入力欄など）
+ * @param style - 行全体のスタイル
+ */
 function Row({ label, children, style }: { label: React.ReactNode; children: React.ReactNode; style: React.CSSProperties }) {
   return (
     <div style={style}>
@@ -300,6 +314,14 @@ function Row({ label, children, style }: { label: React.ReactNode; children: Rea
   )
 }
 
+/**
+ * 金額・数値入力コンポーネント。plain モード時はスピナーを非表示にする
+ * @param value - 現在の数値
+ * @param onChange - 値変更時のコールバック
+ * @param style - input 要素のスタイル
+ * @param unit - 単位ラベル（デフォルト: "円"）
+ * @param plain - true の場合は type="text" でスピナーを非表示にする
+ */
 function NumInput({ value, onChange, style, unit = '円', plain = false }: {
   value: number
   onChange: (v: number) => void
@@ -329,6 +351,7 @@ function NumInput({ value, onChange, style, unit = '円', plain = false }: {
   )
 }
 
+/** 補足説明を小さいグレーテキストで表示するインラインコンポーネント */
 function Hint({ children }: { children: React.ReactNode }) {
   return <span style={{ fontSize: 12, color: 'var(--c-muted)' }}>{children}</span>
 }

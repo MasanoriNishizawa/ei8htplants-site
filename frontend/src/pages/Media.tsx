@@ -5,6 +5,10 @@ import { useLang, useT } from '../lib/lang'
 
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 
+/**
+ * YouTube URL から動画 ID を抽出する
+ * @param url - youtube.com または youtu.be 形式の URL
+ */
 function getYouTubeId(url: string): string | null {
   const patterns = [
     /youtube\.com\/watch\?v=([^&]+)/,
@@ -18,11 +22,20 @@ function getYouTubeId(url: string): string | null {
   return null
 }
 
+/**
+ * ISO 日付文字列を言語に応じた年月ラベルに変換する
+ * @param s - ISO 形式の日付文字列
+ * @param lang - 表示言語（'ja' | 'en'）
+ */
 function fmtDate(s: string | null, lang: 'ja' | 'en'): string {
   if (!s) return ''
   return new Date(s).toLocaleDateString(lang === 'ja' ? 'ja-JP' : 'en-US', { year: 'numeric', month: 'long' })
 }
 
+/**
+ * YouTube サムネイルとメタ情報を表示する動画カードコンポーネント
+ * @param item - メディア出演データ
+ */
 function VideoCard({ item }: { item: MediaAppearance }) {
   const { lang } = useLang()
   const videoId = getYouTubeId(item.youtube_url)
@@ -86,6 +99,7 @@ function VideoCard({ item }: { item: MediaAppearance }) {
   )
 }
 
+/** メディア出演情報ページ。YouTube サムネイル付きの動画カードグリッドを表示する */
 export default function Media() {
   const [items, setItems] = useState<MediaAppearance[]>([])
   const [loading, setLoading] = useState(true)

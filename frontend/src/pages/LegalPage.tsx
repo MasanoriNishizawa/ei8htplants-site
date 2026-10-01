@@ -69,6 +69,7 @@ const rows: { label: string; labelEn: string; value: string | string[]; valueEn:
   { label: '販売数量', labelEn: 'Stock', value: '各商品ページに記載の在庫数の範囲内', valueEn: 'Within the stock quantity shown on each product page' },
 ]
 
+/** 特定商取引法に基づく表示ページ。販売業者情報・支払方法・返品ポリシー等を掲載する */
 export default function LegalPage() {
   const t = useT()
   return (

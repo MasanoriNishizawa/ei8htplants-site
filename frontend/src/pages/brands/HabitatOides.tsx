@@ -5,6 +5,7 @@ import { useT } from '../../lib/lang'
 
 const SECTIONS = ['concept', 'workshop', 'collaboration'] as const
 
+/** Habitat Oides ブランドページ。コラボ動画の音量スライダーと IntersectionObserver によるサブナビを含む */
 export default function HabitatOides() {
   const t = useT()
   const [active, setActive] = useState('')
@@ -12,6 +13,7 @@ export default function HabitatOides() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
+  // 各セクションの中央付近がビューポートに入ったときにサブナビのアクティブ項目を更新する
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {

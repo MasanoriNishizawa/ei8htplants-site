@@ -7,12 +7,20 @@ interface Props {
   onChange: (i: number) => void
 }
 
+/**
+ * 画像をフルスクリーンで表示するライトボックスコンポーネント
+ * @param images - 表示する画像 URL 配列
+ * @param index - 現在表示中の画像インデックス
+ * @param onClose - ライトボックスを閉じるコールバック
+ * @param onChange - 画像インデックス変更コールバック
+ */
 export default function ImageLightbox({ images, index, onClose, onChange }: Props) {
   const touchX = useRef<number | null>(null)
   const n = images.length
   const prev = () => onChange((index - 1 + n) % n)
   const next = () => onChange((index + 1) % n)
 
+  // 表示中はページスクロールを禁止し、キーボード操作（Esc・矢印）に対応する
   useEffect(() => {
     const saved = document.body.style.overflow
     document.body.style.overflow = 'hidden'

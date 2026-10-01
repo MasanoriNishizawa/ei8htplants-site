@@ -3,8 +3,10 @@ import { useEffect } from 'react'
 import { CartProvider } from './lib/cart'
 import { LangProvider } from './lib/lang'
 
+/** ページ遷移時にスクロール位置をトップに戻すユーティリティコンポーネント */
 function ScrollToTop() {
   const { pathname } = useLocation()
+  // パス変更のたびにスクロールをリセット
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
   return null
 }
@@ -53,6 +55,7 @@ import JournalArticle from './pages/JournalArticle'
 import EventSite from './pages/EventSite'
 import LegalPage from './pages/LegalPage'
 
+/** アプリ全体のルーティング定義。言語・カートの Context を最上位で提供する */
 export default function App() {
   return (
     <LangProvider>

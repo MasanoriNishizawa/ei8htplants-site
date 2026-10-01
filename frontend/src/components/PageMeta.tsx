@@ -10,6 +10,13 @@ interface Props {
   ogType?: string
 }
 
+/**
+ * ページごとの title / description / OGP メタタグを React 19 形式で設定するコンポーネント
+ * @param title - ページタイトル（省略時はサイト名のみ）
+ * @param description - メタディスクリプション（省略時はデフォルト説明文）
+ * @param ogImage - OGP 画像 URL（省略時はロゴ画像）
+ * @param ogType - OGP タイプ（デフォルト 'website'）
+ */
 export default function PageMeta({ title, description, ogImage, ogType = 'website' }: Props) {
   const fullTitle = title ? `${title} | ${SITE}` : SITE
   const desc = description ?? DEFAULT_DESC

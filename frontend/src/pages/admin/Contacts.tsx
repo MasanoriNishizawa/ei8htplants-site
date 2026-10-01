@@ -3,6 +3,7 @@ import { api, type ContactRecord } from '../../lib/api'
 
 interface ReplyState { contactId: string; email: string; subject: string; body: string }
 
+/** お問い合わせ一覧の確認・既読管理・メール返信を行うページ */
 export default function AdminContacts() {
   const [contacts, setContacts] = useState<ContactRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,6 +35,7 @@ export default function AdminContacts() {
     })
   }
 
+  // 返信送信後に該当お問い合わせを既読状態に更新する
   const sendReply = async () => {
     if (!reply) return
     setReplySending(true)

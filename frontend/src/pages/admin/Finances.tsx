@@ -6,11 +6,13 @@ function fmt(n: number) {
   return n.toLocaleString('ja-JP')
 }
 
+/** 全イベントの収支サマリーを一覧表示し、各イベントの収支と全体集計を確認できるページ */
 export default function AdminFinances() {
   const [events, setEvents] = useState<Event[]>([])
   const [financeMap, setFinanceMap] = useState<Map<string, EventFinances>>(new Map())
   const [loading, setLoading] = useState(true)
 
+  // 全イベントと収支データを同時取得し、event_id をキーにしたマップを作成する
   useEffect(() => {
     Promise.all([
       api.events.list(false),
@@ -25,6 +27,7 @@ export default function AdminFinances() {
     }).finally(() => setLoading(false))
   }, [])
 
+  // 各イベントの収支を計算してテーブル行データにまとめる
   const rows = events.map((ev) => {
     const fin = financeMap.get(ev.id)
     const computed = fin ? computeFinances(fin, ev.has_workshop) : null
