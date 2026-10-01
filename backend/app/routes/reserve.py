@@ -126,7 +126,7 @@ def create_reservation(body: ReserveBody):
 def cancel_by_token(body: CancelBody):
     # トークンが存在するかをまず確認し、済みキャンセルと未登録を区別して返す
     all_rows = admin_supabase.table('workshop_reservations') \
-        .select('id, status, session_id, created_at') \
+        .select('id, status, session_id, event_id, name, email, created_at') \
         .eq('cancel_token', body.token) \
         .order('created_at', desc=True) \
         .execute()
@@ -145,6 +145,10 @@ def cancel_by_token(body: CancelBody):
             _sync_reserved_count(row['session_id'])
         except Exception as e:
             print(f'[reserve] sync after cancel failed: {e}')
+    try:
+        _send_cancel_confirmation(row)
+    except Exception as e:
+        print(f'[reserve] cancel confirmation email failed: {e}')
     return updated
 
 
@@ -310,6 +314,40 @@ def _send_admin_notification(body: ReserveBody):
     })
 
 
+def _send_cancel_confirmation(reservation: dict):
+    if not HABITAT_RESEND_API_KEY:
+        return
+    name = reservation.get('name', '')
+    email = reservation.get('email', '')
+    if not email:
+        return
+    event_id = reservation.get('event_id')
+    event = None
+    if event_id:
+        event = supabase.table('events').select('name, start_date, location').eq('id', event_id).single().execute().data
+    event_name = event['name'] if event else ''
+    rows_html = ''
+    if event:
+        rows_html = _row('イベント名', event['name']) + _row('開催日', event['start_date']) + _row('会場', event['location'])
+    content = f'''
+      <p style="margin:0 0 8px;font-size:16px;color:#333333;">{name} 様</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
+        ワークショップのご予約をキャンセルしました。<br>
+        またのご参加をお待ちしております。
+      </p>
+      {'<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">' + rows_html + '</table>' if rows_html else ''}
+    '''
+    text = f'{name} 様\n\nワークショップのご予約をキャンセルしました。\nまたのご参加をお待ちしております。\n\nHabitat Oides\nhttps://ei8htplants.com'
+    resend.api_key = HABITAT_RESEND_API_KEY
+    resend.Emails.send({
+        'from': HABITAT_SENDER,
+        'to': [email],
+        'subject': f'[Habitat Oides] ワークショップ予約をキャンセルしました{": " + event_name if event_name else ""}',
+        'html': _html_wrap(content),
+        'text': text,
+    })
+
+
 def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
     if not HABITAT_RESEND_API_KEY:
         return
@@ -394,5 +432,11 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
             _sync_reserved_count(row['session_id'])
         except Exception as e:
             print(f'[reserve] sync reserved_count failed: {e}')
+
+    if body.status == 'cancelled':
+        try:
+            _send_cancel_confirmation(row)
+        except Exception as e:
+            print(f'[reserve] cancel confirmation email failed: {e}')
 
     return updated
