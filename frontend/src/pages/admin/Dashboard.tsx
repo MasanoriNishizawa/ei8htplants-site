@@ -16,7 +16,6 @@ const ITEMS = [
 
 interface Stats {
   unreadContacts: number
-  pendingReservations: number
   activeEvents: number
   pendingOrders: number
 }
@@ -31,7 +30,6 @@ export default function Dashboard() {
 
   const statCards = [
     { label: '未読お問い合わせ', value: stats?.unreadContacts ?? '-', to: '/admin/contacts', urgent: (stats?.unreadContacts ?? 0) > 0 },
-    { label: '未確認の予約', value: stats?.pendingReservations ?? '-', to: '/admin/reservations', urgent: (stats?.pendingReservations ?? 0) > 0 },
     { label: '未発送の注文', value: stats?.pendingOrders ?? '-', to: '/admin/orders', urgent: (stats?.pendingOrders ?? 0) > 0 },
     { label: '公開中のイベント', value: stats?.activeEvents ?? '-', to: '/admin/events', urgent: false },
   ]

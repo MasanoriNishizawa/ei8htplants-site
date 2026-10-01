@@ -36,16 +36,14 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  stats: async (): Promise<{ unreadContacts: number; pendingReservations: number; activeEvents: number; pendingOrders: number }> => {
-    const [contacts, reservations, events, orders] = await Promise.all([
+  stats: async (): Promise<{ unreadContacts: number; activeEvents: number; pendingOrders: number }> => {
+    const [contacts, events, orders] = await Promise.all([
       authRequest<ContactRecord[]>('/contacts'),
-      authRequest<Reservation[]>('/reserves'),
       request<Event[]>('/events?past=false'),
       authRequest<Order[]>('/orders'),
     ])
     return {
       unreadContacts: contacts.filter((c) => !c.is_read).length,
-      pendingReservations: reservations.filter((r) => r.status === 'pending').length,
       activeEvents: events.length,
       pendingOrders: orders.filter((o) => o.status === 'paid').length,
     }
