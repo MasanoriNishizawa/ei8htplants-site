@@ -61,6 +61,7 @@ def _sync_reserved_count(session_id: str):
 
 @router.post('')
 def create_reservation(body: ReserveBody):
+    cancel_token = _generate_cancel_token()
     if body.session_id:
         with _session_lock(body.session_id):
             session = admin_supabase.table('ws_sessions').select('max_participants, time_label').eq('id', body.session_id).single().execute().data
@@ -82,9 +83,13 @@ def create_reservation(body: ReserveBody):
                         used += r.get('participants') or 1
                 if used + body.participants > session['max_participants']:
                     raise HTTPException(409, 'このセッションは満席です')
-            row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
+            data = body.model_dump()
+            data['cancel_token'] = cancel_token
+            row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
     else:
-        row = admin_supabase.table('workshop_reservations').insert(body.model_dump()).execute().data[0]
+        data = body.model_dump()
+        data['cancel_token'] = cancel_token
+        row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
     if body.session_id:
         try:
             _sync_reserved_count(body.session_id)
@@ -93,7 +98,7 @@ def create_reservation(body: ReserveBody):
     resend_email_id = None
     email_ok = True
     try:
-        resend_email_id = _send_confirmation(body)
+        resend_email_id = _send_confirmation(body, cancel_token)
     except Exception as e:
         print(f'[reserve] confirmation email failed: {e}')
         email_ok = False
@@ -180,7 +185,7 @@ def _row(label: str, value: str) -> str:
     )
 
 
-def _send_confirmation(body: ReserveBody) -> str | None:
+def _send_confirmation(body: ReserveBody, cancel_token: str) -> str | None:
     if not HABITAT_RESEND_API_KEY:
         return None
     event = supabase.table('events').select('name, start_date, location').eq('id', body.event_id).single().execute().data
@@ -209,6 +214,7 @@ def _send_confirmation(body: ReserveBody) -> str | None:
     if body.note:
         rows_html += _row('備考', body.note)
 
+    cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
     content = f'''
       <p style="margin:0 0 8px;font-size:16px;color:#333333;">{body.name} 様</p>
       <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
@@ -218,11 +224,22 @@ def _send_confirmation(body: ReserveBody) -> str | None:
       <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
         {rows_html}
       </table>
+      <div style="margin-top:28px;padding:20px 24px;background:#f8f8f4;border-radius:4px;border:1px solid #e8e8e0;">
+        <p style="margin:0 0 12px;font-size:13px;color:#555555;line-height:1.8;">
+          ご都合によりキャンセルされる場合は、以下のボタンよりお手続きください。
+        </p>
+        <a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#2d3a24;color:#ffffff;text-decoration:none;border-radius:4px;font-size:14px;">
+          予約をキャンセルする
+        </a>
+        <p style="margin:12px 0 0;font-size:11px;color:#aaaaaa;">
+          キャンセルID: {cancel_token}
+        </p>
+      </div>
     '''
     text = (
         f'{body.name} 様\n\nワークショップへのお申し込みありがとうございます。\n'
         f'イベント名: {event["name"]}\n開催日: {event["start_date"]}\n会場: {event["location"]}\n'
-        f'参加人数: {body.participants} 名\n\nHabitat Oides\nhttps://ei8htplants.com'
+        f'参加人数: {body.participants} 名\n\nキャンセルはこちら: {cancel_url}\n\nHabitat Oides\nhttps://ei8htplants.com'
     )
     resend.api_key = HABITAT_RESEND_API_KEY
     result = resend.Emails.send({
@@ -370,27 +387,12 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
     if not row:
         raise HTTPException(404, 'Not found')
 
-    update_data: dict = {'status': body.status}
-    cancel_token = None
-    # 再確定時にトークンが変わるとメール済みのリンクが無効になるため、初回のみ生成する
-    if body.status == 'confirmed' and not row.get('cancel_token'):
-        cancel_token = _generate_cancel_token()
-        update_data['cancel_token'] = cancel_token
-
-    updated = admin_supabase.table('workshop_reservations').update(update_data).eq('id', reservation_id).execute().data[0]
+    updated = admin_supabase.table('workshop_reservations').update({'status': body.status}).eq('id', reservation_id).execute().data[0]
 
     if row.get('session_id'):
         try:
             _sync_reserved_count(row['session_id'])
         except Exception as e:
             print(f'[reserve] sync reserved_count failed: {e}')
-
-    if cancel_token:
-        try:
-            event = supabase.table('events').select('name, start_date, location').eq('id', row['event_id']).single().execute().data
-            if event:
-                _send_cancel_link_email(row, event, cancel_token)
-        except Exception as e:
-            print(f'[reserve] cancel link email failed: {e}')
 
     return updated
