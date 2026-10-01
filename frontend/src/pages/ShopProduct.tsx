@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type Product } from '../lib/api'
 import { parseBlocks, blocksToText } from '../components/BlockEditor'
 import { useCart } from '../lib/cart'
+import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
 
@@ -13,6 +14,7 @@ const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 
 export default function ShopProduct() {
+  const t = useT()
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,8 +56,8 @@ export default function ShopProduct() {
   if (!product) {
     return (
       <div style={{ background: BG, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <p style={{ fontFamily: SERIF, fontSize: 18, color: '#999', fontWeight: 300 }}>商品が見つかりません。</p>
-        <Link to="/shop" style={{ fontFamily: SANS, color: '#1c1c1c', fontSize: 13, letterSpacing: 1 }}>ショップに戻る</Link>
+        <p style={{ fontFamily: SERIF, fontSize: 18, color: '#999', fontWeight: 300 }}>{t('商品が見つかりません。', 'Product not found.')}</p>
+        <Link to="/shop" style={{ fontFamily: SANS, color: '#1c1c1c', fontSize: 13, letterSpacing: 1 }}>{t('ショップに戻る', 'Back to Shop')}</Link>
       </div>
     )
   }
@@ -98,8 +100,8 @@ export default function ShopProduct() {
           {/* 価格（タイトル直下に小さく表示） */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 40, paddingBottom: 24, borderBottom: '1px solid #e8e3da' }}>
             <span style={{ fontFamily: SERIF, fontSize: 22, color: '#1c1c1c' }}>{fmt(product.price)}</span>
-            <span style={{ fontFamily: SANS, fontSize: 11, color: '#aaa' }}>税込・送料別</span>
-            {soldOut && <span style={{ fontFamily: SANS, fontSize: 12, color: '#c0392b', marginLeft: 8 }}>売り切れ</span>}
+            <span style={{ fontFamily: SANS, fontSize: 11, color: '#aaa' }}>{t('税込・送料別', 'Tax incl. · Shipping extra')}</span>
+            {soldOut && <span style={{ fontFamily: SANS, fontSize: 12, color: '#c0392b', marginLeft: 8 }}>{t('売り切れ', 'Sold out')}</span>}
           </div>
 
           {/* メイン画像（最初のimageブロック、またはimage_urls[0]） */}
@@ -156,18 +158,21 @@ export default function ShopProduct() {
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
               <span style={{ fontFamily: SERIF, fontSize: 28, color: '#1c1c1c' }}>{fmt(product.price)}</span>
-              <span style={{ fontFamily: SANS, fontSize: 12, color: '#aaa' }}>税込・送料別</span>
+              <span style={{ fontFamily: SANS, fontSize: 12, color: '#aaa' }}>{t('税込・送料別', 'Tax incl. · Shipping extra')}</span>
             </div>
 
             <p style={{ fontFamily: SANS, fontSize: 12, color: soldOut ? '#c0392b' : '#aaa', margin: '0 0 28px' }}>
-              {soldOut ? '現在売り切れです' : `残り ${product.stock} 点${cartQty > 0 ? `（カート: ${cartQty}）` : ''}`}
+              {soldOut
+                ? t('現在売り切れです', 'Out of stock')
+                : t(`残り ${product.stock} 点${cartQty > 0 ? `（カート: ${cartQty}）` : ''}`,
+                    `${product.stock} left${cartQty > 0 ? ` (in cart: ${cartQty})` : ''}`)}
             </p>
 
             {!soldOut && maxQty > 0 && (
               <>
                 {/* 数量 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-                  <span style={{ fontFamily: SANS, fontSize: 12, color: '#717171', letterSpacing: 1 }}>数量</span>
+                  <span style={{ fontFamily: SANS, fontSize: 12, color: '#717171', letterSpacing: 1 }}>{t('数量', 'Qty')}</span>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', background: '#fff' }}>
                     <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 40, border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: '#1c1c1c' }}>−</button>
                     <span style={{ width: 36, textAlign: 'center', fontFamily: SERIF, fontSize: 16, color: '#1c1c1c' }}>{qty}</span>
@@ -187,7 +192,7 @@ export default function ShopProduct() {
                       cursor: added ? 'default' : 'pointer', transition: 'background 0.2s',
                     }}
                   >
-                    {added ? 'カートに追加しました' : 'カートに入れる'}
+                    {added ? t('カートに追加しました', 'Added to Cart') : t('カートに入れる', 'Add to Cart')}
                   </button>
                   <button
                     onClick={handleBuyNow}
@@ -197,7 +202,7 @@ export default function ShopProduct() {
                       fontFamily: SANS, fontSize: 13, letterSpacing: '2px', cursor: 'pointer',
                     }}
                   >
-                    すぐに購入する
+                    {t('すぐに購入する', 'Buy Now')}
                   </button>
                 </div>
               </>
@@ -206,8 +211,10 @@ export default function ShopProduct() {
             {/* 配送説明 */}
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #e8e3da' }}>
               <p style={{ fontFamily: SANS, fontSize: 12, color: '#aaa', margin: 0, lineHeight: 2 }}>
-                ※ 送料は都道府県により異なります（¥1,000〜¥1,800）<br />
-                ※ 発送完了時にメールでお知らせします
+                {t(
+                  <>※ 送料は都道府県により異なります（¥1,000〜¥1,800）<br />※ 発送完了時にメールでお知らせします</>,
+                  <>※ Shipping varies by prefecture (¥1,000–¥1,800)<br />※ You will be notified by email when your order ships</>
+                )}
               </p>
             </div>
           </div>
@@ -219,7 +226,7 @@ export default function ShopProduct() {
             <ShareButtons url={`${window.location.origin}/shop/${id}`} text={`${product.name} | ei8ht plants Shop`} />
           </div>
           <Link to="/shop" style={{ fontFamily: SANS, fontSize: 13, color: '#aaa', textDecoration: 'none', letterSpacing: 1 }}>
-            ← Shop 一覧に戻る
+            {t('← Shop 一覧に戻る', '← Back to Shop')}
           </Link>
         </div>
 
@@ -238,7 +245,7 @@ export default function ShopProduct() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
               </svg>
-              カート ({cartCount})
+              {t(`カート (${cartCount})`, `Cart (${cartCount})`)}
             </Link>
           </div>
         )}

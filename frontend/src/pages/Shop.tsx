@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Product, type Article, PRODUCT_CATEGORIES } from '../lib/api'
 import { useCart } from '../lib/cart'
+import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
 
@@ -15,6 +16,7 @@ const SECTION_LABEL: React.CSSProperties = {
 }
 
 export default function Shop() {
+  const t = useT()
   const [products, setProducts] = useState<Product[]>([])
   const [articles, setArticles] = useState<Article[]>([])
   const [backlogOpen, setBacklogOpen] = useState(false)
@@ -112,7 +114,7 @@ export default function Shop() {
                       onClick={() => setActiveCategory(null)}
                       style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px', whiteSpace: 'nowrap', padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', color: activeCategory === null ? 'var(--c-ink)' : 'var(--c-faint)', borderBottom: activeCategory === null ? '2px solid var(--c-ink)' : '2px solid transparent', marginBottom: -1 }}
                     >
-                      すべて
+                      {t('すべて', 'All')}
                     </button>
                     {PRODUCT_CATEGORIES.filter((c) => usedCategories.includes(c)).map((cat) => (
                       <button
@@ -128,7 +130,9 @@ export default function Shop() {
 
                 {filteredProducts.length === 0 ? (
                   <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-faint)', padding: '40px 0' }}>
-                    {products.length === 0 ? '現在販売中の商品はありません。' : 'このカテゴリーの商品はありません。'}
+                    {products.length === 0
+                      ? t('現在販売中の商品はありません。', 'No products available.')
+                      : t('このカテゴリーの商品はありません。', 'No products in this category.')}
                   </p>
                 ) : (
                   <div className="shop-product-grid">

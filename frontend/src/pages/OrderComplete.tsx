@@ -1,10 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 const SANS = "'Noto Sans JP', sans-serif"
 
 export default function OrderComplete() {
+  const t = useT()
   const { state } = useLocation()
   const orderId: string | undefined = state?.orderId
   const customerName: string | undefined = state?.customerName
@@ -13,7 +15,7 @@ export default function OrderComplete() {
 
   return (
     <>
-      <PageMeta title="ご注文ありがとうございます | ei8ht plants" description="ご注文を受け付けました。" />
+      <PageMeta title={t('ご注文ありがとうございます | ei8ht plants', 'Thank You for Your Order | ei8ht plants')} description={t('ご注文を受け付けました。', 'Your order has been received.')} />
       <div style={{ background: '#faf9f7', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 24px' }}>
         <div style={{ maxWidth: 520, width: '100%', textAlign: 'center' }}>
 
@@ -27,26 +29,36 @@ export default function OrderComplete() {
             Order Confirmed
           </p>
           <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 300, letterSpacing: '0.06em', margin: '0 0 28px', color: '#1c1c1c', lineHeight: 1.4 }}>
-            {customerName ? `${customerName} 様、` : ''}ご注文ありがとうございます
+            {customerName
+              ? t(`${customerName} 様、ご注文ありがとうございます`, `Thank you for your order, ${customerName}`)
+              : t('ご注文ありがとうございます', 'Thank you for your order')}
           </h1>
 
           <div style={{ background: '#fff', border: '1px solid #e8e3da', padding: '28px 32px', marginBottom: 36, textAlign: 'left' }}>
             {orderNo && (
               <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #f0ece6' }}>
-                <p style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px', color: '#aaa', margin: '0 0 6px', textTransform: 'uppercase' }}>注文番号</p>
+                <p style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px', color: '#aaa', margin: '0 0 6px', textTransform: 'uppercase' }}>{t('注文番号', 'Order Number')}</p>
                 <p style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 20, color: '#1c1c1c', margin: 0, letterSpacing: '0.1em' }}>{orderNo}</p>
               </div>
             )}
             <p style={{ fontFamily: SANS, fontSize: 14, color: '#3a3a3a', lineHeight: 2, margin: '0 0 12px' }}>
-              ご注文を受け付けました。
+              {t('ご注文を受け付けました。', 'Your order has been received.')}
               {customerEmail && (
-                <><br /><span style={{ color: '#717171' }}>{customerEmail}</span> に確認メールをお送りします。</>
+                t(
+                  <><br /><span style={{ color: '#717171' }}>{customerEmail}</span> に確認メールをお送りします。</>,
+                  <><br />A confirmation email will be sent to <span style={{ color: '#717171' }}>{customerEmail}</span>.</>
+                )
               )}
-              {!customerEmail && <><br />ご登録いただいたメールアドレスに確認メールをお送りします。</>}
+              {!customerEmail && t(
+                <><br />ご登録いただいたメールアドレスに確認メールをお送りします。</>,
+                <><br />A confirmation email will be sent to your registered email address.</>
+              )}
             </p>
             <p style={{ fontFamily: SANS, fontSize: 13, color: '#717171', lineHeight: 2, margin: 0 }}>
-              発送が完了しましたら、改めてメールでお知らせいたします。<br />
-              ご不明な点は <Link to="/contact" style={{ color: '#717171' }}>お問い合わせフォーム</Link> よりご連絡ください。
+              {t(
+                <>発送が完了しましたら、改めてメールでお知らせいたします。<br />ご不明な点は <Link to="/contact" style={{ color: '#717171' }}>お問い合わせフォーム</Link> よりご連絡ください。</>,
+                <>We will notify you by email once your order has shipped.<br />If you have any questions, please <Link to="/contact" style={{ color: '#717171' }}>contact us</Link>.</>
+              )}
             </p>
           </div>
 
@@ -58,7 +70,7 @@ export default function OrderComplete() {
                 textDecoration: 'none', fontFamily: SANS, fontSize: 13, letterSpacing: '2px',
               }}
             >
-              ショップに戻る
+              {t('ショップに戻る', 'Back to Shop')}
             </Link>
             <Link
               to="/"
@@ -68,7 +80,7 @@ export default function OrderComplete() {
                 background: '#fff',
               }}
             >
-              トップへ
+              {t('トップへ', 'Home')}
             </Link>
           </div>
         </div>

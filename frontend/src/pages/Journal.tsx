@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Article } from '../lib/api'
 import { parseBlocks } from '../components/BlockEditor'
+import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 
 const BG = '#f8f7f5'
@@ -26,6 +27,7 @@ function fmtDate(s: string | null): string {
 }
 
 export default function Journal() {
+  const t = useT()
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -87,7 +89,7 @@ export default function Journal() {
           </div>
         ) : filtered.length === 0 ? (
           <p style={{ fontFamily: SERIF, fontSize: 18, color: '#999', textAlign: 'center', padding: '80px 0', fontWeight: 300 }}>
-            記事がありません。
+            {t('記事がありません。', 'No articles found.')}
           </p>
         ) : (
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px 100px' }}>

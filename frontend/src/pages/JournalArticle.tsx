@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api, type Article, type Product } from '../lib/api'
 import { parseBlocks, blocksToText } from '../components/BlockEditor'
 import { useCart } from '../lib/cart'
+import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
 
@@ -17,6 +18,7 @@ function fmtDate(s: string | null): string {
 }
 
 export default function JournalArticle() {
+  const t = useT()
   const { id } = useParams<{ id: string }>()
   const [article, setArticle] = useState<Article | null>(null)
   const [linkedProducts, setLinkedProducts] = useState<Product[]>([])
@@ -49,7 +51,7 @@ export default function JournalArticle() {
   if (!article) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <p style={{ fontFamily: SERIF, fontSize: 20, color: '#8c8478', fontWeight: 300 }}>記事が見つかりません。</p>
+        <p style={{ fontFamily: SERIF, fontSize: 20, color: '#8c8478', fontWeight: 300 }}>{t('記事が見つかりません。', 'Article not found.')}</p>
         <Link to="/journal" style={{ fontFamily: SANS, color: '#1a1a18', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' }}>← Journal</Link>
       </div>
     )
@@ -158,7 +160,7 @@ export default function JournalArticle() {
               Shop
             </p>
             <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 2.2vw, 26px)', fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 36px', fontStyle: 'italic' }}>
-              記事で紹介した商品
+              {t('記事で紹介した商品', 'Featured Products')}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 28 }}>
               {linkedProducts.map((p) => (
@@ -178,17 +180,17 @@ export default function JournalArticle() {
                   </Link>
                   <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-muted)', margin: '0 0 12px' }}>
                     {fmt(p.price)}
-                    <span style={{ fontSize: 10, color: 'var(--c-faint)', marginLeft: 5 }}>税込・送料別</span>
+                    <span style={{ fontSize: 10, color: 'var(--c-faint)', marginLeft: 5 }}>{t('税込・送料別', 'Tax incl. · Shipping extra')}</span>
                   </p>
                   {p.stock > 0 ? (
                     <button
                       onClick={() => add(p)}
                       style={{ padding: '9px 18px', background: 'var(--c-ink)', color: '#fffdf9', border: 'none', fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px', cursor: 'pointer', textTransform: 'uppercase' }}
                     >
-                      カートに入れる
+                      {t('カートに入れる', 'Add to Cart')}
                     </button>
                   ) : (
-                    <p style={{ fontFamily: SANS, fontSize: 11, color: '#c04040', margin: 0, letterSpacing: 1 }}>売り切れ</p>
+                    <p style={{ fontFamily: SANS, fontSize: 11, color: '#c04040', margin: 0, letterSpacing: 1 }}>{t('売り切れ', 'Sold out')}</p>
                   )}
                 </div>
               ))}
@@ -214,7 +216,7 @@ export default function JournalArticle() {
             to="/checkout"
             style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--c-ink)', color: '#fffdf9', textDecoration: 'none', padding: '13px 26px', fontFamily: SANS, fontSize: 12, letterSpacing: '1px', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
           >
-            カート ({cartCount})
+            {t(`カート (${cartCount})`, `Cart (${cartCount})`)}
           </Link>
         </div>
       )}
