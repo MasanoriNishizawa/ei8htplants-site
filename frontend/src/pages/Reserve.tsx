@@ -183,6 +183,14 @@ export default function Reserve() {
                     <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '0.02em', margin: '4px 0 2px' }}>1,000円</p>
                     <p style={{ fontSize: 12, color: 'var(--c-muted)', margin: 0 }}>鉢・資材含む / 植物別</p>
                   </div>
+                  <a
+                    href="https://ei8htplants.com/habitatoides/workshop"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-block', marginTop: 14, fontSize: 13, color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                  >
+                    詳しくはこちら
+                  </a>
                 </div>
                 <div style={{ marginTop: 16, padding: '16px 20px', background: 'var(--c-bg)', borderRadius: 4, border: '1px solid var(--c-border)' }}>
                   <p style={{ fontSize: 13, color: 'var(--c-muted)', lineHeight: 1.9, margin: 0 }}>
