@@ -178,10 +178,10 @@ export default function Reserve() {
                     石・砂・資材と植物を組み合わせて、はじめての方でも楽しめます。<br />
                     植物・鉢はご持参いただいたものでもご参加いただけます。
                   </p>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <div style={{ paddingTop: 14, borderTop: '1px solid #c8dcc4' }}>
                     <span style={{ fontSize: 11, letterSpacing: 1, color: '#6a8a64' }}>参加費</span>
-                    <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '0.02em' }}>1,000円</span>
-                    <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>（鉢・資材含む）+ 植物別</span>
+                    <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '0.02em', margin: '4px 0 2px' }}>1,000円</p>
+                    <p style={{ fontSize: 12, color: 'var(--c-muted)', margin: 0 }}>鉢・資材含む / 植物別</p>
                   </div>
                 </div>
                 <div style={{ marginTop: 16, padding: '16px 20px', background: 'var(--c-bg)', borderRadius: 4, border: '1px solid var(--c-border)' }}>
