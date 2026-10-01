@@ -75,8 +75,8 @@ export default function Ei8htPlants() {
               </h2>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
                 {t(
-                  <>アガベ・塊根植物・灌木など、個性的なフォルムと深みある色彩を持つビザールプランツを専門に扱います。その一株一株の表情に向き合いながら、初めての方からコレクターの方まで、育てる楽しさをともに見つけていきます。<br /><br />育て方の相談から株選びまで、気軽に声をかけてください。</>,
-                  <>We specialize in bizarre plants — agaves, caudiciform plants, and shrubs — each with its own bold form and rich character. From first-time growers to seasoned collectors, we help you find the joy of growing together.<br /><br />Feel free to ask us anything, from care tips to choosing the right plant.</>
+                  <>アガベ、塊根植物、灌木——<br />個性的なフォルムと深みある色彩を持つ植物を、<br />自ら生産し、一株一株に向き合って届けています。<br /><br />株選びから育て方まで、<br />幅広くサポートします。</>,
+                  <>Agaves, caudiciform plants, shrubs —<br />plants with bold forms and rich character,<br />grown by us and delivered with care.<br /><br />From choosing the right plant to ongoing care,<br />we're here to support you every step of the way.</>
                 )}
               </p>
             </div>
