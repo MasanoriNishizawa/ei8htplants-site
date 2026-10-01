@@ -48,14 +48,17 @@ export default function Concept() {
           <div style={{ maxWidth: 750, margin: '0 auto', lineHeight: 2.2, fontSize: 16, color: 'var(--c-body)', textAlign: 'justify' }}>
             {t(
               <>
-                植物は、育てるものであり、飾るもの。<br /><br />
-                色と形に惹かれて手に取った一株が、日々の手入れを通じて少しずつ表情を変えていく—その過程そのものが、植物を育てることの醍醐味だと思っています。<br /><br />
-                はじめての一株の選び方から、育て方の悩み、空間に合う植物探しまで。どんなことでも気軽にご相談ください。一緒に考えながら、あなたに合ったご提案をします。
+                色と形に惹かれた一株を、毎日手入れして育てるのもいい。<br />
+                石や砂と組み合わせて、自分だけの景色に仕立てるのもいい。<br />
+                部屋のどこかに置いて、ただ眺めながら暮らすのもいい。<br /><br />
+                植物との付き合い方に、正解はありません。<br />
+                どんなスタイルでも、一緒に考えながらご提案します。
               </>,
               <>
-                Plants are something to grow — and something to live with.<br /><br />
-                A single plant chosen for its color and form slowly changes with each day of care. That process itself is what makes growing plants so rewarding.<br /><br />
-                From finding your first plant to troubleshooting care or searching for something that fits your space — feel free to ask about anything. We'll think it through together and find what suits you.
+                Nurture it day by day. Style it with stone and sand.<br />
+                Set it somewhere and simply live with it.<br /><br />
+                There's no right way to be with plants.<br />
+                Whatever your style, we'll figure it out together.
               </>
             )}
           </div>
