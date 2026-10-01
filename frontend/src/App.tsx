@@ -49,6 +49,7 @@ import PriceCalc from './pages/admin/PriceCalc'
 import AdminPotArtists from './pages/admin/AdminPotArtists'
 import AdminMedia from './pages/admin/AdminMedia'
 import AdminDocs from './pages/admin/AdminDocs'
+import Chat from './pages/Chat'
 import Media from './pages/Media'
 import Journal from './pages/Journal'
 import JournalArticle from './pages/JournalArticle'
@@ -78,6 +79,7 @@ export default function App() {
             <Route path="/hue" element={<Hue />} />
             <Route path="/events/:id" element={<EventSite />} />
             <Route path="/legal" element={<LegalPage />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/reserve" element={<Reserve />} />
             <Route path="/cancel" element={<CancelReservation />} />
           </Route>
