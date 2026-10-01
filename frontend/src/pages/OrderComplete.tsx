@@ -34,7 +34,7 @@ export default function OrderComplete() {
             {orderNo && (
               <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #f0ece6' }}>
                 <p style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px', color: '#aaa', margin: '0 0 6px', textTransform: 'uppercase' }}>注文番号</p>
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: '#1c1c1c', margin: 0, letterSpacing: '0.1em' }}>{orderNo}</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 20, color: '#1c1c1c', margin: 0, letterSpacing: '0.1em' }}>{orderNo}</p>
               </div>
             )}
             <p style={{ fontFamily: SANS, fontSize: 14, color: '#3a3a3a', lineHeight: 2, margin: '0 0 12px' }}>

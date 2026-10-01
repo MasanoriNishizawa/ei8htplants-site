@@ -66,7 +66,7 @@ export default function HabitatOides() {
 
       <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
             <img src="/img/logo-habitatoides.png" alt="Habitat Oides" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto', borderRadius: '20%' }} />
             <div>
@@ -86,7 +86,7 @@ export default function HabitatOides() {
 
       <section id="workshop" className="brand-section" ref={(el) => { sectionRefs.current.workshop = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Workshop</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Workshop</h2>
           <div className="ho-workshop-feature">
             <div style={{ background: '#2e4898', minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 32px', gap: 24 }}>
               <div style={{ width: 80, height: 80, border: '1px solid #5572cc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, color: '#d8b8ca' }}>✦</div>
@@ -117,7 +117,7 @@ export default function HabitatOides() {
       <section id="collaboration" className="brand-section" ref={(el) => { sectionRefs.current.collaboration = el }}
         style={{ background: '#1e3272', padding: '72px 0', textAlign: 'center' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#9aaedd', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #3a58b8' }}>Collaboration</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#9aaedd', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #3a58b8' }}>Collaboration</h2>
           <div style={{ margin: '40px auto 0', width: 'min(420px, 100%)' }}>
             <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', maxHeight: '68vh', overflow: 'hidden', borderRadius: 4, background: '#000' }}>
               <video

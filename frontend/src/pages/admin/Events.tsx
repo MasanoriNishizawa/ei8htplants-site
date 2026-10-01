@@ -89,7 +89,7 @@ export default function AdminEvents() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>イベント管理</h2>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>イベント管理</h2>
         <Link to="/admin/events/new" style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', textDecoration: 'none', borderRadius: 4, fontSize: 14 }}>
           + 新規追加
         </Link>

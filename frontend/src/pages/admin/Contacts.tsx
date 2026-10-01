@@ -62,7 +62,7 @@ export default function AdminContacts() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 24 }}>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>お問い合わせ</h2>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>お問い合わせ</h2>
         {unreadCount > 0 && (
           <span style={{ background: '#c0392b', color: '#fff', borderRadius: 4, fontSize: 12, padding: '2px 10px', fontWeight: 600 }}>
             未読 {unreadCount}

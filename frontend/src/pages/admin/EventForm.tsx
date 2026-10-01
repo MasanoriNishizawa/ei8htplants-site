@@ -156,7 +156,7 @@ export default function AdminEventForm() {
 
   return (
     <div style={{ maxWidth: 700 }}>
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 32 }}>
+      <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, marginBottom: 32 }}>
         {id ? 'イベント編集' : '新規イベント'}
       </h2>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

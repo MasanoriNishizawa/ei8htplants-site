@@ -64,7 +64,7 @@ export default function Ei8htPlants() {
 
       <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
             <img src="/img/logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>

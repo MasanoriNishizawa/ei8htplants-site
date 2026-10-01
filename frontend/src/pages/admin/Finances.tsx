@@ -50,7 +50,7 @@ export default function AdminFinances() {
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>
+      <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>
         収支一覧
       </h2>
 
@@ -64,15 +64,15 @@ export default function AdminFinances() {
         }}>
           <div style={{ flex: 1, minWidth: 120 }}>
             <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 4 }}>売上合計</div>
-            <div style={{ fontSize: 18, fontWeight: 500, fontFamily: "'Cormorant Garamond', serif" }}>{fmt(totalSales)} 円</div>
+            <div style={{ fontSize: 18, fontWeight: 500, fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif" }}>{fmt(totalSales)} 円</div>
           </div>
           <div style={{ flex: 1, minWidth: 120 }}>
             <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 4 }}>支出合計</div>
-            <div style={{ fontSize: 18, fontWeight: 500, fontFamily: "'Cormorant Garamond', serif" }}>{fmt(totalExpense)} 円</div>
+            <div style={{ fontSize: 18, fontWeight: 500, fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif" }}>{fmt(totalExpense)} 円</div>
           </div>
           <div style={{ flex: 1, minWidth: 120 }}>
             <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 4 }}>収支合計</div>
-            <div style={{ fontSize: 22, fontWeight: 600, color: totalNet >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', serif" }}>
+            <div style={{ fontSize: 22, fontWeight: 600, color: totalNet >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif" }}>
               {totalNet >= 0 ? '+' : ''}{fmt(totalNet)} 円
             </div>
           </div>
@@ -110,7 +110,7 @@ export default function AdminFinances() {
                   <td style={{ ...numCell, color: computed ? '#c0392b' : 'var(--c-muted)' }}>
                     {computed ? `${fmt(computed.totalExpense)} 円` : '—'}
                   </td>
-                  <td style={{ ...numCell, fontWeight: computed ? 600 : 400, color: computed ? (computed.net >= 0 ? '#2d5a27' : '#c0392b') : 'var(--c-muted)', fontFamily: computed ? "'Cormorant Garamond', serif" : 'inherit', fontSize: computed ? 16 : 14 }}>
+                  <td style={{ ...numCell, fontWeight: computed ? 600 : 400, color: computed ? (computed.net >= 0 ? '#2d5a27' : '#c0392b') : 'var(--c-muted)', fontFamily: computed ? "'Cormorant Garamond', 'Noto Serif JP', serif" : 'inherit', fontSize: computed ? 16 : 14 }}>
                     {computed ? `${computed.net >= 0 ? '+' : ''}${fmt(computed.net)} 円` : '—'}
                   </td>
                   <td style={cellStyle}>

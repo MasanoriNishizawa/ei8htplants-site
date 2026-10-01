@@ -80,7 +80,7 @@ export default function AdminProducts() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>商品管理</h2>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>商品管理</h2>
         <button onClick={openNew} style={{ padding: '9px 20px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
           + 商品追加
         </button>
@@ -139,7 +139,7 @@ export default function AdminProducts() {
       {editing !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={closeModal}>
           <div style={{ background: '#fff', maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 32 }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px', fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 22 }}>
+            <h3 style={{ margin: '0 0 24px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontWeight: 300, fontSize: 22 }}>
               {editing === 'new' ? '商品追加' : '商品編集'}
             </h3>
 

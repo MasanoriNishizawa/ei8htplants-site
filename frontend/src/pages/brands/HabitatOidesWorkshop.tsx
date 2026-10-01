@@ -72,7 +72,7 @@ export default function HabitatOidesWorkshop() {
 
       <section id="about" className="brand-section" ref={(el) => { sectionRefs.current.about = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>About Workshop</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>About Workshop</h2>
           <div className="wspage-about-grid">
             <div style={{ aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: '#e8e0d4' }}>
               <img
@@ -103,7 +103,7 @@ export default function HabitatOidesWorkshop() {
 
       <section id="contents" className="brand-section" ref={(el) => { sectionRefs.current.contents = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Contents</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Contents</h2>
           <div className="wspage-features">
             {FEATURES.map(({ bg, title, text }) => (
               <div key={title} style={{ background: bg, borderRadius: 4, padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -119,7 +119,7 @@ export default function HabitatOidesWorkshop() {
 
       <section id="flow" className="brand-section" ref={(el) => { sectionRefs.current.flow = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Flow</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Flow</h2>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {FLOW.map(({ num, title, text }) => (
               <div key={num} style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 24, padding: '28px 0', borderBottom: '1px solid #dddde8', alignItems: 'start' }}>
@@ -138,7 +138,7 @@ export default function HabitatOidesWorkshop() {
 
       <section id="fee" className="brand-section" ref={(el) => { sectionRefs.current.fee = el }}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Fee & Info</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Fee & Info</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
               <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>参加費</p>

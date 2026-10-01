@@ -28,13 +28,13 @@ export default function Stockists() {
     <>
       <PageMeta title="Stockists" description="ei8ht plants 取扱店一覧。" />
       <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Stockists</h1>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Stockists</h1>
       </div>
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 20px 80px' }}>
         {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>{t('読み込み中...', 'Loading...')}</p>}
         {Object.entries(byArea).map(([area, items]) => (
           <div key={area} style={{ marginBottom: 40 }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, letterSpacing: 2, borderBottom: '1px solid #dddde8', paddingBottom: 8, marginBottom: 16 }}>{area}</h2>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 22, fontWeight: 300, letterSpacing: 2, borderBottom: '1px solid #dddde8', paddingBottom: 8, marginBottom: 16 }}>{area}</h2>
             {items.map((s) => (
               <div key={s.id} style={{ padding: '16px 0', borderBottom: '1px solid #f0f0f5' }}>
                 <div style={{ fontWeight: 500, marginBottom: 4 }}>

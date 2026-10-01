@@ -67,7 +67,7 @@ export default function AdminLayout() {
   if (!authed) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f5f7', padding: '20px' }}>
       <form onSubmit={login} style={{ background: '#ffffff', padding: 40, borderRadius: 4, boxShadow: '0 2px 24px rgba(40,35,20,0.08)', width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <h1 style={{ margin: '0 0 8px', fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300 }}>Admin</h1>
+        <h1 style={{ margin: '0 0 8px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 24, fontWeight: 300 }}>Admin</h1>
         <input required type="text" placeholder="ID" value={email} onChange={(e) => setEmail(e.target.value)}
           style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit' }} />
         <input required type="password" placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
@@ -101,7 +101,7 @@ export default function AdminLayout() {
           gap: 4,
         }}
       >
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, marginBottom: 12, letterSpacing: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 18, fontWeight: 300, marginBottom: 12, letterSpacing: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>ei8ht admin</span>
           <button
             onClick={() => setMenuOpen(false)}
@@ -137,7 +137,7 @@ export default function AdminLayout() {
           >
             ☰
           </button>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 300, letterSpacing: 2 }}>ei8ht admin</span>
+          <span style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 16, fontWeight: 300, letterSpacing: 2 }}>ei8ht admin</span>
         </div>
 
         <main style={{ flex: 1, padding: 'clamp(16px, 3vw, 40px)', overflowY: 'auto', minWidth: 0 }}>

@@ -81,7 +81,7 @@ export default function AdminOrders() {
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, margin: '0 0 24px' }}>注文管理</h2>
+      <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: '0 0 24px' }}>注文管理</h2>
 
       {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
         <div style={{ overflowX: 'auto' }}>
@@ -136,7 +136,7 @@ export default function AdminOrders() {
       {shipModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ background: '#fff', maxWidth: 420, width: '100%', padding: 32 }}>
-            <h3 style={{ margin: '0 0 20px', fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 20 }}>発送情報の入力</h3>
+            <h3 style={{ margin: '0 0 20px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontWeight: 300, fontSize: 20 }}>発送情報の入力</h3>
             <p style={{ fontFamily: "'Noto Sans JP', sans-serif", fontSize: 13, color: '#555', margin: '0 0 20px', lineHeight: 1.8 }}>
               発送済みに変更すると、お客様へ発送通知メールが送信されます。
             </p>
@@ -187,7 +187,7 @@ export default function AdminOrders() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setDetail(null)}>
           <div style={{ background: '#fff', maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 32 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-              <h3 style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: 22 }}>注文詳細</h3>
+              <h3 style={{ margin: 0, fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontWeight: 300, fontSize: 22 }}>注文詳細</h3>
               <StatusBadge status={detail.status} />
             </div>
 
@@ -220,7 +220,7 @@ export default function AdminOrders() {
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
                 <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>小計: {fmt(detail.subtotal)}</span>
                 <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>送料: {fmt(detail.shipping_fee)}</span>
-                <span style={{ fontSize: 17, fontFamily: "'Cormorant Garamond', serif", color: 'var(--c-ink)' }}>合計: {fmt(detail.total)}</span>
+                <span style={{ fontSize: 17, fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", color: 'var(--c-ink)' }}>合計: {fmt(detail.total)}</span>
               </div>
             </section>
 

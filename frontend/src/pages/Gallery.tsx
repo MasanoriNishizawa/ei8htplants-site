@@ -32,7 +32,7 @@ export default function Gallery() {
     <>
       <PageMeta title="Gallery" description="ei8ht plants、Habitat Oides、HUE の植物ギャラリー。" />
       <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f5f5f7' }}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Gallery</h1>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Gallery</h1>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: 0, borderBottom: '1px solid #dddde8', background: '#f5f5f7' }}>

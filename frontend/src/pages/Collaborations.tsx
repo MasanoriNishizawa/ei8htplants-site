@@ -18,7 +18,7 @@ export default function Collaborations() {
       <PageMeta title="Collaborations" description="Habitat Oides のコラボレーション作品・活動記録。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.png" />
       <div style={{ textAlign: 'center', padding: '72px 20px 48px', background: '#f5f5f7' }}>
         <p style={{ fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 14px' }}>Habitat Oides</p>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(32px, 6vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'clamp(32px, 6vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>
           Collaboration
         </h1>
       </div>

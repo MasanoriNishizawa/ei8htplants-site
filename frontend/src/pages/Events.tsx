@@ -81,7 +81,7 @@ export default function Events() {
     <>
       <PageMeta title={isPast ? 'Past Events' : 'Events'} description="ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。" />
       <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f5f5f7' }}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>
           {isPast ? 'Past Events' : 'Events'}
         </h1>
       </div>

@@ -83,7 +83,7 @@ export default function AdminCollaborations() {
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>コラボレーション管理</h2>
+      <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>コラボレーション管理</h2>
 
       <form onSubmit={add} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 32, padding: 20, background: '#ffffff', borderRadius: 4, border: '1px solid #dddde8' }}>
         <div style={{ gridColumn: '1 / -1' }}>

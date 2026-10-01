@@ -22,7 +22,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: 24 }}>
-      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, letterSpacing: 2, margin: '0 0 20px', paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>{title}</h3>
+      <h3 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 18, fontWeight: 300, letterSpacing: 2, margin: '0 0 20px', paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>{title}</h3>
       {children}
     </div>
   )
@@ -147,7 +147,7 @@ export default function AdminEventSite() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300, margin: '0 0 6px' }}>サイト編集</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 24, fontWeight: 300, margin: '0 0 6px' }}>サイト編集</h2>
           <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>{event.name}</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

@@ -72,7 +72,7 @@ export default function AdminStockists() {
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>取扱店管理</h2>
+      <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>取扱店管理</h2>
 
       <form onSubmit={add} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 32, padding: 20, background: '#ffffff', borderRadius: 4, border: '1px solid #dddde8' }}>
         <div><input required placeholder="店舗名" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} /></div>
@@ -91,7 +91,7 @@ export default function AdminStockists() {
       {editing && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <form onSubmit={saveEdit} style={{ background: '#ffffff', borderRadius: 4, padding: 32, width: 480, maxWidth: '90vw', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <h3 style={{ gridColumn: '1 / -1', fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 300, margin: '0 0 8px' }}>取扱店を編集</h3>
+            <h3 style={{ gridColumn: '1 / -1', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 20, fontWeight: 300, margin: '0 0 8px' }}>取扱店を編集</h3>
             <div><input required placeholder="店舗名" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} style={inputStyle} /></div>
             <div><input placeholder="エリア" value={editForm.area} onChange={(e) => setEditForm({ ...editForm, area: e.target.value })} style={inputStyle} /></div>
             <div><input placeholder="住所" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} style={inputStyle} /></div>

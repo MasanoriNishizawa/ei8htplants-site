@@ -106,7 +106,7 @@ export default function EventFinance() {
         </Link>
       </div>
 
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 4 }}>
+      <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, marginBottom: 4 }}>
         収支管理
       </h2>
       {event && (
@@ -211,7 +211,7 @@ export default function EventFinance() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <span style={{ fontWeight: 500 }}>収支</span>
-          <span style={{ fontSize: 22, fontWeight: 600, color: net >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', serif" }}>
+          <span style={{ fontSize: 22, fontWeight: 600, color: net >= 0 ? '#2d5a27' : '#c0392b', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif" }}>
             {net >= 0 ? '+' : ''}{fmt(net)} 円
           </span>
         </div>
@@ -244,7 +244,7 @@ export default function EventFinance() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #d4c4ae', paddingTop: 10 }}>
                 <span style={{ fontWeight: 500 }}>合計支払い金額</span>
-                <span style={{ fontSize: 22, fontWeight: 600, color: '#7a5a30', fontFamily: "'Cormorant Garamond', serif" }}>
+                <span style={{ fontSize: 22, fontWeight: 600, color: '#7a5a30', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif" }}>
                   {fmt(paymentAmount)} 円
                 </span>
               </div>

@@ -39,12 +39,12 @@ export default function Concept() {
     <>
       <PageMeta title="Concept" description="ei8ht plants のブランドコンセプト。ビザールプランツ・ハビタットスタイル・オーナメントプランツの3ラインをご紹介します。" />
       <div style={{ textAlign: 'center', padding: '80px 20px', background: '#f5f5f7', borderBottom: '1px solid #dddde8' }}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Concept</h1>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Concept</h1>
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
         <div style={{ marginTop: 80 }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 40px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Philosophy</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 40px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Philosophy</h2>
           <div style={{ maxWidth: 750, margin: '0 auto', lineHeight: 2.2, fontSize: 16, color: 'var(--c-body)', textAlign: 'justify' }}>
             {t(
               <>
@@ -62,7 +62,7 @@ export default function Concept() {
         </div>
 
         <div style={{ marginTop: 80, marginBottom: 100 }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 0', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Specialized Lines</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 0', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Specialized Lines</h2>
           <div className="brand-line-grid">
             {LINES.map(({ name, subtitle, teaser, to }) => (
               <Link
@@ -77,7 +77,7 @@ export default function Concept() {
                 >
                   <span style={{ display: 'block', fontSize: 16, fontWeight: 500, letterSpacing: 2, marginBottom: 6, borderBottom: '1px solid #dddde8', paddingBottom: 10 }}>{name}</span>
                   <span style={{ display: 'block', fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 16 }}>{subtitle}</span>
-                  <p style={{ fontSize: 15, lineHeight: 1.9, color: 'var(--c-body)', margin: '0 0 20px' }}>{t(teaser.ja, teaser.en)}</p>
+                  <p style={{ fontSize: 16, lineHeight: 1.9, color: 'var(--c-body)', margin: '0 0 20px' }}>{t(teaser.ja, teaser.en)}</p>
                   <span style={{ fontSize: 13, letterSpacing: 1.5, color: 'var(--c-muted)', textTransform: 'uppercase' }}>{t('詳しく見る →', 'Learn more →')}</span>
                 </div>
               </Link>
