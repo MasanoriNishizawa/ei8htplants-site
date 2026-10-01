@@ -46,6 +46,7 @@ import AdminFinances from './pages/admin/Finances'
 import PriceCalc from './pages/admin/PriceCalc'
 import AdminPotArtists from './pages/admin/AdminPotArtists'
 import AdminMedia from './pages/admin/AdminMedia'
+import AdminDocs from './pages/admin/AdminDocs'
 import Media from './pages/Media'
 import Journal from './pages/Journal'
 import JournalArticle from './pages/JournalArticle'
@@ -105,6 +106,7 @@ export default function App() {
             <Route path="price-calc" element={<PriceCalc />} />
             <Route path="pot-artists" element={<AdminPotArtists />} />
             <Route path="media" element={<AdminMedia />} />
+            <Route path="docs" element={<AdminDocs />} />
           </Route>
         </Routes>
       </BrowserRouter>
