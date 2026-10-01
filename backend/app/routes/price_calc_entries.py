@@ -15,6 +15,7 @@ class EntryBody(BaseModel):
     selling_price: float
 
 
+# 価格計算エントリの一覧を新着順で取得する（管理者のみ）
 @router.get('')
 def list_entries(_=Depends(require_auth)):
     try:
@@ -23,6 +24,7 @@ def list_entries(_=Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# 価格計算エントリを追加する（管理者のみ）
 @router.post('')
 def add_entry(body: EntryBody, _=Depends(require_auth)):
     try:
@@ -31,6 +33,7 @@ def add_entry(body: EntryBody, _=Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# 価格計算エントリを削除する（管理者のみ）
 @router.delete('/{entry_id}')
 def delete_entry(entry_id: str, _=Depends(require_auth)):
     try:

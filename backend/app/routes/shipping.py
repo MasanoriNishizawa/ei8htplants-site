@@ -21,6 +21,7 @@ RATES: dict[str, int] = {
 PREFECTURES = list(RATES.keys())
 
 
+# 都道府県名から送料を返す。未対応の都道府県は400エラー
 @router.get('/rate')
 def get_rate(prefecture: str):
     fee = RATES.get(prefecture)
@@ -29,6 +30,7 @@ def get_rate(prefecture: str):
     return {'fee': fee}
 
 
+# 送料テーブルに登録されている都道府県の一覧を返す（フォームのセレクト用）
 @router.get('/prefectures')
 def list_prefectures():
     return PREFECTURES

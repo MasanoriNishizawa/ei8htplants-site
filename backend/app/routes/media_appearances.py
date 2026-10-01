@@ -15,6 +15,7 @@ class MediaAppearanceBody(BaseModel):
     display_order: int = 0
 
 
+# メディア出演情報を公開日の新しい順で取得する
 @router.get('')
 def list_media_appearances():
     try:
@@ -23,6 +24,7 @@ def list_media_appearances():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# メディア出演情報を追加する（管理者のみ）
 @router.post('')
 def add_media_appearance(body: MediaAppearanceBody, _=Depends(require_auth)):
     try:
@@ -31,6 +33,7 @@ def add_media_appearance(body: MediaAppearanceBody, _=Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# メディア出演情報を削除する（管理者のみ）
 @router.delete('/{item_id}')
 def delete_media_appearance(item_id: str, _=Depends(require_auth)):
     try:

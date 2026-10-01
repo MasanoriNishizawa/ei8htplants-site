@@ -10,6 +10,7 @@ class PotArtistBody(BaseModel):
     name: str
 
 
+# 鉢作家の一覧を登録順で取得する
 @router.get('')
 def list_pot_artists():
     try:
@@ -18,6 +19,7 @@ def list_pot_artists():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# 鉢作家を追加する（管理者のみ）
 @router.post('')
 def add_pot_artist(body: PotArtistBody, _=Depends(require_auth)):
     try:
@@ -26,6 +28,7 @@ def add_pot_artist(body: PotArtistBody, _=Depends(require_auth)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# 鉢作家を削除する（管理者のみ）
 @router.delete('/{artist_id}')
 def delete_pot_artist(artist_id: str, _=Depends(require_auth)):
     try:

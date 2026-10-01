@@ -8,6 +8,7 @@ from .routes import events, gallery, stockists, contact, reserve, collaborations
 
 app = FastAPI(title='ei8ht plants API')
 
+# 開発環境（Vite dev server）からのリクエストを許可するCORS設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['http://localhost:5173'],
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 
+# Render.com の独自ドメインへのリクエストを本番ドメインへ301リダイレクト
 @app.middleware('http')
 async def redirect_render_domain(request: Request, call_next):
     host = request.headers.get('host', '')
@@ -26,6 +28,7 @@ async def redirect_render_domain(request: Request, call_next):
     return await call_next(request)
 
 
+# レスポンスごとに適切なCache-Controlヘッダーを付与するミドルウェア
 @app.middleware('http')
 async def cache_control(request: Request, call_next):
     response = await call_next(request)
@@ -73,6 +76,7 @@ if os.path.isdir(DIST):
         if os.path.isdir(_path):
             app.mount(f'/{_subdir}', StaticFiles(directory=_path), name=_subdir)
 
+    # SPA ルーティング: 静的ファイルが存在しない場合は index.html を返す
     @app.get('/{full_path:path}')
     def serve_spa(full_path: str):
         file_path = os.path.join(DIST, full_path)

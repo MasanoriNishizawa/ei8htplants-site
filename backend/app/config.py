@@ -1,11 +1,14 @@
 import os
 from dotenv import load_dotenv
 
+# プロジェクトルートの .env を読み込む（本番はRenderの環境変数が優先される）
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 
+# Supabase: フロント共用のキーはNext.js由来の環境変数名をそのまま流用
 SUPABASE_URL = os.environ['NEXT_PUBLIC_SUPABASE_URL']
 SUPABASE_ANON_KEY = os.environ['NEXT_PUBLIC_SUPABASE_ANON_KEY']
 SUPABASE_SERVICE_ROLE_KEY = os.environ['SUPABASE_SERVICE_ROLE_KEY']
+# Resend: ei8ht plants 用と Habitat Oides 用でキーを使い分ける
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 HABITAT_RESEND_API_KEY = os.getenv('HABITAT_RESEND_API_KEY', '')
 CONTACT_TO_EMAIL = os.getenv('CONTACT_TO_EMAIL', '')
