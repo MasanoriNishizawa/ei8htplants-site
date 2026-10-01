@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
+import { useT } from '../../lib/lang'
 
 const SECTIONS = ['concept', 'store'] as const
 
 export default function Ei8htPlants() {
+  const t = useT()
   const [active, setActive] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
@@ -29,8 +31,8 @@ export default function Ei8htPlants() {
 
   return (
     <>
-      <PageMeta title="ei8ht plants" description="アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。" />
-      <h1 className="sr-only">ei8ht plants — ビザールプランツ専門ライン</h1>
+      <PageMeta title="ei8ht plants" description={t('アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'A line specializing in bizarre plants — agaves, caudiciform plants, shrubs and more.')} />
+      <h1 className="sr-only">{t('ei8ht plants — ビザールプランツ専門ライン', 'ei8ht plants — Bizarre Plants Line')}</h1>
 
       <div className="hero-wrapper">
         <nav className="brand-subnav">
@@ -72,8 +74,10 @@ export default function Ei8htPlants() {
                 Bizarre<br />Plants
               </h2>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
-                アガベ・塊根植物・灌木など、個性的なフォルムと深みある色彩を持つビザールプランツを専門に扱います。その一株一株の表情に向き合いながら、初めての方からコレクターの方まで、育てる楽しさをともに見つけていきます。<br /><br />
-                育て方の相談から株選びまで、気軽に声をかけてください。
+                {t(
+                  <>アガベ・塊根植物・灌木など、個性的なフォルムと深みある色彩を持つビザールプランツを専門に扱います。その一株一株の表情に向き合いながら、初めての方からコレクターの方まで、育てる楽しさをともに見つけていきます。<br /><br />育て方の相談から株選びまで、気軽に声をかけてください。</>,
+                  <>We specialize in bizarre plants — agaves, caudiciform plants, and shrubs — each with its own bold form and rich character. From first-time growers to seasoned collectors, we help you find the joy of growing together.<br /><br />Feel free to ask us anything, from care tips to choosing the right plant.</>
+                )}
               </p>
             </div>
           </div>

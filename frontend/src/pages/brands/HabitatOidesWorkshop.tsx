@@ -1,24 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
+import { useT } from '../../lib/lang'
 
 const SECTIONS = ['about', 'contents', 'flow', 'fee'] as const
 
-const FEATURES = [
-  { bg: '#3a58b8', title: '植物の選び方', text: 'ハビタットスタイルに向いた植物の種類や特性、組み合わせ方について解説します。' },
-  { bg: '#9a6888', title: 'レイアウトの技術', text: '岩・流木などの資材を使ったハビタットスタイルのレイアウトを実際に体験します。' },
-  { bg: '#4a72b8', title: '管理・メンテナンス', text: '制作後の水やり・換気・光管理など、長く楽しむためのポイントを伝授します。' },
-]
-
-const FLOW = [
-  { num: '01', title: '植物・素材の説明', text: '使用する植物や素材について、生態・特性・取り扱い方を丁寧に解説します。' },
-  { num: '02', title: '制作タイム', text: '一人ひとりオリジナルのレイアウトを制作します。スタッフがサポートします。' },
-  { num: '03', title: '管理方法のレクチャー & お持ち帰り', text: '完成後、アフターケアについてご説明します。制作物はそのままお持ち帰りいただけます。' },
-]
-
 export default function HabitatOidesWorkshop() {
+  const t = useT()
   const [active, setActive] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+
+  const FEATURES = [
+    { bg: '#3a58b8', title: t('植物の選び方', 'Choosing Plants'), text: t('ハビタットスタイルに向いた植物の種類や特性、組み合わせ方について解説します。', 'Learn about the types, characteristics, and combinations of plants suited for the habitat style.') },
+    { bg: '#9a6888', title: t('レイアウトの技術', 'Layout Techniques'), text: t('岩・流木などの資材を使ったハビタットスタイルのレイアウトを実際に体験します。', 'Experience creating habitat-style layouts using materials like rocks and driftwood.') },
+    { bg: '#4a72b8', title: t('管理・メンテナンス', 'Care & Maintenance'), text: t('制作後の水やり・換気・光管理など、長く楽しむためのポイントを伝授します。', 'Learn the key points for long-term enjoyment: watering, ventilation, and light management after creation.') },
+  ]
+
+  const FLOW = [
+    { num: '01', title: t('植物・素材の説明', 'Plants & Materials Overview'), text: t('使用する植物や素材について、生態・特性・取り扱い方を丁寧に解説します。', 'We carefully explain the ecology, characteristics, and handling of the plants and materials used.') },
+    { num: '02', title: t('制作タイム', 'Creation Time'), text: t('一人ひとりオリジナルのレイアウトを制作します。スタッフがサポートします。', 'Each participant creates their own original layout, with staff support throughout.') },
+    { num: '03', title: t('管理方法のレクチャー & お持ち帰り', 'Care Lecture & Take-Home'), text: t('完成後、アフターケアについてご説明します。制作物はそのままお持ち帰りいただけます。', 'After completion, we explain aftercare. You take your creation home with you.') },
+  ]
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -41,7 +43,7 @@ export default function HabitatOidesWorkshop() {
 
   return (
     <>
-      <PageMeta title="Habitat Style Workshop" description="ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_workshop_main.jpg" />
+      <PageMeta title="Habitat Style Workshop" description={t('ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', 'A habitat-style workshop where you can create your own layout inspired by the natural environments of plants.')} ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_workshop_main.jpg" />
       <nav className="brand-subnav" style={{ top: 60 }}>
         <div className="brand-subnav-inner">
           <Link to="/habitatoides" style={{ borderRight: '1px solid #dddde8', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--c-muted)', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
@@ -83,16 +85,16 @@ export default function HabitatOidesWorkshop() {
             </div>
             <div>
               <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
-                ハビタットスタイルを<br />自分の手で作る
+                {t(<>ハビタットスタイルを<br />自分の手で作る</>, <>Create Your Own<br />Habitat Style</>)}
               </h2>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.0, margin: '0 0 16px' }}>
-                ハビタットスタイルに向いた植物と資材を使い、植物の生息環境を意識したレイアウトを実際に制作するワークショップです。
+                {t('ハビタットスタイルに向いた植物と資材を使い、植物の生息環境を意識したレイアウトを実際に制作するワークショップです。', 'A hands-on workshop where you create a layout inspired by the natural habitat of plants, using plants and materials suited for the habitat style.')}
               </p>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.0, margin: '0 0 16px' }}>
-                Habitat Oides が扱う植物・資材・用土を実際に使いながら、自分だけのスタイルを形にできます。
+                {t('Habitat Oides が扱う植物・資材・用土を実際に使いながら、自分だけのスタイルを形にできます。', 'Using the actual plants, materials, and soil handled by Habitat Oides, you can give shape to your own unique style.')}
               </p>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.0, margin: 0 }}>
-                完成品をお持ち帰りいただけるので、初めての方もお気軽にご参加ください。
+                {t('完成品をお持ち帰りいただけるので、初めての方もお気軽にご参加ください。', 'You take your finished piece home, so first-timers are very welcome to join.')}
               </p>
             </div>
           </div>
@@ -141,19 +143,19 @@ export default function HabitatOidesWorkshop() {
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Fee & Info</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
-              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>参加費</p>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('参加費', 'Fee')}</p>
               <p style={{ fontSize: 28, fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 6px', letterSpacing: '0.04em' }}>1,000円</p>
-              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>鉢・資材含む<br />植物は別途</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>{t(<>鉢・資材含む<br />植物は別途</>, <>Pot & materials included<br />Plants priced separately</>)}</p>
             </div>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
-              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>持ち込み</p>
-              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>植物・鉢とも持込可</p>
-              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>当店以外でご購入の植物・お手持ちの鉢でもご参加いただけます。</p>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('持ち込み', 'Bring Your Own')}</p>
+              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>{t('植物・鉢とも持込可', 'Plants & pots welcome')}</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>{t('当店以外でご購入の植物・お手持ちの鉢でもご参加いただけます。', 'You are welcome to bring plants purchased elsewhere or pots you already own.')}</p>
             </div>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
-              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>お子様連れ</p>
-              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>お子様も大歓迎</p>
-              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>親子でお楽しみいただけます。植物や資材の扱いが初めての方でも、スタッフがしっかりサポートします。</p>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('お子様連れ', 'With Children')}</p>
+              <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>{t('お子様も大歓迎', 'Children are very welcome')}</p>
+              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>{t('親子でお楽しみいただけます。植物や資材の扱いが初めての方でも、スタッフがしっかりサポートします。', 'Families with children are welcome. Staff will fully support anyone new to plants or materials.')}</p>
             </div>
           </div>
         </div>
@@ -162,7 +164,7 @@ export default function HabitatOidesWorkshop() {
       <section style={{ background: '#1e3272', color: '#f0f2ff', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(22px, 4vw, 44px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 14px' }}>Reservation</h2>
         <p style={{ fontSize: 13, letterSpacing: 2, color: '#9aaedd', textTransform: 'uppercase', margin: '0 0 40px', lineHeight: 1.8 }}>
-          ワークショップへのご参加は<br />各イベントページよりお申し込みいただけます。
+          {t(<>ワークショップへのご参加は<br />各イベントページよりお申し込みいただけます。</>, <>To join a workshop,<br />please sign up on the individual event page.</>)}
         </p>
         <Link
           to="/events"

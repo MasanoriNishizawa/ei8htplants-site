@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import PageMeta from '../../components/PageMeta'
+import { useT } from '../../lib/lang'
 
 const SWATCHES = ['#d4a878','#a8c4a0','#e8b4b0','#c4d4c8','#e0c890','#b8a8d4','#f0d4b8']
 const SECTIONS = ['concept'] as const
 
 export default function Hue() {
+  const t = useT()
   const [active, setActive] = useState('')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
@@ -29,8 +31,8 @@ export default function Hue() {
 
   return (
     <>
-      <PageMeta title="HUE by ei8ht plants" description="HUE は、色彩と形を楽しむオーナメントプランツのラインです。" />
-      <h1 className="sr-only">HUE by ei8ht plants — オーナメントプランツライン</h1>
+      <PageMeta title="HUE by ei8ht plants" description={t('HUE は、色彩と形を楽しむオーナメントプランツのラインです。', 'HUE is a line of ornamental plants celebrating color and form.')} />
+      <h1 className="sr-only">{t('HUE by ei8ht plants — オーナメントプランツライン', 'HUE by ei8ht plants — Ornamental Plants Line')}</h1>
 
       <div className="hero-wrapper">
         <nav className="brand-subnav">
@@ -64,13 +66,10 @@ export default function Hue() {
                 Color &amp; Form<br />as Living Art
               </h2>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
-                色と形が語る、植物の美学。<br />
-                鮮やかな色彩と独特のフォルムを持つ観葉植物から、<br />
-                インテリアに溶け込む一鉢を厳選してご提案します。<br /><br />
-                植物を「育てる」だけでなく、「飾る」という視点で—<br />
-                空間に彩りと生命感を。<br />
-                日々のお手入れから、植物に合った鉢選びまで、<br />
-                一緒に考えます。
+                {t(
+                  <>色と形が語る、植物の美学。<br />鮮やかな色彩と独特のフォルムを持つ観葉植物から、<br />インテリアに溶け込む一鉢を厳選してご提案します。<br /><br />植物を「育てる」だけでなく、「飾る」という視点で—<br />空間に彩りと生命感を。<br />日々のお手入れから、植物に合った鉢選びまで、<br />一緒に考えます。</>,
+                  <>The aesthetics of plants, told through color and form.<br />We carefully select foliage plants with vivid colors and distinctive shapes<br />that blend seamlessly into any interior.<br /><br />Not just "growing" plants — but "displaying" them.<br />Bringing color and life to your space.<br />From daily care to choosing the perfect pot,<br />we think it through together.</>
+                )}
               </p>
             </div>
           </div>

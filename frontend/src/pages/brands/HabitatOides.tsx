@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
+import { useT } from '../../lib/lang'
 
 const SECTIONS = ['concept', 'workshop', 'collaboration'] as const
 
 export default function HabitatOides() {
+  const t = useT()
   const [active, setActive] = useState('')
   const [volume, setVolume] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -39,8 +41,8 @@ export default function HabitatOides() {
 
   return (
     <>
-      <PageMeta title="Habitat Oides" description="植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg" />
-      <h1 className="sr-only">Habitat Oides — ハビタットスタイルライン</h1>
+      <PageMeta title="Habitat Oides" description={t('植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', 'A line dedicated to habitat-style arrangements that recreate the natural environments of plants. Workshops available.')} ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg" />
+      <h1 className="sr-only">{t('Habitat Oides — ハビタットスタイルライン', 'Habitat Oides — Habitat Style Line')}</h1>
 
       <div className="hero-wrapper">
         <nav className="brand-subnav">
@@ -74,8 +76,10 @@ export default function HabitatOides() {
                 Habitat Style<br />Materials &amp; Plants
               </h2>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
-                植物の自生地に宿る景色の美しさを、鉢の中に再現する。<br /><br />
-                石・砂・土と植物が織りなすハビタットスタイルの作品を制作・展示・販売。希少資材から陶芸作家の一点ものまで、その世界観を構築するすべてをご提案します。
+                {t(
+                  <>植物の自生地に宿る景色の美しさを、鉢の中に再現する。<br /><br />石・砂・土と植物が織りなすハビタットスタイルの作品を制作・展示・販売。希少資材から陶芸作家の一点ものまで、その世界観を構築するすべてをご提案します。</>,
+                  <>Recreating the beauty of plants' natural habitats inside a single pot.<br /><br />We create, exhibit, and sell habitat-style works composed of rock, sand, soil and plants. From rare materials to one-of-a-kind pieces by ceramic artists — we offer everything to build that world.</>
+                )}
               </p>
             </div>
           </div>
@@ -97,15 +101,16 @@ export default function HabitatOides() {
             <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20 }}>
               <h3 style={{ fontSize: 16, letterSpacing: 2, textTransform: 'uppercase', color: '#d8b8ca', margin: 0 }}>Workshop</h3>
               <p style={{ fontSize: 16, color: '#f0f2ff', lineHeight: 2, margin: 0, opacity: 0.75 }}>
-                ハビタットスタイルに向いた植物・資材を使い、<br />
-                実際に手を動かして学べるワークショップ。<br />
-                初心者からマニアまで楽しめる内容です。
+                {t(
+                  <>ハビタットスタイルに向いた植物・資材を使い、<br />実際に手を動かして学べるワークショップ。<br />初心者からマニアまで楽しめる内容です。</>,
+                  <>A hands-on workshop using plants and materials suited for the habitat style.<br />Enjoyable for beginners and enthusiasts alike.</>
+                )}
               </p>
               <Link
                 to="/habitatoides/workshop"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f0f2ff', textDecoration: 'none', border: '1px solid #5572cc', padding: '14px 24px', borderRadius: 2, width: 'fit-content' }}
               >
-                Workshop について →
+                {t('Workshop について →', 'About Workshop →')}
               </Link>
             </div>
           </div>
