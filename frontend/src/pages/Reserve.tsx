@@ -175,7 +175,7 @@ export default function Reserve() {
                   <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#6a8a64', margin: '0 0 12px' }}>Workshop</p>
                   <p style={{ fontSize: 15, color: 'var(--c-ink)', lineHeight: 1.8, margin: '0 0 16px' }}>
                     植物の自生地を鉢の中で再現するハビタットスタイルのワークショップです。<br />
-                    石・砂・資材と植物を組み合わせて、はじめての方でも楽しめます。<br />
+                    石・砂と植物を組み合わせて、はじめての方でも楽しめます。<br />
                     植物・鉢はご持参いただいたものでもご参加いただけます。
                   </p>
                   <div style={{ paddingTop: 14, borderTop: '1px solid #c8dcc4' }}>
