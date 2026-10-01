@@ -45,9 +45,6 @@ export default function Hue() {
           <div className="hue-blob hue-blob-3" />
           <div className="hue-blob hue-blob-4" />
           <div className="hue-blob hue-blob-5" />
-          <p style={{ fontSize: 14, letterSpacing: 4, textTransform: 'uppercase', color: '#a07840', marginBottom: 32, position: 'relative', zIndex: 2 }}>
-            Color Plants Selection
-          </p>
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #b4b4c8, transparent)' }} />
             <span style={{ fontSize: 11, letterSpacing: 3, color: '#b4b4c8', textTransform: 'uppercase' }}>Scroll</span>
@@ -68,8 +65,12 @@ export default function Hue() {
               </h2>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
                 色と形が語る、植物の美学。<br />
-                鮮やかな色彩と独特のフォルムを持つ観葉植物から、インテリアに溶け込む一鉢を厳選してご提案します。<br /><br />
-                植物を「育てる」だけでなく、「飾る」という視点で—空間に彩りと生命感を。
+                鮮やかな色彩と独特のフォルムを持つ観葉植物から、<br />
+                インテリアに溶け込む一鉢を厳選してご提案します。<br /><br />
+                植物を「育てる」だけでなく、「飾る」という視点で—<br />
+                空間に彩りと生命感を。<br />
+                日々のお手入れから、植物に合った鉢選びまで、<br />
+                一緒に考えます。
               </p>
             </div>
           </div>
