@@ -105,6 +105,7 @@ export default function Reserve() {
         bring_plant: form.bring_plant,
         bring_pot: form.bring_pot,
         preferred_date: form.preferred_date || undefined,
+        lang,
       })
       setStatus('done')
     } catch (err: unknown) {

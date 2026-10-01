@@ -350,6 +350,7 @@ export interface ReservationPayload {
   bring_pot: boolean
   preferred_date?: string
   preferred_time?: string
+  lang?: string
 }
 
 export interface Reservation {

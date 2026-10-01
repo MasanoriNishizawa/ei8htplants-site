@@ -33,6 +33,7 @@ class ReserveBody(BaseModel):
     bring_pot: bool = False
     preferred_date: Optional[str] = None
     preferred_time: Optional[str] = None
+    lang: Optional[str] = None
 
 
 class ReserveStatusPatch(BaseModel):
@@ -203,53 +204,98 @@ def _send_confirmation(body: ReserveBody, cancel_token: str) -> str | None:
     elif body.preferred_time:
         time_label = body.preferred_time
 
-    rows_html = _row('イベント名', event['name'])
-    rows_html += _row('開催日', event['start_date'])
-    rows_html += _row('会場', event['location'])
-    if body.preferred_date:
-        rows_html += _row('予約日', body.preferred_date)
-    if time_label:
-        rows_html += _row('予約時間', time_label)
-    rows_html += _row('参加人数', f'{body.participants} 名')
-    if body.bring_plant:
-        rows_html += _row('植物持ち込み', 'あり')
-    if body.bring_pot:
-        rows_html += _row('鉢持ち込み', 'あり')
-    if body.note:
-        rows_html += _row('備考', body.note)
-
     cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
-    content = f'''
-      <p style="margin:0 0 8px;font-size:16px;color:#333333;">{body.name} 様</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
-        ワークショップへのお申し込みありがとうございます。<br>
-        以下の内容で予約を受け付けました。
-      </p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
-        {rows_html}
-      </table>
-      <div style="margin-top:28px;padding:20px 24px;background:#f8f8f4;border-radius:4px;border:1px solid #e8e8e0;">
-        <p style="margin:0 0 12px;font-size:13px;color:#555555;line-height:1.8;">
-          ご都合によりキャンセルされる場合は、以下のボタンよりお手続きください。
-        </p>
-        <a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#2d3a24;color:#ffffff;text-decoration:none;border-radius:4px;font-size:14px;">
-          予約をキャンセルする
-        </a>
-        <p style="margin:12px 0 0;font-size:11px;color:#aaaaaa;">
-          キャンセルID: {cancel_token}
-        </p>
-      </div>
-    '''
-    text = (
-        f'{body.name} 様\n\nワークショップへのお申し込みありがとうございます。\n'
-        f'イベント名: {event["name"]}\n開催日: {event["start_date"]}\n会場: {event["location"]}\n'
-        f'参加人数: {body.participants} 名\n\nキャンセルはこちら: {cancel_url}\n\nHabitat Oides\nhttps://ei8htplants.com'
-    )
+    is_en = body.lang == 'en'
+
+    if is_en:
+        rows_html = _row('Event', event['name'])
+        rows_html += _row('Date', event['start_date'])
+        rows_html += _row('Venue', event['location'])
+        if body.preferred_date:
+            rows_html += _row('Reserved date', body.preferred_date)
+        if time_label:
+            rows_html += _row('Time slot', time_label)
+        rows_html += _row('Participants', f'{body.participants}')
+        if body.bring_plant:
+            rows_html += _row('Bring plant', 'Yes')
+        if body.bring_pot:
+            rows_html += _row('Bring pot', 'Yes')
+        if body.note:
+            rows_html += _row('Notes', body.note)
+        content = f'''
+          <p style="margin:0 0 8px;font-size:16px;color:#333333;">Dear {body.name},</p>
+          <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
+            Thank you for signing up for our workshop.<br>
+            Your reservation has been received with the following details.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
+            {rows_html}
+          </table>
+          <div style="margin-top:28px;padding:20px 24px;background:#f8f8f4;border-radius:4px;border:1px solid #e8e8e0;">
+            <p style="margin:0 0 12px;font-size:13px;color:#555555;line-height:1.8;">
+              If you need to cancel, please use the button below.
+            </p>
+            <a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#2d3a24;color:#ffffff;text-decoration:none;border-radius:4px;font-size:14px;">
+              Cancel reservation
+            </a>
+            <p style="margin:12px 0 0;font-size:11px;color:#aaaaaa;">
+              Cancellation ID: {cancel_token}
+            </p>
+          </div>
+        '''
+        text = (
+            f'Dear {body.name},\n\nThank you for signing up for our workshop.\n'
+            f'Event: {event["name"]}\nDate: {event["start_date"]}\nVenue: {event["location"]}\n'
+            f'Participants: {body.participants}\n\nCancel here: {cancel_url}\n\nHabitat Oides\nhttps://ei8htplants.com'
+        )
+        subject = f'[Habitat Oides] Workshop reservation received: {event["name"]}'
+    else:
+        rows_html = _row('イベント名', event['name'])
+        rows_html += _row('開催日', event['start_date'])
+        rows_html += _row('会場', event['location'])
+        if body.preferred_date:
+            rows_html += _row('予約日', body.preferred_date)
+        if time_label:
+            rows_html += _row('予約時間', time_label)
+        rows_html += _row('参加人数', f'{body.participants} 名')
+        if body.bring_plant:
+            rows_html += _row('植物持ち込み', 'あり')
+        if body.bring_pot:
+            rows_html += _row('鉢持ち込み', 'あり')
+        if body.note:
+            rows_html += _row('備考', body.note)
+        content = f'''
+          <p style="margin:0 0 8px;font-size:16px;color:#333333;">{body.name} 様</p>
+          <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
+            ワークショップへのお申し込みありがとうございます。<br>
+            以下の内容で予約を受け付けました。
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
+            {rows_html}
+          </table>
+          <div style="margin-top:28px;padding:20px 24px;background:#f8f8f4;border-radius:4px;border:1px solid #e8e8e0;">
+            <p style="margin:0 0 12px;font-size:13px;color:#555555;line-height:1.8;">
+              ご都合によりキャンセルされる場合は、以下のボタンよりお手続きください。
+            </p>
+            <a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#2d3a24;color:#ffffff;text-decoration:none;border-radius:4px;font-size:14px;">
+              予約をキャンセルする
+            </a>
+            <p style="margin:12px 0 0;font-size:11px;color:#aaaaaa;">
+              キャンセルID: {cancel_token}
+            </p>
+          </div>
+        '''
+        text = (
+            f'{body.name} 様\n\nワークショップへのお申し込みありがとうございます。\n'
+            f'イベント名: {event["name"]}\n開催日: {event["start_date"]}\n会場: {event["location"]}\n'
+            f'参加人数: {body.participants} 名\n\nキャンセルはこちら: {cancel_url}\n\nHabitat Oides\nhttps://ei8htplants.com'
+        )
+        subject = f'[Habitat Oides] ワークショップ予約を受け付けました: {event["name"]}'
     resend.api_key = HABITAT_RESEND_API_KEY
     result = resend.Emails.send({
         'from': HABITAT_SENDER,
         'to': [body.email],
-        'subject': f'[Habitat Oides] ワークショップ予約を受け付けました: {event["name"]}',
+        'subject': subject,
         'html': _html_wrap(content),
         'text': text,
     })
