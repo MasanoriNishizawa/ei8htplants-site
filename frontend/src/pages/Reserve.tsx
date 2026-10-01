@@ -171,7 +171,19 @@ export default function Reserve() {
                   {event.time && <div>{event.time}</div>}
                   <div style={{ fontWeight: 500 }}>{event.location}</div>
                 </div>
-                <div style={{ marginTop: 28, padding: '20px', background: 'var(--c-bg)', borderRadius: 4, border: '1px solid var(--c-border)' }}>
+                <div style={{ marginTop: 24, padding: '20px 24px', background: '#f0f5ee', borderRadius: 4, border: '1px solid #c8dcc4' }}>
+                  <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#6a8a64', margin: '0 0 12px' }}>Workshop</p>
+                  <p style={{ fontSize: 15, color: 'var(--c-ink)', lineHeight: 1.8, margin: '0 0 16px' }}>
+                    植物の自生地を鉢の中で再現するハビタットスタイルのワークショップです。<br />
+                    石・砂・資材と植物を組み合わせて、はじめての方でも楽しめます。
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontSize: 11, letterSpacing: 1, color: '#6a8a64' }}>参加費</span>
+                    <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '0.02em' }}>1,000円</span>
+                    <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>（鉢・資材含む）</span>
+                  </div>
+                </div>
+                <div style={{ marginTop: 16, padding: '16px 20px', background: 'var(--c-bg)', borderRadius: 4, border: '1px solid var(--c-border)' }}>
                   <p style={{ fontSize: 13, color: 'var(--c-muted)', lineHeight: 1.9, margin: 0 }}>
                     ご記入いただいた内容を確認後、メールにて予約確認をお送りします。<br />
                     ご不明な点は <a href="/contact" style={{ color: 'var(--c-green)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせ</a> ください。
