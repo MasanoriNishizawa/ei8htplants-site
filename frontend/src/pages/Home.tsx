@@ -119,11 +119,11 @@ export default function Home() {
       <section style={{
         position: 'relative',
         overflow: 'hidden',
-        minHeight: 'clamp(320px, 50vh, 560px)',
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start',
-        padding: 'clamp(48px, 7vw, 96px) clamp(20px, 4vw, 48px) clamp(48px, 7vw, 80px)',
+        padding: 'clamp(32px, 4vw, 56px) clamp(20px, 4vw, 48px) clamp(32px, 4vw, 48px)',
       }}>
         {/* 背景アニメーション */}
         <div style={{
@@ -152,7 +152,7 @@ export default function Home() {
         </div>
 
         {/* テキスト2カラム */}
-        <div className="hero-catch" style={{ position: 'relative', zIndex: 1, marginTop: 'clamp(56px, 14vh, 160px)' }}>
+        <div className="hero-catch" style={{ position: 'relative', zIndex: 1, marginTop: 'clamp(24px, 4vh, 48px)' }}>
           <div style={{
             opacity: loaded ? 1 : 0,
             transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
