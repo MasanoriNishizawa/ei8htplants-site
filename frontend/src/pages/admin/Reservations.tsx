@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type Reservation, type Event, type WsSession } from '../../lib/api'
-import { STATUS_LABELS, STATUS_COLORS } from '../../lib/reservationConstants'
+import { STATUS_LABELS, STATUS_COLORS, STATUS_OPTIONS } from '../../lib/reservationConstants'
 
 type ReservationWithTime = Reservation & { session_time?: string }
 
@@ -296,8 +296,8 @@ export default function AdminReservations() {
                           onChange={(e) => updateStatus(r.id, e.target.value)}
                           style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 2, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
-                          {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                            <option key={val} value={val}>{label}</option>
+                          {STATUS_OPTIONS.map(({ value, label }) => (
+                            <option key={value} value={value}>{label}</option>
                           ))}
                         </select>
                       </div>

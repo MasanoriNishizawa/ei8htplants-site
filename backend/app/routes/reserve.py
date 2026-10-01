@@ -394,47 +394,6 @@ def _send_cancel_confirmation(reservation: dict):
     })
 
 
-def _send_cancel_link_email(reservation: dict, event: dict, cancel_token: str):
-    if not HABITAT_RESEND_API_KEY:
-        return
-    cancel_url = f'https://ei8htplants.com/cancel?id={cancel_token}'
-    content = f'''
-      <p style="margin:0 0 8px;font-size:16px;color:#333333;">{reservation["name"]} 様</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
-        ワークショップのご予約が確定いたしました。<br>
-        当日のご参加をお待ちしております。
-      </p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">
-        {_row('イベント名', event['name'])}
-        {_row('開催日', event['start_date'])}
-        {_row('会場', event['location'])}
-      </table>
-      <div style="margin-top:28px;padding:20px 24px;background:#f8f8f4;border-radius:4px;border:1px solid #e8e8e0;">
-        <p style="margin:0 0 12px;font-size:13px;color:#555555;line-height:1.8;">
-          ご都合によりキャンセルされる場合は、以下のボタンよりお手続きください。
-        </p>
-        <a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#2d3a24;color:#ffffff;text-decoration:none;border-radius:4px;font-size:14px;">
-          予約をキャンセルする
-        </a>
-        <p style="margin:12px 0 0;font-size:11px;color:#aaaaaa;">
-          キャンセルID: {cancel_token}
-        </p>
-      </div>
-    '''
-    text = (
-        f'{reservation["name"]} 様\n\nワークショップのご予約が確定いたしました。\n'
-        f'キャンセルはこちら: {cancel_url}\n\nHabitat Oides\nhttps://ei8htplants.com'
-    )
-    resend.api_key = HABITAT_RESEND_API_KEY
-    resend.Emails.send({
-        'from': HABITAT_SENDER,
-        'to': [reservation['email']],
-        'subject': f'[Habitat Oides] ワークショップ予約が確定しました: {event["name"]}',
-        'html': _html_wrap(content),
-        'text': text,
-    })
-
-
 @router.post('/webhook/resend')
 async def resend_webhook(request: Request):
     try:
