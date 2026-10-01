@@ -678,6 +678,53 @@
 
 ---
 
+## Chat
+
+### POST /api/chat
+
+Gemini 1.5 Flash を使った植物相談・ワークショップ案内チャット。会話履歴をそのまま送信し、モデルの返答を受け取る。
+
+**認証**: 不要
+
+**リクエストボディ**
+
+```json
+{
+  "messages": [
+    { "role": "user",  "content": "アガベの水やり頻度を教えてください" },
+    { "role": "model", "content": "アガベは乾燥を好む植物です..." },
+    { "role": "user",  "content": "冬はどうすれば良いですか？" }
+  ]
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `messages` | `Message[]` | 会話履歴（最後の要素が今回の質問）。`role` は `"user"` または `"model"` |
+
+**バックエンド処理**
+
+1. `messages` の末尾1件を今回のユーザーメッセージとし、それ以前を Gemini `history` として渡す
+2. `system_instruction` に ei8ht plants コンシェルジュ用プロンプトを設定
+3. `gemini-1.5-flash-latest` モデルで返答を生成
+
+**レスポンス `200`**
+
+```json
+{
+  "reply": "冬のアガベは..."
+}
+```
+
+**エラー**
+
+| ステータス | 原因 |
+|---|---|
+| `503` | `GEMINI_API_KEY` が未設定（`{"detail": "Chat is not available"}`） |
+| `500` | Gemini API 呼び出し失敗 |
+
+---
+
 ## Collaborations
 
 ### GET /api/collaborations
