@@ -36,8 +36,19 @@ export default function AdminChatQA() {
 
   const load = async () => {
     setLoading(true)
-    const res = await fetch(`${API}/api/chat-qa`)
-    setItems(res.ok ? await res.json() : [])
+    try {
+      const res = await fetch(`${API}/api/chat-qa`)
+      if (res.ok) {
+        setItems(await res.json())
+      } else {
+        const text = await res.text()
+        setError(`API エラー ${res.status}: ${text}`)
+        setItems([])
+      }
+    } catch (e) {
+      setError(`通信エラー: ${String(e)}`)
+      setItems([])
+    }
     setLoading(false)
   }
 
@@ -162,9 +173,12 @@ export default function AdminChatQA() {
       )}
 
       {/* Q&A 一覧 */}
+      {error && editId === null && (
+        <p style={{ color: '#c0392b', fontSize: 13, background: '#fdf0ef', padding: '10px 14px', borderRadius: 4 }}>{error}</p>
+      )}
       {loading ? (
         <p style={{ color: '#888', fontSize: 14 }}>読み込み中...</p>
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !error ? (
         <p style={{ color: '#aaa', fontSize: 14 }}>Q&A がまだ登録されていません。</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
