@@ -38,9 +38,12 @@ async def cache_control(request: Request, call_next):
             request.method == 'GET'
             and not request.headers.get('authorization')
         )
-        if is_public_get:
+        if is_public_get and response.status_code < 400:
             # Cloudflare: 5 min / browser: 60 sec (admin bypasses via cache: no-store on the client)
             response.headers['Cache-Control'] = 'public, s-maxage=300, max-age=60'
+        elif is_public_get:
+            # エラーレスポンスはキャッシュしない
+            response.headers['Cache-Control'] = 'no-store'
         else:
             response.headers['Cache-Control'] = 'no-store'
             response.headers['CDN-Cache-Control'] = 'no-store'
