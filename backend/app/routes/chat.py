@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from ..config import GEMINI_API_KEY
 
 router = APIRouter()
 
+# ei8ht plants コンシェルジュとしての振る舞いと対応範囲を定義するシステムプロンプト
 SYSTEM_PROMPT = """あなたは「ei8ht plants」のAIコンシェルジュです。
 植物の育て方・管理に関する相談と、ワークショップ・予約に関する質問に対応します。
 
@@ -29,6 +31,8 @@ SYSTEM_PROMPT = """あなたは「ei8ht plants」のAIコンシェルジュで�
 - 回答は簡潔に、親しみやすいトーンで
 - 日本語で質問されたら日本語で、英語で質問されたら英語で答える"""
 
+MODEL = 'gemini-flash-lite-latest'
+
 
 class Message(BaseModel):
     """チャットメッセージの単一エントリ。"""
@@ -49,8 +53,8 @@ class ChatRequest(BaseModel):
 def chat(body: ChatRequest):
     """Gemini を使った植物相談・予約チャットエンドポイント。
 
-    会話履歴を受け取り、Gemini に送信して返答を返す。
-    システムプロンプトで ei8ht plants のコンシェルジュとして振る舞うよう設定している。
+    会話履歴を受け取り Gemini に送信して返答を返す。
+    システムプロンプトで ei8ht plants コンシェルジュとして振る舞うよう設定している。
 
     Args:
         body: 会話履歴を含むリクエスト
@@ -65,22 +69,22 @@ def chat(body: ChatRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=503, detail='Chat is not available')
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(
-        model_name='gemini-1.5-flash-latest',
-        system_instruction=SYSTEM_PROMPT,
-    )
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Gemini の history 形式（最後のユーザーメッセージを除いた履歴）に変換
-    history = []
-    messages = body.messages
-    for msg in messages[:-1]:
-        history.append({'role': msg.role, 'parts': [msg.content]})
+    history = [
+        types.Content(role=msg.role, parts=[types.Part(text=msg.content)])
+        for msg in body.messages[:-1]
+    ]
 
-    chat_session = model.start_chat(history=history)
+    chat_session = client.chats.create(
+        model=MODEL,
+        history=history,
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+    )
 
     try:
-        response = chat_session.send_message(messages[-1].content)
+        response = chat_session.send_message(body.messages[-1].content)
         return {'reply': response.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
