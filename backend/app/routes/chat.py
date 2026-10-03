@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from collections import defaultdict
+from datetime import datetime, timezone, timedelta
 import time
 from google import genai
 from google.genai import types
 from ..config import GEMINI_API_KEY
-from ..db import supabase
+from ..db import supabase, admin_supabase
 
 router = APIRouter()
 
@@ -64,6 +65,79 @@ SYSTEM_PROMPT = """あなたは「ei8ht plants」のAIコンシェルジュで�
 
 MODEL = 'gemini-flash-lite-latest'
 
+_JST = timezone(timedelta(hours=9))
+
+
+def _build_site_context() -> str:
+    """公開データ（イベント・商品・記事・取扱店）を取得してコンテキスト文字列を構築する。
+
+    個人情報（予約・注文・お問い合わせ）は一切含まない。
+    各テーブルの取得に失敗しても他のテーブルの取得は続行する。
+
+    Returns:
+        チャットのシステムプロンプトに追記するサイト情報テキスト
+    """
+    today = datetime.now(_JST).date().isoformat()
+    parts = []
+
+    # 開催予定・開催中のイベント（過去分は除外）
+    try:
+        rows = supabase.table('events').select('name,start_date,end_date,time,location,has_workshop').order('start_date').execute().data
+        upcoming = [e for e in rows if (e.get('end_date') or e.get('start_date', '')) >= today]
+        if upcoming:
+            lines = ['【開催予定のイベント・ワークショップ】']
+            for e in upcoming:
+                date_str = e['start_date']
+                if e.get('end_date') and e['end_date'] != e['start_date']:
+                    date_str += f"〜{e['end_date']}"
+                time_str = f" {e['time']}" if e.get('time') else ''
+                ws = '（ワークショップあり・要予約）' if e.get('has_workshop') else ''
+                lines.append(f"- {e['name']}：{date_str}{time_str}、{e['location']}{ws}")
+            parts.append('\n'.join(lines))
+    except Exception:
+        pass
+
+    # 販売中の商品（公開済み・在庫あり）
+    try:
+        rows = supabase.table('products').select('name,price,stock,category').eq('is_published', True).gt('stock', 0).order('display_order').execute().data
+        if rows:
+            lines = ['【販売中の商品】']
+            for p in rows:
+                cat = f"[{p['category']}] " if p.get('category') else ''
+                lines.append(f"- {cat}{p['name']}：¥{p['price']:,}（在庫{p['stock']}点）")
+            parts.append('\n'.join(lines))
+    except Exception:
+        pass
+
+    # 公開記事（タイトルとタグのみ。本文は含めない）
+    try:
+        rows = admin_supabase.table('articles').select('title,tags').eq('is_published', True).order('display_order').execute().data
+        if rows:
+            lines = ['【ジャーナル・記事】']
+            for a in rows:
+                tags = '、'.join(a['tags']) if a.get('tags') else ''
+                tag_str = f"（{tags}）" if tags else ''
+                lines.append(f"- {a['title']}{tag_str}")
+            parts.append('\n'.join(lines))
+    except Exception:
+        pass
+
+    # 取扱店
+    try:
+        rows = supabase.table('stockists').select('name,area,brands').order('display_order').execute().data
+        if rows:
+            lines = ['【取扱店】']
+            for s in rows:
+                area = f"（{s['area']}）" if s.get('area') else ''
+                brands = '・'.join(s['brands']) if s.get('brands') else ''
+                brand_str = f" ※{brands}取扱" if brands else ''
+                lines.append(f"- {s['name']}{area}{brand_str}")
+            parts.append('\n'.join(lines))
+    except Exception:
+        pass
+
+    return '\n\n'.join(parts)
+
 
 class Message(BaseModel):
     """チャットメッセージの単一エントリ。"""
@@ -105,13 +179,19 @@ def chat(body: ChatRequest, request: Request):
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    # DBから有効なQ&Aを取得してシステムプロンプトに追記する（テーブル未作成時もエラーにしない）
     system_prompt = SYSTEM_PROMPT
+
+    # サイトの公開データ（イベント・商品・記事・取扱店）を注入する
+    site_context = _build_site_context()
+    if site_context:
+        system_prompt += f'\n\n{site_context}'
+
+    # DBから有効なQ&Aを取得してシステムプロンプトに追記する（テーブル未作成時もエラーにしない）
     try:
         qa_rows = supabase.table('chat_qa').select('question,answer').eq('enabled', True).order('sort_order').execute().data
         if qa_rows:
             qa_text = '\n'.join(f'Q: {row["question"]}\nA: {row["answer"]}' for row in qa_rows)
-            system_prompt = f'{SYSTEM_PROMPT}\n\n【よくある質問と回答】\n{qa_text}'
+            system_prompt += f'\n\n【よくある質問と回答】\n{qa_text}'
     except Exception:
         pass
 
