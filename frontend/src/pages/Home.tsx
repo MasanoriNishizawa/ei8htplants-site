@@ -31,10 +31,8 @@ const BRAND_CARDS = [
     name: 'HUE',
     descJa: '色彩と形を楽しむ、インテリアのためのオーナメントプランツ',
     descEn: 'Color & Form as Living Art — plants for your space',
-    bg: '#3d2a1a',
-    img: '/img/logo-hue.png',
-    imgFit: 'contain' as const,
-    imgPadding: '20%',
+    bg: 'linear-gradient(135deg, #ffb5c8 0%, #c8a8e8 30%, #a8e4c4 60%, #ffe07a 85%, #ffaa80 100%)',
+    img: null,
     logo: '/img/logo-hue.png',
   },
 ]
@@ -240,8 +238,8 @@ export default function Home() {
                 background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)',
               }} />
 
-              {/* 折りたたみ時のラベル（縦書き・デスクトップのみ）。背景画像がある場合のみ表示 */}
-              {!isMobile && card.img && (
+              {/* 折りたたみ時のラベル（縦書き・デスクトップのみ） */}
+              {!isMobile && (
                 <div style={{
                   position: 'absolute', bottom: 24, left: 18,
                   opacity: isActive ? 0 : 1,
