@@ -49,6 +49,7 @@ import PriceCalc from './pages/admin/PriceCalc'
 import AdminPotArtists from './pages/admin/AdminPotArtists'
 import AdminMedia from './pages/admin/AdminMedia'
 import AdminDocs from './pages/admin/AdminDocs'
+import AdminChatQA from './pages/admin/AdminChatQA'
 import Chat from './pages/Chat'
 import Media from './pages/Media'
 import Journal from './pages/Journal'
@@ -112,6 +113,7 @@ export default function App() {
             <Route path="pot-artists" element={<AdminPotArtists />} />
             <Route path="media" element={<AdminMedia />} />
             <Route path="docs" element={<AdminDocs />} />
+            <Route path="chat-qa" element={<AdminChatQA />} />
           </Route>
         </Routes>
       </BrowserRouter>

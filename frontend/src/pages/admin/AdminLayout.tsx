@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/admin/pot-artists', label: '鉢作家管理' },
   { to: '/admin/media', label: 'メディア管理' },
   { to: '/admin/docs', label: '設計書' },
+  { to: '/admin/chat-qa', label: 'チャットQ&A' },
 ]
 
 const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
