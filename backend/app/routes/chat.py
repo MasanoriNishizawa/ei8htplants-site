@@ -73,12 +73,15 @@ def chat(body: ChatRequest):
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    # DBから有効なQ&Aを取得してシステムプロンプトに追記する
-    qa_rows = supabase.table('chat_qa').select('question,answer').eq('enabled', True).order('sort_order').execute().data
+    # DBから有効なQ&Aを取得してシステムプロンプトに追記する（テーブル未作成時もエラーにしない）
     system_prompt = SYSTEM_PROMPT
-    if qa_rows:
-        qa_text = '\n'.join(f'Q: {row["question"]}\nA: {row["answer"]}' for row in qa_rows)
-        system_prompt = f'{SYSTEM_PROMPT}\n\n【よくある質問と回答】\n{qa_text}'
+    try:
+        qa_rows = supabase.table('chat_qa').select('question,answer').eq('enabled', True).order('sort_order').execute().data
+        if qa_rows:
+            qa_text = '\n'.join(f'Q: {row["question"]}\nA: {row["answer"]}' for row in qa_rows)
+            system_prompt = f'{SYSTEM_PROMPT}\n\n【よくある質問と回答】\n{qa_text}'
+    except Exception:
+        pass
 
     # Gemini の history 形式（最後のユーザーメッセージを除いた履歴）に変換
     history = [

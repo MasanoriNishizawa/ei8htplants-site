@@ -82,8 +82,8 @@ export default function Chat() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Shift+Enter で改行、Enter のみで送信
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Shift+Enter で改行、Enter のみで送信（IME変換中は送信しない）
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       send()
     }
