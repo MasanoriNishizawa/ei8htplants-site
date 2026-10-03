@@ -32,7 +32,9 @@ const BRAND_CARDS = [
     descJa: '色彩と形を楽しむ、インテリアのためのオーナメントプランツ',
     descEn: 'Color & Form as Living Art — plants for your space',
     bg: '#3d2a1a',
-    img: null,
+    img: '/img/logo-hue.png',
+    imgFit: 'contain' as const,
+    imgPadding: '20%',
     logo: '/img/logo-hue.png',
   },
 ]
@@ -219,12 +221,14 @@ export default function Home() {
               }}
             >
               {card.img && (
-                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', padding: (card as any).imgPadding ?? 0 }}>
                   <img
                     src={card.img}
                     alt=""
                     style={{
-                      width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                      width: '100%', height: '100%',
+                      objectFit: (card as any).imgFit ?? 'cover',
+                      display: 'block',
                       transform: isActive ? 'scale(1.05)' : 'scale(1)',
                       transition: 'transform 1.2s cubic-bezier(.22,1,.36,1)',
                     }}
@@ -252,25 +256,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 背景画像がないカード（HUEなど）は中央にロゴを常時表示 */}
-              {!card.img && (
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: isActive ? 0 : 1,
-                  transition: 'opacity 0.3s',
-                  pointerEvents: 'none',
-                }}>
-                  <img
-                    src={card.logo}
-                    alt={card.name}
-                    style={{
-                      height: 32, width: 'auto', objectFit: 'contain',
-                      filter: 'brightness(0) invert(1)', opacity: 0.85,
-                    }}
-                  />
-                </div>
-              )}
 
               {/* 展開時の情報（モバイルは常に表示） */}
               <div style={{
