@@ -3,11 +3,14 @@ from pydantic import BaseModel
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 import hashlib
+import logging
 import time
 from google import genai
 from google.genai import types
 from ..config import GEMINI_API_KEY
 from ..db import supabase, admin_supabase
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -226,7 +229,7 @@ def chat(body: ChatRequest, request: Request):
             'ai_reply': response.text,
             'ip_hash': ip_hash,
         }).execute()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error('chat_logs insert failed: %s', e)
 
     return {'reply': response.text}
