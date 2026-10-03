@@ -237,10 +237,14 @@ export default function Chat() {
           </button>
         </div>
 
-        <p style={{ fontSize: 11, color: '#bbb', marginTop: 8, letterSpacing: '0.03em' }}>
+        <p style={{ fontSize: 11, color: '#bbb', marginTop: 8, letterSpacing: '0.03em', lineHeight: 1.8 }}>
           {t(
             '※ AIの回答は参考情報です。詳細はお問い合わせフォームよりご確認ください。',
             '※ AI responses are for reference only. For details, please use the contact form.'
+          )}<br />
+          {t(
+            '※ 会話内容はサービス品質向上のため記録されます。',
+            '※ Conversations are logged to improve service quality.'
           )}
         </p>
       </div>
