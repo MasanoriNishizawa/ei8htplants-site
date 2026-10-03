@@ -193,7 +193,7 @@ def chat(body: ChatRequest, request: Request):
 
     # DBから有効なQ&Aを取得してシステムプロンプトに追記する（テーブル未作成時もエラーにしない）
     try:
-        qa_rows = supabase.table('chat_qa').select('question,answer').eq('enabled', True).order('sort_order').execute().data
+        qa_rows = admin_supabase.table('chat_qa').select('question,answer').eq('enabled', True).order('sort_order').execute().data
         if qa_rows:
             qa_text = '\n'.join(f'Q: {row["question"]}\nA: {row["answer"]}' for row in qa_rows)
             system_prompt += f'\n\n【よくある質問と回答】\n{qa_text}'

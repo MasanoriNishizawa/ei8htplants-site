@@ -25,7 +25,7 @@ class ChatQABody(BaseModel):
 @router.get('')
 def list_chat_qa():
     """Q&A 一覧を表示順で返す。"""
-    return supabase.table('chat_qa').select('*').order('sort_order').execute().data
+    return admin_supabase.table('chat_qa').select('*').order('sort_order').execute().data
 
 
 @router.post('')
