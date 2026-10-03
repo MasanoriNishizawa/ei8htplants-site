@@ -236,8 +236,8 @@ export default function Home() {
                 background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)',
               }} />
 
-              {/* 折りたたみ時のラベル（縦書き・デスクトップのみ） */}
-              {!isMobile && (
+              {/* 折りたたみ時のラベル（縦書き・デスクトップのみ）。背景画像がある場合のみ表示 */}
+              {!isMobile && card.img && (
                 <div style={{
                   position: 'absolute', bottom: 24, left: 18,
                   opacity: isActive ? 0 : 1,
@@ -249,6 +249,26 @@ export default function Home() {
                   whiteSpace: 'nowrap',
                 }}>
                   {card.name}
+                </div>
+              )}
+
+              {/* 背景画像がないカード（HUEなど）は中央にロゴを常時表示 */}
+              {!card.img && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: isActive ? 0 : 1,
+                  transition: 'opacity 0.3s',
+                  pointerEvents: 'none',
+                }}>
+                  <img
+                    src={card.logo}
+                    alt={card.name}
+                    style={{
+                      height: 32, width: 'auto', objectFit: 'contain',
+                      filter: 'brightness(0) invert(1)', opacity: 0.85,
+                    }}
+                  />
                 </div>
               )}
 
