@@ -9,14 +9,27 @@ interface Message {
   content: string
 }
 
-/** メッセージ本文を改行対応で表示するサブコンポーネント。
+const URL_RE = /(https?:\/\/[^\s]+)/g
+
+/** テキスト内のURLをリンクに変換して返す */
+function renderWithLinks(line: string) {
+  const parts = line.split(URL_RE)
+  return parts.map((part, i) =>
+    URL_RE.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{part}</a>
+      : part
+  )
+}
+
+/** メッセージ本文を改行・URL対応で表示するサブコンポーネント。
  * @param text - 表示するテキスト
  */
 function MessageText({ text }: { text: string }) {
+  const lines = text.split('\n')
   return (
     <span>
-      {text.split('\n').map((line, i) => (
-        <span key={i}>{line}{i < text.split('\n').length - 1 && <br />}</span>
+      {lines.map((line, i) => (
+        <span key={i}>{renderWithLinks(line)}{i < lines.length - 1 && <br />}</span>
       ))}
     </span>
   )
