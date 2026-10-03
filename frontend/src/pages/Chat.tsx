@@ -10,15 +10,19 @@ interface Message {
 }
 
 const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g
+// URL末尾に来やすい句読点・括弧類（日本語・ASCII）
+const TRAILING_PUNCT = /[）」、。！？』】〕\)\].,;:!?'"]+$/
 
 /** テキスト内のURLをリンクに変換して返す */
 function renderWithLinks(line: string) {
   const parts = line.split(URL_SPLIT_RE)
-  return parts.map((part, i) =>
-    part.startsWith('http')
-      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{part}</a>
-      : part
-  )
+  return parts.flatMap((part, i) => {
+    if (!part.startsWith('http')) return [<span key={i}>{part}</span>]
+    const url = part.replace(TRAILING_PUNCT, '')
+    const trailing = part.slice(url.length)
+    const link = <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{url}</a>
+    return trailing ? [link, <span key={`${i}t`}>{trailing}</span>] : [link]
+  })
 }
 
 /** メッセージ本文を改行・URL対応で表示するサブコンポーネント。
