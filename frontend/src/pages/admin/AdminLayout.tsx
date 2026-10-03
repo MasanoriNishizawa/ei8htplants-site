@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to: '/admin/media', label: 'メディア管理' },
   { to: '/admin/docs', label: '設計書' },
   { to: '/admin/chat-qa', label: 'チャットQ&A' },
+  { to: '/admin/chat-logs', label: 'チャット履歴' },
 ]
 
 const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({

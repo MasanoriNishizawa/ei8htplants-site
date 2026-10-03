@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
+import hashlib
 import time
 from google import genai
 from google.genai import types
@@ -214,6 +215,18 @@ def chat(body: ChatRequest, request: Request):
 
     try:
         response = chat_session.send_message(body.messages[-1].content)
-        return {'reply': response.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    # チャットログをDBに保存する（失敗してもチャット自体はエラーにしない）
+    try:
+        ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+        admin_supabase.table('chat_logs').insert({
+            'user_message': body.messages[-1].content,
+            'ai_reply': response.text,
+            'ip_hash': ip_hash,
+        }).execute()
+    except Exception:
+        pass
+
+    return {'reply': response.text}
