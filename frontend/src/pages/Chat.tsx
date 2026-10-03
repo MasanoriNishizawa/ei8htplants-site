@@ -9,13 +9,13 @@ interface Message {
   content: string
 }
 
-const URL_RE = /(https?:\/\/[^\s]+)/g
+const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g
 
 /** テキスト内のURLをリンクに変換して返す */
 function renderWithLinks(line: string) {
-  const parts = line.split(URL_RE)
+  const parts = line.split(URL_SPLIT_RE)
   return parts.map((part, i) =>
-    URL_RE.test(part)
+    part.startsWith('http')
       ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{part}</a>
       : part
   )
