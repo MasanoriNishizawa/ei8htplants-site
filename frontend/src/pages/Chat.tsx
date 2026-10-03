@@ -65,6 +65,16 @@ export default function Chat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: next }),
       })
+      if (res.status === 429) {
+        setMessages([...next, {
+          role: 'model',
+          content: t(
+            'メッセージの送信回数が上限に達しました。しばらく経ってからもう一度お試しください。',
+            'You have reached the message limit. Please wait a moment and try again.'
+          ),
+        }])
+        return
+      }
       if (!res.ok) throw new Error()
       const data = await res.json()
       setMessages([...next, { role: 'model', content: data.reply }])

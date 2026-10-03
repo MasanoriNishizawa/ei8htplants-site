@@ -1,11 +1,34 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from collections import defaultdict
+import time
 from google import genai
 from google.genai import types
 from ..config import GEMINI_API_KEY
 from ..db import supabase
 
 router = APIRouter()
+
+# IP単位のリクエスト履歴（インメモリ）
+_request_log: dict[str, list[float]] = defaultdict(list)
+RATE_LIMIT = 10   # 1分間の最大メッセージ数
+RATE_WINDOW = 60  # 秒
+
+
+def _check_rate_limit(ip: str) -> None:
+    """IP単位のレート制限チェック。超過時は429を返す。
+
+    Args:
+        ip: クライアントのIPアドレス
+
+    Raises:
+        HTTPException(429): 1分間の上限を超えた場合
+    """
+    now = time.time()
+    _request_log[ip] = [t for t in _request_log[ip] if now - t < RATE_WINDOW]
+    if len(_request_log[ip]) >= RATE_LIMIT:
+        raise HTTPException(status_code=429, detail='送信回数の上限に達しました。しばらく待ってから再試行してください。')
+    _request_log[ip].append(now)
 
 # ei8ht plants コンシェルジュとしての振る舞いと対応範囲を定義するシステムプロンプト
 SYSTEM_PROMPT = """あなたは「ei8ht plants」のAIコンシェルジュです。
@@ -52,7 +75,7 @@ class ChatRequest(BaseModel):
 
 
 @router.post('/chat')
-def chat(body: ChatRequest):
+def chat(body: ChatRequest, request: Request):
     """Gemini を使った植物相談・予約チャットエンドポイント。
 
     会話履歴を受け取り Gemini に送信して返答を返す。
@@ -70,6 +93,9 @@ def chat(body: ChatRequest):
     """
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=503, detail='Chat is not available')
+
+    ip = request.client.host if request.client else 'unknown'
+    _check_rate_limit(ip)
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
