@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from ..db import supabase, admin_supabase
@@ -25,7 +25,10 @@ class ChatQABody(BaseModel):
 @router.get('')
 def list_chat_qa():
     """Q&A 一覧を表示順で返す。"""
-    return admin_supabase.table('chat_qa').select('*').order('sort_order').execute().data
+    try:
+        return admin_supabase.table('chat_qa').select('*').order('sort_order').execute().data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post('')
