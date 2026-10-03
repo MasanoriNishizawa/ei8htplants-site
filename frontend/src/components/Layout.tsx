@@ -46,12 +46,21 @@ function ChatFab() {
           background: #a8c897;
           flex-shrink: 0;
         }
+        /* スマホではラベルを "AI" のみ表示し、パディングを詰める */
+        .chat-fab-label-full { display: inline; }
+        .chat-fab-label-short { display: none; }
+        @media (max-width: 767px) {
+          .chat-fab { padding: 0 16px 0 14px; gap: 7px; }
+          .chat-fab-label-full { display: none; }
+          .chat-fab-label-short { display: inline; }
+        }
       `}</style>
       <Link to="/chat" className="chat-fab">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.85, flexShrink: 0 }}>
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        AI Concierge
+        <span className="chat-fab-label-full">AI Concierge</span>
+        <span className="chat-fab-label-short">AI</span>
         <span className="chat-fab-dot" />
       </Link>
     </>
