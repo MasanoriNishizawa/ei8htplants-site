@@ -31,7 +31,7 @@ const BRAND_CARDS = [
     name: 'HUE',
     descJa: '色彩と形を楽しむ、インテリアのためのオーナメントプランツ',
     descEn: 'Color & Form as Living Art — plants for your space',
-    bg: 'linear-gradient(135deg, #ffb5c8 0%, #c8a8e8 30%, #a8e4c4 60%, #ffe07a 85%, #ffaa80 100%)',
+    bg: 'linear-gradient(135deg, #f9eef3 0%, #eee8f8 28%, #e6f4ef 58%, #fdf8e8 82%, #fdf0ea 100%)',
     img: null,
     logo: '/img/logo-hue.png',
   },
@@ -233,10 +233,33 @@ export default function Home() {
                   />
                 </div>
               )}
+              {/* 暗めのグラデーションオーバーレイ（テキスト可読性のため下部を暗くする） */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)',
+                background: card.img
+                  ? 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)'
+                  : 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.38) 100%)',
               }} />
+
+              {/* 背景画像なしのカード（HUE）: 中央にロゴを大きく表示 */}
+              {!card.img && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '15%',
+                }}>
+                  <img
+                    src={card.logo}
+                    alt={card.name}
+                    style={{
+                      width: '100%', height: '100%', objectFit: 'contain',
+                      display: 'block',
+                      transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'transform 1.2s cubic-bezier(.22,1,.36,1)',
+                    }}
+                  />
+                </div>
+              )}
 
               {/* 折りたたみ時のラベル（縦書き・デスクトップのみ） */}
               {!isMobile && (
