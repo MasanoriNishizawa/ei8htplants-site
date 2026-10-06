@@ -28,6 +28,21 @@ async def redirect_render_domain(request: Request, call_next):
     return await call_next(request)
 
 
+# セキュリティヘッダーを全レスポンスに付与するミドルウェア
+@app.middleware('http')
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # HTTPS を強制（max-age=1年）
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000'
+    # MIMEスニッフィング防止
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    # クリックジャッキング防止
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    # XSS フィルター（レガシーブラウザ向け）
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
+
+
 # レスポンスごとに適切なCache-Controlヘッダーを付与するミドルウェア
 @app.middleware('http')
 async def cache_control(request: Request, call_next):
