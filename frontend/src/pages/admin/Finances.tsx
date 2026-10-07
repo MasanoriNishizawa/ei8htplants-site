@@ -97,6 +97,7 @@ export default function AdminFinances() {
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>売上</th>
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>支出</th>
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>収支</th>
+                <th style={{ ...cellStyle, fontWeight: 500, textAlign: 'center', fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>手伝い</th>
                 <th style={{ ...cellStyle, fontWeight: 500, textAlign: 'center', fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>WS支払</th>
                 <th style={{ ...cellStyle, width: 60 }}></th>
               </tr>
@@ -116,6 +117,22 @@ export default function AdminFinances() {
                   </td>
                   <td style={{ ...numCell, fontWeight: computed ? 600 : 400, color: computed ? (computed.net >= 0 ? '#2d5a27' : '#c0392b') : 'var(--c-muted)', fontFamily: computed ? "'Cormorant Garamond', 'Noto Serif JP', serif" : 'inherit', fontSize: computed ? 16 : 14 }}>
                     {computed ? `${computed.net >= 0 ? '+' : ''}${fmt(computed.net)} 円` : '—'}
+                  </td>
+                  {/* 手伝いフラグ（payment_flag）の有無を表示する */}
+                  <td style={{ ...cellStyle, textAlign: 'center' }}>
+                    {fin ? (
+                      <span style={{
+                        display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 500,
+                        background: fin.payment_flag ? '#e8f5e4' : '#f5f5f7',
+                        color: fin.payment_flag ? '#2d5a27' : '#aaa',
+                        border: `1px solid ${fin.payment_flag ? '#b8d4ae' : '#dddde8'}`,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {fin.payment_flag ? 'あり' : 'なし'}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--c-muted)', fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   {/* WSありのイベントのみ支払い済みフラグを表示する */}
                   <td style={{ ...cellStyle, textAlign: 'center' }}>
