@@ -97,7 +97,7 @@ export default function AdminFinances() {
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>売上</th>
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>支出</th>
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>収支</th>
-                <th style={{ ...cellStyle, fontWeight: 500, textAlign: 'center', fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>手伝い</th>
+                <th style={{ ...cellStyle, fontWeight: 500, textAlign: 'center', fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>支払対象</th>
                 <th style={{ ...cellStyle, fontWeight: 500, textAlign: 'center', fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>WS支払</th>
                 <th style={{ ...cellStyle, width: 60 }}></th>
               </tr>
