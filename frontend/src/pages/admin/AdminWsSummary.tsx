@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { api, computeFinances, type Event, type EventFinances } from '../../lib/api'
+import { api, type Event, type EventFinances } from '../../lib/api'
 
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
+
+// WS手伝い単価（WS参加費1000円の70%）
+const WS_UNIT_PRICE = 700
 
 function fmt(n: number) {
   return n.toLocaleString('ja-JP')
@@ -14,11 +17,22 @@ function fiscalYear(dateStr: string): number {
   return month >= 4 ? d.getFullYear() : d.getFullYear() - 1
 }
 
-/** ワークショップ収支の年度別集計ページ */
+interface WsRow {
+  eventId: string
+  name: string
+  date: string
+  participants: number
+  amount: number        // WS_UNIT_PRICE × participants
+  paymentDone: boolean
+  fin: EventFinances    // 支払い済み更新時にそのまま PUT するための元データ
+}
+
+/** ワークショップ収支集計ページ。イベント別件数・金額・支払い済みを管理する */
 export default function AdminWsSummary() {
   const [events, setEvents] = useState<Event[]>([])
   const [finances, setFinances] = useState<EventFinances[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<string | null>(null)  // 保存中のeventId
 
   // 過去イベントを含む全データを並列取得
   useEffect(() => {
@@ -31,83 +45,122 @@ export default function AdminWsSummary() {
     }).finally(() => setLoading(false))
   }, [])
 
+  /** 支払い済みチェックボックスを切り替えてDBを更新する */
+  const togglePayment = async (row: WsRow) => {
+    setSaving(row.eventId)
+    const updated = { ...row.fin, ws_payment_done: !row.paymentDone }
+    await api.events.saveFinances(row.eventId, updated)
+    // ローカルstateも更新
+    setFinances(prev => prev.map(f => f.event_id === row.eventId ? { ...f, ws_payment_done: !row.paymentDone } : f))
+    setSaving(null)
+  }
+
   if (loading) return <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>
 
   const eventMap = new Map(events.map(e => [e.id, e]))
 
-  // 年度別のWS収支（WS売上・手伝い分=WS売上×70%）を集計
-  const wsByYear = new Map<number, {
-    events: { name: string; date: string; wsSales: number; wsShare: number }[]
-    totalWsSales: number
-    totalWsShare: number
-  }>()
+  // WS参加者ありのイベントを年度別に集計
+  const rowsByYear = new Map<number, WsRow[]>()
 
   finances.forEach(fin => {
     const event = eventMap.get(fin.event_id)
-    if (!event?.start_date || !event.has_workshop) return
-
-    const computed = computeFinances(fin, true)
-    if (computed.wsSales <= 0) return
+    if (!event?.start_date || !event.has_workshop || fin.ws_participants <= 0) return
 
     const fy = fiscalYear(event.start_date)
-    if (!wsByYear.has(fy)) wsByYear.set(fy, { events: [], totalWsSales: 0, totalWsShare: 0 })
-    const entry = wsByYear.get(fy)!
-    entry.events.push({ name: event.name, date: event.start_date, wsSales: computed.wsSales, wsShare: computed.wsShare })
-    entry.totalWsSales += computed.wsSales
-    entry.totalWsShare += computed.wsShare
+    if (!rowsByYear.has(fy)) rowsByYear.set(fy, [])
+    rowsByYear.get(fy)!.push({
+      eventId: event.id,
+      name: event.name,
+      date: event.start_date,
+      participants: fin.ws_participants,
+      amount: fin.ws_participants * WS_UNIT_PRICE,
+      paymentDone: fin.ws_payment_done ?? false,
+      fin,
+    })
   })
 
-  const years = [...wsByYear.keys()].sort((a, b) => b - a)
+  const years = [...rowsByYear.keys()].sort((a, b) => b - a)
+
+  const thStyle: React.CSSProperties = {
+    padding: '10px 14px', fontSize: 12, fontWeight: 500,
+    color: 'var(--c-muted)', textAlign: 'left', borderBottom: '1px solid #dddde8',
+    whiteSpace: 'nowrap',
+  }
+  const tdStyle: React.CSSProperties = {
+    padding: '10px 14px', fontSize: 14, borderBottom: '1px solid #f0f0f5',
+  }
 
   return (
-    <div style={{ maxWidth: 700 }}>
+    <div style={{ maxWidth: 800 }}>
       <h1 style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 300, marginBottom: 8 }}>
-        ワークショップ収支
+        ワークショップ集計
       </h1>
       <p style={{ fontSize: 13, color: 'var(--c-muted)', marginBottom: 32, lineHeight: 1.8 }}>
-        WSありのイベントのWS売上と手伝い分（WS売上×70%）を年度（4〜3月）別に集計します。
+        WSありのイベントの参加件数・手伝い金額（700円×件数）と支払い状況を管理します。
       </p>
 
       {years.length === 0 ? (
         <p style={{ color: '#aaa', fontSize: 14 }}>ワークショップのデータがありません。</p>
       ) : years.map(fy => {
-        const entry = wsByYear.get(fy)!
-        const sortedEvents = [...entry.events].sort((a, b) => a.date.localeCompare(b.date))
+        const rows = [...rowsByYear.get(fy)!].sort((a, b) => a.date.localeCompare(b.date))
+        const totalParticipants = rows.reduce((s, r) => s + r.participants, 0)
+        const totalAmount = rows.reduce((s, r) => s + r.amount, 0)
+        const paidAmount = rows.filter(r => r.paymentDone).reduce((s, r) => s + r.amount, 0)
+
         return (
-          <div key={fy} style={{ marginBottom: 36 }}>
+          <div key={fy} style={{ marginBottom: 40 }}>
             <h2 style={{ fontFamily: SERIF, fontWeight: 300, fontSize: 20, margin: '0 0 12px', color: 'var(--c-ink)' }}>
               {fy}年度（{fy}/4〜{fy + 1}/3）
             </h2>
 
-            {/* イベント別内訳 */}
-            <div style={{ border: '1px solid #dddde8', borderRadius: 4, marginBottom: 12, overflow: 'hidden' }}>
-              {sortedEvents.map((ev, i) => (
-                <div key={i} style={{
-                  display: 'grid', gridTemplateColumns: '1fr auto auto',
-                  gap: 16, padding: '10px 16px', fontSize: 14, alignItems: 'center',
-                  borderBottom: i < sortedEvents.length - 1 ? '1px solid #f0f0f5' : 'none',
-                }}>
-                  <span>
-                    {ev.name}
-                    <span style={{ fontSize: 12, color: 'var(--c-muted)', marginLeft: 8 }}>{ev.date}</span>
-                  </span>
-                  <span style={{ color: 'var(--c-muted)', fontSize: 13, whiteSpace: 'nowrap' }}>WS {fmt(ev.wsSales)} 円</span>
-                  <span style={{ color: '#7a5a30', fontWeight: 500, whiteSpace: 'nowrap' }}>手伝い {fmt(ev.wsShare)} 円</span>
-                </div>
-              ))}
-            </div>
-
-            {/* 年間合計 */}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{ flex: 1, padding: '14px 18px', background: '#f9f9fb', border: '1px solid #dddde8', borderRadius: 4 }}>
-                <div style={{ fontSize: 11, color: 'var(--c-muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>年間WS売上合計</div>
-                <div style={{ fontSize: 22, fontWeight: 600, fontFamily: SERIF }}>{fmt(entry.totalWsSales)} 円</div>
-              </div>
-              <div style={{ flex: 1, padding: '14px 18px', background: '#f5f0ee', border: '1px solid #d4c4ae', borderRadius: 4 }}>
-                <div style={{ fontSize: 11, color: '#7a5a30', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>年間WS手伝い合計</div>
-                <div style={{ fontSize: 22, fontWeight: 600, fontFamily: SERIF, color: '#7a5a30' }}>{fmt(entry.totalWsShare)} 円</div>
-                <div style={{ fontSize: 11, color: '#7a5a30', marginTop: 4 }}>WS売上 × 70%</div>
-              </div>
+            {/* テーブル */}
+            <div style={{ border: '1px solid #dddde8', borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ background: '#f9f9fb' }}>
+                  <tr>
+                    <th style={thStyle}>イベント名</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>件数</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>金額</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>支払い済み</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.eventId} style={{ background: row.paymentDone ? '#f6faf5' : '#fff' }}>
+                      <td style={tdStyle}>
+                        {row.name}
+                        <span style={{ fontSize: 12, color: 'var(--c-muted)', marginLeft: 8 }}>{row.date}</span>
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--c-muted)' }}>
+                        {row.participants} 人
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 500, color: '#7a5a30' }}>
+                        {fmt(row.amount)} 円
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={row.paymentDone}
+                          disabled={saving === row.eventId}
+                          onChange={() => togglePayment(row)}
+                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4a6741' }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {/* 合計行 */}
+                <tfoot>
+                  <tr style={{ background: '#f9f9fb', borderTop: '1px solid #dddde8' }}>
+                    <td style={{ ...tdStyle, fontWeight: 500, borderBottom: 'none' }}>合計</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 500, borderBottom: 'none' }}>{totalParticipants} 人</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: '#7a5a30', borderBottom: 'none' }}>{fmt(totalAmount)} 円</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', fontSize: 12, color: 'var(--c-muted)', borderBottom: 'none' }}>
+                      支払済 {fmt(paidAmount)} 円
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
         )

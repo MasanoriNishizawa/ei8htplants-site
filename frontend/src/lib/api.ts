@@ -422,6 +422,7 @@ export interface EventFinances {
   accommodation: number
   ws_participants: number
   payment_flag: boolean
+  ws_payment_done: boolean
   other_expenses: number
   other_expenses_note: string | null
   notes: string | null
