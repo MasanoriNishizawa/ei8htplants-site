@@ -97,6 +97,7 @@ export default function AdminFinances() {
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>売上</th>
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>支出</th>
                 <th style={{ ...numCell, fontWeight: 500, fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase' }}>収支</th>
+                <th style={{ ...cellStyle, fontWeight: 500, textAlign: 'center', fontSize: 12, letterSpacing: 1, color: 'var(--c-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>WS支払</th>
                 <th style={{ ...cellStyle, width: 60 }}></th>
               </tr>
             </thead>
@@ -116,8 +117,24 @@ export default function AdminFinances() {
                   <td style={{ ...numCell, fontWeight: computed ? 600 : 400, color: computed ? (computed.net >= 0 ? '#2d5a27' : '#c0392b') : 'var(--c-muted)', fontFamily: computed ? "'Cormorant Garamond', 'Noto Serif JP', serif" : 'inherit', fontSize: computed ? 16 : 14 }}>
                     {computed ? `${computed.net >= 0 ? '+' : ''}${fmt(computed.net)} 円` : '—'}
                   </td>
-                  <td style={cellStyle}>
-                    <Link to={`/admin/events/${ev.id}/finances`} style={{ padding: '6px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 12, color: '#4a6741', textDecoration: 'none' }}>
+                  {/* WSありのイベントのみ支払い済みフラグを表示する */}
+                  <td style={{ ...cellStyle, textAlign: 'center' }}>
+                    {ev.has_workshop && fin ? (
+                      <span style={{
+                        display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 500,
+                        background: fin.ws_payment_done ? '#e8f5e4' : '#fdf0ee',
+                        color: fin.ws_payment_done ? '#2d5a27' : '#c0392b',
+                        border: `1px solid ${fin.ws_payment_done ? '#b8d4ae' : '#f0b8ae'}`,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {fin.ws_payment_done ? '済' : '未'}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--c-muted)', fontSize: 12 }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
+                    <Link to={`/admin/events/${ev.id}/finances`} style={{ padding: '6px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 12, color: '#4a6741', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                       編集
                     </Link>
                   </td>
