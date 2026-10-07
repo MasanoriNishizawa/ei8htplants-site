@@ -151,7 +151,7 @@ export default function AdminFinances() {
                     )}
                   </td>
                   <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
-                    <Link to={`/admin/events/${ev.id}/finances`} style={{ padding: '6px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 12, color: '#4a6741', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                    <Link to={`/admin/events/${ev.id}/finances`} state={{ from: '/admin/finances' }} style={{ padding: '6px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 12, color: '#4a6741', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                       編集
                     </Link>
                   </td>

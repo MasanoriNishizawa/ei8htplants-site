@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, computeFinances, type Event, type EventFinancesBody } from '../../lib/api'
 
 const BLANK: EventFinancesBody = {
@@ -24,11 +24,14 @@ function fmt(n: number) {
 /** 特定イベントの収支（売上・各支出・計算結果）を入力・保存するページ */
 export default function EventFinance() {
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+  const navigate = useNavigate()
+  // 遷移元のパスを取得。未設定時はイベント一覧へ戻る
+  const backTo: string = (location.state as any)?.from ?? '/admin/events'
   const [event, setEvent] = useState<Event | null>(null)
   const [form, setForm] = useState<EventFinancesBody>(BLANK)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   // イベント情報と既存の収支データを同時取得してフォームに反映する
   useEffect(() => {
@@ -56,7 +59,6 @@ export default function EventFinance() {
   }, [id])
 
   const set = <K extends keyof EventFinancesBody>(key: K, value: EventFinancesBody[K]) => {
-    setSaved(false)
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -70,7 +72,8 @@ export default function EventFinance() {
     setSaving(true)
     await api.events.saveFinances(id, form)
     setSaving(false)
-    setSaved(true)
+    // 保存後は遷移元（収支一覧またはイベント一覧）へ戻る
+    navigate(backTo)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -106,8 +109,8 @@ export default function EventFinance() {
   return (
     <div style={{ maxWidth: 580 }}>
       <div style={{ marginBottom: 24 }}>
-        <Link to="/admin/events" style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}>
-          &larr; イベント管理
+        <Link to={backTo} style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}>
+          &larr; {backTo === '/admin/finances' ? '収支一覧' : 'イベント管理'}
         </Link>
       </div>
 
@@ -278,7 +281,6 @@ export default function EventFinance() {
           <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15 }}>
             {saving ? '保存中...' : '保存'}
           </button>
-          {saved && <span style={{ fontSize: 13, color: '#4a6741' }}>保存しました</span>}
         </div>
       </form>
     </div>
