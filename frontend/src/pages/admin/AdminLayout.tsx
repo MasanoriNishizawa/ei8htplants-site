@@ -2,7 +2,12 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const NAV_ITEMS = [
+// ナビゲーション項目の型定義。グループヘッダーかリンクかを判別する
+type NavGroup = { group: string }
+type NavLink_ = { to: string; label: string; end?: boolean; sub?: boolean }
+type NavItem = NavGroup | NavLink_
+
+const NAV_ITEMS: NavItem[] = [
   { to: '/admin', label: 'ダッシュボード', end: true },
   { to: '/admin/events', label: 'イベント' },
   { to: '/admin/gallery', label: 'ギャラリー' },
@@ -13,7 +18,11 @@ const NAV_ITEMS = [
   { to: '/admin/products', label: '商品管理' },
   { to: '/admin/orders', label: '注文管理' },
   { to: '/admin/articles', label: '記事管理' },
-  { to: '/admin/finances', label: '収支一覧' },
+  // 収支グループ
+  { group: '収支' },
+  { to: '/admin/finances', label: '全体の収支', sub: true },
+  { to: '/admin/helper-payment', label: '支払い集計', sub: true },
+  { to: '/admin/ws-summary', label: 'ワークショップ集計', sub: true },
   { to: '/admin/price-calc', label: '販売価格計算' },
   { to: '/admin/pot-artists', label: '鉢作家管理' },
   { to: '/admin/media', label: 'メディア管理' },
@@ -22,9 +31,11 @@ const NAV_ITEMS = [
   { to: '/admin/chat-logs', label: 'チャット履歴' },
 ]
 
-const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
-  display: 'block', padding: '10px 16px', textDecoration: 'none',
-  borderRadius: 4, fontSize: 14, letterSpacing: 1,
+const navStyle = ({ isActive }: { isActive: boolean }, sub = false): React.CSSProperties => ({
+  display: 'block',
+  padding: sub ? '8px 16px 8px 26px' : '10px 16px',
+  textDecoration: 'none',
+  borderRadius: 4, fontSize: sub ? 13 : 14, letterSpacing: 1,
   background: isActive ? '#1c2417' : 'transparent',
   color: isActive ? '#fff' : '#3a4535',
   whiteSpace: 'nowrap',
@@ -116,17 +127,28 @@ export default function AdminLayout() {
             ×
           </button>
         </div>
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            style={navStyle}
-            onClick={() => setMenuOpen(false)}
-          >
-            {item.label}
-          </NavLink>
-        ))}
+        {NAV_ITEMS.map((item, i) => {
+          // グループヘッダー
+          if ('group' in item) {
+            return (
+              <div key={`g-${i}`} style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', padding: '12px 16px 4px', marginTop: 4 }}>
+                {item.group}
+              </div>
+            )
+          }
+          // 通常のナビリンク
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              style={(state) => navStyle(state, item.sub)}
+              onClick={() => setMenuOpen(false)}
+            >
+              {item.label}
+            </NavLink>
+          )
+        })}
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <button onClick={logout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', color: 'var(--c-muted)' }}>ログアウト</button>
         </div>
