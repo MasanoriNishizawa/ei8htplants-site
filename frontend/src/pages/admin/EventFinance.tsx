@@ -160,7 +160,7 @@ export default function EventFinance() {
             <div>
               <div style={{ fontWeight: 500, fontSize: 14 }}>手伝いあり（支払い計算モード）</div>
               <div style={{ fontSize: 12, color: 'var(--c-muted)', marginTop: 3, lineHeight: 1.6 }}>
-                ONにすると「支払い金額 = max(0, 売上 - WS売上 - 各支出) × 20% + WS売上 × 70%」で計算します
+                ONにすると「支払い金額 = (売上 - WS売上 - 各支出) × 20% + WS売上 × 70%」で計算します（赤字の場合はマイナス計上）
               </div>
             </div>
           </label>
@@ -239,7 +239,7 @@ export default function EventFinance() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#6a5a45', marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>売上利益分 <Hint>(max(0, 売上−WS売上−支出) × 20%)</Hint></span>
+                  <span>売上利益分 <Hint>((売上−WS売上−支出) × 20%)</Hint></span>
                   <span>{fmt(salesShare)} 円</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -255,7 +255,7 @@ export default function EventFinance() {
               </div>
             </div>
             <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--c-muted)', marginBottom: 24 }}>
-              {`売上利益 ${fmt(Math.max(0, form.sales - wsSales - totalExpense))} 円 × 20% + WS ${fmt(wsSales)} 円 × 70%`}
+              {`売上利益 ${fmt(form.sales - wsSales - totalExpense)} 円 × 20% + WS ${fmt(wsSales)} 円 × 70%`}
             </div>
           </>
         )}

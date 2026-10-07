@@ -596,8 +596,8 @@ export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   const net = fin.sales - totalExpense
 
   if (fin.payment_flag) {
-    // 支払フラグあり: 売上分 20%・WS分 70% を支払額として計算
-    const salesShare = Math.round(Math.max(0, fin.sales - wsSales - totalExpense) * 0.2)
+    // 支払フラグあり: (売上 - WS売上 - 支出) × 20%。マイナスの場合もそのまま反映する
+    const salesShare = Math.round((fin.sales - wsSales - totalExpense) * 0.2)
     const wsShare = Math.round(wsSales * 0.7)
     const paymentAmount = salesShare + wsShare
     return { transport, wsSales, totalExpense, net: net - paymentAmount, salesShare, wsShare, paymentAmount }
