@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "mock": "VITE_MSW=true vite"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
@@ -30,10 +31,16 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "jsdom": "^29.1.1",
+    "msw": "^2.15.0",
     "postcss": "^8.5.4",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^5.0.3"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
