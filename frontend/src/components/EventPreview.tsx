@@ -170,7 +170,8 @@ export default function EventPreview({ event, horizontal = false }: Props) {
               ) : address}
             </div>
           )}
-          {event.official_url ? (
+          {/* 公式サイトURLが設定されている場合のみ外部リンクを表示する */}
+          {event.official_url && (
             <div style={{ marginTop: 4 }}>
               <a
                 href={event.official_url}
@@ -181,16 +182,18 @@ export default function EventPreview({ event, horizontal = false }: Props) {
                 {t('公式サイト', 'Official Site')}
               </a>
             </div>
-          ) : hasSite ? (
+          )}
+          {/* 内部詳細ページがある場合のみ「詳細を見る」リンクを表示する */}
+          {hasSite && (
             <div style={{ marginTop: 4 }}>
               <Link
                 to={`/events/${event.slug ?? event.id}`}
                 style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
               >
-                {t('公式サイト', 'Official Site')}
+                {t('詳細を見る', 'View Details')}
               </Link>
             </div>
-          ) : null}
+          )}
         </div>
 
         {event.has_workshop && (
