@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useT } from '../lib/lang'
 import type { Event } from '../lib/api'
 import ImageLightbox from './ImageLightbox'
 
@@ -42,6 +43,7 @@ interface Props {
  * @param isHome - ホームページ用（リンク先を /events にする）か
  */
 export default function EventCard({ event, isNext = false, isHome = false }: Props) {
+  const t = useT()
   const [imgIdx, setImgIdx] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const touchX = useRef<number | null>(null)
@@ -196,16 +198,21 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
           )}
         </div>
       )}
+
+      {/* 内部詳細ページがある場合のみ「詳細を見る」ボタンを表示する */}
+      {event.page_content !== null && (
+        <div style={{ marginTop: 20 }}>
+          <Link
+            to={`/events/${event.slug ?? event.id}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid var(--c-ink)', borderRadius: 20, fontSize: 13, color: 'var(--c-ink)', textDecoration: 'none', letterSpacing: 1 }}
+          >
+            {t('詳細を見る', 'View Details')}
+          </Link>
+        </div>
+      )}
     </div>
   )
-
-  // page_content がある場合は内部サイトへ、なければ公式 URL、どちらもなければリンクなし
-  const hasSite = event.page_content !== null
-  const cardLink = hasSite
-    ? { internal: `/events/${event.slug ?? event.id}` }
-    : event.official_url
-    ? { external: event.official_url }
-    : null
 
   const lightbox = lightboxIdx !== null ? (
     <ImageLightbox
@@ -230,32 +237,14 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
     )
   }
 
-  const card = (
-    <div className={`event-card${isNext ? ' next-card' : ''}`} style={{ ...cardStyle, cursor: cardLink ? 'pointer' : 'default' }}>
-      {imageSection}
-      {infoSection}
-    </div>
+  // カード全体はリンクにしない。遷移は「詳細を見る」ボタン・「公式サイト」リンクから行う
+  return (
+    <>
+      <div className={`event-card${isNext ? ' next-card' : ''}`} style={cardStyle}>
+        {imageSection}
+        {infoSection}
+      </div>
+      {lightbox}
+    </>
   )
-
-  if (cardLink && 'internal' in cardLink && cardLink.internal) {
-    return (
-      <>
-        <Link to={cardLink.internal} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-          {card}
-        </Link>
-        {lightbox}
-      </>
-    )
-  }
-  if (cardLink && 'external' in cardLink) {
-    return (
-      <>
-        <a href={cardLink.external} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-          {card}
-        </a>
-        {lightbox}
-      </>
-    )
-  }
-  return <>{card}{lightbox}</>
 }
