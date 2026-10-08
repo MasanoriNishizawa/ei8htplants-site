@@ -1,20 +1,12 @@
 import { useEffect, useState } from 'react'
-import { api, type Event, type EventFinances } from '../../lib/api'
+import { api, fiscalYear, type Event, type EventFinances } from '../../lib/api'
 
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 
-// WS手伝い単価（WS参加費1000円の70%）
 const WS_UNIT_PRICE = 700
 
 function fmt(n: number) {
   return n.toLocaleString('ja-JP')
-}
-
-/** 日付文字列から年度（4月始まり）を返す。例: 2026-02-01 → 2025 */
-function fiscalYear(dateStr: string): number {
-  const d = new Date(dateStr)
-  const month = d.getMonth() + 1
-  return month >= 4 ? d.getFullYear() : d.getFullYear() - 1
 }
 
 interface WsRow {

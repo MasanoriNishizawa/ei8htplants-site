@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react'
-import { api, computeFinances, type Event, type EventFinances } from '../../lib/api'
+import { api, computeFinances, fiscalYear, type Event, type EventFinances } from '../../lib/api'
 
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 
 function fmt(n: number) {
   return n.toLocaleString('ja-JP')
-}
-
-/** 日付文字列から年度（4月始まり）を返す。例: 2026-02-01 → 2025 */
-function fiscalYear(dateStr: string): number {
-  const d = new Date(dateStr)
-  const month = d.getMonth() + 1
-  return month >= 4 ? d.getFullYear() : d.getFullYear() - 1
 }
 
 /**

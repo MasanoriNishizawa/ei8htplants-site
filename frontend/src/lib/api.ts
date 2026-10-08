@@ -575,6 +575,13 @@ export interface OrderItem {
 
 export type OrderDetail = Order & { items: OrderItem[] }
 
+/** 日付文字列から会計年度（4月始まり）を返す。例: 2026-02-01 → 2025 */
+export function fiscalYear(dateStr: string): number {
+  const d = new Date(dateStr)
+  const month = d.getMonth() + 1
+  return month >= 4 ? d.getFullYear() : d.getFullYear() - 1
+}
+
 /**
  * イベント財務データから輸送費・ワークショップ収益・純利益などを計算するユーティリティ
  * @param fin - イベント財務データ
