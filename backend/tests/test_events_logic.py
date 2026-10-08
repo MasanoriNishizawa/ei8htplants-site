@@ -78,65 +78,74 @@ class TestFinanceBody:
 
 
 # --- API エンドポイント (TestClient + mock) ---
+# events.py は `from ..db import supabase` でローカル参照を持つため、
+# app.db.supabase をパッチしても効果がない。
+# app.routes.events.supabase を直接パッチすることで正しくモックできる。
 
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
+from app.main import app
 
 
-def make_client():
-    """Supabase クライアントをモックしてテスト用の FastAPI クライアントを返す。"""
+def _make_sb_mock(events_data: list, images_data: list = None):
+    """イベントと画像の DB 呼び出しチェーンを設定したモックを返す。"""
+    images_data = images_data or []
     mock_sb = MagicMock()
-    mock_admin_sb = MagicMock()
-    with patch('app.db.supabase', mock_sb), patch('app.db.admin_supabase', mock_admin_sb):
-        from app.main import app
-        return TestClient(app), mock_sb, mock_admin_sb
+    chain = mock_sb.table.return_value
+    # supabase.table('events').select('*').order(...).execute().data
+    chain.select.return_value.order.return_value.execute.return_value.data = events_data
+    # supabase.table('event_images').select('*').in_(...).order(...).execute().data
+    chain.select.return_value.in_.return_value.order.return_value.execute.return_value.data = images_data
+    return mock_sb
 
 
 class TestEventsEndpoint:
-    def setup_method(self):
-        self.mock_sb = MagicMock()
-        self.mock_admin_sb = MagicMock()
-
-    def _mock_events(self, events_data: list, images_data: list = None):
-        images_data = images_data or []
-        chain = self.mock_sb.table.return_value
-        # .select('*').order(...).execute().data の呼び出しチェーンをモック
-        chain.select.return_value.order.return_value.execute.return_value.data = events_data
-        chain.select.return_value.in_.return_value.order.return_value.execute.return_value.data = images_data
-
     def test_イベント一覧_空(self):
-        self._mock_events([])
-        with patch('app.db.supabase', self.mock_sb), patch('app.db.admin_supabase', self.mock_admin_sb):
-            from app.main import app
+        mock_sb = _make_sb_mock([])
+        with patch('app.routes.events.supabase', mock_sb):
             client = TestClient(app)
             resp = client.get('/api/events')
-            assert resp.status_code == 200
-            assert resp.json() == []
+        assert resp.status_code == 200
+        assert resp.json() == []
 
     def test_イベント一覧_過去イベント除外(self):
         events = [
             {'id': '1', 'name': 'Past', 'start_date': '2020-01-01', 'end_date': None},
             {'id': '2', 'name': 'Future', 'start_date': '2099-01-01', 'end_date': None},
         ]
-        self._mock_events(events)
-        with patch('app.db.supabase', self.mock_sb), patch('app.db.admin_supabase', self.mock_admin_sb):
-            from app.main import app
+        mock_sb = _make_sb_mock(events)
+        with patch('app.routes.events.supabase', mock_sb):
             client = TestClient(app)
             resp = client.get('/api/events?past=false')
-            assert resp.status_code == 200
-            data = resp.json()
-            assert all(e['name'] == 'Future' for e in data)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]['name'] == 'Future'
 
     def test_イベント一覧_過去イベント取得(self):
         events = [
             {'id': '1', 'name': 'Past', 'start_date': '2020-01-01', 'end_date': None},
             {'id': '2', 'name': 'Future', 'start_date': '2099-01-01', 'end_date': None},
         ]
-        self._mock_events(events)
-        with patch('app.db.supabase', self.mock_sb), patch('app.db.admin_supabase', self.mock_admin_sb):
-            from app.main import app
+        mock_sb = _make_sb_mock(events)
+        with patch('app.routes.events.supabase', mock_sb):
             client = TestClient(app)
             resp = client.get('/api/events?past=true')
-            assert resp.status_code == 200
-            data = resp.json()
-            assert all(e['name'] == 'Past' for e in data)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]['name'] == 'Past'
+
+    def test_イベント一覧_end_dateで過去判定(self):
+        # 開始日が未来でも終了日が過去ならis_past=True
+        events = [
+            {'id': '1', 'name': 'EndedEvent', 'start_date': '2099-01-01', 'end_date': '2020-01-01'},
+        ]
+        mock_sb = _make_sb_mock(events)
+        with patch('app.routes.events.supabase', mock_sb):
+            client = TestClient(app)
+            resp = client.get('/api/events?past=true')
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]['name'] == 'EndedEvent'
