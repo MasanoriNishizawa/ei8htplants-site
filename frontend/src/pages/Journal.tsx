@@ -52,7 +52,7 @@ export default function Journal() {
 
   return (
     <>
-      <PageMeta title="Journal | ei8ht plants" description="植物と暮らしにまつわるコラム" />
+      <PageMeta title="Journal" description="植物と暮らしにまつわるコラム" />
 
       <div style={{ background: BG, minHeight: '100vh' }}>
 

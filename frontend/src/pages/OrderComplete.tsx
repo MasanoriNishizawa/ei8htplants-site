@@ -16,7 +16,7 @@ export default function OrderComplete() {
 
   return (
     <>
-      <PageMeta title={t('ご注文ありがとうございます | ei8ht plants', 'Thank You for Your Order | ei8ht plants')} description={t('ご注文を受け付けました。', 'Your order has been received.')} />
+      <PageMeta title={t('ご注文ありがとうございます', 'Thank You for Your Order')} description={t('ご注文を受け付けました。', 'Your order has been received.')} />
       <div style={{ background: '#faf9f7', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 24px' }}>
         <div style={{ maxWidth: 520, width: '100%', textAlign: 'center' }}>
 

@@ -41,7 +41,7 @@ export default function Shop() {
 
   return (
     <>
-      <PageMeta title="Shop | ei8ht plants" description="ei8ht plants オンラインストア" />
+      <PageMeta title="Shop" description="ei8ht plants オンラインストア" />
 
       <div style={{ background: 'var(--c-bg)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(32px, 5vw, 56px) clamp(16px, 3vw, 40px) 80px' }}>

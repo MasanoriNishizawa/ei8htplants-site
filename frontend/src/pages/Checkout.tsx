@@ -198,7 +198,7 @@ export default function Checkout() {
 
   return (
     <>
-      <PageMeta title={t('ご注文手続き | ei8ht plants', 'Checkout | ei8ht plants')} description={t('ご注文手続き', 'Checkout')} />
+      <PageMeta title={t('ご注文手続き', 'Checkout')} description={t('ご注文手続き', 'Checkout')} />
       <div style={{ background: BG, minHeight: '100vh' }}>
 
         {/* ヘッダー */}

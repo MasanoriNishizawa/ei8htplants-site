@@ -70,7 +70,7 @@ export default function JournalArticle() {
 
   return (
     <>
-      <PageMeta title={`${article.title} | ei8ht plants Journal`} description={blocksToText(allBlocks) || article.title} ogImage={heroUrl ?? undefined} />
+      <PageMeta title={`${article.title} | Journal`} description={blocksToText(allBlocks) || article.title} ogImage={heroUrl ?? undefined} />
 
       {/* ヘッダービジュアル — フルブリード */}
       <div style={{ background: '#1a1a18', position: 'relative', overflow: 'hidden' }}>

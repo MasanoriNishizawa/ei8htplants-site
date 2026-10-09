@@ -72,7 +72,7 @@ export default function ShopProduct() {
 
   return (
     <>
-      <PageMeta title={`${product.name} | ei8ht plants Shop`} description={blocksToText(allBlocks) || product.name} ogImage={product.image_urls[0]} />
+      <PageMeta title={`${product.name} | Shop`} description={blocksToText(allBlocks) || product.name} ogImage={product.image_urls[0]} />
 
       <div style={{ background: BG, minHeight: '100vh' }}>
 

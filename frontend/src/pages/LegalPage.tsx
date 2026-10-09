@@ -74,7 +74,7 @@ export default function LegalPage() {
   const t = useT()
   return (
     <>
-      <PageMeta title={t('特定商取引法に基づく表示 | ei8ht plants', 'Specified Commercial Transaction Act | ei8ht plants')} description={t('ei8ht plants 特定商取引法に基づく表示', 'ei8ht plants – Specified Commercial Transaction Act disclosure')} />
+      <PageMeta title={t('特定商取引法に基づく表示', 'Specified Commercial Transaction Act')} description={t('ei8ht plants 特定商取引法に基づく表示', 'ei8ht plants – Specified Commercial Transaction Act disclosure')} />
 
       <div style={{ background: BG, minHeight: '100vh' }}>
         <div style={{ borderBottom: '1px solid #e8e3da', background: '#fff' }}>
