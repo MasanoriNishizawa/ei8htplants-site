@@ -676,7 +676,7 @@ body {
   margin: 0 0 16px;
   white-space: pre;
   line-height: 1.5;
-  font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+  font-family: 'M PLUS 1 Code', 'SFMono-Regular', Consolas, 'Courier New', monospace;
   font-size: 13px;
 }
 .docs-markdown pre code {
