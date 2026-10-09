@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "mock": "VITE_MSW=true vite"
+    "mock": "VITE_MSW=true vite",
+    "mock:e2e": "VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true vite"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",

@@ -52,6 +52,11 @@ export default function AdminLayout() {
 
   // 既存セッションの有無を確認して認証状態を初期化する
   useEffect(() => {
+    if (import.meta.env.DEV && import.meta.env.VITE_SKIP_ADMIN_AUTH === 'true') {
+      setAuthed(true)
+      setChecking(false)
+      return
+    }
     if (!supabase) { setChecking(false); return }
     supabase.auth.getSession().then(({ data }) => {
       setAuthed(!!data.session)
