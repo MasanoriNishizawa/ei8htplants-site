@@ -6,6 +6,8 @@ import {
   MOCK_GALLERY,
   MOCK_STOCKISTS,
   MOCK_PRODUCTS,
+  MOCK_DOC_TREE,
+  MOCK_DOC_CONTENTS,
 } from './data'
 
 export const handlers = [
@@ -95,5 +97,18 @@ export const handlers = [
   // Media appearances
   http.get('/api/media-appearances', () => {
     return HttpResponse.json([])
+  }),
+
+  // Docs (admin design docs viewer)
+  http.get('/api/docs/tree', () => {
+    return HttpResponse.json(MOCK_DOC_TREE)
+  }),
+
+  http.get('/api/docs/content', ({ request }) => {
+    const url = new URL(request.url)
+    const path = url.searchParams.get('path') ?? ''
+    const content = MOCK_DOC_CONTENTS[path]
+    if (!content) return new HttpResponse(null, { status: 404 })
+    return new HttpResponse(content, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
   }),
 ]

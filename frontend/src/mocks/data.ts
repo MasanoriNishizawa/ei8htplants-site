@@ -1,5 +1,76 @@
 import type { Event, EventFinances, GalleryImage, Stockist, Product } from '../lib/api'
 
+type DocTreeNode = { type: 'file' | 'dir'; name: string; path: string; children?: DocTreeNode[] }
+
+export const MOCK_DOC_TREE: DocTreeNode[] = [
+  {
+    type: 'dir', name: '03_PM', path: '03_PM',
+    children: [
+      { type: 'file', name: '05_エージェント設計書.md', path: '03_PM/05_エージェント設計書.md' },
+    ],
+  },
+  {
+    type: 'dir', name: '04_TEST', path: '04_TEST',
+    children: [
+      { type: 'file', name: '01_マスターテスト計画書.md', path: '04_TEST/01_マスターテスト計画書.md' },
+      { type: 'file', name: '07_テストケース一覧.md', path: '04_TEST/07_テストケース一覧.md' },
+    ],
+  },
+]
+
+export const MOCK_DOC_CONTENTS: Record<string, string> = {
+  '03_PM/05_エージェント設計書.md': `# PM-05 — エージェント設計書 (Agent Architecture)
+
+## エージェント一覧
+
+| エージェント | 役割 | ツール |
+|---|---|---|
+| pm | オーケストレーター | Bash, Read, Write, Edit, TodoWrite, Agent |
+| qa | テスト実行・コードレビュー | Bash, Read, Write, Edit, TodoWrite |
+| deploy | ビルド・コミット・プッシュ | Bash, Read, TodoWrite |
+
+## qa チェックリスト
+
+\`\`\`bash
+cd frontend && npx tsc --noEmit
+cd frontend && npx vitest run
+cd backend && python -m pytest
+cd frontend && npx playwright test
+\`\`\`
+`,
+  '04_TEST/01_マスターテスト計画書.md': `# TEST-01 — マスターテスト計画書
+
+## テストレベル
+
+| テストレベル | ツール | 実行コマンド |
+|---|---|---|
+| UT / IT | Vitest / pytest | \`npm test\` / \`python -m pytest\` |
+| ST | Playwright | \`npm run test:e2e\` |
+
+## 合否基準
+
+1. \`npx tsc --noEmit\` がエラーなし
+2. Vitest 全ケース PASS
+3. pytest 全ケース PASS
+4. Playwright 全ケース PASS
+`,
+  '04_TEST/07_テストケース一覧.md': `# TEST-07 — テストケース一覧
+
+## フロントエンド テストケース
+
+| テスト ID | ケース | 状態 |
+|---|---|---|
+| FE-A-01 | fiscalYear: 4月は同年 | PASS |
+| FE-D-01 | EventCard: 初期表示 | PASS |
+
+## バックエンド テストケース
+
+| テスト ID | ケース | 状態 |
+|---|---|---|
+| BE-A-01 | _calc_is_past: 過去の開始日 | PASS |
+`,
+}
+
 export const MOCK_EVENTS: Event[] = [
   {
     id: 'mock-upcoming-1',
