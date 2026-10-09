@@ -33,7 +33,7 @@ export default function Ei8htPlants() {
 
   return (
     <>
-      <PageMeta title="Bizarre Plants" description={t('アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'A line specializing in bizarre plants — agaves, caudiciform plants, shrubs and more.')} />
+      <PageMeta description={t('アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'A line specializing in bizarre plants — agaves, caudiciform plants, shrubs and more.')} />
       <h1 className="sr-only">{t('ei8ht plants — ビザールプランツ専門ライン', 'ei8ht plants — Bizarre Plants Line')}</h1>
 
       <div className="hero-wrapper">
