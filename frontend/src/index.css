@@ -674,11 +674,18 @@ body {
   padding: 16px;
   overflow-x: auto;
   margin: 0 0 16px;
+  white-space: pre;
+  line-height: 1.5;
+  font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+  font-size: 13px;
 }
 .docs-markdown pre code {
   background: none;
   padding: 0;
   color: var(--c-body);
+  font-size: inherit;
+  white-space: inherit;
+  line-height: inherit;
 }
 .docs-markdown table {
   border-collapse: collapse;
