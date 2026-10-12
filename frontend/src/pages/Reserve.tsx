@@ -229,7 +229,19 @@ export default function Reserve() {
 
           {/* 右：フォーム */}
           <div>
-        {status === 'full' ? (
+        {event?.is_past ? (
+          <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+            <p style={{ fontSize: 18, fontWeight: 300, letterSpacing: '0.05em', color: 'var(--c-ink)', marginBottom: 12 }}>
+              {t('受付を終了しました', 'Registration is closed')}
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.8, marginBottom: 28 }}>
+              {t('このイベントの予約受付は終了しています。次回のワークショップをお待ちください。', 'Reservations for this event are no longer available. Please look forward to the next workshop.')}
+            </p>
+            <Link to="/events" style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
+              {t('イベント一覧へ', 'Back to events')}
+            </Link>
+          </div>
+        ) : status === 'full' ? (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p style={{ fontSize: 18, color: '#c0392b', marginBottom: 16 }}>{t('このセッションは満席になりました', 'This session is now full')}</p>
             <p style={{ fontSize: 14, color: 'var(--c-muted)', marginBottom: 24 }}>{t('別の回をお選びいただくか、次回のワークショップをお待ちください。', 'Please choose another time slot or wait for the next workshop.')}</p>

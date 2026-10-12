@@ -105,6 +105,13 @@ def create_reservation(body: ReserveBody):
     Raises:
         HTTPException(409): セッションが満席の場合
     """
+    from datetime import date as _date
+    event_row = supabase.table('events').select('start_date, end_date').eq('id', body.event_id).single().execute().data
+    if not event_row:
+        raise HTTPException(404, 'イベントが見つかりません')
+    effective_end = event_row.get('end_date') or event_row['start_date']
+    if effective_end < str(_date.today()):
+        raise HTTPException(400, 'このイベントの予約受付は終了しています')
     cancel_token = _generate_cancel_token()
     if body.session_id:
         # セッションロックを取得して満席チェックと挿入をアトミックに行う
