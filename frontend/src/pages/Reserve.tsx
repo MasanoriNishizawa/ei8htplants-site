@@ -51,6 +51,7 @@ export default function Reserve() {
   const [form, setForm] = useState<FormState>(BLANK)
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'full'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
   const t = useT()
   const { lang } = useLang()
 
@@ -96,9 +97,14 @@ export default function Reserve() {
   const needsSession = expectsSessions && !form.session_id
   const canSubmit = !needsDate && !needsSession
 
-  const submit = async (e: React.FormEvent) => {
+  const openConfirm = (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
+    setShowConfirm(true)
+  }
+
+  const doSubmit = async () => {
+    setShowConfirm(false)
     setStatus('loading')
     setErrorMsg('')
     try {
@@ -274,7 +280,7 @@ export default function Reserve() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px' }}>
+          <form onSubmit={openConfirm} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px' }}>
             <p style={sectionLabel}>{t('予約内容', 'Reservation')}</p>
 
             {isMultiDay && (
@@ -416,6 +422,42 @@ export default function Reserve() {
           </div>
         </div>
       </div>
+
+      {showConfirm && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 300 }}
+          onClick={() => setShowConfirm(false)}
+        >
+          <div
+            style={{ background: '#fff', width: '100%', maxWidth: 560, borderRadius: '12px 12px 0 0', padding: '28px 24px 40px', maxHeight: '80dvh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 16px' }}>
+              {t('予約内容の確認', 'Confirm Reservation')}
+            </p>
+            {confirmRows.map(({ label, value }) => (
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '9px 0', borderBottom: '1px solid #f0f0f5' }}>
+                <span style={{ fontSize: 12, color: 'var(--c-muted)' }}>{label}</span>
+                <span style={{ fontSize: 14, color: 'var(--c-ink)' }}>{value}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 24 }}>
+              <button
+                onClick={doSubmit}
+                style={{ width: '100%', padding: '15px', background: '#1e3272', color: '#fff', border: 'none', fontSize: 15, letterSpacing: '1.5px', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 4 }}
+              >
+                {t('この内容で予約する', 'Confirm & Reserve')}
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                style={{ width: '100%', padding: '13px', background: 'none', color: 'var(--c-muted)', border: '1px solid #dddde8', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', borderRadius: 4 }}
+              >
+                {t('戻る', 'Back')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
