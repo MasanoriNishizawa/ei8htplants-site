@@ -33,14 +33,18 @@ export default function EventFinance() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // イベント情報と既存の収支データを同時取得してフォームに反映する
+  // イベント情報・収支データ・予約一覧を同時取得してフォームに反映する
   useEffect(() => {
     if (!id) return
     Promise.all([
       api.events.get(id),
       api.events.getFinances(id),
-    ]).then(([ev, fin]) => {
+      api.reserve.list(id),
+    ]).then(([ev, fin, reservations]) => {
       setEvent(ev)
+      const reservationTotal = reservations
+        .filter((r) => r.status !== 'cancelled')
+        .reduce((sum, r) => sum + r.participants, 0)
       setForm({
         sales: fin.sales,
         booth_fee: fin.booth_fee,
@@ -48,7 +52,7 @@ export default function EventFinance() {
         gas_price: fin.gas_price,
         expressway_toll: fin.expressway_toll,
         accommodation: fin.accommodation,
-        ws_participants: fin.ws_participants,
+        ws_participants: ev.has_workshop && reservationTotal > 0 ? reservationTotal : fin.ws_participants,
         payment_flag: fin.payment_flag,
         ws_payment_done: fin.ws_payment_done ?? false,
         other_expenses: fin.other_expenses,

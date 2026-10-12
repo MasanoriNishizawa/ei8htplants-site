@@ -94,6 +94,12 @@ export default function AdminEventReservations() {
   const [activeSession, setActiveSession] = useState<string>('all')
   const [updating, setUpdating] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showWalkin, setShowWalkin] = useState(false)
+  const [walkinSession, setWalkinSession] = useState('')
+  const [walkinTime, setWalkinTime] = useState('')
+  const [walkinParticipants, setWalkinParticipants] = useState(1)
+  const [walkinDate, setWalkinDate] = useState('')
+  const [walkinSaving, setWalkinSaving] = useState(false)
 
   // イベント・セッション・予約を同時取得し、セッション ID から表示時間を解決して rows に付与する
   useEffect(() => {
@@ -145,6 +151,26 @@ export default function AdminEventReservations() {
     })
   }
 
+  const submitWalkin = async () => {
+    if (!id) return
+    setWalkinSaving(true)
+    try {
+      const body: Parameters<typeof api.reserve.addWalkin>[0] = { event_id: id, participants: walkinParticipants }
+      if (walkinSession) body.session_id = walkinSession
+      if (walkinTime) body.preferred_time = walkinTime
+      if (walkinDate) body.preferred_date = walkinDate
+      const created = await api.reserve.addWalkin(body)
+      const sessionMap = new Map(sessions.map((s) => [s.id, s.time_label]))
+      setRows((prev) => [...prev, { ...created, session_time: created.session_id ? sessionMap.get(created.session_id) : undefined }])
+      setShowWalkin(false)
+      setWalkinSession('')
+      setWalkinTime('')
+      setWalkinParticipants(1)
+      setWalkinDate('')
+    } catch { /* silent */ }
+    setWalkinSaving(false)
+  }
+
   const handlePrint = () => {
     if (!event) return
     const win = window.open('', '_blank')
@@ -190,6 +216,14 @@ export default function AdminEventReservations() {
           >
             {copied ? 'コピーしました' : '予約ページリンクをコピー'}
           </button>
+          {event?.has_workshop && (
+            <button
+              onClick={() => setShowWalkin(true)}
+              style={{ ...btnStyle, background: '#2d3a24', color: '#fff', border: 'none' }}
+            >
+              当日参加を追加
+            </button>
+          )}
           {rows.length > 0 && (
             <>
               <button onClick={handlePrint} style={btnStyle}>印刷</button>
@@ -295,6 +329,85 @@ export default function AdminEventReservations() {
           {filtered.length === 0 && (
             <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>
           )}
+        </div>
+      )}
+
+      {showWalkin && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+          onClick={() => setShowWalkin(false)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: 8, padding: '28px 32px', width: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 500 }}>当日参加を追加</h3>
+
+            {event?.end_date && event.end_date !== event.start_date && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</label>
+                <input
+                  type="date"
+                  value={walkinDate}
+                  min={event.start_date}
+                  max={event.end_date}
+                  onChange={(e) => setWalkinDate(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>時間枠</label>
+              {sessions.length > 0 ? (
+                <select
+                  value={walkinSession}
+                  onChange={(e) => setWalkinSession(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}
+                >
+                  <option value="">-- 選択 --</option>
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>{s.time_label}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="例: 10:00〜11:30"
+                  value={walkinTime}
+                  onChange={(e) => setWalkinTime(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              )}
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加人数</label>
+              <input
+                type="number"
+                min={1}
+                value={walkinParticipants}
+                onChange={(e) => setWalkinParticipants(Math.max(1, parseInt(e.target.value) || 1))}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', textAlign: 'right', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowWalkin(false)}
+                style={{ padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4, background: '#fff', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={submitWalkin}
+                disabled={walkinSaving || (sessions.length > 0 && !walkinSession)}
+                style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', opacity: (sessions.length > 0 && !walkinSession) ? 0.5 : 1 }}
+              >
+                {walkinSaving ? '登録中...' : '登録'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

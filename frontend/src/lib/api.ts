@@ -161,6 +161,8 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
       }),
+    addWalkin: (body: { event_id: string; participants: number; session_id?: string; preferred_time?: string; preferred_date?: string }) =>
+      authRequest<Reservation>('/reserve/walkin', { method: 'POST', body: JSON.stringify(body) }),
   },
   products: {
     list: (all = false) => request<Product[]>(`/products${all ? '?all=true' : ''}`),

@@ -54,6 +54,14 @@ class CancelBody(BaseModel):
     token: str
 
 
+class WalkInBody(BaseModel):
+    event_id: str
+    participants: int = 1
+    session_id: Optional[str] = None
+    preferred_time: Optional[str] = None
+    preferred_date: Optional[str] = None
+
+
 # 8桁の数字でキャンセルトークンを生成（メールURLに埋め込む）
 def _generate_cancel_token() -> str:
     """8桁のランダム数字列からなるキャンセルトークンを生成して返す。"""
@@ -522,6 +530,32 @@ async def resend_webhook(request: Request):
             except Exception as e:
                 print(f'[webhook] failed to set email_failed: {e}')
     return {'ok': True}
+
+
+# 管理者が当日参加を登録する。メール送信なし、即時 confirmed
+@router.post('/walkin', dependencies=[Depends(require_auth)])
+def add_walkin(body: WalkInBody):
+    """管理者が当日参加を登録する。確認メールは送らず、ステータスは即時 confirmed。"""
+    import time as _time
+    dummy_email = f'walkin-{int(_time.time())}@nomail.invalid'
+    data = {
+        'event_id': body.event_id,
+        'name': '当日参加',
+        'email': dummy_email,
+        'participants': body.participants,
+        'session_id': body.session_id,
+        'preferred_time': body.preferred_time,
+        'preferred_date': body.preferred_date,
+        'status': 'confirmed',
+        'cancel_token': _generate_cancel_token(),
+    }
+    row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
+    if body.session_id:
+        try:
+            _sync_reserved_count(body.session_id)
+        except Exception as e:
+            print(f'[walkin] sync failed: {e}')
+    return row
 
 
 # 予約一覧を取得する（管理者のみ）。event_id で絞り込み可能
