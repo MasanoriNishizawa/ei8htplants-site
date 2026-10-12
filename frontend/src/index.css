@@ -85,6 +85,14 @@ body {
   }
 }
 
+/* ---- 管理画面 予約一覧 カード/テーブル切り替え ---- */
+.reservation-cards { display: none; flex-direction: column; gap: 8px; }
+.reservation-table { display: block; }
+@media (max-width: 767px) {
+  .reservation-cards { display: flex; }
+  .reservation-table { display: none; }
+}
+
 /* ---- EventPreview 横並びレイアウト（Home用） ---- */
 .ep-horizontal {
   flex-direction: column !important;
