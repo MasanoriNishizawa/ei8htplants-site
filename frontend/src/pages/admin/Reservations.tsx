@@ -294,10 +294,6 @@ export default function AdminReservations() {
     fetchWalkinSessions(eventId, walkinDate)
   }
 
-  const onWalkinDateChange = (date: string) => {
-    setWalkinDate(date)
-    fetchWalkinSessions(walkinEventId, date)
-  }
 
   const submitWalkin = async () => {
     if (!walkinEventId) return
@@ -367,7 +363,7 @@ export default function AdminReservations() {
               ))}
             </select>
           )}
-          {(!isPast || eventFilter !== 'all') && (
+          {!isPast && (
             <button
               onClick={openWalkin}
               style={{ padding: '8px 18px', border: 'none', borderRadius: 4, fontSize: 13, background: '#2d3a24', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -457,7 +453,7 @@ export default function AdminReservations() {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 14px' }}><a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a></td>
+                    <td style={{ padding: '12px 14px' }}>{r.email.endsWith('.invalid') ? '-' : <a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a>}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>{r.preferred_date ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: (r.session_time ?? r.preferred_time) ? '#1c2417' : '#ccc' }}>{r.session_time ?? r.preferred_time ?? '-'}</td>
@@ -510,7 +506,7 @@ export default function AdminReservations() {
             {[
               ...(eventFilter === 'all' ? [{ label: 'イベント', value: eventsMap.get(selectedRow.event_id) ?? '-' }] : []),
               { label: '受付日', value: new Date(selectedRow.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }) },
-              { label: 'メール', value: <a href={`mailto:${selectedRow.email}`} style={{ color: '#4a6741' }}>{selectedRow.email}</a> },
+              { label: 'メール', value: selectedRow.email.endsWith('.invalid') ? '-' : <a href={`mailto:${selectedRow.email}`} style={{ color: '#4a6741' }}>{selectedRow.email}</a> },
               ...(selectedRow.phone ? [{ label: '電話', value: selectedRow.phone }] : []),
               ...(selectedRow.preferred_date ? [{ label: '希望日', value: selectedRow.preferred_date }] : []),
               ...((selectedRow.session_time ?? selectedRow.preferred_time) ? [{ label: '予約時間', value: selectedRow.session_time ?? selectedRow.preferred_time }] : []),
@@ -572,9 +568,9 @@ export default function AdminReservations() {
               {isMultiDay && (
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</label>
-                  <input type="date" value={walkinDate} min={ev!.start_date} max={ev!.end_date!}
-                    onChange={(e) => onWalkinDateChange(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  <div style={{ padding: '8px 12px', border: '1px solid #f0f0f5', borderRadius: 4, fontSize: 14, background: '#fafafa', color: 'var(--c-ink)' }}>
+                    {walkinDate}
+                  </div>
                 </div>
               )}
 

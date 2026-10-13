@@ -221,7 +221,11 @@ export default function AdminEventReservations() {
           </button>
           {event?.has_workshop && (
             <button
-              onClick={() => setShowWalkin(true)}
+              onClick={() => {
+              const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
+              setWalkinDate(today)
+              setShowWalkin(true)
+            }}
               style={{ ...btnStyle, background: '#2d3a24', color: '#fff', border: 'none' }}
             >
               当日参加を追加
@@ -323,7 +327,7 @@ export default function AdminEventReservations() {
                     </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a>
+                      {r.email.endsWith('.invalid') ? '-' : <a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a>}
                     </td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
                     <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>
@@ -381,7 +385,7 @@ export default function AdminEventReservations() {
             </div>
             {[
               { label: '受付日', value: new Date(selectedRow.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }) },
-              { label: 'メール', value: <a href={`mailto:${selectedRow.email}`} style={{ color: '#4a6741' }}>{selectedRow.email}</a> },
+              { label: 'メール', value: selectedRow.email.endsWith('.invalid') ? '-' : <a href={`mailto:${selectedRow.email}`} style={{ color: '#4a6741' }}>{selectedRow.email}</a> },
               ...(selectedRow.phone ? [{ label: '電話', value: selectedRow.phone }] : []),
               ...(selectedRow.preferred_date ? [{ label: '予約日', value: selectedRow.preferred_date }] : []),
               ...((selectedRow.session_time ?? selectedRow.preferred_time) ? [{ label: '予約時間', value: selectedRow.session_time ?? selectedRow.preferred_time }] : []),
@@ -426,14 +430,9 @@ export default function AdminEventReservations() {
             {event?.end_date && event.end_date !== event.start_date && (
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</label>
-                <input
-                  type="date"
-                  value={walkinDate}
-                  min={event.start_date}
-                  max={event.end_date}
-                  onChange={(e) => setWalkinDate(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-                />
+                <div style={{ padding: '8px 12px', border: '1px solid #f0f0f5', borderRadius: 4, fontSize: 14, background: '#fafafa', color: 'var(--c-ink)' }}>
+                  {walkinDate}
+                </div>
               </div>
             )}
 
