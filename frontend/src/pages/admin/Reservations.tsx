@@ -187,6 +187,7 @@ export default function AdminReservations() {
   const [sessionsData, setSessionsData] = useState<Map<string, WsSession>>(new Map())
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [workshopEvents, setWorkshopEvents] = useState<Event[]>([])
   const [selectedRow, setSelectedRow] = useState<ReservationWithTime | null>(null)
   const [showWalkin, setShowWalkin] = useState(false)
   const [walkinTime, setWalkinTime] = useState('')
@@ -207,6 +208,7 @@ export default function AdminReservations() {
       const edMap = new Map<string, Event>(allEvents.map((e) => [e.id, e]))
       setEventsMap(eMap)
       setEventsDataMap(edMap)
+      setWorkshopEvents(upcoming.filter((e) => e.has_workshop))
 
       // session_id を持つ予約が存在するイベントのセッション情報を非同期で一括取得する
       const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
@@ -250,8 +252,7 @@ export default function AdminReservations() {
     setWalkinSaving(false)
   }
 
-  const eventIds = [...new Set(rows.map((r) => r.event_id))]
-  const filtered = (eventFilter === 'all' ? rows : rows.filter((r) => r.event_id === eventFilter))
+  const filtered =(eventFilter === 'all' ? rows : rows.filter((r) => r.event_id === eventFilter))
     .slice()
     .sort((a, b) => {
       const dateA = a.preferred_date ?? ''
@@ -270,15 +271,15 @@ export default function AdminReservations() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>WS予約一覧</h2>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          {eventIds.length > 1 && (
+          {workshopEvents.length > 0 && (
             <select
               value={eventFilter}
               onChange={(e) => setEventFilter(e.target.value)}
               style={{ padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--c-body)' }}
             >
               <option value="all">すべてのイベント</option>
-              {eventIds.map((id) => (
-                <option key={id} value={id}>{eventsMap.get(id) ?? id}</option>
+              {workshopEvents.map((ev) => (
+                <option key={ev.id} value={ev.id}>{ev.name}</option>
               ))}
             </select>
           )}
