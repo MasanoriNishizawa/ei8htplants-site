@@ -192,6 +192,7 @@ export default function AdminReservations() {
   const [isPast, setIsPast] = useState(searchParams.get('past') === '1')
   const [selectedRow, setSelectedRow] = useState<ReservationWithTime | null>(null)
   const [showWalkin, setShowWalkin] = useState(false)
+  const [walkinEventId, setWalkinEventId] = useState('')
   const [walkinSessions, setWalkinSessions] = useState<WsSession[]>([])
   const [walkinSessionId, setWalkinSessionId] = useState('')
   const [walkinParticipants, setWalkinParticipants] = useState(1)
@@ -212,8 +213,17 @@ export default function AdminReservations() {
       const edMap = new Map<string, Event>(allEvents.map((e) => [e.id, e]))
       setEventsMap(eMap)
       setEventsDataMap(edMap)
-      setUpcomingWorkshopEvents(upcoming.filter((e) => e.has_workshop))
-      setPastWorkshopEvents(past.filter((e) => e.has_workshop))
+      const upcomingWs = upcoming.filter((e) => e.has_workshop)
+      const pastWs = past.filter((e) => e.has_workshop)
+      setUpcomingWorkshopEvents(upcomingWs)
+      setPastWorkshopEvents(pastWs)
+
+      // URL に event_id 指定がなければ、本日開催のWSイベントで自動絞り込み
+      if (!searchParams.get('event_id')) {
+        const today = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        const todayEvent = upcomingWs.find((e) => e.start_date <= today && (e.end_date ?? e.start_date) >= today)
+        if (todayEvent) setEventFilter(todayEvent.id)
+      }
 
       // session_id を持つ予約が存在するイベントのセッション情報を非同期で一括取得する
       const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
@@ -246,45 +256,61 @@ export default function AdminReservations() {
     return jst.toISOString().slice(0, 10)
   }
 
+  const fetchWalkinSessions = (eventId: string, date: string) => {
+    setWalkinSessions([])
+    setWalkinSessionId('')
+    setWalkinParticipants(1)
+    if (!eventId) return
+    setWalkinSessionsLoading(true)
+    api.events.getSessions(eventId, date)
+      .then(setWalkinSessions)
+      .finally(() => setWalkinSessionsLoading(false))
+  }
+
   const openWalkin = () => {
     const today = todayJST()
+    let autoEventId = ''
+    if (isPast && eventFilter !== 'all') {
+      // 過去タブ: 絞り込み済みのイベントを使用
+      autoEventId = eventFilter
+    } else {
+      // 今後タブ: 本日開催のWSイベントを自動特定
+      const todayEvents = upcomingWorkshopEvents.filter(
+        (e) => e.start_date <= today && (e.end_date ?? e.start_date) >= today
+      )
+      autoEventId = todayEvents.length === 1 ? todayEvents[0].id : ''
+    }
     setWalkinDate(today)
+    setWalkinEventId(autoEventId)
     setWalkinSessionId('')
     setWalkinParticipants(1)
     setWalkinSessions([])
     setShowWalkin(true)
-    if (eventFilter && eventFilter !== 'all') {
-      setWalkinSessionsLoading(true)
-      api.events.getSessions(eventFilter, today)
-        .then(setWalkinSessions)
-        .finally(() => setWalkinSessionsLoading(false))
-    }
+    if (autoEventId) fetchWalkinSessions(autoEventId, today)
+  }
+
+  const onWalkinEventChange = (eventId: string) => {
+    setWalkinEventId(eventId)
+    fetchWalkinSessions(eventId, walkinDate)
   }
 
   const onWalkinDateChange = (date: string) => {
     setWalkinDate(date)
-    setWalkinSessionId('')
-    setWalkinParticipants(1)
-    setWalkinSessions([])
-    if (eventFilter && eventFilter !== 'all') {
-      setWalkinSessionsLoading(true)
-      api.events.getSessions(eventFilter, date)
-        .then(setWalkinSessions)
-        .finally(() => setWalkinSessionsLoading(false))
-    }
+    fetchWalkinSessions(walkinEventId, date)
   }
 
   const submitWalkin = async () => {
-    if (!eventFilter || eventFilter === 'all') return
+    if (!walkinEventId) return
     setWalkinSaving(true)
     try {
-      const body: Parameters<typeof api.reserve.addWalkin>[0] = { event_id: eventFilter, participants: walkinParticipants }
+      const body: Parameters<typeof api.reserve.addWalkin>[0] = { event_id: walkinEventId, participants: walkinParticipants }
       if (walkinSessionId) body.session_id = walkinSessionId
       if (walkinDate) body.preferred_date = walkinDate
       const session = walkinSessions.find((s) => s.id === walkinSessionId)
       const created = await api.reserve.addWalkin(body)
       setRows((prev) => [...prev, { ...created, session_time: session?.time_label }])
       setShowWalkin(false)
+      setWalkinEventId('')
       setWalkinSessionId('')
       setWalkinParticipants(1)
       setWalkinDate('')
@@ -341,7 +367,7 @@ export default function AdminReservations() {
               ))}
             </select>
           )}
-          {!isPast && eventFilter !== 'all' && eventsDataMap.get(eventFilter)?.has_workshop && (
+          {(!isPast || eventFilter !== 'all') && (
             <button
               onClick={openWalkin}
               style={{ padding: '8px 18px', border: 'none', borderRadius: 4, fontSize: 13, background: '#2d3a24', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -515,12 +541,12 @@ export default function AdminReservations() {
       )}
 
       {/* 当日参加モーダル */}
-      {showWalkin && eventFilter !== 'all' && (() => {
-        const ev = eventsDataMap.get(eventFilter)
+      {showWalkin && (() => {
+        const ev = walkinEventId ? eventsDataMap.get(walkinEventId) : undefined
         const isMultiDay = ev?.end_date && ev.end_date !== ev.start_date
         const selectedSession = walkinSessions.find((s) => s.id === walkinSessionId) ?? null
         const remaining = selectedSession ? selectedSession.max_participants - selectedSession.reserved_count : 0
-        const canSubmit = !walkinSessionsLoading && walkinSessions.length > 0 ? !!walkinSessionId : true
+        const canSubmit = !!walkinEventId && (!walkinSessionsLoading && walkinSessions.length > 0 ? !!walkinSessionId : true)
         return (
           <div
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
@@ -531,6 +557,17 @@ export default function AdminReservations() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 500 }}>当日参加を追加</h3>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>イベント</label>
+                <select value={walkinEventId} onChange={(e) => onWalkinEventChange(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
+                  <option value="">-- 選択 --</option>
+                  {(isPast ? pastWorkshopEvents : upcomingWorkshopEvents).map((e) => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+              </div>
 
               {isMultiDay && (
                 <div style={{ marginBottom: 16 }}>
