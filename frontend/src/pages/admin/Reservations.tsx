@@ -360,7 +360,7 @@ export default function AdminReservations() {
               style={{ padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--c-body)' }}
             >
               <option value="all">すべてのイベント</option>
-              {workshopEvents.map((ev) => (
+              {[...workshopEvents].reverse().map((ev) => (
                 <option key={ev.id} value={ev.id}>{ev.name}</option>
               ))}
             </select>
