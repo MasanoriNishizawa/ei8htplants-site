@@ -317,8 +317,10 @@ export default function AdminReservations() {
 
   const workshopEvents = isPast ? pastWorkshopEvents : upcomingWorkshopEvents
   const wsEventIds = new Set(workshopEvents.map((e) => e.id))
-  const tabRows = rows.filter((r) => wsEventIds.has(r.event_id))
-  const filtered = (eventFilter === 'all' ? tabRows : tabRows.filter((r) => r.event_id === eventFilter))
+  // 特定イベント選択時は event_id で直接絞り込み、all 時のみ wsEventIds でタブのWS予約に限定する
+  const filtered = (eventFilter !== 'all'
+    ? rows.filter((r) => r.event_id === eventFilter)
+    : rows.filter((r) => wsEventIds.has(r.event_id)))
     .slice()
     .sort((a, b) => {
       const dateA = a.preferred_date ?? ''

@@ -592,6 +592,7 @@ export function fiscalYear(dateStr: string): number {
 export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   transport: number
   wsSales: number
+  wsCost: number
   totalExpense: number
   net: number
   salesShare: number
@@ -602,15 +603,17 @@ export function computeFinances(fin: EventFinances, hasWorkshop: boolean): {
   const transport = Math.round((fin.distance * 2 / 10) * fin.gas_price)
   const totalExpense = fin.booth_fee + transport + fin.expressway_toll + fin.accommodation + fin.other_expenses
   const wsSales = hasWorkshop ? fin.ws_participants * 1000 : 0
-  const net = fin.sales - totalExpense
+  // WS資材費 = 参加人数 × 700円
+  const wsCost = hasWorkshop ? fin.ws_participants * 700 : 0
+  const net = fin.sales - totalExpense - wsCost
 
   if (fin.payment_flag) {
     // 支払フラグあり: (売上 - WS売上 - 支出) × 20%。マイナスの場合もそのまま反映する
     const salesShare = Math.round((fin.sales - wsSales - totalExpense) * 0.2)
     const wsShare = Math.round(wsSales * 0.7)
     const paymentAmount = salesShare + wsShare
-    return { transport, wsSales, totalExpense, net: net - paymentAmount, salesShare, wsShare, paymentAmount }
+    return { transport, wsSales, wsCost, totalExpense, net: net - paymentAmount, salesShare, wsShare, paymentAmount }
   }
 
-  return { transport, wsSales, totalExpense, net, salesShare: 0, wsShare: 0, paymentAmount: 0 }
+  return { transport, wsSales, wsCost, totalExpense, net, salesShare: 0, wsShare: 0, paymentAmount: 0 }
 }

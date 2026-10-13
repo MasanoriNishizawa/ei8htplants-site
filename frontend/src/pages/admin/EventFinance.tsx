@@ -68,7 +68,7 @@ export default function EventFinance() {
 
   // 入力値をもとに移動費・WS売上・収支・手伝い支払い額をリアルタイムで計算する
   const computed = computeFinances({ event_id: id ?? '', ...form }, event?.has_workshop ?? false)
-  const { transport, wsSales, totalExpense, net, salesShare, wsShare, paymentAmount } = computed
+  const { transport, wsSales, wsCost, totalExpense, net, salesShare, wsShare, paymentAmount } = computed
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -211,9 +211,14 @@ export default function EventFinance() {
           </div>
           <div style={{ height: 2 }} />
         </SectionBox>
-        <div style={{ textAlign: 'right', paddingRight: 4, fontSize: 13, color: '#c0392b', marginBottom: 20, marginTop: 4 }}>
+        <div style={{ textAlign: 'right', paddingRight: 4, fontSize: 13, color: '#c0392b', marginBottom: 8, marginTop: 4 }}>
           支出合計: {fmt(totalExpense)} 円
         </div>
+        {event?.has_workshop && wsCost > 0 && (
+          <div style={{ textAlign: 'right', paddingRight: 4, fontSize: 13, color: '#c0392b', marginBottom: 20 }}>
+            WS資材費 ({fmt(form.ws_participants)}人 × 700円): {fmt(wsCost)} 円
+          </div>
+        )}
 
         {/* 収支 */}
         <div style={{
@@ -229,8 +234,8 @@ export default function EventFinance() {
         </div>
         <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--c-muted)', marginBottom: form.payment_flag ? 20 : 24 }}>
           {form.payment_flag
-            ? `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円 − 支払い ${fmt(paymentAmount)} 円`
-            : `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円`
+            ? `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円 − WS資材 ${fmt(wsCost)} 円 − 支払い ${fmt(paymentAmount)} 円`
+            : `売上 ${fmt(form.sales)} 円 − 支出 ${fmt(totalExpense)} 円 − WS資材 ${fmt(wsCost)} 円`
           }
         </div>
 
