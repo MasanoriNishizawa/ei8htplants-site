@@ -187,7 +187,9 @@ export default function AdminReservations() {
   const [sessionsData, setSessionsData] = useState<Map<string, WsSession>>(new Map())
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
-  const [workshopEvents, setWorkshopEvents] = useState<Event[]>([])
+  const [upcomingWorkshopEvents, setUpcomingWorkshopEvents] = useState<Event[]>([])
+  const [pastWorkshopEvents, setPastWorkshopEvents] = useState<Event[]>([])
+  const [isPast, setIsPast] = useState(searchParams.get('past') === '1')
   const [selectedRow, setSelectedRow] = useState<ReservationWithTime | null>(null)
   const [showWalkin, setShowWalkin] = useState(false)
   const [walkinSessions, setWalkinSessions] = useState<WsSession[]>([])
@@ -210,7 +212,8 @@ export default function AdminReservations() {
       const edMap = new Map<string, Event>(allEvents.map((e) => [e.id, e]))
       setEventsMap(eMap)
       setEventsDataMap(edMap)
-      setWorkshopEvents(upcoming.filter((e) => e.has_workshop))
+      setUpcomingWorkshopEvents(upcoming.filter((e) => e.has_workshop))
+      setPastWorkshopEvents(past.filter((e) => e.has_workshop))
 
       // session_id を持つ予約が存在するイベントのセッション情報を非同期で一括取得する
       const eventIds = [...new Set(reservations.filter((r) => r.session_id).map((r) => r.event_id))]
@@ -290,7 +293,10 @@ export default function AdminReservations() {
     setWalkinSaving(false)
   }
 
-  const filtered =(eventFilter === 'all' ? rows : rows.filter((r) => r.event_id === eventFilter))
+  const workshopEvents = isPast ? pastWorkshopEvents : upcomingWorkshopEvents
+  const wsEventIds = new Set(workshopEvents.map((e) => e.id))
+  const tabRows = rows.filter((r) => wsEventIds.has(r.event_id))
+  const filtered = (eventFilter === 'all' ? tabRows : tabRows.filter((r) => r.event_id === eventFilter))
     .slice()
     .sort((a, b) => {
       const dateA = a.preferred_date ?? ''
@@ -304,8 +310,22 @@ export default function AdminReservations() {
 
   const headers = ['受付日', 'お名前', 'メール', '電話', '希望日', '予約時間', '人数', '持込', '備考', 'ステータス']
 
+  const switchTab = (past: boolean) => {
+    setIsPast(past)
+    setEventFilter('all')
+    setSelectedRow(null)
+  }
+
   return (
     <div>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #dddde8' }}>
+        {[{ label: '今後の開催', past: false }, { label: '過去の開催', past: true }].map(({ label, past }) => (
+          <button key={label} onClick={() => switchTab(past)}
+            style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: `2px solid ${isPast === past ? '#1c2417' : 'transparent'}`, marginBottom: -2, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', color: isPast === past ? '#1c2417' : 'var(--c-muted)', fontWeight: isPast === past ? 500 : 400 }}>
+            {label}
+          </button>
+        ))}
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>WS予約一覧</h2>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -321,7 +341,7 @@ export default function AdminReservations() {
               ))}
             </select>
           )}
-          {eventFilter !== 'all' && eventsDataMap.get(eventFilter)?.has_workshop && (
+          {!isPast && eventFilter !== 'all' && eventsDataMap.get(eventFilter)?.has_workshop && (
             <button
               onClick={openWalkin}
               style={{ padding: '8px 18px', border: 'none', borderRadius: 4, fontSize: 13, background: '#2d3a24', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
