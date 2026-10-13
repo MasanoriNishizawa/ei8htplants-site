@@ -100,7 +100,7 @@ export default function AdminLayout() {
   )
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* モバイルオーバーレイ */}
       {menuOpen && (
         <div
@@ -162,7 +162,7 @@ export default function AdminLayout() {
       {/* メインコンテンツ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* モバイルヘッダー */}
-        <div className="admin-mobile-header" style={{ display: 'none', padding: '12px 16px', background: '#fff', borderBottom: '1px solid #dddde8', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 100 }}>
+        <div className="admin-mobile-header" style={{ display: 'none', padding: '12px 16px', background: '#fff', borderBottom: '1px solid #dddde8', alignItems: 'center', gap: 12, flexShrink: 0, zIndex: 100 }}>
           <button
             onClick={() => setMenuOpen(true)}
             style={{ background: 'none', border: '1px solid #dddde8', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', fontSize: 16, lineHeight: 1, color: 'var(--c-body)' }}
