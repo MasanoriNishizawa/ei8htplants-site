@@ -187,6 +187,12 @@ export default function AdminReservations() {
   const [sessionsData, setSessionsData] = useState<Map<string, WsSession>>(new Map())
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [selectedRow, setSelectedRow] = useState<ReservationWithTime | null>(null)
+  const [showWalkin, setShowWalkin] = useState(false)
+  const [walkinTime, setWalkinTime] = useState('')
+  const [walkinParticipants, setWalkinParticipants] = useState(1)
+  const [walkinDate, setWalkinDate] = useState('')
+  const [walkinSaving, setWalkinSaving] = useState(false)
   // URLクエリパラメータ event_id が指定されている場合は初期フィルタとして使用する
   const [eventFilter, setEventFilter] = useState<string>(searchParams.get('event_id') ?? 'all')
 
@@ -219,10 +225,29 @@ export default function AdminReservations() {
     try {
       const updated = await api.reserve.updateStatus(id, status)
       setRows((prev) => prev.map((r) => r.id === id ? { ...r, ...updated } : r))
+      setSelectedRow((prev) => prev?.id === id ? { ...prev, ...updated } : prev)
     } catch {
       setRows((prev) => prev.map((r) => r.id === id ? { ...r, status } : r))
+      setSelectedRow((prev) => prev?.id === id ? { ...prev, status } : prev)
     }
     setUpdating(null)
+  }
+
+  const submitWalkin = async () => {
+    if (!eventFilter || eventFilter === 'all') return
+    setWalkinSaving(true)
+    try {
+      const body: Parameters<typeof api.reserve.addWalkin>[0] = { event_id: eventFilter, participants: walkinParticipants }
+      if (walkinTime) body.preferred_time = walkinTime
+      if (walkinDate) body.preferred_date = walkinDate
+      const created = await api.reserve.addWalkin(body)
+      setRows((prev) => [...prev, { ...created, session_time: undefined }])
+      setShowWalkin(false)
+      setWalkinTime('')
+      setWalkinParticipants(1)
+      setWalkinDate('')
+    } catch { /* silent */ }
+    setWalkinSaving(false)
   }
 
   const eventIds = [...new Set(rows.map((r) => r.event_id))]
@@ -257,6 +282,14 @@ export default function AdminReservations() {
               ))}
             </select>
           )}
+          {eventFilter !== 'all' && eventsDataMap.get(eventFilter)?.has_workshop && (
+            <button
+              onClick={() => setShowWalkin(true)}
+              style={{ padding: '8px 18px', border: 'none', borderRadius: 4, fontSize: 13, background: '#2d3a24', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              当日参加を追加
+            </button>
+          )}
           {filtered.length > 0 && (
             <button
               onClick={() => printReservations(filtered, selectedEventName, sessionsData, eventFilter === 'all' ? null : (eventsDataMap.get(eventFilter) ?? null))}
@@ -275,7 +308,39 @@ export default function AdminReservations() {
       )}
 
       {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
-        <div style={{ overflowX: 'auto' }}>
+        <>
+        {/* モバイル用カードリスト */}
+        <div className="reservation-cards">
+          {filtered.map((r) => {
+            const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
+            return (
+              <div
+                key={r.id}
+                onClick={() => setSelectedRow(r)}
+                style={{ background: '#fff', border: '1px solid #e8e8f0', borderRadius: 6, padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 500, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                    {r.email_failed && <span style={{ display: 'inline-block', padding: '1px 6px', background: '#fff0f0', border: '1px solid #f0b0b0', borderRadius: 3, fontSize: 10, color: '#c0392b', flexShrink: 0 }}>メール未送信</span>}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--c-muted)' }}>
+                    {eventFilter === 'all' && <span>{eventsMap.get(r.event_id) ?? ''} · </span>}
+                    {[r.session_time ?? r.preferred_time, r.preferred_date].filter(Boolean).join(' / ') || '時間未定'}
+                    {' · '}{r.participants}名
+                  </div>
+                </div>
+                <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color, flexShrink: 0 }}>
+                  {STATUS_LABELS[r.status] ?? r.status}
+                </span>
+              </div>
+            )
+          })}
+          {filtered.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>}
+        </div>
+
+        {/* PC用テーブル */}
+        <div className="reservation-table" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
@@ -339,6 +404,102 @@ export default function AdminReservations() {
             </tbody>
           </table>
           {filtered.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>}
+        </div>
+        </>
+      )}
+
+      {/* スライドアップ詳細 */}
+      {selectedRow && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}
+          onClick={() => setSelectedRow(null)}
+        >
+          <div
+            style={{ background: '#fff', width: '100%', maxWidth: 560, borderRadius: '12px 12px 0 0', padding: '24px 20px 40px', maxHeight: '85dvh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontWeight: 500, fontSize: 16 }}>{selectedRow.name}</span>
+              <button onClick={() => setSelectedRow(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--c-muted)', lineHeight: 1, padding: '4px 8px' }}>×</button>
+            </div>
+            {[
+              ...(eventFilter === 'all' ? [{ label: 'イベント', value: eventsMap.get(selectedRow.event_id) ?? '-' }] : []),
+              { label: '受付日', value: new Date(selectedRow.created_at).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }) },
+              { label: 'メール', value: <a href={`mailto:${selectedRow.email}`} style={{ color: '#4a6741' }}>{selectedRow.email}</a> },
+              ...(selectedRow.phone ? [{ label: '電話', value: selectedRow.phone }] : []),
+              ...(selectedRow.preferred_date ? [{ label: '希望日', value: selectedRow.preferred_date }] : []),
+              ...((selectedRow.session_time ?? selectedRow.preferred_time) ? [{ label: '予約時間', value: selectedRow.session_time ?? selectedRow.preferred_time }] : []),
+              { label: '人数', value: `${selectedRow.participants}名` },
+              { label: '持込', value: [selectedRow.bring_plant && '植物', selectedRow.bring_pot && '鉢'].filter(Boolean).join('・') || 'なし' },
+              ...(selectedRow.note ? [{ label: '備考', value: selectedRow.note }] : []),
+            ].map(({ label, value }) => (
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 8, padding: '8px 0', borderBottom: '1px solid #f0f0f5', fontSize: 14 }}>
+                <span style={{ color: 'var(--c-muted)', fontSize: 12 }}>{label}</span>
+                <span style={{ color: 'var(--c-ink)' }}>{value}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 20 }}>
+              <span style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 8 }}>ステータス</span>
+              <select
+                value={selectedRow.status}
+                disabled={updating === selectedRow.id}
+                onChange={(e) => updateStatus(selectedRow.id, e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', background: '#fff', cursor: 'pointer' }}
+              >
+                {STATUS_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 当日参加モーダル */}
+      {showWalkin && eventFilter !== 'all' && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+          onClick={() => setShowWalkin(false)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: 8, padding: '28px 32px', width: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 500 }}>当日参加を追加</h3>
+            {(() => {
+              const ev = eventsDataMap.get(eventFilter)
+              return ev?.end_date && ev.end_date !== ev.start_date ? (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</label>
+                  <input type="date" value={walkinDate} min={ev.start_date} max={ev.end_date}
+                    onChange={(e) => setWalkinDate(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+              ) : null
+            })()}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>時間枠</label>
+              <input type="text" placeholder="例: 14:00〜15:00" value={walkinTime}
+                onChange={(e) => setWalkinTime(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加人数</label>
+              <input type="number" min={1} value={walkinParticipants}
+                onChange={(e) => setWalkinParticipants(Math.max(1, parseInt(e.target.value) || 1))}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', textAlign: 'right', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowWalkin(false)}
+                style={{ padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4, background: '#fff', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                キャンセル
+              </button>
+              <button onClick={submitWalkin} disabled={walkinSaving}
+                style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                {walkinSaving ? '登録中...' : '登録'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
