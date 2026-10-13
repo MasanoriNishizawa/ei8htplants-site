@@ -190,10 +190,12 @@ export default function AdminReservations() {
   const [workshopEvents, setWorkshopEvents] = useState<Event[]>([])
   const [selectedRow, setSelectedRow] = useState<ReservationWithTime | null>(null)
   const [showWalkin, setShowWalkin] = useState(false)
-  const [walkinTime, setWalkinTime] = useState('')
+  const [walkinSessions, setWalkinSessions] = useState<WsSession[]>([])
+  const [walkinSessionId, setWalkinSessionId] = useState('')
   const [walkinParticipants, setWalkinParticipants] = useState(1)
   const [walkinDate, setWalkinDate] = useState('')
   const [walkinSaving, setWalkinSaving] = useState(false)
+  const [walkinSessionsLoading, setWalkinSessionsLoading] = useState(false)
   // URLクエリパラメータ event_id が指定されている場合は初期フィルタとして使用する
   const [eventFilter, setEventFilter] = useState<string>(searchParams.get('event_id') ?? 'all')
 
@@ -235,19 +237,55 @@ export default function AdminReservations() {
     setUpdating(null)
   }
 
+  const todayJST = () => {
+    const now = new Date()
+    const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+    return jst.toISOString().slice(0, 10)
+  }
+
+  const openWalkin = () => {
+    const today = todayJST()
+    setWalkinDate(today)
+    setWalkinSessionId('')
+    setWalkinParticipants(1)
+    setWalkinSessions([])
+    setShowWalkin(true)
+    if (eventFilter && eventFilter !== 'all') {
+      setWalkinSessionsLoading(true)
+      api.events.getSessions(eventFilter, today)
+        .then(setWalkinSessions)
+        .finally(() => setWalkinSessionsLoading(false))
+    }
+  }
+
+  const onWalkinDateChange = (date: string) => {
+    setWalkinDate(date)
+    setWalkinSessionId('')
+    setWalkinParticipants(1)
+    setWalkinSessions([])
+    if (eventFilter && eventFilter !== 'all') {
+      setWalkinSessionsLoading(true)
+      api.events.getSessions(eventFilter, date)
+        .then(setWalkinSessions)
+        .finally(() => setWalkinSessionsLoading(false))
+    }
+  }
+
   const submitWalkin = async () => {
     if (!eventFilter || eventFilter === 'all') return
     setWalkinSaving(true)
     try {
       const body: Parameters<typeof api.reserve.addWalkin>[0] = { event_id: eventFilter, participants: walkinParticipants }
-      if (walkinTime) body.preferred_time = walkinTime
+      if (walkinSessionId) body.session_id = walkinSessionId
       if (walkinDate) body.preferred_date = walkinDate
+      const session = walkinSessions.find((s) => s.id === walkinSessionId)
       const created = await api.reserve.addWalkin(body)
-      setRows((prev) => [...prev, { ...created, session_time: undefined }])
+      setRows((prev) => [...prev, { ...created, session_time: session?.time_label }])
       setShowWalkin(false)
-      setWalkinTime('')
+      setWalkinSessionId('')
       setWalkinParticipants(1)
       setWalkinDate('')
+      setWalkinSessions([])
     } catch { /* silent */ }
     setWalkinSaving(false)
   }
@@ -285,7 +323,7 @@ export default function AdminReservations() {
           )}
           {eventFilter !== 'all' && eventsDataMap.get(eventFilter)?.has_workshop && (
             <button
-              onClick={() => setShowWalkin(true)}
+              onClick={openWalkin}
               style={{ padding: '8px 18px', border: 'none', borderRadius: 4, fontSize: 13, background: '#2d3a24', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
             >
               当日参加を追加
@@ -457,52 +495,80 @@ export default function AdminReservations() {
       )}
 
       {/* 当日参加モーダル */}
-      {showWalkin && eventFilter !== 'all' && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
-          onClick={() => setShowWalkin(false)}
-        >
+      {showWalkin && eventFilter !== 'all' && (() => {
+        const ev = eventsDataMap.get(eventFilter)
+        const isMultiDay = ev?.end_date && ev.end_date !== ev.start_date
+        const selectedSession = walkinSessions.find((s) => s.id === walkinSessionId) ?? null
+        const remaining = selectedSession ? selectedSession.max_participants - selectedSession.reserved_count : 0
+        const canSubmit = !walkinSessionsLoading && walkinSessions.length > 0 ? !!walkinSessionId : true
+        return (
           <div
-            style={{ background: '#fff', borderRadius: 8, padding: '28px 32px', width: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
-            onClick={(e) => e.stopPropagation()}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+            onClick={() => setShowWalkin(false)}
           >
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 500 }}>当日参加を追加</h3>
-            {(() => {
-              const ev = eventsDataMap.get(eventFilter)
-              return ev?.end_date && ev.end_date !== ev.start_date ? (
+            <div
+              style={{ background: '#fff', borderRadius: 8, padding: '28px 32px', width: 340, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 500 }}>当日参加を追加</h3>
+
+              {isMultiDay && (
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</label>
-                  <input type="date" value={walkinDate} min={ev.start_date} max={ev.end_date}
-                    onChange={(e) => setWalkinDate(e.target.value)}
+                  <input type="date" value={walkinDate} min={ev!.start_date} max={ev!.end_date!}
+                    onChange={(e) => onWalkinDateChange(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
                 </div>
-              ) : null
-            })()}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>時間枠</label>
-              <input type="text" placeholder="例: 14:00〜15:00" value={walkinTime}
-                onChange={(e) => setWalkinTime(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加人数</label>
-              <input type="number" min={1} value={walkinParticipants}
-                onChange={(e) => setWalkinParticipants(Math.max(1, parseInt(e.target.value) || 1))}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', textAlign: 'right', boxSizing: 'border-box' }} />
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowWalkin(false)}
-                style={{ padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4, background: '#fff', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
-                キャンセル
-              </button>
-              <button onClick={submitWalkin} disabled={walkinSaving}
-                style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
-                {walkinSaving ? '登録中...' : '登録'}
-              </button>
+              )}
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>時間枠</label>
+                {walkinSessionsLoading ? (
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>読み込み中...</p>
+                ) : walkinSessions.length > 0 ? (
+                  <select value={walkinSessionId} onChange={(e) => { setWalkinSessionId(e.target.value); setWalkinParticipants(1) }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
+                    <option value="">-- 選択 --</option>
+                    {walkinSessions.map((s) => {
+                      const rem = s.max_participants - s.reserved_count
+                      return (
+                        <option key={s.id} value={s.id} disabled={rem <= 0}>
+                          {s.time_label}　残{rem}枠
+                        </option>
+                      )
+                    })}
+                  </select>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>この日の枠はありません</p>
+                )}
+              </div>
+
+              {selectedSession && remaining > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加人数</label>
+                  <select value={walkinParticipants} onChange={(e) => setWalkinParticipants(Number(e.target.value))}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
+                    {Array.from({ length: remaining }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>{n}名</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: selectedSession && remaining > 0 ? 0 : 24 }}>
+                <button onClick={() => setShowWalkin(false)}
+                  style={{ padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4, background: '#fff', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
+                  キャンセル
+                </button>
+                <button onClick={submitWalkin} disabled={walkinSaving || !canSubmit || (!!selectedSession && remaining <= 0)}
+                  style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', opacity: (!canSubmit || (!!selectedSession && remaining <= 0)) ? 0.5 : 1 }}>
+                  {walkinSaving ? '登録中...' : '登録'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
