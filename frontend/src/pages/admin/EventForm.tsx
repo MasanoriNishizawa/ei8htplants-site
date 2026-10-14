@@ -4,6 +4,39 @@ import { api, type EventBody } from '../../lib/api'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
 
+function genTimes(fromMin: number, toMin: number, step = 30): string[] {
+  const times: string[] = []
+  for (let m = fromMin; m <= toMin; m += step) {
+    times.push(`${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`)
+  }
+  return times
+}
+const TIME_START_OPTIONS = genTimes(8 * 60, 14 * 60)
+const TIME_END_OPTIONS = genTimes(12 * 60, 22 * 60)
+
+function parseTimeRange(value: string): [string, string] {
+  const m = value.match(/^(\d{1,2}:\d{2})\s*[〜~\-]\s*(\d{1,2}:\d{2})$/)
+  return m ? [m[1], m[2]] : ['', '']
+}
+
+function TimeRangeSelect({ value, onChange, style }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties }) {
+  const [start, end] = parseTimeRange(value)
+  const selStyle: React.CSSProperties = { flex: 1, padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box', ...style }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <select style={selStyle} value={start} onChange={(e) => onChange(e.target.value && end ? `${e.target.value}〜${end}` : '')}>
+        <option value="">--</option>
+        {TIME_START_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+      </select>
+      <span style={{ color: 'var(--c-muted)', flexShrink: 0, fontSize: 15 }}>〜</span>
+      <select style={selStyle} value={end} onChange={(e) => onChange(start && e.target.value ? `${start}〜${e.target.value}` : '')}>
+        <option value="">--</option>
+        {TIME_END_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+      </select>
+    </div>
+  )
+}
+
 type FormState = {
   name: string; slug: string; start_date: string; end_date: string; time: string
   location: string; booth_number: string; address: string; official_url: string
@@ -241,17 +274,16 @@ export default function AdminEventForm() {
                     {dates.map((d) => (
                       <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span style={{ fontSize: 13, color: 'var(--c-body)', minWidth: 116, flexShrink: 0 }}>{fmtDay(d)}</span>
-                        <input
-                          style={{ ...inputStyle, flex: 1 }}
-                          placeholder="10:00〜16:00"
+                        <TimeRangeSelect
                           value={dailyTimes[d] ?? ''}
-                          onChange={(e) => setDailyTimes((prev) => ({ ...prev, [d]: e.target.value }))}
+                          onChange={(v) => setDailyTimes((prev) => ({ ...prev, [d]: v }))}
+                          style={{ flex: 1 }}
                         />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <input style={inputStyle} placeholder="10:00〜16:00" value={form.time} onChange={(e) => set('time', e.target.value)} />
+                  <TimeRangeSelect value={form.time} onChange={(v) => set('time', v)} />
                 )}
               </>
             )
