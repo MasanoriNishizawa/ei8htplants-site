@@ -17,10 +17,11 @@ function formatDailyTimes(dailyTimes: Record<string, string> | null | undefined)
   if (!dailyTimes || Object.keys(dailyTimes).length === 0) return null
   const entries = Object.entries(dailyTimes).sort(([a], [b]) => a.localeCompare(b))
   if (entries.every(([, v]) => v === entries[0][1])) return entries[0][1]
+  // 日毎に異なる場合は「M/D（曜）HH:MM〜HH:MM」を改行でつなぐ
   return entries.map(([d, t]) => {
     const date = new Date(d + 'T00:00:00')
     return `${date.getMonth() + 1}/${date.getDate()}（${DOW_JA[date.getDay()]}）${t}`
-  }).join(' / ')
+  }).join('\n')
 }
 
 function formatDate(start: string, end: string | null, lang: 'ja' | 'en'): string {
@@ -164,9 +165,9 @@ export default function EventPreview({ event, horizontal = false }: Props) {
 
         <div style={{ fontSize: 13, color: 'var(--c-body)', background: '#f5f5f8', padding: '12px 14px', borderRadius: 4, border: '1px solid #dddde8', lineHeight: 1.8 }}>
           <div>{dateLabel}</div>
-          {/* time または daily_times のどちらかを表示する */}
+          {/* time または daily_times のどちらかを表示する。daily_times は改行区切りなので pre-line で折り返す */}
           {(event.time || formatDailyTimes(event.daily_times)) && (
-            <div>{event.time || formatDailyTimes(event.daily_times)}</div>
+            <div style={{ whiteSpace: 'pre-line' }}>{event.time || formatDailyTimes(event.daily_times)}</div>
           )}
           <div style={{ fontWeight: 600 }}>{event.location}</div>
           {event.booth_number && (
