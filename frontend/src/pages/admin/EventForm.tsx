@@ -20,16 +20,36 @@ function parseTimeRange(value: string): [string, string] {
 }
 
 function TimeRangeSelect({ value, onChange, style }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties }) {
-  const [start, end] = parseTimeRange(value)
+  const [parsed] = useState(() => parseTimeRange(value))
+  const [start, setStart] = useState(parsed[0])
+  const [end, setEnd] = useState(parsed[1])
+
+  useEffect(() => {
+    const [s, e] = parseTimeRange(value)
+    setStart(s)
+    setEnd(e)
+  }, [value])
+
+  const handleStart = (s: string) => {
+    setStart(s)
+    if (s && end) onChange(`${s}〜${end}`)
+    else if (!s) onChange('')
+  }
+  const handleEnd = (e: string) => {
+    setEnd(e)
+    if (start && e) onChange(`${start}〜${e}`)
+    else if (!e) onChange('')
+  }
+
   const selStyle: React.CSSProperties = { flex: 1, padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box', ...style }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <select style={selStyle} value={start} onChange={(e) => onChange(e.target.value && end ? `${e.target.value}〜${end}` : '')}>
+      <select style={selStyle} value={start} onChange={(e) => handleStart(e.target.value)}>
         <option value="">--</option>
         {TIME_START_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
       </select>
       <span style={{ color: 'var(--c-muted)', flexShrink: 0, fontSize: 15 }}>〜</span>
-      <select style={selStyle} value={end} onChange={(e) => onChange(start && e.target.value ? `${start}〜${e.target.value}` : '')}>
+      <select style={selStyle} value={end} onChange={(e) => handleEnd(e.target.value)}>
         <option value="">--</option>
         {TIME_END_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
       </select>
