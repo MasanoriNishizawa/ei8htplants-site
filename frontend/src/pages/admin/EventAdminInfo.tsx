@@ -34,19 +34,11 @@ const BLANK_FIN: EventFinancesBody = {
 /** 出店料支払い方法の選択肢 */
 const PAY_METHODS = ['当日現金', '事前振込', 'その他'] as const
 
-/**
- * 時間 select の選択肢。06:00〜22:00 を30分刻みで生成する
- * 22:30 以降は対象外のため、22:00 が末尾になる
- */
-const TIME_OPTIONS: string[] = (() => {
-  const opts: string[] = []
-  for (let h = 6; h <= 22; h++) {
-    opts.push(`${String(h).padStart(2, '0')}:00`)
-    // 22:30 は範囲外なので 22 のときは :30 を追加しない
-    if (h < 22) opts.push(`${String(h).padStart(2, '0')}:30`)
-  }
-  return opts
-})()
+/** 時 select の選択肢（06〜22） */
+const HOUR_OPTIONS: string[] = Array.from({ length: 17 }, (_, i) => String(i + 6).padStart(2, '0'))
+
+/** 分 select の選択肢（00〜55、5分刻み） */
+const MINUTE_OPTIONS: string[] = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
 
 /**
  * イベント管理情報（搬入・搬出・宿泊・出店料）を入力・保存するページ
@@ -69,12 +61,14 @@ export default function EventAdminInfo() {
   /** 読み込み・保存エラーのメッセージ。null なら非表示 */
   const [error, setError] = useState<string | null>(null)
 
-  // 搬入日時を日付と時間に分けて管理するローカル state（EventAdminInfo 型には含まれない）
+  // 搬入日時を日付・時・分に分けて管理するローカル state（EventAdminInfo 型には含まれない）
   const [carryInDate, setCarryInDate] = useState<string>('')
-  const [carryInTimeVal, setCarryInTimeVal] = useState<string>('')
-  // 搬出日時を日付と時間に分けて管理するローカル state（EventAdminInfo 型には含まれない）
+  const [carryInHour, setCarryInHour] = useState<string>('')
+  const [carryInMin, setCarryInMin] = useState<string>('')
+  // 搬出日時を日付・時・分に分けて管理するローカル state（EventAdminInfo 型には含まれない）
   const [carryOutDate, setCarryOutDate] = useState<string>('')
-  const [carryOutTimeVal, setCarryOutTimeVal] = useState<string>('')
+  const [carryOutHour, setCarryOutHour] = useState<string>('')
+  const [carryOutMin, setCarryOutMin] = useState<string>('')
 
   // 1. イベント情報・管理情報・収支データを並行取得してフォームに反映する
   useEffect(() => {
@@ -115,23 +109,27 @@ export default function EventAdminInfo() {
         notes: info.notes ?? null,
       })
 
-      // 搬入日時を YYYY-MM-DDTHH:MM 形式から日付部分・時間部分に分割してローカル state に反映する
+      // 搬入日時を YYYY-MM-DDTHH:MM 形式から日付・時・分に分割してローカル state に反映する
       if (info.carry_in_time) {
         const sepIdx = info.carry_in_time.indexOf('T')
         setCarryInDate(sepIdx !== -1 ? info.carry_in_time.slice(0, sepIdx) : '')
-        setCarryInTimeVal(sepIdx !== -1 ? info.carry_in_time.slice(sepIdx + 1) : '')
+        const timePart = sepIdx !== -1 ? info.carry_in_time.slice(sepIdx + 1) : ''
+        const [h, m] = timePart.split(':')
+        setCarryInHour(h ?? '')
+        setCarryInMin(m ? m.slice(0, 2) : '')
       } else {
-        setCarryInDate('')
-        setCarryInTimeVal('')
+        setCarryInDate(''); setCarryInHour(''); setCarryInMin('')
       }
       // 搬出日時も同様に分割する
       if (info.carry_out_time) {
         const sepIdx = info.carry_out_time.indexOf('T')
         setCarryOutDate(sepIdx !== -1 ? info.carry_out_time.slice(0, sepIdx) : '')
-        setCarryOutTimeVal(sepIdx !== -1 ? info.carry_out_time.slice(sepIdx + 1) : '')
+        const timePart = sepIdx !== -1 ? info.carry_out_time.slice(sepIdx + 1) : ''
+        const [h, m] = timePart.split(':')
+        setCarryOutHour(h ?? '')
+        setCarryOutMin(m ? m.slice(0, 2) : '')
       } else {
-        setCarryOutDate('')
-        setCarryOutTimeVal('')
+        setCarryOutDate(''); setCarryOutHour(''); setCarryOutMin('')
       }
     }).catch(() => {
       // 読み込み失敗時にエラーメッセージを表示する
@@ -149,14 +147,15 @@ export default function EventAdminInfo() {
   }
 
   /**
-   * 日付文字列と時間文字列を結合して carry_in_time / carry_out_time に保存する値を返す
-   * 両方入力されている場合のみ YYYY-MM-DDTHH:MM 形式の文字列を返し、片方のみの場合は null を返す
+   * 日付・時・分を結合して carry_in_time / carry_out_time に保存する値を返す
+   * 3つすべて入力されている場合のみ YYYY-MM-DDTHH:MM 形式の文字列を返し、1つでも欠けていれば null を返す
    * @param date - YYYY-MM-DD 形式の日付文字列
-   * @param time - HH:MM 形式の時間文字列
+   * @param hour - HH 形式の時文字列
+   * @param min - MM 形式の分文字列
    * @returns YYYY-MM-DDTHH:MM 形式の文字列、または null
    */
-  const combineDateTime = (date: string, time: string): string | null => {
-    if (date && time) return `${date}T${time}`
+  const combineDateTime = (date: string, hour: string, min: string): string | null => {
+    if (date && hour && min) return `${date}T${hour}:${min}`
     return null
   }
 
@@ -238,62 +237,80 @@ export default function EventAdminInfo() {
 
         {/* 搬入・搬出 */}
         <SectionBox label="搬入・搬出">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            {/* 搬入日時: 日付 input と 30分刻み時間 select を組み合わせる */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* 搬入日時: 日付 input・時 select・分 select を組み合わせる */}
             <div>
               <label style={labelStyle}>搬入日時</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
                   type="date"
                   style={{ ...inputStyle, flex: 1 }}
                   value={carryInDate}
                   onChange={(e) => {
-                    // 日付が変わったらローカル state を更新し、時間と結合して form に反映する
                     setCarryInDate(e.target.value)
-                    set('carry_in_time', combineDateTime(e.target.value, carryInTimeVal))
+                    set('carry_in_time', combineDateTime(e.target.value, carryInHour, carryInMin))
                   }}
                 />
                 <select
-                  style={{ ...inputStyle, width: 'auto', flexShrink: 0 }}
-                  value={carryInTimeVal}
+                  style={{ padding: '10px 8px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff' }}
+                  value={carryInHour}
                   onChange={(e) => {
-                    // 時間が変わったらローカル state を更新し、日付と結合して form に反映する
-                    setCarryInTimeVal(e.target.value)
-                    set('carry_in_time', combineDateTime(carryInDate, e.target.value))
+                    setCarryInHour(e.target.value)
+                    set('carry_in_time', combineDateTime(carryInDate, e.target.value, carryInMin))
                   }}
                 >
-                  <option value="">--:--</option>
-                  {TIME_OPTIONS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
+                  <option value="">--</option>
+                  {HOUR_OPTIONS.map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <span style={{ fontSize: 15, color: 'var(--c-muted)' }}>:</span>
+                <select
+                  style={{ padding: '10px 8px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff' }}
+                  value={carryInMin}
+                  onChange={(e) => {
+                    setCarryInMin(e.target.value)
+                    set('carry_in_time', combineDateTime(carryInDate, carryInHour, e.target.value))
+                  }}
+                >
+                  <option value="">--</option>
+                  {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
             </div>
-            {/* 搬出日時: 日付 input と 30分刻み時間 select を組み合わせる */}
+            {/* 搬出日時: 日付 input・時 select・分 select を組み合わせる */}
             <div>
               <label style={labelStyle}>搬出日時</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
                   type="date"
                   style={{ ...inputStyle, flex: 1 }}
                   value={carryOutDate}
                   onChange={(e) => {
                     setCarryOutDate(e.target.value)
-                    set('carry_out_time', combineDateTime(e.target.value, carryOutTimeVal))
+                    set('carry_out_time', combineDateTime(e.target.value, carryOutHour, carryOutMin))
                   }}
                 />
                 <select
-                  style={{ ...inputStyle, width: 'auto', flexShrink: 0 }}
-                  value={carryOutTimeVal}
+                  style={{ padding: '10px 8px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff' }}
+                  value={carryOutHour}
                   onChange={(e) => {
-                    setCarryOutTimeVal(e.target.value)
-                    set('carry_out_time', combineDateTime(carryOutDate, e.target.value))
+                    setCarryOutHour(e.target.value)
+                    set('carry_out_time', combineDateTime(carryOutDate, e.target.value, carryOutMin))
                   }}
                 >
-                  <option value="">--:--</option>
-                  {TIME_OPTIONS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
+                  <option value="">--</option>
+                  {HOUR_OPTIONS.map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <span style={{ fontSize: 15, color: 'var(--c-muted)' }}>:</span>
+                <select
+                  style={{ padding: '10px 8px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff' }}
+                  value={carryOutMin}
+                  onChange={(e) => {
+                    setCarryOutMin(e.target.value)
+                    set('carry_out_time', combineDateTime(carryOutDate, carryOutHour, e.target.value))
+                  }}
+                >
+                  <option value="">--</option>
+                  {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
             </div>
