@@ -14,12 +14,12 @@ function genTimes(fromMin: number, toMin: number, step = 30): string[] {
 const TIME_START_OPTIONS = genTimes(8 * 60, 14 * 60)
 const TIME_END_OPTIONS = genTimes(12 * 60, 22 * 60)
 
-function parseTimeRange(value: string): [string, string] {
+export function parseTimeRange(value: string): [string, string] {
   const m = value.match(/^(\d{1,2}:\d{2})\s*[〜~\-]\s*(\d{1,2}:\d{2})$/)
   return m ? [m[1], m[2]] : ['', '']
 }
 
-function TimeRangeSelect({ value, onChange, style }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties }) {
+export function TimeRangeSelect({ value, onChange, style }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties }) {
   const [parsed] = useState(() => parseTimeRange(value))
   const [start, setStart] = useState(parsed[0])
   const [end, setEnd] = useState(parsed[1])
