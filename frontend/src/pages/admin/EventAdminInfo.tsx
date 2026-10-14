@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useLocation } from 'react-router-dom'
-import { api, type Event, type EventAdminInfo } from '../../lib/api'
+import { api, type Event, type EventAdminInfo, type EventFinancesBody } from '../../lib/api'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
 const BLANK: EventAdminInfo = {
@@ -12,6 +12,22 @@ const BLANK: EventAdminInfo = {
   booth_fee_pay_method: null,
   booth_fee_due: null,
   booth_fee_paid: false,
+  notes: null,
+}
+
+/** saveFinances 呼び出し時に finData が null だった場合に使う収支の初期値 */
+const BLANK_FIN: EventFinancesBody = {
+  sales: 0,
+  booth_fee: 0,
+  distance: 0,
+  gas_price: 160,
+  expressway_toll: 0,
+  accommodation: 0,
+  ws_participants: 0,
+  payment_flag: false,
+  ws_payment_done: false,
+  other_expenses: 0,
+  other_expenses_note: null,
   notes: null,
 }
 
@@ -30,6 +46,8 @@ export default function EventAdminInfo() {
 
   const [event, setEvent] = useState<Event | null>(null)
   const [form, setForm] = useState<EventAdminInfo>(BLANK)
+  /** EventFinances から取得した収支データ。保存時に booth_fee / accommodation を同期するために保持する */
+  const [finData, setFinData] = useState<EventFinancesBody | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   /** 保存成功メッセージの表示フラグ。3秒後に自動で消える */
@@ -37,23 +55,42 @@ export default function EventAdminInfo() {
   /** 読み込み・保存エラーのメッセージ。null なら非表示 */
   const [error, setError] = useState<string | null>(null)
 
-  // 1. イベント情報と管理情報を並行取得してフォームに反映する
+  // 1. イベント情報・管理情報・収支データを並行取得してフォームに反映する
   useEffect(() => {
     if (!id) return
     Promise.all([
       api.events.get(id),
       api.events.getAdminInfo(id),
-    ]).then(([ev, info]) => {
+      api.events.getFinances(id),
+    ]).then(([ev, info, fin]) => {
       setEvent(ev)
+      // 収支データを state に保持する（保存時の同期用）
+      const finBody: EventFinancesBody = {
+        sales: fin.sales,
+        booth_fee: fin.booth_fee,
+        distance: fin.distance,
+        gas_price: fin.gas_price,
+        expressway_toll: fin.expressway_toll,
+        accommodation: fin.accommodation,
+        ws_participants: fin.ws_participants,
+        payment_flag: fin.payment_flag,
+        ws_payment_done: fin.ws_payment_done,
+        other_expenses: fin.other_expenses,
+        other_expenses_note: fin.other_expenses_note,
+        notes: fin.notes,
+      }
+      setFinData(finBody)
       setForm({
         carry_in_time: info.carry_in_time ?? null,
         carry_out_time: info.carry_out_time ?? null,
         hotel_name: info.hotel_name ?? null,
-        hotel_fee: info.hotel_fee ?? null,
-        booth_fee: info.booth_fee ?? null,
+        // 管理情報に値がなければ収支の出店料を初期値として使う
+        booth_fee: info.booth_fee ?? (finBody.booth_fee !== 0 ? finBody.booth_fee : null),
         booth_fee_pay_method: info.booth_fee_pay_method ?? null,
         booth_fee_due: info.booth_fee_due ?? null,
         booth_fee_paid: info.booth_fee_paid ?? false,
+        // 管理情報に値がなければ収支の宿泊費を初期値として使う
+        hotel_fee: info.hotel_fee ?? (finBody.accommodation !== 0 ? finBody.accommodation : null),
         notes: info.notes ?? null,
       })
     }).catch(() => {
@@ -78,7 +115,16 @@ export default function EventAdminInfo() {
     setSaving(true)
     setError(null)
     try {
+      // 1. 管理情報を保存する
       await api.events.saveAdminInfo(id, form)
+      // 2. 収支データ（出店料・宿泊費）を管理情報の値で上書きして同期する。
+      //    finData が未取得（null）のときは空の初期値をベースにする
+      const baseFinData = finData ?? BLANK_FIN
+      await api.events.saveFinances(id, {
+        ...baseFinData,
+        booth_fee: form.booth_fee ?? 0,
+        accommodation: form.hotel_fee ?? 0,
+      })
       setSaved(true)
       // 3秒後に保存済みメッセージを消す
       setTimeout(() => setSaved(false), 3000)

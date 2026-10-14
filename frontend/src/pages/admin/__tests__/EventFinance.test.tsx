@@ -22,6 +22,8 @@ vi.mock('../../../lib/api', async (importActual) => {
       events: {
         get: vi.fn(),
         getFinances: vi.fn(),
+        getAdminInfo: vi.fn(),
+        saveAdminInfo: vi.fn(),
       },
       reserve: {
         list: vi.fn(),
@@ -255,10 +257,15 @@ describe('EventFinance ページ', () => {
     vi.mocked(api.events.get).mockReset()
     vi.mocked(api.events.getFinances).mockReset()
     vi.mocked(api.reserve.list).mockReset()
+    vi.mocked(api.events.getAdminInfo).mockReset()
+    vi.mocked(api.events.saveAdminInfo).mockReset()
 
     vi.mocked(api.events.get).mockResolvedValue(MOCK_EVENT)
     vi.mocked(api.events.getFinances).mockResolvedValue(MOCK_FINANCES)
     vi.mocked(api.reserve.list).mockResolvedValue([])
+    // 管理情報は未入力の空オブジェクトを返す
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue({} as any)
+    vi.mocked(api.events.saveAdminInfo).mockResolvedValue({ ok: true })
   })
 
   it('データ読み込み後に「収支管理」見出しが表示される', async () => {

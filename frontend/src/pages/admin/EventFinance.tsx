@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
-import { api, computeFinances, type Event, type EventFinancesBody } from '../../lib/api'
+import { api, computeFinances, type Event, type EventFinancesBody, type EventAdminInfo } from '../../lib/api'
 
 const BLANK: EventFinancesBody = {
   sales: 0,
@@ -17,6 +17,19 @@ const BLANK: EventFinancesBody = {
   notes: null,
 }
 
+/** saveAdminInfo 呼び出し時に adminInfo が null だった場合に使う初期値 */
+const BLANK_ADMIN_INFO: EventAdminInfo = {
+  carry_in_time: null,
+  carry_out_time: null,
+  hotel_name: null,
+  hotel_fee: null,
+  booth_fee: null,
+  booth_fee_pay_method: null,
+  booth_fee_due: null,
+  booth_fee_paid: false,
+  notes: null,
+}
+
 function fmt(n: number) {
   return n.toLocaleString('ja-JP')
 }
@@ -30,28 +43,36 @@ export default function EventFinance() {
   const backTo: string = (location.state as any)?.from ?? '/admin/events'
   const [event, setEvent] = useState<Event | null>(null)
   const [form, setForm] = useState<EventFinancesBody>(BLANK)
+  /** EventAdminInfo から取得した管理情報。保存時に booth_fee / hotel_fee を同期するために保持する */
+  const [adminInfo, setAdminInfo] = useState<EventAdminInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  /** 読み込み・保存エラーのメッセージ。null なら非表示 */
+  const [error, setError] = useState<string | null>(null)
 
-  // イベント情報・収支データ・予約一覧を同時取得してフォームに反映する
+  // イベント情報・収支データ・予約一覧・管理情報を同時取得してフォームに反映する
   useEffect(() => {
     if (!id) return
     Promise.all([
       api.events.get(id),
       api.events.getFinances(id),
       api.reserve.list(id),
-    ]).then(([ev, fin, reservations]) => {
+      api.events.getAdminInfo(id),
+    ]).then(([ev, fin, reservations, info]) => {
       setEvent(ev)
+      setAdminInfo(info)
       const reservationTotal = reservations
         .filter((r) => r.status !== 'cancelled')
         .reduce((sum, r) => sum + r.participants, 0)
       setForm({
         sales: fin.sales,
-        booth_fee: fin.booth_fee,
+        // 収支に値がない（0）場合は管理情報の出店料を初期値として使う
+        booth_fee: fin.booth_fee !== 0 ? fin.booth_fee : (info?.booth_fee ?? 0),
         distance: fin.distance,
         gas_price: fin.gas_price,
         expressway_toll: fin.expressway_toll,
-        accommodation: fin.accommodation,
+        // 収支に値がない（0）場合は管理情報の宿泊料金を初期値として使う
+        accommodation: fin.accommodation !== 0 ? fin.accommodation : (info?.hotel_fee ?? 0),
         ws_participants: ev.has_workshop && reservationTotal > 0 ? reservationTotal : fin.ws_participants,
         payment_flag: fin.payment_flag,
         ws_payment_done: fin.ws_payment_done ?? false,
@@ -59,6 +80,9 @@ export default function EventFinance() {
         other_expenses_note: fin.other_expenses_note,
         notes: fin.notes,
       })
+    }).catch(() => {
+      // 読み込み失敗時にエラーメッセージを表示する
+      setError('データの読み込みに失敗しました。ページを再読み込みしてください。')
     }).finally(() => setLoading(false))
   }, [id])
 
@@ -74,10 +98,26 @@ export default function EventFinance() {
     e.preventDefault()
     if (!id) return
     setSaving(true)
-    await api.events.saveFinances(id, form)
-    setSaving(false)
-    // 保存後は遷移元（収支一覧またはイベント一覧）へ戻る
-    navigate(backTo)
+    setError(null)
+    try {
+      // 1. 収支データを保存する
+      await api.events.saveFinances(id, form)
+      // 2. 管理情報（出店料・宿泊費）を収支の値で上書きして同期する。
+      //    adminInfo が未取得（null）のときは空の初期値をベースにする
+      const baseAdminInfo = adminInfo ?? BLANK_ADMIN_INFO
+      await api.events.saveAdminInfo(id, {
+        ...baseAdminInfo,
+        booth_fee: form.booth_fee,
+        hotel_fee: form.accommodation,
+      })
+      // 保存後は遷移元（収支一覧またはイベント一覧）へ戻る
+      navigate(backTo)
+    } catch {
+      // 保存失敗時にエラーメッセージを表示する
+      setError('保存に失敗しました。もう一度お試しください。')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const inputStyle: React.CSSProperties = {
@@ -112,6 +152,12 @@ export default function EventFinance() {
 
   return (
     <div style={{ maxWidth: 580 }}>
+      {/* 読み込み・保存エラーを画面上部に表示する */}
+      {error && (
+        <p style={{ color: '#c0392b', background: '#fdf2f2', border: '1px solid #f5c6cb', borderRadius: 4, padding: '12px 16px', marginBottom: 16, fontSize: 14 }}>
+          {error}
+        </p>
+      )}
       <div style={{ marginBottom: 24 }}>
         <Link to={backTo} style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}>
           &larr; {backTo === '/admin/finances' ? '収支一覧' : 'イベント管理'}
