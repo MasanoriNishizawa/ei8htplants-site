@@ -35,6 +35,20 @@ const BLANK_FIN: EventFinancesBody = {
 const PAY_METHODS = ['当日現金', '事前振込', 'その他'] as const
 
 /**
+ * 時間 select の選択肢。06:00〜22:00 を30分刻みで生成する
+ * 22:30 以降は対象外のため、22:00 が末尾になる
+ */
+const TIME_OPTIONS: string[] = (() => {
+  const opts: string[] = []
+  for (let h = 6; h <= 22; h++) {
+    opts.push(`${String(h).padStart(2, '0')}:00`)
+    // 22:30 は範囲外なので 22 のときは :30 を追加しない
+    if (h < 22) opts.push(`${String(h).padStart(2, '0')}:30`)
+  }
+  return opts
+})()
+
+/**
  * イベント管理情報（搬入・搬出・宿泊・出店料）を入力・保存するページ
  * URL: /admin/events/:id/admin-info
  */
@@ -54,6 +68,13 @@ export default function EventAdminInfo() {
   const [saved, setSaved] = useState(false)
   /** 読み込み・保存エラーのメッセージ。null なら非表示 */
   const [error, setError] = useState<string | null>(null)
+
+  // 搬入日時を日付と時間に分けて管理するローカル state（EventAdminInfo 型には含まれない）
+  const [carryInDate, setCarryInDate] = useState<string>('')
+  const [carryInTimeVal, setCarryInTimeVal] = useState<string>('')
+  // 搬出日時を日付と時間に分けて管理するローカル state（EventAdminInfo 型には含まれない）
+  const [carryOutDate, setCarryOutDate] = useState<string>('')
+  const [carryOutTimeVal, setCarryOutTimeVal] = useState<string>('')
 
   // 1. イベント情報・管理情報・収支データを並行取得してフォームに反映する
   useEffect(() => {
@@ -93,6 +114,25 @@ export default function EventAdminInfo() {
         hotel_fee: info.hotel_fee ?? (finBody.accommodation !== 0 ? finBody.accommodation : null),
         notes: info.notes ?? null,
       })
+
+      // 搬入日時を YYYY-MM-DDTHH:MM 形式から日付部分・時間部分に分割してローカル state に反映する
+      if (info.carry_in_time) {
+        const sepIdx = info.carry_in_time.indexOf('T')
+        setCarryInDate(sepIdx !== -1 ? info.carry_in_time.slice(0, sepIdx) : '')
+        setCarryInTimeVal(sepIdx !== -1 ? info.carry_in_time.slice(sepIdx + 1) : '')
+      } else {
+        setCarryInDate('')
+        setCarryInTimeVal('')
+      }
+      // 搬出日時も同様に分割する
+      if (info.carry_out_time) {
+        const sepIdx = info.carry_out_time.indexOf('T')
+        setCarryOutDate(sepIdx !== -1 ? info.carry_out_time.slice(0, sepIdx) : '')
+        setCarryOutTimeVal(sepIdx !== -1 ? info.carry_out_time.slice(sepIdx + 1) : '')
+      } else {
+        setCarryOutDate('')
+        setCarryOutTimeVal('')
+      }
     }).catch(() => {
       // 読み込み失敗時にエラーメッセージを表示する
       setError('データの読み込みに失敗しました。ページを再読み込みしてください。')
@@ -106,6 +146,18 @@ export default function EventAdminInfo() {
    */
   const set = <K extends keyof EventAdminInfo>(key: K, value: EventAdminInfo[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  /**
+   * 日付文字列と時間文字列を結合して carry_in_time / carry_out_time に保存する値を返す
+   * 両方入力されている場合のみ YYYY-MM-DDTHH:MM 形式の文字列を返し、片方のみの場合は null を返す
+   * @param date - YYYY-MM-DD 形式の日付文字列
+   * @param time - HH:MM 形式の時間文字列
+   * @returns YYYY-MM-DDTHH:MM 形式の文字列、または null
+   */
+  const combineDateTime = (date: string, time: string): string | null => {
+    if (date && time) return `${date}T${time}`
+    return null
   }
 
   // 2. 保存ボタン押下時の処理
@@ -187,23 +239,63 @@ export default function EventAdminInfo() {
         {/* 搬入・搬出 */}
         <SectionBox label="搬入・搬出">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {/* 搬入日時: 日付 input と 30分刻み時間 select を組み合わせる */}
             <div>
               <label style={labelStyle}>搬入日時</label>
-              <input
-                type="datetime-local"
-                style={inputStyle}
-                value={form.carry_in_time ?? ''}
-                onChange={(e) => set('carry_in_time', e.target.value || null)}
-              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="date"
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={carryInDate}
+                  onChange={(e) => {
+                    // 日付が変わったらローカル state を更新し、時間と結合して form に反映する
+                    setCarryInDate(e.target.value)
+                    set('carry_in_time', combineDateTime(e.target.value, carryInTimeVal))
+                  }}
+                />
+                <select
+                  style={{ ...inputStyle, width: 'auto', flexShrink: 0 }}
+                  value={carryInTimeVal}
+                  onChange={(e) => {
+                    // 時間が変わったらローカル state を更新し、日付と結合して form に反映する
+                    setCarryInTimeVal(e.target.value)
+                    set('carry_in_time', combineDateTime(carryInDate, e.target.value))
+                  }}
+                >
+                  <option value="">--:--</option>
+                  {TIME_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+            {/* 搬出日時: 日付 input と 30分刻み時間 select を組み合わせる */}
             <div>
               <label style={labelStyle}>搬出日時</label>
-              <input
-                type="datetime-local"
-                style={inputStyle}
-                value={form.carry_out_time ?? ''}
-                onChange={(e) => set('carry_out_time', e.target.value || null)}
-              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="date"
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={carryOutDate}
+                  onChange={(e) => {
+                    setCarryOutDate(e.target.value)
+                    set('carry_out_time', combineDateTime(e.target.value, carryOutTimeVal))
+                  }}
+                />
+                <select
+                  style={{ ...inputStyle, width: 'auto', flexShrink: 0 }}
+                  value={carryOutTimeVal}
+                  onChange={(e) => {
+                    setCarryOutTimeVal(e.target.value)
+                    set('carry_out_time', combineDateTime(carryOutDate, e.target.value))
+                  }}
+                >
+                  <option value="">--:--</option>
+                  {TIME_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </SectionBox>

@@ -27,6 +27,14 @@ function EventRow({ ev, reservationCountMap, del, duplicate }: {
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Link to={`/admin/events/${ev.id}/edit`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: 'var(--c-body)', textDecoration: 'none' }}>編集</Link>
+        {/* 搬入・搬出・宿泊・出店料などの管理情報ページへのリンク */}
+        <Link
+          to={`/admin/events/${ev.id}/admin-info`}
+          state={{ from: '/admin/events' }}
+          style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: 'var(--c-body)', textDecoration: 'none' }}
+        >
+          管理情報
+        </Link>
         <Link to={`/admin/events/${ev.id}/finances`} state={{ from: '/admin/events' }} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#4a6741', textDecoration: 'none' }}>収支</Link>
         <Link to={`/admin/events/${ev.id}/site`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#1e3272', textDecoration: 'none' }}>サイト</Link>
         {ev.has_workshop && (
