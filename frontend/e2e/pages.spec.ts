@@ -13,6 +13,15 @@ const routes = [
   '/collaborations',
   '/media',
   '/reserve',
+  // コンセプトページ（共通 Layout）
+  '/concept',
+  // ジャーナルページ（StoreLayout）
+  '/journal',
+  // ブランドページ（App.tsx のルートパスに合わせた正確なパス）
+  '/ei8htplants',
+  '/habitatoides',
+  '/habitatoides/workshop',
+  '/hue',
 ]
 
 for (const path of routes) {

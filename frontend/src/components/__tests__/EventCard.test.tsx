@@ -93,3 +93,52 @@ describe('EventCard formatDate', () => {
     expect(screen.getByText('2099年5月30日〜2099年6月2日')).toBeDefined()
   })
 })
+
+// ---- formatDailyTimes 関連のテスト ----
+// EventCard 内部の formatDailyTimes 関数の動作をレンダリング結果で確認する
+describe('EventCard formatDailyTimes', () => {
+  it('daily_times が設定されているイベントで時刻文字列が表示される', () => {
+    // 1日分の daily_times → その時刻がそのまま表示される
+    renderCard(makeEvent({
+      time: null,
+      daily_times: { '2099-06-01': '10:00〜16:00' },
+    }))
+    expect(screen.getByText('10:00〜16:00')).toBeDefined()
+  })
+
+  it('daily_times の全日時間が同じ場合は単一時間だけ表示される', () => {
+    // 複数日でも全日同じ時間 → 時間のみ（「M/D」形式にならない）
+    renderCard(makeEvent({
+      time: null,
+      daily_times: {
+        '2099-06-01': '10:00〜16:00',
+        '2099-06-02': '10:00〜16:00',
+      },
+    }))
+    expect(screen.getByText('10:00〜16:00')).toBeDefined()
+    // 「6/1」「6/2」のような日付プレフィックスは表示されない
+    expect(screen.queryByText(/6\/1/)).toBeNull()
+  })
+
+  it('daily_times の日毎時間が異なる場合は「M/D（曜）時間」形式で複数表示される', () => {
+    // 日毎に時間が異なる → 各日の情報が改行（\n）で結合されて pre-line スタイルで表示される
+    renderCard(makeEvent({
+      time: null,
+      daily_times: {
+        '2026-10-24': '10:00〜16:30',
+        '2026-10-25': '10:00〜16:00',
+      },
+    }))
+    // 月/日 + 曜日 + 時間の形式で2日分が改行区切りで表示される（曜日は . で任意マッチ）
+    // getByText は DOM テキストから改行を除去してマッチするため、各行を個別に確認する
+    expect(screen.getByText(/10\/24（.）10:00〜16:30/)).toBeDefined()
+    expect(screen.getByText(/10\/25（.）10:00〜16:00/)).toBeDefined()
+  })
+
+  it('time が null で daily_times も null のとき時刻が表示されない', () => {
+    // time も daily_times もない → HH:MM 形式のテキストが一切表示されない
+    renderCard(makeEvent({ time: null, daily_times: null }))
+    // HH:MM 形式（例: 10:00）が含まれる要素が存在しないことを確認
+    expect(screen.queryByText(/\d{2}:\d{2}/)).toBeNull()
+  })
+})

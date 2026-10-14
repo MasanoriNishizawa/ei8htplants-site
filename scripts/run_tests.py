@@ -92,8 +92,27 @@ def run_vitest() -> dict:
     }
 
 
+def _free_port(port: int) -> None:
+    """指定ポートを使用しているプロセスを停止する（macOS/Linux）。
+
+    playwright.config.ts の reuseExistingServer が false のとき、
+    前回の実行でサーバーが残っているとエラーになるため実行前に解放する。
+    """
+    try:
+        result = subprocess.run(
+            ["lsof", "-ti", f":{port}"], capture_output=True, text=True
+        )
+        for pid in result.stdout.strip().split():
+            if pid.isdigit():
+                subprocess.run(["kill", "-9", pid], capture_output=True)
+    except Exception:
+        pass
+
+
 def run_playwright() -> dict:
     """画面テスト（Playwright。MSW モック）を実行して結果をまとめる。"""
+    # 前回の実行でサーバーが残っているとポート競合エラーになるため解放する
+    _free_port(5173)
     code, out, sec = run(["npx", "playwright", "test", "--reporter=line"], ROOT / "frontend")
     failed_names = [
         f"[{p}] {n.strip()}"

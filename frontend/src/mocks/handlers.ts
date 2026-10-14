@@ -99,6 +99,31 @@ export const handlers = [
     return HttpResponse.json([])
   }),
 
+  // Contacts（管理画面・stats 統計用）
+  http.get('/api/contacts', () => {
+    return HttpResponse.json([])
+  }),
+
+  // Orders（管理画面・stats 統計用）
+  http.get('/api/orders', () => {
+    return HttpResponse.json([])
+  }),
+
+  // Reserves（ワークショップ予約一覧。管理画面 /admin/reservations 用）
+  http.get('/api/reserves', () => {
+    return HttpResponse.json([])
+  }),
+
+  // PriceCalcEntries（価格計算エントリ一覧。/admin/price-calc 用）
+  http.get('/api/price-calc-entries', () => {
+    return HttpResponse.json([])
+  }),
+
+  // PotArtists（鉢アーティスト一覧。/admin/price-calc 用）
+  http.get('/api/pot-artists', () => {
+    return HttpResponse.json([])
+  }),
+
   // Docs (admin design docs viewer)
   http.get('/api/docs/tree', () => {
     return HttpResponse.json(MOCK_DOC_TREE)

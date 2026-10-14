@@ -224,4 +224,18 @@ export const MOCK_PRODUCTS: Product[] = [
     category: null,
     created_at: '2026-01-01T00:00:00Z',
   },
+  // 品切れ商品（stock=0）。shop.spec.ts の在庫切れ表示テスト用
+  {
+    id: 'p-sold-out',
+    name: 'Habitat Style Pot L (Sold Out)',
+    description: '品切れテスト用のラージポット',
+    price: 9800,
+    stock: 0,
+    image_urls: ['https://placehold.co/400x400/d0c0b0/ffffff?text=Pot+L'],
+    tags: [],
+    is_published: true,
+    display_order: 3,
+    category: null,
+    created_at: '2026-01-01T00:00:00Z',
+  },
 ]

@@ -21,7 +21,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run mock:e2e',
     url: 'http://localhost:5173',
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 60000,
   },
 })
