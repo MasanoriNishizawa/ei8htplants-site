@@ -10,6 +10,19 @@ const BRAND_IG: Record<string, string> = {
   'HUE by ei8ht plants': 'https://www.instagram.com/hue_by.ei8ht.plants/',
 }
 
+const DOW_JA = ['日', '月', '火', '水', '木', '金', '土']
+
+/** daily_times が設定されているとき、日毎の時間を 1 行の文字列に整形して返す。全日同じ時間なら時間だけ返す */
+function formatDailyTimes(dailyTimes: Record<string, string> | null | undefined): string | null {
+  if (!dailyTimes || Object.keys(dailyTimes).length === 0) return null
+  const entries = Object.entries(dailyTimes).sort(([a], [b]) => a.localeCompare(b))
+  if (entries.every(([, v]) => v === entries[0][1])) return entries[0][1]
+  return entries.map(([d, t]) => {
+    const date = new Date(d + 'T00:00:00')
+    return `${date.getMonth() + 1}/${date.getDate()}（${DOW_JA[date.getDay()]}）${t}`
+  }).join(' / ')
+}
+
 function formatDate(start: string, end: string | null, lang: 'ja' | 'en'): string {
   const s = new Date(start)
   if (lang === 'en') {
@@ -151,7 +164,10 @@ export default function EventPreview({ event, horizontal = false }: Props) {
 
         <div style={{ fontSize: 13, color: 'var(--c-body)', background: '#f5f5f8', padding: '12px 14px', borderRadius: 4, border: '1px solid #dddde8', lineHeight: 1.8 }}>
           <div>{dateLabel}</div>
-          {event.time && <div>{event.time}</div>}
+          {/* time または daily_times のどちらかを表示する */}
+          {(event.time || formatDailyTimes(event.daily_times)) && (
+            <div>{event.time || formatDailyTimes(event.daily_times)}</div>
+          )}
           <div style={{ fontWeight: 600 }}>{event.location}</div>
           {event.booth_number && (
             <div style={{ fontWeight: 600 }}>{t('ブース:', 'Booth:')} {event.booth_number}</div>

@@ -117,6 +117,26 @@ export const MOCK_EVENTS: Event[] = [
     page_content: null,
     daily_times: null,
   },
+  {
+    id: 'mock-no-time',
+    slug: null,
+    name: 'time 未設定のイベント',
+    start_date: '2027-06-01',
+    end_date: '2027-06-01',
+    time: null,
+    location: 'テスト会場',
+    booth_number: null,
+    address: null,
+    official_url: null,
+    brands: [],
+    has_workshop: false,
+    ws_requires_reservation: false,
+    is_past: false,
+    display_order: 3,
+    images: [],
+    page_content: null,
+    daily_times: null,
+  },
 ]
 
 export const MOCK_PAST_EVENTS: Event[] = [

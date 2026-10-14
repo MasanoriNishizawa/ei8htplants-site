@@ -10,6 +10,21 @@ const BRAND_IG: Record<string, string> = {
   'HUE by ei8ht plants': 'https://www.instagram.com/hue_by.ei8ht.plants/',
 }
 
+const DOW_JA = ['日', '月', '火', '水', '木', '金', '土']
+
+/** daily_times が設定されているとき、日毎の時間を 1 行の文字列に整形して返す。全日同じ時間なら時間だけ返す */
+function formatDailyTimes(dailyTimes: Record<string, string> | null | undefined): string | null {
+  if (!dailyTimes || Object.keys(dailyTimes).length === 0) return null
+  const entries = Object.entries(dailyTimes).sort(([a], [b]) => a.localeCompare(b))
+  // 全日同じ時間なら単一表示
+  if (entries.every(([, v]) => v === entries[0][1])) return entries[0][1]
+  // 日毎に異なる場合は「M/D（曜）HH:MM〜HH:MM」を「 / 」でつなぐ
+  return entries.map(([d, t]) => {
+    const date = new Date(d + 'T00:00:00')
+    return `${date.getMonth() + 1}/${date.getDate()}（${DOW_JA[date.getDay()]}）${t}`
+  }).join(' / ')
+}
+
 function daysUntil(dateStr: string): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -148,7 +163,10 @@ export default function EventCard({ event, isNext = false, isHome = false }: Pro
 
       <div style={{ fontSize: 16, color: 'var(--c-body)', background: '#f5f5f8', padding: '15px 18px', borderRadius: 4, border: '1px solid #dddde8' }}>
         <div style={{ marginBottom: 8 }}>{formatDate(event.start_date, event.end_date)}</div>
-        {event.time && <div style={{ marginBottom: 8 }}>{event.time}</div>}
+        {/* time または daily_times のどちらかを表示する */}
+        {(event.time || formatDailyTimes(event.daily_times)) && (
+          <div style={{ marginBottom: 8 }}>{event.time || formatDailyTimes(event.daily_times)}</div>
+        )}
         <div style={{ fontWeight: 'bold', marginBottom: event.booth_number || event.address ? 8 : 0 }}>{event.location}</div>
         {event.booth_number && <div style={{ fontWeight: 'bold', marginBottom: 8 }}>ブース: {event.booth_number}</div>}
         {event.address && (
