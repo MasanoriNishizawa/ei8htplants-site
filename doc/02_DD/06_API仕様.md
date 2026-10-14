@@ -304,6 +304,90 @@
 
 ---
 
+### GET /api/events/{event_id}/admin-info
+
+イベントの管理情報（搬入・搬出時間、宿泊ホテル、出店料など）を取得する。
+
+**認証**: Bearer JWT 必須
+
+**パスパラメータ**: `event_id` (UUID)
+
+**レスポンス `200`**
+
+```json
+{
+  "carry_in_time": "2026-10-24T09:00",
+  "carry_out_time": "2026-10-24T17:00",
+  "hotel_name": "〇〇ホテル",
+  "hotel_fee": 12000,
+  "booth_fee": 30000,
+  "booth_fee_pay_method": "事前振込",
+  "booth_fee_due": "2026-10-01",
+  "booth_fee_paid": false,
+  "notes": "注意事項メモ"
+}
+```
+
+管理情報が未登録の場合は空オブジェクト `{}` を返す。
+
+**エラー**
+
+| ステータス | 原因 |
+|---|---|
+| `401` | Bearer トークン未送信または無効 |
+| `500` | Supabase 取得エラー |
+
+---
+
+### PUT /api/events/{event_id}/admin-info
+
+イベントの管理情報を保存する。events テーブルの `admin_info` JSONB カラムに上書き保存する。
+
+**認証**: Bearer JWT 必須
+
+**パスパラメータ**: `event_id` (UUID)
+
+**リクエストボディ**（`AdminInfoBody` スキーマ。全フィールド任意）
+
+```json
+{
+  "carry_in_time": "2026-10-24T09:00",
+  "carry_out_time": "2026-10-24T17:00",
+  "hotel_name": "〇〇ホテル",
+  "hotel_fee": 12000,
+  "booth_fee": 30000,
+  "booth_fee_pay_method": "事前振込",
+  "booth_fee_due": "2026-10-01",
+  "booth_fee_paid": false,
+  "notes": "注意事項メモ"
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `carry_in_time` | string \| null | 搬入日時（例: "2026-10-24T09:00"） |
+| `carry_out_time` | string \| null | 搬出日時 |
+| `hotel_name` | string \| null | 宿泊ホテル名 |
+| `hotel_fee` | integer \| null | 宿泊料金（円） |
+| `booth_fee` | integer \| null | 出店料（円） |
+| `booth_fee_pay_method` | string \| null | 支払い方法（"当日現金" / "事前振込" / "その他"） |
+| `booth_fee_due` | string \| null | 支払い期限（例: "2026-10-01"） |
+| `booth_fee_paid` | boolean | 支払い済みフラグ（デフォルト: false） |
+| `notes` | string \| null | 備考・メモ |
+
+**レスポンス `200`**: `{"ok": true}`
+
+**エラー**
+
+| ステータス | 原因 |
+|---|---|
+| `401` | Bearer トークン未送信または無効 |
+| `404` | 指定した `event_id` のイベントが存在しない |
+| `422` | Pydantic バリデーションエラー |
+| `500` | Supabase 保存エラー |
+
+---
+
 ### PUT /api/events/{event_id}/sessions
 
 イベントのWSセッションを全置換。
@@ -800,6 +884,8 @@ api.events.saveFinances(id, body)        → PUT    /api/events/{id}/finances  (
 api.events.getSessions(id, date?)         → GET    /api/events/{id}/sessions[?date=YYYY-MM-DD]
 api.events.saveSessions(id, sessions)    → PUT    /api/events/{id}/sessions  (auth)
 api.events.savePageContent(id, content)  → PATCH  /api/events/{id}/page  (auth)
+api.events.getAdminInfo(id)              → GET    /api/events/{id}/admin-info  (auth)
+api.events.saveAdminInfo(id, body)       → PUT    /api/events/{id}/admin-info  (auth)
 api.gallery.list(brand?)                 → GET    /api/gallery[?brand=...]
 api.gallery.add(body)                    → POST   /api/gallery  (auth)
 api.gallery.updateOrder(id, n)           → PATCH  /api/gallery/{id}  (auth)

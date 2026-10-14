@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import date, datetime, timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 _JST = timezone(timedelta(hours=9))
 
@@ -319,6 +323,65 @@ def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)):
     if existing.data:
         return admin_supabase.table('event_finances').update(data).eq('event_id', event_id).execute().data[0]
     return admin_supabase.table('event_finances').insert(data).execute().data[0]
+
+
+# 指定イベントの管理情報（搬入時間・ホテル・ブース費用等）を取得する（管理者のみ）
+@router.get('/{event_id}/admin-info')
+async def get_admin_info(event_id: str, _=Depends(require_auth)):
+    """指定イベントの管理情報を返す。未登録の場合は空の dict を返す。
+
+    Args:
+        event_id: 対象イベントのUUID
+
+    Returns:
+        admin_info フィールドの dict。未設定の場合は {}
+    """
+    try:
+        result = admin_supabase.table('events').select('admin_info').eq('id', event_id).single().execute()
+        info = result.data.get('admin_info') if result.data else None
+        return info if info is not None else {}
+    except Exception as e:
+        logger.error('get_admin_info 取得エラー: %s', e)
+        raise HTTPException(status_code=500, detail='管理情報の取得に失敗しました')
+
+
+class AdminInfoBody(BaseModel):
+    """イベント管理情報の入力スキーマ。全フィールド任意。"""
+
+    carry_in_time: Optional[str] = None       # 搬入日時（例: "2026-10-24T09:00"）
+    carry_out_time: Optional[str] = None      # 搬出日時
+    hotel_name: Optional[str] = None          # 宿泊ホテル名
+    hotel_fee: Optional[int] = None           # 宿泊料金（円）
+    booth_fee: Optional[int] = None           # 出店料（円）
+    booth_fee_pay_method: Optional[str] = None  # 支払い方法（当日現金/事前振込/その他）
+    booth_fee_due: Optional[str] = None       # 支払い期限（例: "2026-10-01"）
+    booth_fee_paid: bool = False              # 支払い済みフラグ
+    notes: Optional[str] = None              # 備考・メモ
+
+
+# 指定イベントの管理情報を保存する（管理者のみ）
+@router.put('/{event_id}/admin-info')
+async def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_auth)):
+    """指定イベントの管理情報を保存する。
+
+    Args:
+        event_id: 対象イベントのUUID
+        body: 保存する管理情報（AdminInfoBody スキーマで型を保証）
+
+    Returns:
+        {"ok": True}
+    """
+    try:
+        result = admin_supabase.table('events').update({'admin_info': body.model_dump()}).eq('id', event_id).execute()
+        # 更新対象が見つからない場合は 404 を返す
+        if not result.data:
+            raise HTTPException(status_code=404, detail='イベントが見つかりません')
+        return {'ok': True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error('save_admin_info 保存エラー: %s', e)
+        raise HTTPException(status_code=500, detail='管理情報の保存に失敗しました')
 
 
 # 画像URLをevent_imagesテーブルに表示順を付けて一括挿入する

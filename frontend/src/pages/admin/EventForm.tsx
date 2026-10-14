@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { api, type EventBody } from '../../lib/api'
 
 const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
@@ -444,6 +444,27 @@ export default function AdminEventForm() {
             キャンセル
           </button>
         </div>
+        {/* 編集モード（id あり）のみ管理情報画面へのリンクを表示する */}
+        {id && (
+          <div style={{ marginTop: 16 }}>
+            <Link
+              to={`/admin/events/${id}/admin-info`}
+              state={{ from: `/admin/events/${id}/edit` }}
+              style={{
+                display: 'inline-block',
+                padding: '10px 20px',
+                border: '1px solid #dddde8',
+                borderRadius: 4,
+                fontSize: 14,
+                color: 'var(--c-body)',
+                textDecoration: 'none',
+                background: '#ffffff',
+              }}
+            >
+              管理情報を編集
+            </Link>
+          </div>
+        )}
       </form>
     </div>
   )

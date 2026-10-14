@@ -396,3 +396,116 @@ class TestPageContent:
         })
         app.dependency_overrides[require_auth] = lambda: None
         assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# クラス: 管理情報（admin-info）
+# ---------------------------------------------------------------------------
+
+class TestEventAdminInfo:
+    """管理情報の取得・保存エンドポイントのテスト。"""
+
+    def setup_method(self):
+        """認証をバイパスするよう設定する。"""
+        app.dependency_overrides[require_auth] = lambda: None
+
+    def teardown_method(self):
+        """dependency_overrides をリセットする。"""
+        app.dependency_overrides.clear()
+
+    def test_管理情報取得_admin_infoが返る(self):
+        """GET /api/events/:id/admin-info で admin_info が返る。"""
+        # 1. admin_info フィールドを持つイベントレコードをモックに設定する
+        admin_info = {'carry_in_time': '9:00', 'hotel_name': 'テストホテル', 'booth_fee': 30000}
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .select.return_value
+            .eq.return_value
+            .single.return_value
+            .execute.return_value
+            .data) = {'admin_info': admin_info}
+
+        # 2. エンドポイントを呼んでレスポンスを検証する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.get('/api/events/evt-1/admin-info')
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['carry_in_time'] == '9:00'
+        assert data['hotel_name'] == 'テストホテル'
+        assert data['booth_fee'] == 30000
+
+    def test_管理情報取得_admin_infoがnullのとき空dictを返す(self):
+        """GET /api/events/:id/admin-info で admin_info が null のとき {} を返す。"""
+        # 1. admin_info が None のレコードをモックに設定する
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .select.return_value
+            .eq.return_value
+            .single.return_value
+            .execute.return_value
+            .data) = {'admin_info': None}
+
+        # 2. エンドポイントを呼んで空 dict が返ることを確認する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.get('/api/events/evt-1/admin-info')
+
+        assert resp.status_code == 200
+        assert resp.json() == {}
+
+    def test_管理情報取得_認証なし_401(self):
+        """GET /api/events/:id/admin-info で Authorization ヘッダーがない場合 401 が返る。"""
+        # 1. 認証バイパスをクリアして実際の require_auth を使う
+        app.dependency_overrides.clear()
+        client = TestClient(app)
+        resp = client.get('/api/events/evt-1/admin-info')
+        # 2. テスト後に認証バイパスを戻す（teardown_method が呼ばれるまでの補完）
+        app.dependency_overrides[require_auth] = lambda: None
+
+        assert resp.status_code == 401
+
+    def test_管理情報保存_okが返る(self):
+        """PUT /api/events/:id/admin-info で管理情報を保存して {"ok": True} が返る。"""
+        # 1. admin_supabase の update チェーンをモックする
+        mock_admin_sb = MagicMock()
+
+        # 2. エンドポイントを呼んで {"ok": True} が返ることを確認する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1/admin-info', json={
+                'carry_in_time': '9:00',
+                'hotel_name': 'テストホテル',
+                'booth_fee': 30000,
+            })
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+
+    def test_管理情報保存_認証なし_401(self):
+        """PUT /api/events/:id/admin-info で Authorization ヘッダーがない場合 401 が返る。"""
+        # 1. 認証バイパスをクリアして実際の require_auth を使う
+        app.dependency_overrides.clear()
+        client = TestClient(app)
+        resp = client.put('/api/events/evt-1/admin-info', json={'carry_in_time': '9:00'})
+        # 2. テスト後に認証バイパスを戻す
+        app.dependency_overrides[require_auth] = lambda: None
+
+        assert resp.status_code == 401
+
+    def test_管理情報保存_DB更新失敗時に500を返す(self):
+        """PUT /api/events/:id/admin-info で DB 更新が例外を投げたとき 500 が返る。"""
+        # 1. admin_supabase の update チェーンが例外を投げるよう設定する
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .update.return_value
+            .eq.return_value
+            .execute.side_effect) = Exception('DB connection error')
+
+        # 2. エンドポイントを呼んで 500 が返ることを確認する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1/admin-info', json={'carry_in_time': '9:00'})
+
+        assert resp.status_code == 500

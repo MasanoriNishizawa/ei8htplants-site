@@ -117,6 +117,12 @@ export const api = {
       authRequest<WsSession[]>(`/events/${id}/sessions`, { method: 'PUT', body: JSON.stringify({ sessions }) }),
     savePageContent: (id: string, page_content: PageContent) =>
       authRequest<Event>(`/events/${id}/page`, { method: 'PATCH', body: JSON.stringify({ page_content }) }),
+    /** イベントの管理情報（搬入・搬出時間・宿泊・出店料など）を取得する */
+    getAdminInfo: (id: string) =>
+      authRequest<EventAdminInfo>(`/events/${id}/admin-info`),
+    /** イベントの管理情報を保存する */
+    saveAdminInfo: (id: string, body: EventAdminInfo) =>
+      authRequest<{ ok: boolean }>(`/events/${id}/admin-info`, { method: 'PUT', body: JSON.stringify(body) }),
   },
   gallery: {
     list: (brand?: string) =>
@@ -432,6 +438,28 @@ export interface EventFinances {
 }
 
 export type EventFinancesBody = Omit<EventFinances, 'id' | 'event_id' | 'updated_at'>
+
+/** イベントの運営管理情報。搬入・搬出・宿泊・出店料の詳細を保持する */
+export interface EventAdminInfo {
+  /** 搬入日時（datetime-local 形式 例: "2026-10-24T09:00"） */
+  carry_in_time?: string | null
+  /** 搬出日時（datetime-local 形式） */
+  carry_out_time?: string | null
+  /** 宿泊ホテル名 */
+  hotel_name?: string | null
+  /** 宿泊料金（円） */
+  hotel_fee?: number | null
+  /** 出店料（円） */
+  booth_fee?: number | null
+  /** 出店料の支払い方法: "当日現金" | "事前振込" | "その他" */
+  booth_fee_pay_method?: string | null
+  /** 出店料の支払い期限（date 形式 例: "2026-10-01"） */
+  booth_fee_due?: string | null
+  /** 出店料の支払い済みフラグ */
+  booth_fee_paid?: boolean
+  /** 備考・注意事項 */
+  notes?: string | null
+}
 
 export interface Article {
   id: string

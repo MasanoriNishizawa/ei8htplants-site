@@ -53,6 +53,7 @@ import AdminChatQA from './pages/admin/AdminChatQA'
 import AdminChatLogs from './pages/admin/AdminChatLogs'
 import AdminHelperPayment from './pages/admin/AdminHelperPayment'
 import AdminWsSummary from './pages/admin/AdminWsSummary'
+import AdminEventAdminInfo from './pages/admin/EventAdminInfo'
 import Chat from './pages/Chat'
 import Media from './pages/Media'
 import Journal from './pages/Journal'
@@ -103,6 +104,7 @@ export default function App() {
             <Route path="events/:id/finances" element={<AdminEventFinance />} />
             <Route path="events/:id/reservations" element={<AdminEventReservations />} />
             <Route path="events/:id/site" element={<AdminEventSite />} />
+            <Route path="events/:id/admin-info" element={<AdminEventAdminInfo />} />
             <Route path="gallery" element={<AdminGallery />} />
             <Route path="stockists" element={<AdminStockists />} />
             <Route path="reservations" element={<AdminReservations />} />

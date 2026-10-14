@@ -39,6 +39,15 @@ export const handlers = [
     return HttpResponse.json([])
   }),
 
+  // 管理情報（搬入時間・ホテル・ブース費用等）の取得・保存
+  http.get('/api/events/:id/admin-info', () => {
+    return HttpResponse.json({})
+  }),
+
+  http.put('/api/events/:id/admin-info', () => {
+    return HttpResponse.json({ ok: true })
+  }),
+
   // Gallery
   http.get('/api/gallery', ({ request }) => {
     const url = new URL(request.url)
