@@ -236,7 +236,7 @@ export default function EventAdminInfo() {
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* 搬入・搬出 */}
-        <SectionBox label="搬入・搬出">
+        <SectionBox label="搬入・搬出" hint="日付・時・分をすべて入力した場合のみ保存されます">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* 搬入日時: 日付 input・時 select・分 select を組み合わせる */}
             <div>
@@ -457,11 +457,20 @@ export default function EventAdminInfo() {
  * @param label - セクション見出し
  * @param children - セクション内のコンテンツ
  */
-function SectionBox({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * フォームのセクションを囲む枠コンポーネント
+ * @param label - セクション見出し
+ * @param hint - 見出し右側に表示する補足テキスト（任意）
+ * @param children - セクション内のコンテンツ
+ */
+function SectionBox({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
-        {label}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+        <div style={{ fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase' }}>
+          {label}
+        </div>
+        {hint && <span style={{ fontSize: 11, color: 'var(--c-muted)' }}>{hint}</span>}
       </div>
       <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '16px' }}>
         {children}

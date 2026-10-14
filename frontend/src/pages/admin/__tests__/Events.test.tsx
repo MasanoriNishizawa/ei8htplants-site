@@ -1,0 +1,133 @@
+/**
+ * AdminEvents ページのテスト
+ *
+ * 1. イベント一覧に「管理情報」リンクが表示されること
+ *    - 各イベント行に「管理情報」ボタンが表示される
+ *    - リンク先が /admin/events/:id/admin-info になっている
+ * 2. ローディング中の表示
+ * 3. イベントがないときの表示
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import AdminEvents from '../Events'
+import { api } from '../../../lib/api'
+import type { Event, Reservation } from '../../../lib/api'
+
+// api モジュールのモック。実装は保持せず api の関数だけをモックする
+vi.mock('../../../lib/api', async (importActual) => {
+  const actual = await importActual<typeof import('../../../lib/api')>()
+  return {
+    ...actual,
+    api: {
+      events: {
+        list: vi.fn(),
+        create: vi.fn(),
+        delete: vi.fn(),
+      },
+      reserve: {
+        list: vi.fn(),
+      },
+    },
+  }
+})
+
+// ---- テスト用モックデータ ----
+
+/**
+ * テスト用のイベントデータ（今後のイベントとして使う）
+ */
+const MOCK_EVENT: Event = {
+  id: 'event-admin-1',
+  slug: 'admin-test-event',
+  name: '管理情報テストイベント',
+  start_date: '2099-06-01',
+  end_date: null,
+  time: '10:00〜17:00',
+  location: 'テスト会場',
+  booth_number: null,
+  address: null,
+  official_url: null,
+  brands: ['ei8ht plants'],
+  has_workshop: false,
+  ws_requires_reservation: false,
+  is_past: false,
+  display_order: 1,
+  images: [],
+  page_content: null,
+  daily_times: null,
+}
+
+/**
+ * AdminEvents ページを MemoryRouter でラップしてレンダリングするヘルパー
+ */
+function renderAdminEventsPage() {
+  return render(
+    <MemoryRouter initialEntries={['/admin/events']}>
+      <Routes>
+        <Route path="/admin/events" element={<AdminEvents />} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
+// ---- テストスイート ----
+
+describe('AdminEvents ページ — 管理情報リンク', () => {
+  beforeEach(() => {
+    // 各テスト前にモックをリセットしてデフォルト値を設定する
+    vi.mocked(api.events.list).mockReset()
+    vi.mocked(api.reserve.list).mockReset()
+
+    // 今後のイベント（past=false）は MOCK_EVENT を返し、過去（past=true）は空配列を返す
+    vi.mocked(api.events.list).mockImplementation((past = false) =>
+      Promise.resolve(past ? [] : [MOCK_EVENT])
+    )
+    // 予約は空配列を返す
+    vi.mocked(api.reserve.list).mockResolvedValue([] as Reservation[])
+  })
+
+  it('データ読み込み後に「管理情報」リンクが表示される', async () => {
+    // イベント一覧に「管理情報」というテキストのリンクが表示されることを確認する
+    renderAdminEventsPage()
+    await waitFor(() => {
+      expect(screen.getByText('管理情報')).toBeDefined()
+    })
+  })
+
+  it('「管理情報」リンクの href に /admin/events/:id/admin-info が含まれる', async () => {
+    // リンクの href が正しい管理情報ページ URL になっていることを確認する
+    renderAdminEventsPage()
+    await waitFor(() => {
+      const link = screen.getByRole('link', { name: '管理情報' })
+      expect(link.getAttribute('href')).toContain(`/admin/events/${MOCK_EVENT.id}/admin-info`)
+    })
+  })
+
+  it('「管理情報」リンクに加えて「編集」「収支」「サイト」リンクも表示される', async () => {
+    // 各種リンクが揃って表示されることを確認する
+    renderAdminEventsPage()
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: '編集' })).toBeDefined()
+      expect(screen.getByRole('link', { name: '管理情報' })).toBeDefined()
+      expect(screen.getByRole('link', { name: '収支' })).toBeDefined()
+      expect(screen.getByRole('link', { name: 'サイト' })).toBeDefined()
+    })
+  })
+
+  it('ローディング中は「読み込み中...」が表示される', () => {
+    // データ取得が完了する前はローディングメッセージが表示されることを確認する
+    vi.mocked(api.events.list).mockReturnValue(new Promise(() => {})) // 永遠に保留
+    vi.mocked(api.reserve.list).mockReturnValue(new Promise(() => {}))
+    renderAdminEventsPage()
+    expect(screen.getByText('読み込み中...')).toBeDefined()
+  })
+
+  it('今後のイベントのイベント名が表示される', async () => {
+    // イベント名がリストに表示されることを確認する
+    renderAdminEventsPage()
+    await waitFor(() => {
+      expect(screen.getByText('管理情報テストイベント')).toBeDefined()
+    })
+  })
+})
