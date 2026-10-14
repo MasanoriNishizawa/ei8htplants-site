@@ -10,6 +10,12 @@ __pycache__/
 venv/
 .venv/
 .pytest_cache/
+.coverage
+htmlcov/
+
+# テストカバレッジ
+coverage/
+frontend/coverage/
 
 # Node.js
 node_modules/
