@@ -200,17 +200,6 @@ export default function EventPreview({ event, horizontal = false }: Props) {
               </a>
             </div>
           )}
-          {/* 内部詳細ページがある場合のみ「詳細を見る」リンクを表示する */}
-          {hasSite && (
-            <div style={{ marginTop: 4 }}>
-              <Link
-                to={`/events/${event.slug ?? event.id}`}
-                style={{ color: '#4a6741', textDecoration: 'underline', textUnderlineOffset: 3 }}
-              >
-                {t('詳細を見る', 'View Details')}
-              </Link>
-            </div>
-          )}
         </div>
 
         {event.has_workshop && (

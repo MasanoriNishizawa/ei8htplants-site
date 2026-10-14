@@ -1,5 +1,16 @@
-import { describe, it, expect } from 'vitest'
-import { computeFinances, fiscalYear, type EventFinances } from '../api'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { computeFinances, fiscalYear, type EventFinances, api } from '../api'
+
+// supabase モジュールをモック（authRequest が JWT トークンを取得するために使用）
+vi.mock('../supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { access_token: 'test-token' } },
+      }),
+    },
+  },
+}))
 
 const BASE: EventFinances = {
   event_id: 'test-id',
@@ -110,5 +121,198 @@ describe('computeFinances - payment_flag あり', () => {
     expect(result.totalExpense).toBe(13400)
     // salesShare = (50000 - 13400) * 0.2 = 7320
     expect(result.salesShare).toBe(7320)
+  })
+})
+
+// ---------------------------------------------------------------
+// fetch API テスト: 各 api.* 関数が正しいエンドポイントを呼ぶか検証
+// ---------------------------------------------------------------
+
+/** テスト用の fetch モックを作成するヘルパー */
+function makeMockFetch(responseData: unknown = []) {
+  return vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => responseData,
+  })
+}
+
+describe('api.events', () => {
+  // 各テストの前に fetch モックを設定し、後にグローバルを元に戻す
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('api.events.list() が GET /api/events?past=false を呼ぶ', async () => {
+    await api.events.list()
+    // デフォルト past=false なので ?past=false が付く
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events?past=false')
+  })
+
+  it('api.events.list(true) が ?past=true を付けて呼ぶ', async () => {
+    await api.events.list(true)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events?past=true')
+  })
+
+  it('api.events.get(id) が GET /api/events/:id を呼ぶ', async () => {
+    mockFetch = makeMockFetch({ id: 'ev-1' })
+    vi.stubGlobal('fetch', mockFetch)
+    await api.events.get('ev-1')
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1')
+  })
+
+  it('api.events.create(body) が POST /api/events を呼ぶ', async () => {
+    // authRequest を使うので supabase セッションが必要（モック済み）
+    mockFetch = makeMockFetch({ id: 'new-ev' })
+    vi.stubGlobal('fetch', mockFetch)
+    const body = {
+      name: 'テストイベント',
+      start_date: '2099-01-01',
+      location: '東京',
+      brands: [],
+      has_workshop: false,
+      ws_requires_reservation: false,
+      image_urls: [],
+    }
+    await api.events.create(body)
+    // 認証ヘッダー付きで POST が呼ばれること
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST' })
+  })
+
+  it('api.events.update(id, body) が PUT /api/events/:id を呼ぶ', async () => {
+    mockFetch = makeMockFetch({ id: 'ev-1' })
+    vi.stubGlobal('fetch', mockFetch)
+    const body = {
+      name: '更新イベント',
+      start_date: '2099-02-01',
+      location: '大阪',
+      brands: [],
+      has_workshop: false,
+      ws_requires_reservation: false,
+      image_urls: [],
+    }
+    await api.events.update('ev-1', body)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT' })
+  })
+
+  it('api.events.delete(id) が DELETE /api/events/:id を呼ぶ', async () => {
+    mockFetch = makeMockFetch({ ok: true })
+    vi.stubGlobal('fetch', mockFetch)
+    await api.events.delete('ev-1')
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
+  })
+})
+
+describe('api.gallery', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('api.gallery.list() が GET /api/gallery を呼ぶ', async () => {
+    await api.gallery.list()
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/gallery')
+  })
+
+  it('api.gallery.list("ei8ht plants") がブランドフィルター付きで呼ぶ', async () => {
+    await api.gallery.list('ei8ht plants')
+    // brand パラメータが URL エンコードされて渡されること
+    const url: string = mockFetch.mock.calls[0][0]
+    expect(url).toContain('/api/gallery')
+    expect(url).toContain('brand=')
+    expect(url).toContain(encodeURIComponent('ei8ht plants'))
+  })
+})
+
+describe('api.products', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('api.products.list() が GET /api/products を呼ぶ', async () => {
+    await api.products.list()
+    // all=false の場合はクエリなし
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/products')
+  })
+
+  it('api.products.get(id) が GET /api/products/:id を呼ぶ', async () => {
+    mockFetch = makeMockFetch({ id: 'prod-1' })
+    vi.stubGlobal('fetch', mockFetch)
+    await api.products.get('prod-1')
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/products/prod-1')
+  })
+})
+
+describe('api.contact', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch({ ok: true })
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('api.contact.send(body) が POST /api/contact を呼ぶ', async () => {
+    const body = { name: '田中', email: 'tanaka@example.com', message: 'お問い合わせ' }
+    await api.contact.send(body)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/contact')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST' })
+  })
+})
+
+describe('api.reserve', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch({ id: 'res-1' })
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('api.reserve.create(body) が POST /api/reserve を呼ぶ', async () => {
+    const body = {
+      event_id: 'ev-1',
+      name: '山田',
+      email: 'yamada@example.com',
+      participants: 2,
+      bring_plant: false,
+      bring_pot: false,
+    }
+    await api.reserve.create(body)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/reserve')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST' })
   })
 })

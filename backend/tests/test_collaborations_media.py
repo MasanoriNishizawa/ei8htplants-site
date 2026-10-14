@@ -69,3 +69,154 @@ class TestMediaAppearancesEndpoint:
             resp = TestClient(app).get('/api/media-appearances')
         assert resp.status_code == 500
         assert 'DB connection failed' in resp.json()['detail']
+
+
+class TestCollaborationsCRUD:
+    """コラボレーション作成・削除 POST/DELETE /api/collaborations のテスト（管理者のみ）。"""
+
+    def test_コラボレーションを作成すると追加されたレコードが返る(self):
+        """POST /api/collaborations でコラボレーションを追加したとき、作成後のレコードが返ること。
+
+        add_collaboration は supabase（件数取得）と admin_supabase（insert）の両方を使う。
+        """
+        from app.auth import require_auth
+
+        # supabase: 件数取得チェーン（select → count）
+        mock_public_sb = MagicMock()
+        mock_public_sb.table.return_value.select.return_value.execute.return_value.count = 2
+
+        # admin_supabase: insert チェーン
+        new_collab = {'id': 'c3', 'title': 'Collab C', 'partner_name': None, 'display_order': 2}
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value.insert.return_value.execute.return_value.data = [new_collab]
+
+        app.dependency_overrides[require_auth] = lambda: None
+        try:
+            with patch('app.routes.collaborations.supabase', mock_public_sb), \
+                 patch('app.routes.collaborations.admin_supabase', mock_admin_sb):
+                resp = TestClient(app).post('/api/collaborations', json={'title': 'Collab C'})
+        finally:
+            app.dependency_overrides.pop(require_auth, None)
+
+        assert resp.status_code == 200
+        assert resp.json()['title'] == 'Collab C'
+        # admin_supabase.insert が呼ばれたこと
+        mock_admin_sb.table.return_value.insert.assert_called_once()
+
+    def test_コラボレーション作成は認証なしで401(self):
+        """Authorization ヘッダーなしで POST すると 401 が返ること。"""
+        resp = TestClient(app).post('/api/collaborations', json={'title': 'Collab X'})
+        assert resp.status_code == 401
+
+    def test_コラボレーションを削除するとokが返る(self):
+        """DELETE /api/collaborations/{id} で削除したとき {"ok": True} が返ること。"""
+        from app.auth import require_auth
+
+        mock_admin_sb = MagicMock()
+        # delete チェーン（戻り値は使わない）
+        mock_admin_sb.table.return_value.delete.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        app.dependency_overrides[require_auth] = lambda: None
+        try:
+            with patch('app.routes.collaborations.admin_supabase', mock_admin_sb):
+                resp = TestClient(app).delete('/api/collaborations/c1')
+        finally:
+            app.dependency_overrides.pop(require_auth, None)
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+
+    def test_コラボレーション削除は認証なしで401(self):
+        """Authorization ヘッダーなしで DELETE すると 401 が返ること。"""
+        resp = TestClient(app).delete('/api/collaborations/c1')
+        assert resp.status_code == 401
+
+
+class TestMediaAppearancesCRUD:
+    """メディア出演情報 作成・削除 POST/DELETE /api/media-appearances のテスト（管理者のみ）。"""
+
+    def test_メディア出演情報を作成すると追加されたレコードが返る(self):
+        """POST /api/media-appearances でレコードを追加したとき、作成後のデータが返ること。"""
+        from app.auth import require_auth
+
+        new_item = {'id': 'm3', 'title': 'Video C', 'youtube_url': 'https://youtube.com/watch?v=ccc'}
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value.insert.return_value.execute.return_value.data = [new_item]
+
+        app.dependency_overrides[require_auth] = lambda: None
+        try:
+            with patch('app.routes.media_appearances.admin_supabase', mock_admin_sb):
+                resp = TestClient(app).post(
+                    '/api/media-appearances',
+                    json={'title': 'Video C', 'youtube_url': 'https://youtube.com/watch?v=ccc'},
+                )
+        finally:
+            app.dependency_overrides.pop(require_auth, None)
+
+        assert resp.status_code == 200
+        assert resp.json()['title'] == 'Video C'
+
+    def test_メディア出演情報作成でDB例外が発生すると500(self):
+        """admin_supabase.insert が例外を投げたとき 500 が返ること。"""
+        from app.auth import require_auth
+
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value.insert.return_value.execute.side_effect = Exception('insert failed')
+
+        app.dependency_overrides[require_auth] = lambda: None
+        try:
+            with patch('app.routes.media_appearances.admin_supabase', mock_admin_sb):
+                resp = TestClient(app).post(
+                    '/api/media-appearances',
+                    json={'title': 'Video X', 'youtube_url': 'https://youtube.com/watch?v=xxx'},
+                )
+        finally:
+            app.dependency_overrides.pop(require_auth, None)
+
+        assert resp.status_code == 500
+
+    def test_メディア出演情報作成は認証なしで401(self):
+        """Authorization ヘッダーなしで POST すると 401 が返ること。"""
+        resp = TestClient(app).post(
+            '/api/media-appearances',
+            json={'title': 'Video X', 'youtube_url': 'https://youtube.com/watch?v=xxx'},
+        )
+        assert resp.status_code == 401
+
+    def test_メディア出演情報を削除するとokが返る(self):
+        """DELETE /api/media-appearances/{id} で削除したとき {"ok": True} が返ること。"""
+        from app.auth import require_auth
+
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value.delete.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        app.dependency_overrides[require_auth] = lambda: None
+        try:
+            with patch('app.routes.media_appearances.admin_supabase', mock_admin_sb):
+                resp = TestClient(app).delete('/api/media-appearances/m1')
+        finally:
+            app.dependency_overrides.pop(require_auth, None)
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+
+    def test_メディア出演情報削除でDB例外が発生すると500(self):
+        """admin_supabase.delete が例外を投げたとき 500 が返ること。"""
+        from app.auth import require_auth
+
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value.delete.return_value.eq.return_value.execute.side_effect = Exception('delete failed')
+
+        app.dependency_overrides[require_auth] = lambda: None
+        try:
+            with patch('app.routes.media_appearances.admin_supabase', mock_admin_sb):
+                resp = TestClient(app).delete('/api/media-appearances/m1')
+        finally:
+            app.dependency_overrides.pop(require_auth, None)
+
+        assert resp.status_code == 500
+
+    def test_メディア出演情報削除は認証なしで401(self):
+        """Authorization ヘッダーなしで DELETE すると 401 が返ること。"""
+        resp = TestClient(app).delete('/api/media-appearances/m1')
+        assert resp.status_code == 401

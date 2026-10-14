@@ -142,3 +142,197 @@ describe('EventCard formatDailyTimes', () => {
     expect(screen.queryByText(/\d{2}:\d{2}/)).toBeNull()
   })
 })
+
+// ---- isHome レイアウトのテスト ----
+describe('EventCard isHome レイアウト', () => {
+  it('isHome=true のとき /events へのリンクが含まれる', () => {
+    // ホームページ用レイアウトでは画像部分が /events へのリンクでラップされる
+    renderCard(makeEvent({ images: THREE_IMAGES }), { isHome: true })
+    // href="/events" の a タグが存在することを確認する
+    const link = screen.getByRole('link', { name: /Test Event/ })
+    expect(link).toBeDefined()
+    expect(link.getAttribute('href')).toBe('/events')
+  })
+
+  it('isHome=false のとき全体リンクは表示されない', () => {
+    // 通常レイアウトでは画像が独立して表示され /events への a タグは存在しない
+    renderCard(makeEvent({ images: THREE_IMAGES }), { isHome: false })
+    // /events へのリンクが存在しないことを確認する
+    const links = document.querySelectorAll('a[href="/events"]')
+    expect(links.length).toBe(0)
+  })
+})
+
+// ---- ブランドバッジのテスト ----
+describe('EventCard brands', () => {
+  it('brands が設定されているときブランドバッジが表示される', () => {
+    // brands フィールドに値があるとき各ブランド名がバッジとして表示される
+    renderCard(makeEvent({ brands: ['ei8ht plants', 'Habitat Oides'] }))
+    expect(screen.getByText('ei8ht plants')).toBeDefined()
+    expect(screen.getByText('Habitat Oides')).toBeDefined()
+  })
+
+  it('brands が空のときブランドバッジが表示されない', () => {
+    // brands が [] のときブランドセクションが存在しない
+    renderCard(makeEvent({ brands: [] }))
+    expect(screen.queryByText('ei8ht plants')).toBeNull()
+  })
+})
+
+// ---- 場所情報のテスト ----
+describe('EventCard 場所情報', () => {
+  it('booth_number が設定されているときブース番号が表示される', () => {
+    // booth_number フィールドがあるときは「ブース: XXX」という形式で表示される
+    renderCard(makeEvent({ booth_number: 'A-05' }))
+    expect(screen.getByText(/ブース: A-05/)).toBeDefined()
+  })
+
+  it('booth_number が null のときブース表示がない', () => {
+    // booth_number が null のときはブース行が存在しない
+    renderCard(makeEvent({ booth_number: null }))
+    expect(screen.queryByText(/ブース:/)).toBeNull()
+  })
+
+  it('address が設定されているとき Google Maps リンクが表示される', () => {
+    // address が設定されているとき Google Maps へのリンクが表示される
+    renderCard(makeEvent({ address: '東京都渋谷区道玄坂1-1-1' }))
+    const mapsLink = screen.getByRole('link', { name: '東京都渋谷区道玄坂1-1-1' })
+    expect(mapsLink).toBeDefined()
+    expect(mapsLink.getAttribute('href')).toContain('google.com/maps')
+  })
+
+  it('official_url が設定されているとき公式サイトリンクが表示される', () => {
+    // official_url が設定されているとき「公式サイト」というリンクが表示される
+    renderCard(makeEvent({ official_url: 'https://example.com/event' }))
+    const siteLink = screen.getByRole('link', { name: '公式サイト' })
+    expect(siteLink).toBeDefined()
+    expect(siteLink.getAttribute('href')).toBe('https://example.com/event')
+  })
+
+  it('official_url が null のとき公式サイトリンクが表示されない', () => {
+    // official_url が null のときは「公式サイト」リンクが存在しない
+    renderCard(makeEvent({ official_url: null }))
+    expect(screen.queryByRole('link', { name: '公式サイト' })).toBeNull()
+  })
+})
+
+// ---- ワークショップセクションのテスト ----
+describe('EventCard ワークショップセクション', () => {
+  it('has_workshop=true のときワークショップセクションが表示される', () => {
+    // has_workshop=true のとき "Habitat Style Workshop" の文字が表示される
+    renderCard(makeEvent({ has_workshop: true }))
+    expect(screen.getByText('Habitat Style Workshop')).toBeDefined()
+  })
+
+  it('has_workshop=false のときワークショップセクションが表示されない', () => {
+    // has_workshop=false のとき Workshop セクションが存在しない
+    renderCard(makeEvent({ has_workshop: false }))
+    expect(screen.queryByText('Habitat Style Workshop')).toBeNull()
+  })
+
+  it('ws_requires_reservation=true かつ is_past=false のとき予約ボタンが表示される', () => {
+    // 予約が必要（ws_requires_reservation=true）かつ未終了（is_past=false）なら予約リンクが表示される
+    renderCard(makeEvent({
+      has_workshop: true,
+      ws_requires_reservation: true,
+      is_past: false,
+      start_date: '2099-06-01',
+    }))
+    expect(screen.getByText('ワークショップを予約する')).toBeDefined()
+  })
+
+  it('ws_requires_reservation=false のとき予約ボタンが表示されない', () => {
+    // 予約不要のときは予約ボタンが表示されない
+    renderCard(makeEvent({
+      has_workshop: true,
+      ws_requires_reservation: false,
+    }))
+    expect(screen.queryByText('ワークショップを予約する')).toBeNull()
+  })
+
+  it('is_past=true のとき予約ボタンが表示されない', () => {
+    // 終了済みイベントでは予約ボタンが表示されない
+    renderCard(makeEvent({
+      has_workshop: true,
+      ws_requires_reservation: true,
+      is_past: true,
+    }))
+    expect(screen.queryByText('ワークショップを予約する')).toBeNull()
+  })
+
+  it('has_workshop=true のとき画像上に Workshop バッジが表示される', () => {
+    // has_workshop=true で画像がある場合、画像右上に "Workshop" バッジが表示される
+    renderCard(makeEvent({
+      has_workshop: true,
+      images: [THREE_IMAGES[0]],
+    }))
+    expect(screen.getByText('Workshop')).toBeDefined()
+  })
+})
+
+// ---- 詳細リンクのテスト ----
+describe('EventCard 詳細を見るリンク', () => {
+  it('page_content が設定されているとき「詳細を見る」リンクが表示される', () => {
+    // page_content が null でない（空オブジェクトでも）ときに「詳細を見る」ボタンが表示される
+    renderCard(makeEvent({ page_content: {} }))
+    expect(screen.getByText('詳細を見る')).toBeDefined()
+  })
+
+  it('page_content が null のとき「詳細を見る」リンクが表示されない', () => {
+    // page_content が null のとき詳細ボタンが存在しない
+    renderCard(makeEvent({ page_content: null }))
+    expect(screen.queryByText('詳細を見る')).toBeNull()
+  })
+
+  it('「詳細を見る」リンクが /events/:slug に遷移する', () => {
+    // slug が設定されているとき /events/<slug> へのリンクになる
+    renderCard(makeEvent({ slug: 'my-event', page_content: {} }))
+    const link = screen.getByText('詳細を見る').closest('a')
+    expect(link?.getAttribute('href')).toBe('/events/my-event')
+  })
+})
+
+// ---- 緊急バッジのテスト ----
+// 注: バッジは imageSection（images.length > 0 のとき）の内部にのみ表示される
+
+/** 今日から n 日後の日付文字列（YYYY-MM-DD）をローカルタイムゾーンで返す */
+function daysFromNow(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+describe('EventCard 緊急バッジ', () => {
+  const ONE_IMAGE = [{ id: 'i1', url: 'https://example.com/a.jpg', display_order: 1 }]
+
+  it('start_date が今日のとき「本日開催」バッジが表示される', () => {
+    // days=0 のとき「本日開催」バッジが表示される
+    renderCard(makeEvent({ start_date: daysFromNow(0), is_past: false, images: ONE_IMAGE }))
+    expect(screen.getByText('本日開催')).toBeDefined()
+  })
+
+  it('start_date が7日以内のとき「あと〇日」バッジが表示される', () => {
+    // days が 1〜7 のとき「あと〇日」バッジが表示される
+    renderCard(makeEvent({ start_date: daysFromNow(3), is_past: false, images: ONE_IMAGE }))
+    expect(screen.getByText('あと3日')).toBeDefined()
+  })
+
+  it('start_date が8日以上先のときバッジが表示されない', () => {
+    // days > 7 のとき緊急バッジは表示されない
+    renderCard(makeEvent({ start_date: '2099-06-01', is_past: false, images: ONE_IMAGE }))
+    expect(screen.queryByText(/あと\d+日/)).toBeNull()
+    expect(screen.queryByText('本日開催')).toBeNull()
+    expect(screen.queryByText('開催中')).toBeNull()
+  })
+
+  it('start が過去かつ end が今日以降のとき「開催中」バッジが表示される', () => {
+    // startD < today <= endD のとき「開催中」バッジが表示される
+    renderCard(makeEvent({
+      start_date: daysFromNow(-2),
+      end_date: daysFromNow(2),
+      is_past: false,
+      images: ONE_IMAGE,
+    }))
+    expect(screen.getByText('開催中')).toBeDefined()
+  })
+})

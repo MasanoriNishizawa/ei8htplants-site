@@ -243,3 +243,181 @@ class TestChatEndpoint:
         # send_message が最後のメッセージ内容で呼ばれていることを確認
         call_args = mock_genai.Client.return_value.chats.create.return_value.send_message.call_args
         assert call_args[0][0] == '2番目の質問'
+
+    def test_サイトコンテキストが構築されてsupabaseのeventsテーブルが呼ばれる(self):
+        """_build_site_context が呼ばれ supabase.table('events') が呼び出されること。
+
+        イベントデータが返される場合は Gemini のシステムプロンプトに
+        イベント情報が含まれて chats.create が呼ばれることを確認する。
+        """
+        # 未来のイベントデータを返すよう supabase モックを設定する
+        mock_sb = MagicMock()
+
+        # events テーブル用モック（未来のイベントを1件返す）
+        events_mock = MagicMock()
+        future_event = {
+            'name': 'テストワークショップ',
+            'start_date': '2099-01-01',
+            'end_date': '2099-01-02',
+            'time': '14:00',
+            'location': '東京',
+            'has_workshop': True,
+        }
+        events_mock.select.return_value.order.return_value.execute.return_value.data = [future_event]
+
+        # products テーブル用モック（空リスト）
+        products_mock = MagicMock()
+        products_mock.select.return_value.eq.return_value.gt.return_value.order.return_value.execute.return_value.data = []
+
+        # stockists テーブル用モック（空リスト）
+        stockists_mock = MagicMock()
+        stockists_mock.select.return_value.order.return_value.execute.return_value.data = []
+
+        def sb_table_side_effect(name: str):
+            """テーブル名に応じてモックを切り替える。"""
+            if name == 'events':
+                return events_mock
+            elif name == 'products':
+                return products_mock
+            elif name == 'stockists':
+                return stockists_mock
+            return MagicMock()
+
+        mock_sb.table.side_effect = sb_table_side_effect
+
+        # admin_supabase は articles と chat_qa を返すモックを設定する
+        mock_admin_sb = MagicMock()
+
+        articles_mock = MagicMock()
+        articles_mock.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+
+        qa_mock = MagicMock()
+        qa_mock.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+
+        logs_mock = MagicMock()
+        logs_mock.insert.return_value.execute.return_value = MagicMock()
+
+        def admin_sb_table_side_effect(name: str):
+            """テーブル名に応じてモックを切り替える。"""
+            if name == 'articles':
+                return articles_mock
+            elif name == 'chat_qa':
+                return qa_mock
+            elif name == 'chat_logs':
+                return logs_mock
+            return MagicMock()
+
+        mock_admin_sb.table.side_effect = admin_sb_table_side_effect
+
+        mock_genai = _make_genai_mock('サイトコンテキスト込みの返答')
+
+        with patch('app.routes.chat.genai', mock_genai), \
+             patch('app.routes.chat.GEMINI_API_KEY', 'test-key'), \
+             patch('app.routes.chat.supabase', mock_sb), \
+             patch('app.routes.chat.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).post('/api/chat', json=VALID_PAYLOAD)
+
+        assert resp.status_code == 200
+        # supabase.table が 'events' で呼ばれていることを確認（サイトコンテキスト取得）
+        mock_sb.table.assert_any_call('events')
+        # Gemini の chats.create がイベント情報を含むシステムプロンプトで呼ばれていること
+        chats_create_call = mock_genai.Client.return_value.chats.create.call_args
+        config = chats_create_call[1]['config']
+        assert 'テストワークショップ' in config.system_instruction
+
+    def test_QAがchat_qaテーブルから取得されてシステムプロンプトに含まれる(self):
+        """chat_qa テーブルから取得した Q&A がシステムプロンプトに追記されること。
+
+        admin_supabase.table('chat_qa') から enabled=True のレコードが返されるとき、
+        Gemini の chats.create に渡す system_instruction に Q&A テキストが含まれることを確認する。
+        """
+        mock_sb = _make_sb_mock()
+
+        # admin_supabase は chat_qa に Q&A データを返すよう設定する
+        mock_admin_sb = MagicMock()
+
+        qa_data = [
+            {'question': 'アガベの水やりは？', 'answer': '夏場は週1回程度です'},
+        ]
+        articles_mock = MagicMock()
+        articles_mock.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+
+        qa_mock = MagicMock()
+        qa_mock.select.return_value.eq.return_value.order.return_value.execute.return_value.data = qa_data
+
+        logs_mock = MagicMock()
+        logs_mock.insert.return_value.execute.return_value = MagicMock()
+
+        def admin_sb_table_side_effect(name: str):
+            """テーブル名に応じてモックを切り替える。"""
+            if name == 'articles':
+                return articles_mock
+            elif name == 'chat_qa':
+                return qa_mock
+            elif name == 'chat_logs':
+                return logs_mock
+            return MagicMock()
+
+        mock_admin_sb.table.side_effect = admin_sb_table_side_effect
+
+        mock_genai = _make_genai_mock('Q&A込みの返答')
+
+        with patch('app.routes.chat.genai', mock_genai), \
+             patch('app.routes.chat.GEMINI_API_KEY', 'test-key'), \
+             patch('app.routes.chat.supabase', mock_sb), \
+             patch('app.routes.chat.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).post('/api/chat', json=VALID_PAYLOAD)
+
+        assert resp.status_code == 200
+        # Gemini の chats.create がQ&Aを含むシステムプロンプトで呼ばれていること
+        chats_create_call = mock_genai.Client.return_value.chats.create.call_args
+        config = chats_create_call[1]['config']
+        assert 'アガベの水やりは？' in config.system_instruction
+        assert '夏場は週1回程度です' in config.system_instruction
+
+    def test_build_site_contextでeventsDBエラーが起きても他テーブルは継続取得される(self):
+        """_build_site_context で events テーブルのDB取得が失敗しても、
+        products・stockists テーブルの取得が続行されて 200 が返ること。
+
+        各テーブルは独立した try/except に囲まれているため、
+        1つのテーブルのエラーが他に影響しないことを確認する。
+        """
+        mock_sb = MagicMock()
+
+        # events テーブルは例外を投げるよう設定する
+        events_mock = MagicMock()
+        events_mock.select.return_value.order.return_value.execute.side_effect = Exception('events DB error')
+
+        # stockists テーブルはデータを返す（継続取得を確認するため）
+        stockists_mock = MagicMock()
+        stockist_data = [{'name': '東京グリーン', 'area': '東京', 'brands': ['ei8ht plants']}]
+        stockists_mock.select.return_value.order.return_value.execute.return_value.data = stockist_data
+
+        # products テーブルは空リストを返す
+        products_mock = MagicMock()
+        products_mock.select.return_value.eq.return_value.gt.return_value.order.return_value.execute.return_value.data = []
+
+        def sb_table_side_effect(name: str):
+            """テーブル名に応じてモックを切り替える。"""
+            if name == 'events':
+                return events_mock
+            elif name == 'products':
+                return products_mock
+            elif name == 'stockists':
+                return stockists_mock
+            return MagicMock()
+
+        mock_sb.table.side_effect = sb_table_side_effect
+        mock_admin_sb = _make_admin_sb_mock()
+        mock_genai = _make_genai_mock('エラー継続テスト返答')
+
+        with patch('app.routes.chat.genai', mock_genai), \
+             patch('app.routes.chat.GEMINI_API_KEY', 'test-key'), \
+             patch('app.routes.chat.supabase', mock_sb), \
+             patch('app.routes.chat.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).post('/api/chat', json=VALID_PAYLOAD)
+
+        # events でエラーが起きても全体は成功する
+        assert resp.status_code == 200
+        # stockists テーブルが呼ばれていること（継続取得の確認）
+        mock_sb.table.assert_any_call('stockists')

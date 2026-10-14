@@ -106,7 +106,9 @@ PC (`display: flex`) / モバイル (`display: none`) を CSS クラスで切り
 
 | 操作 | 遷移先 |
 |---|---|
-| 予約ボタンクリック（EventCard内） | `/reserve?event_id={id}` |
+| 「詳細を見る」ボタンクリック（EventPreview内） | `/events/{slug}` または `/events/{id}` |
+| 予約ボタンクリック（EventPreview内） | `/reserve?event_id={id}` |
 | 公式URLクリック | 外部サイト（新しいタブ） |
+| 住所クリック | Google Maps（新しいタブ） |
 | 「過去のイベントを見る」 | `/events?page=past` |
 | 「現在のイベントを見る」 | `/events` |
