@@ -17,19 +17,6 @@ const BLANK: EventFinancesBody = {
   notes: null,
 }
 
-/** saveAdminInfo 呼び出し時に adminInfo が null だった場合に使う初期値 */
-const BLANK_ADMIN_INFO: EventAdminInfo = {
-  carry_in_time: null,
-  carry_out_time: null,
-  hotel_name: null,
-  hotel_fee: null,
-  booth_fee: null,
-  booth_fee_pay_method: null,
-  booth_fee_due: null,
-  booth_fee_paid: false,
-  notes: null,
-}
-
 function fmt(n: number) {
   return n.toLocaleString('ja-JP')
 }
@@ -49,6 +36,8 @@ export default function EventFinance() {
   const [saving, setSaving] = useState(false)
   /** 読み込み・保存エラーのメッセージ。null なら非表示 */
   const [error, setError] = useState<string | null>(null)
+  /** 読み込みに失敗したかどうか。true の間は保存できなくする（空のフォームで既存データを上書きしないため） */
+  const [loadFailed, setLoadFailed] = useState(false)
 
   // イベント情報・収支データ・予約一覧・管理情報を同時取得してフォームに反映する
   useEffect(() => {
@@ -81,8 +70,9 @@ export default function EventFinance() {
         notes: fin.notes,
       })
     }).catch(() => {
-      // 読み込み失敗時にエラーメッセージを表示する
+      // 読み込み失敗時にエラーメッセージを表示し、保存を止める
       setError('データの読み込みに失敗しました。ページを再読み込みしてください。')
+      setLoadFailed(true)
     }).finally(() => setLoading(false))
   }, [id])
 
@@ -96,20 +86,23 @@ export default function EventFinance() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!id) return
+    // 読み込みに失敗した画面では保存しない（初期値の 0 で既存の収支を上書きしてしまうため）
+    if (!id || loadFailed) return
     setSaving(true)
     setError(null)
     try {
       // 1. 収支データを保存する
       await api.events.saveFinances(id, form)
       // 2. 管理情報（出店料・宿泊費）を収支の値で上書きして同期する。
-      //    adminInfo が未取得（null）のときは空の初期値をベースにする
-      const baseAdminInfo = adminInfo ?? BLANK_ADMIN_INFO
-      await api.events.saveAdminInfo(id, {
-        ...baseAdminInfo,
-        booth_fee: form.booth_fee,
-        hotel_fee: form.accommodation,
-      })
+      //    管理情報の読み込みに失敗している（null）ときは同期しない。
+      //    空の値で丸ごと上書きすると、搬入・宿泊・出店要項などが消えてしまうため
+      if (adminInfo) {
+        await api.events.saveAdminInfo(id, {
+          ...adminInfo,
+          booth_fee: form.booth_fee,
+          hotel_fee: form.accommodation,
+        })
+      }
       // 保存後は遷移元（収支一覧またはイベント一覧）へ戻る
       navigate(backTo)
     } catch {
@@ -333,7 +326,7 @@ export default function EventFinance() {
         </div>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button type="submit" disabled={saving} style={{ padding: '12px 32px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15 }}>
+          <button type="submit" disabled={saving || loadFailed} style={{ padding: '12px 32px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, cursor: loadFailed ? 'default' : 'pointer', opacity: loadFailed ? 0.5 : 1, fontSize: 15 }}>
             {saving ? '保存中...' : '保存'}
           </button>
         </div>

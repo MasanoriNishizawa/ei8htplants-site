@@ -459,6 +459,10 @@ export interface EventAdminInfo {
   booth_fee_paid?: boolean
   /** 備考・注意事項 */
   notes?: string | null
+  /** 出店要項の本文（主催者から届いた要項の文章） */
+  guidelines_text?: string | null
+  /** 出店要項の画像 URL 一覧（アップロード順・複数枚） */
+  guidelines_image_urls?: string[]
 }
 
 export interface Article {

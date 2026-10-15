@@ -494,6 +494,112 @@ class TestEventAdminInfo:
 
         assert resp.status_code == 401
 
+    def test_管理情報保存_出店要項の文章と画像URLがDBに保存される(self):
+        """PUT /api/events/:id/admin-info で guidelines_text と guidelines_image_urls が admin_info に入って update される。"""
+        # 1. admin_supabase の update チェーンをモックする（更新結果は1件ありとする）
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .update.return_value
+            .eq.return_value
+            .execute.return_value
+            .data) = [{'id': 'evt-1'}]
+        urls = ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
+
+        # 2. 出店要項を含めて保存する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1/admin-info', json={
+                'notes': 'メモ',
+                'guidelines_text': '出店要項の本文\n搬入は9時まで',
+                'guidelines_image_urls': urls,
+            })
+
+        # 3. update に渡された admin_info に出店要項が順番どおり入っていることを確認する
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+        mock_admin_sb.table.assert_called_with('events')
+        saved = mock_admin_sb.table.return_value.update.call_args.args[0]['admin_info']
+        assert saved['guidelines_text'] == '出店要項の本文\n搬入は9時まで'
+        assert saved['guidelines_image_urls'] == urls
+        assert saved['notes'] == 'メモ'
+        mock_admin_sb.table.return_value.update.return_value.eq.assert_called_with('id', 'evt-1')
+
+    def test_管理情報保存_出店要項を省略すると既定値になる(self):
+        """PUT /api/events/:id/admin-info で guidelines_* を送らないと text は None・画像は [] で保存される。"""
+        # 1. update チェーンをモックする
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .update.return_value
+            .eq.return_value
+            .execute.return_value
+            .data) = [{'id': 'evt-1'}]
+
+        # 2. 出店要項を含めずに保存する（出店要項追加前のクライアントと同じ送り方）
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1/admin-info', json={'carry_in_time': '2099-01-01T09:00'})
+
+        # 3. 既定値で保存されることを確認する
+        assert resp.status_code == 200
+        saved = mock_admin_sb.table.return_value.update.call_args.args[0]['admin_info']
+        assert saved['guidelines_text'] is None
+        assert saved['guidelines_image_urls'] == []
+
+    def test_管理情報保存_出店要項の画像URLを空配列で送ると空配列で保存される(self):
+        """PUT /api/events/:id/admin-info で guidelines_image_urls=[] を送ると [] で保存される（全削除）。"""
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .update.return_value
+            .eq.return_value
+            .execute.return_value
+            .data) = [{'id': 'evt-1'}]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1/admin-info', json={'guidelines_text': None, 'guidelines_image_urls': []})
+
+        assert resp.status_code == 200
+        saved = mock_admin_sb.table.return_value.update.call_args.args[0]['admin_info']
+        assert saved['guidelines_image_urls'] == []
+        assert saved['guidelines_text'] is None
+
+    def test_管理情報保存_出店要項の画像URLが配列でないと422(self):
+        """PUT /api/events/:id/admin-info で guidelines_image_urls に文字列を送ると 422 になり DB は更新されない。"""
+        mock_admin_sb = MagicMock()
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1/admin-info', json={'guidelines_image_urls': 'https://ex.com/a.png'})
+
+        assert resp.status_code == 422
+        mock_admin_sb.table.return_value.update.assert_not_called()
+
+    def test_管理情報取得_出店要項が返る(self):
+        """GET /api/events/:id/admin-info で保存済みの guidelines_text / guidelines_image_urls がそのまま返る。"""
+        # 1. 出店要項を含む admin_info をモックに設定する
+        admin_info = {
+            'notes': None,
+            'guidelines_text': '要項',
+            'guidelines_image_urls': ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png'],
+        }
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .select.return_value
+            .eq.return_value
+            .single.return_value
+            .execute.return_value
+            .data) = {'admin_info': admin_info}
+
+        # 2. 取得して中身を確認する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.get('/api/events/evt-1/admin-info')
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['guidelines_text'] == '要項'
+        assert data['guidelines_image_urls'] == ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
+
     def test_管理情報保存_DB更新失敗時に500を返す(self):
         """PUT /api/events/:id/admin-info で DB 更新が例外を投げたとき 500 が返る。"""
         # 1. admin_supabase の update チェーンが例外を投げるよう設定する
@@ -509,3 +615,134 @@ class TestEventAdminInfo:
             resp = client.put('/api/events/evt-1/admin-info', json={'carry_in_time': '9:00'})
 
         assert resp.status_code == 500
+
+
+# ---------------------------------------------------------------------------
+# クラス: 公開 API に管理情報（admin_info）が出ないこと
+# ---------------------------------------------------------------------------
+
+def _admin_info_secret() -> dict:
+    """公開してはいけない管理情報（搬入・宿泊・出店料・出店要項）のサンプルを返す。"""
+    return {
+        'carry_in_time': '2099-01-01T08:30',
+        'hotel_name': '秘密のホテル',
+        'hotel_fee': 8000,
+        'booth_fee': 30000,
+        'notes': '内部メモ',
+        'guidelines_text': '出店要項の本文',
+        'guidelines_image_urls': ['https://ex.com/gl-1.png'],
+    }
+
+
+def _make_list_sb_mock(events_data: list) -> MagicMock:
+    """一覧 API（list_events）用の公開 supabase モックを返す。"""
+    mock_sb = MagicMock()
+    chain = mock_sb.table.return_value
+    # supabase.table('events').select('*').order('start_date').execute().data
+    chain.select.return_value.order.return_value.execute.return_value.data = events_data
+    # supabase.table('event_images').select('*').in_(...).order(...).execute().data
+    chain.select.return_value.in_.return_value.order.return_value.execute.return_value.data = [
+        {'id': 'img-1', 'event_id': 'evt-1', 'url': 'https://ex.com/ev.jpg', 'display_order': 0},
+    ]
+    return mock_sb
+
+
+class TestPublicApiHidesAdminInfo:
+    """公開 API（GET /events・GET /events/{id}）の応答に admin_info が含まれないことのテスト。"""
+
+    def teardown_method(self):
+        """dependency_overrides をリセットする。"""
+        app.dependency_overrides.clear()
+
+    def test_イベント一覧_今後_admin_infoが応答に含まれない(self):
+        """GET /api/events で DB の行に admin_info があっても応答に admin_info キーが無い。"""
+        # 1. admin_info 入りの今後のイベントを DB モックに入れる
+        row = {**_event_data('evt-1'), 'admin_info': _admin_info_secret()}
+        mock_sb = _make_list_sb_mock([row])
+
+        # 2. 一覧を取得する
+        with patch('app.routes.events.supabase', mock_sb):
+            resp = TestClient(app).get('/api/events')
+
+        # 3. admin_info が無く、ほかの項目（画像など）は返る
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert 'admin_info' not in data[0]
+        assert data[0]['id'] == 'evt-1'
+        assert data[0]['images'][0]['url'] == 'https://ex.com/ev.jpg'
+        # 応答のどこにも管理情報の値が出ていない
+        assert '秘密のホテル' not in resp.text
+        assert '出店要項の本文' not in resp.text
+
+    def test_イベント一覧_過去_admin_infoが応答に含まれない(self):
+        """GET /api/events?past=true でも admin_info キーが無い。"""
+        row = {**_event_data('evt-1'), 'start_date': '2000-01-01', 'admin_info': _admin_info_secret()}
+        mock_sb = _make_list_sb_mock([row])
+
+        with patch('app.routes.events.supabase', mock_sb):
+            resp = TestClient(app).get('/api/events?past=true')
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]['is_past'] is True
+        assert 'admin_info' not in data[0]
+
+    def test_イベント一覧_admin_infoがnullや無い行も問題なく返る(self):
+        """GET /api/events で admin_info が None の行・キー自体が無い行が混じっても 200 で返る。"""
+        rows = [
+            {**_event_data('evt-1'), 'admin_info': None},
+            {**_event_data('evt-2')},
+        ]
+        mock_sb = _make_list_sb_mock(rows)
+
+        with patch('app.routes.events.supabase', mock_sb):
+            resp = TestClient(app).get('/api/events')
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert [e['id'] for e in data] == ['evt-1', 'evt-2']
+        assert all('admin_info' not in e for e in data)
+
+    def test_イベント1件取得_admin_infoが応答に含まれない(self):
+        """GET /api/events/{id} で DB の行に admin_info があっても応答に admin_info キーが無い。"""
+        row = {**_event_data('evt-1'), 'admin_info': _admin_info_secret()}
+        mock_sb = _make_public_sb_mock([row])
+
+        with patch('app.routes.events.supabase', mock_sb):
+            resp = TestClient(app).get('/api/events/evt-1')
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['id'] == 'evt-1'
+        assert 'admin_info' not in data
+        assert '秘密のホテル' not in resp.text
+
+    def test_イベント1件取得_slugで取得しても_admin_infoが応答に含まれない(self):
+        """GET /api/events/{slug} でも admin_info キーが無い。"""
+        row = {**_event_data('evt-1'), 'slug': 'spring-market', 'admin_info': _admin_info_secret()}
+        mock_sb = _make_public_sb_mock([row])
+
+        with patch('app.routes.events.supabase', mock_sb):
+            resp = TestClient(app).get('/api/events/spring-market')
+
+        assert resp.status_code == 200
+        assert 'admin_info' not in resp.json()
+
+    def test_管理情報取得_認証付きAPIは従来どおりadmin_infoを返す(self):
+        """GET /api/events/{id}/admin-info（認証付き）は出店要項を含む admin_info をそのまま返す（デグレ確認）。"""
+        app.dependency_overrides[require_auth] = lambda: None
+        mock_admin_sb = MagicMock()
+        (mock_admin_sb.table.return_value
+            .select.return_value
+            .eq.return_value
+            .single.return_value
+            .execute.return_value
+            .data) = {'admin_info': _admin_info_secret()}
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).get('/api/events/evt-1/admin-info')
+
+        assert resp.status_code == 200
+        assert resp.json() == _admin_info_secret()

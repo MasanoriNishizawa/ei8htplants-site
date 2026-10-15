@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import date, datetime, timezone, timedelta
 
@@ -103,6 +103,9 @@ def _attach_images(events: list[dict]) -> list[dict]:
         img_map.setdefault(img['event_id'], []).append(img)
     for e in events:
         e['images'] = img_map.get(e['id'], [])
+        # 管理者専用の管理情報（搬入・宿泊・出店料・出店要項など）は公開 API の応答に含めない。
+        # 管理画面は認証付きの GET /events/{id}/admin-info から別に取得する
+        e.pop('admin_info', None)
     return events
 
 
@@ -357,6 +360,8 @@ class AdminInfoBody(BaseModel):
     booth_fee_due: Optional[str] = None       # 支払い期限（例: "2026-10-01"）
     booth_fee_paid: bool = False              # 支払い済みフラグ
     notes: Optional[str] = None              # 備考・メモ
+    guidelines_text: Optional[str] = None     # 出店要項の本文（主催者から届いた要項の文章を貼り付ける）
+    guidelines_image_urls: list[str] = Field(default_factory=list)  # 出店要項の画像 URL 一覧（アップロード順・複数枚）
 
 
 # 指定イベントの管理情報を保存する（管理者のみ）

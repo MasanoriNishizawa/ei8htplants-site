@@ -1,4 +1,4 @@
-import type { Event, EventFinances, GalleryImage, Stockist, Product } from '../lib/api'
+import type { Event, EventFinances, EventAdminInfo, GalleryImage, Stockist, Product } from '../lib/api'
 
 type DocTreeNode = { type: 'file' | 'dir'; name: string; path: string; children?: DocTreeNode[] }
 
@@ -185,6 +185,21 @@ export const MOCK_FINANCES: EventFinances[] = [
     updated_at: '2026-09-25T10:00:00Z',
   },
 ]
+
+/**
+ * イベントID → 管理情報のモック。ここにないイベントは未入力（{}）として返す
+ * mock-past-1 は出店要項（文章と画像3枚）を持つ。画像は外部に接続しないよう public/img のローカル画像を使う
+ */
+export const MOCK_ADMIN_INFO: Record<string, EventAdminInfo> = {
+  'mock-past-1': {
+    guidelines_text: '出店要項モック本文\n搬入は9時までに完了してください。',
+    guidelines_image_urls: [
+      '/img/logo-ei8htplants.png',
+      '/img/logo-habitatoides.png',
+      '/img/logo-hue.png',
+    ],
+  },
+}
 
 export const MOCK_GALLERY: GalleryImage[] = [
   { id: 'g-1', url: 'https://placehold.co/400x500/c8d8c4/ffffff?text=Gallery+1', alt: '植物 1', brand: 'ei8ht plants', display_order: 1 },

@@ -630,6 +630,17 @@ textarea,
   caret-color: auto;
 }
 
+/* スマホ幅: 入力欄の文字を 16px にそろえる。
+   iOS Safari は 16px 未満の入力欄を選ぶと画面を自動で拡大してしまうため。
+   各画面がインラインで fontSize を指定しているので !important で上書きする */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 .num-plain::-webkit-outer-spin-button,
 .num-plain::-webkit-inner-spin-button {
   -webkit-appearance: none;

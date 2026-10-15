@@ -4,8 +4,9 @@
  * 1. イベント一覧に「管理情報」リンクが表示されること
  *    - 各イベント行に「管理情報」ボタンが表示される
  *    - リンク先が /admin/events/:id/admin-info になっている
- * 2. ローディング中の表示
- * 3. イベントがないときの表示
+ * 2. 各イベント行に「画像DL」リンクが表示され、リンク先が /admin/events/:id/images になっている
+ * 3. ローディング中の表示
+ * 4. イベントがないときの表示
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -113,6 +114,33 @@ describe('AdminEvents ページ — 管理情報リンク', () => {
       expect(screen.getByRole('link', { name: '収支' })).toBeDefined()
       expect(screen.getByRole('link', { name: 'サイト' })).toBeDefined()
     })
+  })
+
+  it('「画像DL」リンクが表示され、href が /admin/events/:id/images になる', async () => {
+    // 画像ダウンロードページへのリンクが正しい URL を指していることを確認する
+    renderAdminEventsPage()
+    const link = await screen.findByRole('link', { name: '画像DL' })
+    expect(link.getAttribute('href')).toBe(`/admin/events/${MOCK_EVENT.id}/images`)
+  })
+
+  it('「画像DL」リンクは「管理情報」リンクの直後に並ぶ', async () => {
+    // 同じ行の中で 管理情報 → 画像DL の順に並んでいることを確認する
+    renderAdminEventsPage()
+    const info = await screen.findByRole('link', { name: '管理情報' })
+    const dl = screen.getByRole('link', { name: '画像DL' })
+    expect(info.nextElementSibling).toBe(dl)
+  })
+
+  it('今後と過去の両方にイベントがあると、それぞれの行に「画像DL」リンクが出る', async () => {
+    // 過去イベントの行にも画像DLリンクがあることを確認する
+    const pastEvent: Event = { ...MOCK_EVENT, id: 'event-past-1', name: '過去のテストイベント', start_date: '2000-01-01', is_past: true }
+    vi.mocked(api.events.list).mockImplementation((past = false) =>
+      Promise.resolve(past ? [pastEvent] : [MOCK_EVENT])
+    )
+    renderAdminEventsPage()
+    await waitFor(() => expect(screen.getAllByRole('link', { name: '画像DL' })).toHaveLength(2))
+    const hrefs = screen.getAllByRole('link', { name: '画像DL' }).map((a) => a.getAttribute('href'))
+    expect(hrefs).toEqual([`/admin/events/${MOCK_EVENT.id}/images`, '/admin/events/event-past-1/images'])
   })
 
   it('ローディング中は「読み込み中...」が表示される', () => {

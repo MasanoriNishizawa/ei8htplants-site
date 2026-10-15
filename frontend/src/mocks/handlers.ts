@@ -3,6 +3,7 @@ import {
   MOCK_EVENTS,
   MOCK_PAST_EVENTS,
   MOCK_FINANCES,
+  MOCK_ADMIN_INFO,
   MOCK_GALLERY,
   MOCK_STOCKISTS,
   MOCK_PRODUCTS,
@@ -40,8 +41,10 @@ export const handlers = [
   }),
 
   // 管理情報（搬入時間・ホテル・ブース費用等）の取得・保存
-  http.get('/api/events/:id/admin-info', () => {
-    return HttpResponse.json({})
+  // mock-past-1 だけ出店要項（文章・画像3枚）を持つ管理情報を返し、ほかのイベントは未入力（{}）を返す
+  http.get('/api/events/:id/admin-info', ({ params }) => {
+    const info = MOCK_ADMIN_INFO[params.id as string]
+    return HttpResponse.json(info ?? {})
   }),
 
   http.put('/api/events/:id/admin-info', () => {

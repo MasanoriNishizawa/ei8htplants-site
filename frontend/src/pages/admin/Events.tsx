@@ -35,6 +35,14 @@ function EventRow({ ev, reservationCountMap, del, duplicate }: {
         >
           管理情報
         </Link>
+        {/* イベントに登録された画像を一覧表示し、1枚ずつダウンロードするページへのリンク */}
+        <Link
+          to={`/admin/events/${ev.id}/images`}
+          state={{ from: '/admin/events' }}
+          style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: 'var(--c-body)', textDecoration: 'none' }}
+        >
+          画像DL
+        </Link>
         <Link to={`/admin/events/${ev.id}/finances`} state={{ from: '/admin/events' }} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#4a6741', textDecoration: 'none' }}>収支</Link>
         <Link to={`/admin/events/${ev.id}/site`} style={{ padding: '8px 16px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, color: '#1e3272', textDecoration: 'none' }}>サイト</Link>
         {ev.has_workshop && (

@@ -5,13 +5,18 @@
  *    - 輸送費・WS売上・WS資材費・収支・支払い金額の計算を確認する
  * 2. EventFinance ページのレンダリングテスト
  *    - API モックを使って収支情報が画面に表示されることを確認する
+ * 3. 保存時の管理情報との同期
+ *    - 管理情報を読み込めたときは既存値（出店要項など）を引き継いで出店料・宿泊費だけ上書きする
+ *    - 読み込み（イベント・収支・予約・管理情報のどれか）に失敗したときは保存ボタンを押せず、
+ *      saveFinances / saveAdminInfo のどちらも呼ばない（初期値で既存データを上書きして消さない）
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import EventFinance from '../EventFinance'
 import { api, computeFinances } from '../../../lib/api'
-import type { Event, EventFinances } from '../../../lib/api'
+import type { Event, EventFinances, EventAdminInfo } from '../../../lib/api'
 
 // api モジュールの関数をモックしつつ、computeFinances などの実装は保持する
 vi.mock('../../../lib/api', async (importActual) => {
@@ -24,6 +29,8 @@ vi.mock('../../../lib/api', async (importActual) => {
         getFinances: vi.fn(),
         getAdminInfo: vi.fn(),
         saveAdminInfo: vi.fn(),
+        // 収支の保存（保存時の管理情報との同期テストで使う）
+        saveFinances: vi.fn(),
       },
       reserve: {
         list: vi.fn(),
@@ -313,5 +320,127 @@ describe('EventFinance ページ', () => {
     vi.mocked(api.events.get).mockReturnValue(new Promise(() => {})) // 永遠に保留
     renderFinancePage()
     expect(screen.getByText('読み込み中...')).toBeDefined()
+  })
+})
+
+// ---- 保存時の管理情報との同期 ----
+
+/** 出店要項などを含む既存の管理情報 */
+const EXISTING_ADMIN_INFO: EventAdminInfo = {
+  carry_in_time: '2099-11-01T08:30',
+  carry_out_time: '2099-11-01T18:00',
+  hotel_name: 'テストホテル',
+  hotel_fee: 7000,
+  booth_fee: 9000,
+  booth_fee_pay_method: '事前振込',
+  booth_fee_due: '2099-10-01',
+  booth_fee_paid: true,
+  notes: '既存メモ',
+  guidelines_text: '出店要項の本文',
+  guidelines_image_urls: ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png'],
+}
+
+/**
+ * 収支ページと、保存後の遷移先（イベント一覧）を用意してレンダリングする
+ */
+function renderFinancePageWithBack() {
+  return render(
+    <MemoryRouter initialEntries={['/admin/events/ev-finance-1/finance']}>
+      <Routes>
+        <Route path="/admin/events/:id/finance" element={<EventFinance />} />
+        <Route path="/admin/events" element={<p>イベント一覧ページ</p>} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
+describe('EventFinance ページ — 保存時の管理情報との同期', () => {
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset()
+    vi.mocked(api.events.getFinances).mockReset()
+    vi.mocked(api.reserve.list).mockReset()
+    vi.mocked(api.events.getAdminInfo).mockReset()
+    vi.mocked(api.events.saveAdminInfo).mockReset()
+    vi.mocked(api.events.saveFinances).mockReset()
+
+    vi.mocked(api.events.get).mockResolvedValue(MOCK_EVENT)
+    vi.mocked(api.events.getFinances).mockResolvedValue(MOCK_FINANCES)
+    vi.mocked(api.reserve.list).mockResolvedValue([])
+    vi.mocked(api.events.saveAdminInfo).mockResolvedValue({ ok: true })
+    vi.mocked(api.events.saveFinances).mockResolvedValue(MOCK_FINANCES)
+  })
+
+  it('管理情報を読み込めたときは、出店要項などの既存値を引き継ぎ出店料・宿泊費だけ収支の値で上書きして saveAdminInfo に渡す', async () => {
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue(EXISTING_ADMIN_INFO)
+    renderFinancePageWithBack()
+    await userEvent.click(await screen.findByRole('button', { name: '保存' }))
+
+    // 1. 収支 → 管理情報の順に保存され、保存後はイベント一覧へ戻る
+    await waitFor(() => expect(api.events.saveAdminInfo).toHaveBeenCalledTimes(1))
+    expect(api.events.saveFinances).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('イベント一覧ページ')).toBeInTheDocument()
+
+    // 2. 出店料は収支の 10000、宿泊費は収支が 0 なので管理情報の 7000 が初期値として入り、そのまま送られる
+    const [savedId, body] = vi.mocked(api.events.saveAdminInfo).mock.calls[0]
+    expect(savedId).toBe('ev-finance-1')
+    expect(body).toEqual({ ...EXISTING_ADMIN_INFO, booth_fee: 10000, hotel_fee: 7000 })
+    // 出店要項が消えずに引き継がれる
+    expect(body.guidelines_text).toBe('出店要項の本文')
+    expect(body.guidelines_image_urls).toEqual(['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png'])
+  })
+
+  it.each([
+    ['管理情報（getAdminInfo）', () => vi.mocked(api.events.getAdminInfo).mockRejectedValue(new Error('500'))],
+    ['収支（getFinances）', () => vi.mocked(api.events.getFinances).mockRejectedValue(new Error('500'))],
+    ['イベント（get）', () => vi.mocked(api.events.get).mockRejectedValue(new Error('404'))],
+    ['予約一覧（reserve.list）', () => vi.mocked(api.reserve.list).mockRejectedValue(new Error('401'))],
+  ])('%s の読み込みに失敗すると保存ボタンが押せず、フォームを送信しても saveFinances・saveAdminInfo は呼ばれない', async (_label, makeFail) => {
+    // 1. 既定は管理情報あり。指定した API だけ失敗させる
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue(EXISTING_ADMIN_INFO)
+    makeFail()
+    renderFinancePageWithBack()
+
+    // 2. 読み込みエラーが出て、保存ボタンは disabled
+    expect(await screen.findByText('データの読み込みに失敗しました。ページを再読み込みしてください。')).toBeInTheDocument()
+    const button = screen.getByRole('button', { name: '保存' })
+    expect(button).toBeDisabled()
+
+    // 3. ボタンを押しても、フォームを直接 submit しても何も保存されず、画面に留まる
+    await userEvent.click(button)
+    fireEvent.submit(button.closest('form')!)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(api.events.saveFinances).not.toHaveBeenCalled()
+    expect(api.events.saveAdminInfo).not.toHaveBeenCalled()
+    expect(screen.queryByText('イベント一覧ページ')).not.toBeInTheDocument()
+  })
+
+  it('読み込みに成功したときは保存ボタンが押せ、フォーム送信で saveFinances と saveAdminInfo が呼ばれる', async () => {
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue(EXISTING_ADMIN_INFO)
+    renderFinancePageWithBack()
+    const button = await screen.findByRole('button', { name: '保存' })
+    expect(button).toBeEnabled()
+    expect(screen.queryByText('データの読み込みに失敗しました。ページを再読み込みしてください。')).not.toBeInTheDocument()
+
+    fireEvent.submit(button.closest('form')!)
+    await waitFor(() => expect(api.events.saveAdminInfo).toHaveBeenCalledTimes(1))
+    expect(api.events.saveFinances).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('イベント一覧ページ')).toBeInTheDocument()
+  })
+
+  it('管理情報が空（{}）でも読み込めていれば saveAdminInfo は呼ばれる', async () => {
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue({} as EventAdminInfo)
+    renderFinancePageWithBack()
+    await userEvent.click(await screen.findByRole('button', { name: '保存' }))
+    await waitFor(() => expect(api.events.saveAdminInfo).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.events.saveAdminInfo).mock.calls[0][1]).toEqual({ booth_fee: 10000, hotel_fee: 0 })
+  })
+
+  it('saveAdminInfo が失敗すると保存エラーが出て画面に留まる', async () => {
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue(EXISTING_ADMIN_INFO)
+    vi.mocked(api.events.saveAdminInfo).mockRejectedValue(new Error('500'))
+    renderFinancePageWithBack()
+    await userEvent.click(await screen.findByRole('button', { name: '保存' }))
+    expect(await screen.findByText('保存に失敗しました。もう一度お試しください。')).toBeInTheDocument()
+    expect(screen.queryByText('イベント一覧ページ')).not.toBeInTheDocument()
   })
 })

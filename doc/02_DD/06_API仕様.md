@@ -60,8 +60,7 @@
 
 | ステータス | 原因 |
 |---|---|
-| `400` | 許可されていない MIME タイプ |
-| `413` | ファイルサイズが 10MB 超 |
+| `400` | 許可されていない MIME タイプ、またはファイルサイズが 10MB 超 |
 | `401` | Bearerトークン未送信または無効 |
 
 ---
@@ -132,6 +131,9 @@
 ]
 ```
 
+- 管理者専用の管理情報（`admin_info`。搬入・宿泊・出店料・出店要項など）は応答に含めない（2026-10-16 修正。それ以前は誰でも見られる応答に含まれていた）。管理情報は認証が必要な `GET /api/events/{event_id}/admin-info` で取得する
+- 注意: これは FastAPI の応答から除いただけで、DB の読み取り許可（RLS）では未ログインでも events を全列読めるため、Supabase に直接問い合わせると `admin_info` も読める状態。対応は未定（別テーブルへの移動や、列ごとの読み取り制限を検討中。[データベース詳細](05_データベース詳細.md) の RLS の節を参照）
+
 ---
 
 ### GET /api/events/{event_id}
@@ -140,8 +142,10 @@
 
 **パスパラメータ**: `event_id` (UUID)
 
-**レスポンス `200`**: 上記配列の要素1件  
+**レスポンス `200`**: 上記配列の要素1件（一覧と同じく `admin_info` は含めない）  
 **レスポンス `404`**: `{"detail": "Not Found"}`
+
+この取得処理は POST `/api/events`・PUT `/api/events/{event_id}`・PATCH `/api/events/{event_id}/page` の応答を作るときにも使われるため、それらの応答にも `admin_info` は含まれない。
 
 ---
 
@@ -306,7 +310,7 @@
 
 ### GET /api/events/{event_id}/admin-info
 
-イベントの管理情報（搬入・搬出時間、宿泊ホテル、出店料など）を取得する。
+イベントの管理情報（搬入・搬出時間、宿泊ホテル、出店料、出店要項など）を取得する。
 
 **認証**: Bearer JWT 必須
 
@@ -324,11 +328,13 @@
   "booth_fee_pay_method": "事前振込",
   "booth_fee_due": "2026-10-01",
   "booth_fee_paid": false,
-  "notes": "注意事項メモ"
+  "notes": "注意事項メモ",
+  "guidelines_text": "主催者から届いた出店要項の本文",
+  "guidelines_image_urls": ["https://.../guideline1.jpg"]
 }
 ```
 
-管理情報が未登録の場合は空オブジェクト `{}` を返す。
+管理情報が未登録の場合は空オブジェクト `{}` を返す。保存されている内容をそのまま返すため、出店要項の項目（2026-10-16 追加）がなかった頃に保存した管理情報では `guidelines_text`・`guidelines_image_urls` が応答に含まれない。
 
 **エラー**
 
@@ -359,7 +365,9 @@
   "booth_fee_pay_method": "事前振込",
   "booth_fee_due": "2026-10-01",
   "booth_fee_paid": false,
-  "notes": "注意事項メモ"
+  "notes": "注意事項メモ",
+  "guidelines_text": "主催者から届いた出店要項の本文",
+  "guidelines_image_urls": ["https://.../guideline1.jpg", "https://.../guideline2.png"]
 }
 ```
 
@@ -374,6 +382,8 @@
 | `booth_fee_due` | string \| null | 支払い期限（例: "2026-10-01"） |
 | `booth_fee_paid` | boolean | 支払い済みフラグ（デフォルト: false） |
 | `notes` | string \| null | 備考・メモ |
+| `guidelines_text` | string \| null | 出店要項の文章（2026-10-16 追加） |
+| `guidelines_image_urls` | string[] | 出店要項の画像 URL の一覧。アップロードした順（2026-10-16 追加。省略時は空の一覧 `[]`） |
 
 **レスポンス `200`**: `{"ok": true}`
 
