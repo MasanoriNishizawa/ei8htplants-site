@@ -402,8 +402,76 @@ class TestPageContent:
 # クラス: 管理情報（admin-info）
 # ---------------------------------------------------------------------------
 
+def _make_admin_info_sb(
+    info_rows: list | None = None,
+    event_rows: list | None = None,
+    select_exc: Exception | None = None,
+    exists_exc: Exception | None = None,
+    upsert_exc: Exception | None = None,
+) -> tuple[MagicMock, dict]:
+    """管理情報 API 用の admin_supabase モックを、テーブルごとに別のモックを返す形で作る。
+
+    管理情報は専用テーブル event_admin_info に保存され、events テーブルは保存時の存在確認
+    （select('id')）にだけ使われる。テーブルごとにモックを分けて、どのテーブルに何をしたかを確かめられるようにする。
+
+    Args:
+        info_rows: event_admin_info の select('info').eq('event_id', ...) が返す行のリスト（既定は []）
+        event_rows: events の select('id').eq('id', ...) が返す行のリスト（既定は 1件あり）
+        select_exc: event_admin_info の select 実行時に投げる例外（None なら投げない）
+        exists_exc: events の存在確認の実行時に投げる例外（None なら投げない）
+        upsert_exc: event_admin_info の upsert 実行時に投げる例外（None なら投げない）
+
+    Returns:
+        (admin_supabase のモック, {'events': events テーブルのモック, 'event_admin_info': 管理情報テーブルのモック})
+    """
+    # 1. テーブルごとのモックを用意する
+    events_tbl = MagicMock()
+    info_tbl = MagicMock()
+    # 2. events: 存在確認の select('id').eq('id', ...).execute()
+    exists_exec = events_tbl.select.return_value.eq.return_value.execute
+    if exists_exc is not None:
+        exists_exec.side_effect = exists_exc
+    else:
+        exists_exec.return_value.data = [{'id': 'evt-1'}] if event_rows is None else event_rows
+    # 3. event_admin_info: 取得の select('info').eq('event_id', ...).execute()
+    select_exec = info_tbl.select.return_value.eq.return_value.execute
+    if select_exc is not None:
+        select_exec.side_effect = select_exc
+    else:
+        select_exec.return_value.data = [] if info_rows is None else info_rows
+    # 4. event_admin_info: 保存の upsert(...).execute()
+    upsert_exec = info_tbl.upsert.return_value.execute
+    if upsert_exc is not None:
+        upsert_exec.side_effect = upsert_exc
+    else:
+        upsert_exec.return_value.data = [{'event_id': 'evt-1'}]
+    # 5. テーブル名に応じてモックを返す（想定外のテーブル名はテスト失敗にする）
+    tables = {'events': events_tbl, 'event_admin_info': info_tbl}
+
+    def table_side_effect(name: str):
+        """テーブル名に応じたモックを返す。"""
+        assert name in tables, f'想定外のテーブルにアクセスした: {name}'
+        return tables[name]
+
+    mock_sb = MagicMock()
+    mock_sb.table.side_effect = table_side_effect
+    return mock_sb, tables
+
+
+def _saved_info(tables: dict) -> dict:
+    """event_admin_info の upsert に渡された管理情報（info）を取り出して返す。
+
+    Args:
+        tables: _make_admin_info_sb が返したテーブルごとのモック
+
+    Returns:
+        upsert の1つ目の引数の 'info' の dict
+    """
+    return tables['event_admin_info'].upsert.call_args.args[0]['info']
+
+
 class TestEventAdminInfo:
-    """管理情報の取得・保存エンドポイントのテスト。"""
+    """管理情報の取得・保存エンドポイントのテスト（保存先は専用テーブル event_admin_info）。"""
 
     def setup_method(self):
         """認証をバイパスするよう設定する。"""
@@ -413,17 +481,13 @@ class TestEventAdminInfo:
         """dependency_overrides をリセットする。"""
         app.dependency_overrides.clear()
 
+    # ----- 取得 -----
+
     def test_管理情報取得_admin_infoが返る(self):
-        """GET /api/events/:id/admin-info で admin_info が返る。"""
-        # 1. admin_info フィールドを持つイベントレコードをモックに設定する
+        """GET /api/events/:id/admin-info で event_admin_info の info がそのまま返る。"""
+        # 1. event_admin_info に管理情報の行があるようにモックする
         admin_info = {'carry_in_time': '9:00', 'hotel_name': 'テストホテル', 'booth_fee': 30000}
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .select.return_value
-            .eq.return_value
-            .single.return_value
-            .execute.return_value
-            .data) = {'admin_info': admin_info}
+        mock_admin_sb, tables = _make_admin_info_sb(info_rows=[{'info': admin_info}])
 
         # 2. エンドポイントを呼んでレスポンスを検証する
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -435,17 +499,15 @@ class TestEventAdminInfo:
         assert data['carry_in_time'] == '9:00'
         assert data['hotel_name'] == 'テストホテル'
         assert data['booth_fee'] == 30000
+        # 3. 専用テーブルを event_id で絞り込んで読んでいる（events テーブルは読まない）
+        tables['event_admin_info'].select.assert_called_once_with('info')
+        tables['event_admin_info'].select.return_value.eq.assert_called_once_with('event_id', 'evt-1')
+        tables['events'].select.assert_not_called()
 
     def test_管理情報取得_admin_infoがnullのとき空dictを返す(self):
-        """GET /api/events/:id/admin-info で admin_info が null のとき {} を返す。"""
-        # 1. admin_info が None のレコードをモックに設定する
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .select.return_value
-            .eq.return_value
-            .single.return_value
-            .execute.return_value
-            .data) = {'admin_info': None}
+        """GET /api/events/:id/admin-info で行の info が null のとき {} を返す。"""
+        # 1. info が None の行をモックに設定する
+        mock_admin_sb, _ = _make_admin_info_sb(info_rows=[{'info': None}])
 
         # 2. エンドポイントを呼んで空 dict が返ることを確認する
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -454,6 +516,30 @@ class TestEventAdminInfo:
 
         assert resp.status_code == 200
         assert resp.json() == {}
+
+    def test_管理情報取得_行が無いとき空dictを返す(self):
+        """GET /api/events/:id/admin-info で event_admin_info に行が無い（未登録）とき {} を返す。"""
+        # 1. 行が無い（空リスト）ようにモックする
+        mock_admin_sb, _ = _make_admin_info_sb(info_rows=[])
+
+        # 2. エンドポイントを呼んで空 dict が返ることを確認する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).get('/api/events/evt-1/admin-info')
+
+        assert resp.status_code == 200
+        assert resp.json() == {}
+
+    def test_管理情報取得_DB例外時に500を返す(self):
+        """GET /api/events/:id/admin-info で event_admin_info の取得が例外を投げると 500 が返る。"""
+        # 1. select の実行で例外を投げるようにする
+        mock_admin_sb, _ = _make_admin_info_sb(select_exc=Exception('DB connection error'))
+
+        # 2. 500 が返り、例外の中身は応答に出ない
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).get('/api/events/evt-1/admin-info')
+
+        assert resp.status_code == 500
+        assert 'DB connection error' not in resp.text
 
     def test_管理情報取得_認証なし_401(self):
         """GET /api/events/:id/admin-info で Authorization ヘッダーがない場合 401 が返る。"""
@@ -466,10 +552,32 @@ class TestEventAdminInfo:
 
         assert resp.status_code == 401
 
+    def test_管理情報取得_出店要項が返る(self):
+        """GET /api/events/:id/admin-info で保存済みの guidelines_text / guidelines_image_urls がそのまま返る。"""
+        # 1. 出店要項を含む info をモックに設定する
+        admin_info = {
+            'notes': None,
+            'guidelines_text': '要項',
+            'guidelines_image_urls': ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png'],
+        }
+        mock_admin_sb, _ = _make_admin_info_sb(info_rows=[{'info': admin_info}])
+
+        # 2. 取得して中身を確認する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            client = TestClient(app)
+            resp = client.get('/api/events/evt-1/admin-info')
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['guidelines_text'] == '要項'
+        assert data['guidelines_image_urls'] == ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
+
+    # ----- 保存 -----
+
     def test_管理情報保存_okが返る(self):
         """PUT /api/events/:id/admin-info で管理情報を保存して {"ok": True} が返る。"""
-        # 1. admin_supabase の update チェーンをモックする
-        mock_admin_sb = MagicMock()
+        # 1. イベントが存在し、upsert も成功するようにモックする
+        mock_admin_sb, tables = _make_admin_info_sb()
 
         # 2. エンドポイントを呼んで {"ok": True} が返ることを確認する
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -482,6 +590,7 @@ class TestEventAdminInfo:
 
         assert resp.status_code == 200
         assert resp.json() == {'ok': True}
+        tables['event_admin_info'].upsert.assert_called_once()
 
     def test_管理情報保存_認証なし_401(self):
         """PUT /api/events/:id/admin-info で Authorization ヘッダーがない場合 401 が返る。"""
@@ -494,15 +603,80 @@ class TestEventAdminInfo:
 
         assert resp.status_code == 401
 
+    def test_管理情報保存_upsertにevent_idとinfoとupdated_atとon_conflictが渡る(self):
+        """PUT /api/events/:id/admin-info で event_admin_info に event_id・info・updated_at を on_conflict='event_id' で upsert する。"""
+        from datetime import datetime
+        # 1. イベントが存在するようにモックする
+        mock_admin_sb, tables = _make_admin_info_sb()
+
+        # 2. 保存する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).put('/api/events/evt-1/admin-info', json={'hotel_name': 'テストホテル'})
+
+        assert resp.status_code == 200
+        # 3. upsert の引数を確認する
+        upsert = tables['event_admin_info'].upsert
+        upsert.assert_called_once()
+        row = upsert.call_args.args[0]
+        assert set(row.keys()) == {'event_id', 'info', 'updated_at'}
+        assert row['event_id'] == 'evt-1'
+        assert row['info']['hotel_name'] == 'テストホテル'
+        # updated_at はタイムゾーン付きの ISO 形式の日時文字列
+        parsed = datetime.fromisoformat(row['updated_at'])
+        assert parsed.tzinfo is not None
+        assert upsert.call_args.kwargs.get('on_conflict') == 'event_id'
+        upsert.return_value.execute.assert_called_once()
+
+    def test_管理情報保存_eventsテーブルは存在確認のselectだけでupdateしない(self):
+        """PUT /api/events/:id/admin-info で events テーブルには select('id').eq('id', id) だけを行い、update・upsert・insert はしない。"""
+        # 1. イベントが存在するようにモックする
+        mock_admin_sb, tables = _make_admin_info_sb()
+
+        # 2. 保存する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).put('/api/events/evt-1/admin-info', json={'notes': 'メモ'})
+
+        assert resp.status_code == 200
+        # 3. events への操作は存在確認の select だけ
+        events_tbl = tables['events']
+        events_tbl.select.assert_called_once_with('id')
+        events_tbl.select.return_value.eq.assert_called_once_with('id', 'evt-1')
+        events_tbl.update.assert_not_called()
+        events_tbl.upsert.assert_not_called()
+        events_tbl.insert.assert_not_called()
+        # 4. 管理情報テーブルには upsert だけ（update・insert は使わない）
+        tables['event_admin_info'].upsert.assert_called_once()
+        tables['event_admin_info'].update.assert_not_called()
+        tables['event_admin_info'].insert.assert_not_called()
+
+    def test_管理情報保存_イベントが存在しないと404でupsertしない(self):
+        """PUT /api/events/:id/admin-info で events に対象が無いと 404 になり、event_admin_info への upsert は呼ばれない。"""
+        # 1. 存在確認が空を返すようにモックする
+        mock_admin_sb, tables = _make_admin_info_sb(event_rows=[])
+
+        # 2. 保存する
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).put('/api/events/no-such-evt/admin-info', json={'notes': 'メモ'})
+
+        # 3. 404 で、管理情報テーブルには書き込まない
+        assert resp.status_code == 404
+        tables['events'].select.return_value.eq.assert_called_once_with('id', 'no-such-evt')
+        tables['event_admin_info'].upsert.assert_not_called()
+
+    def test_管理情報保存_存在確認で例外が出ると500でupsertしない(self):
+        """PUT /api/events/:id/admin-info で events の存在確認が例外を投げると 500 になり、upsert は呼ばれない。"""
+        mock_admin_sb, tables = _make_admin_info_sb(exists_exc=Exception('DB connection error'))
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            resp = TestClient(app).put('/api/events/evt-1/admin-info', json={'notes': 'メモ'})
+
+        assert resp.status_code == 500
+        tables['event_admin_info'].upsert.assert_not_called()
+
     def test_管理情報保存_出店要項の文章と画像URLがDBに保存される(self):
-        """PUT /api/events/:id/admin-info で guidelines_text と guidelines_image_urls が admin_info に入って update される。"""
-        # 1. admin_supabase の update チェーンをモックする（更新結果は1件ありとする）
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .update.return_value
-            .eq.return_value
-            .execute.return_value
-            .data) = [{'id': 'evt-1'}]
+        """PUT /api/events/:id/admin-info で guidelines_text と guidelines_image_urls が info に入って event_admin_info に upsert される。"""
+        # 1. イベントが存在するようにモックする
+        mock_admin_sb, tables = _make_admin_info_sb()
         urls = ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
 
         # 2. 出店要項を含めて保存する
@@ -514,25 +688,19 @@ class TestEventAdminInfo:
                 'guidelines_image_urls': urls,
             })
 
-        # 3. update に渡された admin_info に出店要項が順番どおり入っていることを確認する
+        # 3. upsert に渡された info に出店要項が順番どおり入っていることを確認する
         assert resp.status_code == 200
         assert resp.json() == {'ok': True}
-        mock_admin_sb.table.assert_called_with('events')
-        saved = mock_admin_sb.table.return_value.update.call_args.args[0]['admin_info']
+        saved = _saved_info(tables)
         assert saved['guidelines_text'] == '出店要項の本文\n搬入は9時まで'
         assert saved['guidelines_image_urls'] == urls
         assert saved['notes'] == 'メモ'
-        mock_admin_sb.table.return_value.update.return_value.eq.assert_called_with('id', 'evt-1')
+        assert tables['event_admin_info'].upsert.call_args.args[0]['event_id'] == 'evt-1'
 
     def test_管理情報保存_出店要項を省略すると既定値になる(self):
         """PUT /api/events/:id/admin-info で guidelines_* を送らないと text は None・画像は [] で保存される。"""
-        # 1. update チェーンをモックする
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .update.return_value
-            .eq.return_value
-            .execute.return_value
-            .data) = [{'id': 'evt-1'}]
+        # 1. イベントが存在するようにモックする
+        mock_admin_sb, tables = _make_admin_info_sb()
 
         # 2. 出店要項を含めずに保存する（出店要項追加前のクライアントと同じ送り方）
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -541,73 +709,41 @@ class TestEventAdminInfo:
 
         # 3. 既定値で保存されることを確認する
         assert resp.status_code == 200
-        saved = mock_admin_sb.table.return_value.update.call_args.args[0]['admin_info']
+        saved = _saved_info(tables)
         assert saved['guidelines_text'] is None
         assert saved['guidelines_image_urls'] == []
 
     def test_管理情報保存_出店要項の画像URLを空配列で送ると空配列で保存される(self):
         """PUT /api/events/:id/admin-info で guidelines_image_urls=[] を送ると [] で保存される（全削除）。"""
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .update.return_value
-            .eq.return_value
-            .execute.return_value
-            .data) = [{'id': 'evt-1'}]
+        mock_admin_sb, tables = _make_admin_info_sb()
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             client = TestClient(app)
             resp = client.put('/api/events/evt-1/admin-info', json={'guidelines_text': None, 'guidelines_image_urls': []})
 
         assert resp.status_code == 200
-        saved = mock_admin_sb.table.return_value.update.call_args.args[0]['admin_info']
+        saved = _saved_info(tables)
         assert saved['guidelines_image_urls'] == []
         assert saved['guidelines_text'] is None
 
     def test_管理情報保存_出店要項の画像URLが配列でないと422(self):
         """PUT /api/events/:id/admin-info で guidelines_image_urls に文字列を送ると 422 になり DB は更新されない。"""
-        mock_admin_sb = MagicMock()
+        mock_admin_sb, tables = _make_admin_info_sb()
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             client = TestClient(app)
             resp = client.put('/api/events/evt-1/admin-info', json={'guidelines_image_urls': 'https://ex.com/a.png'})
 
         assert resp.status_code == 422
-        mock_admin_sb.table.return_value.update.assert_not_called()
-
-    def test_管理情報取得_出店要項が返る(self):
-        """GET /api/events/:id/admin-info で保存済みの guidelines_text / guidelines_image_urls がそのまま返る。"""
-        # 1. 出店要項を含む admin_info をモックに設定する
-        admin_info = {
-            'notes': None,
-            'guidelines_text': '要項',
-            'guidelines_image_urls': ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png'],
-        }
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .select.return_value
-            .eq.return_value
-            .single.return_value
-            .execute.return_value
-            .data) = {'admin_info': admin_info}
-
-        # 2. 取得して中身を確認する
-        with patch('app.routes.events.admin_supabase', mock_admin_sb):
-            client = TestClient(app)
-            resp = client.get('/api/events/evt-1/admin-info')
-
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data['guidelines_text'] == '要項'
-        assert data['guidelines_image_urls'] == ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
+        # 入力チェックで止まるので、どのテーブルにも触れない
+        mock_admin_sb.table.assert_not_called()
+        tables['event_admin_info'].upsert.assert_not_called()
+        tables['events'].update.assert_not_called()
 
     def test_管理情報保存_DB更新失敗時に500を返す(self):
-        """PUT /api/events/:id/admin-info で DB 更新が例外を投げたとき 500 が返る。"""
-        # 1. admin_supabase の update チェーンが例外を投げるよう設定する
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .update.return_value
-            .eq.return_value
-            .execute.side_effect) = Exception('DB connection error')
+        """PUT /api/events/:id/admin-info で event_admin_info への upsert が例外を投げたとき 500 が返る。"""
+        # 1. upsert の実行が例外を投げるよう設定する
+        mock_admin_sb, tables = _make_admin_info_sb(upsert_exc=Exception('DB connection error'))
 
         # 2. エンドポイントを呼んで 500 が返ることを確認する
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -615,6 +751,8 @@ class TestEventAdminInfo:
             resp = client.put('/api/events/evt-1/admin-info', json={'carry_in_time': '9:00'})
 
         assert resp.status_code == 500
+        assert 'DB connection error' not in resp.text
+        tables['event_admin_info'].upsert.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -733,13 +871,8 @@ class TestPublicApiHidesAdminInfo:
     def test_管理情報取得_認証付きAPIは従来どおりadmin_infoを返す(self):
         """GET /api/events/{id}/admin-info（認証付き）は出店要項を含む admin_info をそのまま返す（デグレ確認）。"""
         app.dependency_overrides[require_auth] = lambda: None
-        mock_admin_sb = MagicMock()
-        (mock_admin_sb.table.return_value
-            .select.return_value
-            .eq.return_value
-            .single.return_value
-            .execute.return_value
-            .data) = {'admin_info': _admin_info_secret()}
+        # 管理情報は専用テーブル event_admin_info の info 列から読む
+        mock_admin_sb, _ = _make_admin_info_sb(info_rows=[{'info': _admin_info_secret()}])
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             resp = TestClient(app).get('/api/events/evt-1/admin-info')

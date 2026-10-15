@@ -104,7 +104,8 @@ def _attach_images(events: list[dict]) -> list[dict]:
     for e in events:
         e['images'] = img_map.get(e['id'], [])
         # 管理者専用の管理情報（搬入・宿泊・出店料・出店要項など）は公開 API の応答に含めない。
-        # 管理画面は認証付きの GET /events/{id}/admin-info から別に取得する
+        # 管理情報は event_admin_info テーブルに移したが、migrations/017 で events.admin_info 列を
+        # 削除するまでは古い列が残っているため、応答から取り除いておく
         e.pop('admin_info', None)
     return events
 
@@ -333,15 +334,19 @@ def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)):
 async def get_admin_info(event_id: str, _=Depends(require_auth)):
     """指定イベントの管理情報を返す。未登録の場合は空の dict を返す。
 
+    管理情報は未ログインでは読めない専用テーブル event_admin_info に保存している。
+
     Args:
         event_id: 対象イベントのUUID
 
     Returns:
-        admin_info フィールドの dict。未設定の場合は {}
+        管理情報の dict。未登録の場合は {}
     """
     try:
-        result = admin_supabase.table('events').select('admin_info').eq('id', event_id).single().execute()
-        info = result.data.get('admin_info') if result.data else None
+        # 1. 専用テーブルから対象イベントの行を取得する（行が無ければ空のリスト）
+        result = admin_supabase.table('event_admin_info').select('info').eq('event_id', event_id).execute()
+        # 2. 行があれば中身を返し、無ければ（または中身が null なら）空の dict を返す
+        info = result.data[0].get('info') if result.data else None
         return info if info is not None else {}
     except Exception as e:
         logger.error('get_admin_info 取得エラー: %s', e)
@@ -369,18 +374,30 @@ class AdminInfoBody(BaseModel):
 async def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_auth)):
     """指定イベントの管理情報を保存する。
 
+    管理情報は未ログインでは読めない専用テーブル event_admin_info に、1イベント1行で保存する
+    （既に行があれば上書き、無ければ新規作成）。
+
     Args:
         event_id: 対象イベントのUUID
         body: 保存する管理情報（AdminInfoBody スキーマで型を保証）
 
     Returns:
         {"ok": True}
+
+    Raises:
+        HTTPException(404): イベントが存在しない場合
+        HTTPException(500): 保存に失敗した場合
     """
     try:
-        result = admin_supabase.table('events').update({'admin_info': body.model_dump()}).eq('id', event_id).execute()
-        # 更新対象が見つからない場合は 404 を返す
-        if not result.data:
+        # 1. 対象イベントが存在するか確かめる。無ければ 404 を返す
+        exists = admin_supabase.table('events').select('id').eq('id', event_id).execute()
+        if not exists.data:
             raise HTTPException(status_code=404, detail='イベントが見つかりません')
+        # 2. 管理情報を専用テーブルに upsert する（event_id が同じ行があれば上書き）
+        admin_supabase.table('event_admin_info').upsert(
+            {'event_id': event_id, 'info': body.model_dump(), 'updated_at': datetime.now(timezone.utc).isoformat()},
+            on_conflict='event_id',
+        ).execute()
         return {'ok': True}
     except HTTPException:
         raise
