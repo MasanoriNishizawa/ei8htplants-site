@@ -618,6 +618,18 @@ body {
   }
 }
 
+/* サイト全体: フォーム以外の要素をクリックしても入力カーソル（|の点滅）を出さない。
+   文字の選択・コピーはそのまま使えるように user-select ではなく caret-color で消す */
+body {
+  caret-color: transparent;
+}
+/* 入力欄・テキストエリア・編集可能な要素では入力カーソルを通常どおり表示する */
+input,
+textarea,
+[contenteditable]:not([contenteditable="false"]) {
+  caret-color: auto;
+}
+
 .num-plain::-webkit-outer-spin-button,
 .num-plain::-webkit-inner-spin-button {
   -webkit-appearance: none;
