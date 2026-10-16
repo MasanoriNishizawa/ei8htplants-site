@@ -1,0 +1,10 @@
+# 分析ダッシュボード（analytics/）で使うライブラリ。動作確認したバージョンに固定している
+streamlit==1.66.0
+pandas==3.0.6
+numpy==2.5.4
+plotly==7.1.0
+requests==2.34.2
+python-dotenv==1.2.4
+google-analytics-data==0.23.3
+google-auth==2.62.0
+pytest==9.1.1

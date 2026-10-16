@@ -5,10 +5,19 @@ import { supabase } from '../../lib/supabase'
 // ナビゲーション項目の型定義。グループヘッダーかリンクかを判別する
 type NavGroup = { group: string }
 type NavLink_ = { to: string; label: string; end?: boolean; sub?: boolean }
-type NavItem = NavGroup | NavLink_
+/** 管理画面の外（別サービス）を新しいタブで開くリンク */
+type NavExternal = { href: string; label: string }
+type NavItem = NavGroup | NavLink_ | NavExternal
+
+/**
+ * 分析ダッシュボード（analytics/ の Streamlit。Render の別サービス）の URL。
+ * 管理画面と同じ Supabase アカウントでログインして見る
+ */
+const ANALYTICS_URL = 'https://ei8htplants-analytics.onrender.com'
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/admin', label: 'ダッシュボード', end: true },
+  { href: ANALYTICS_URL, label: '分析' },
   { to: '/admin/events', label: 'イベント' },
   { to: '/admin/gallery', label: 'ギャラリー' },
   { to: '/admin/stockists', label: '取扱店' },
@@ -139,6 +148,22 @@ export default function AdminLayout() {
               <div key={`g-${i}`} style={{ fontSize: 10, letterSpacing: 2, color: '#aaa', textTransform: 'uppercase', padding: '12px 16px 4px', marginTop: 4 }}>
                 {item.group}
               </div>
+            )
+          }
+          // 別サービスへのリンク（新しいタブで開く。管理画面内の現在地にはならないので常に非選択の見た目）
+          if ('href' in item) {
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={navStyle({ isActive: false })}
+                onClick={() => setMenuOpen(false)}
+              >
+                {item.label} <span aria-hidden="true" style={{ fontSize: 12 }}>↗</span>
+                <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>（新しいタブで開きます）</span>
+              </a>
             )
           }
           // 通常のナビリンク

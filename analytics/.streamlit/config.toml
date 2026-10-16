@@ -1,0 +1,27 @@
+# Streamlit の設定（analytics フォルダで起動したときに読まれる）
+
+[theme]
+# 画面は明るいテーマに固定する（グラフの配色は明るい背景で検証しているため）
+base = "light"
+# ボタン・選択中の項目などの色（管理画面と同じ緑）
+primaryColor = "#4a6741"
+# ページ背景とグラフ背景を揃える
+backgroundColor = "#fcfcfb"
+secondaryBackgroundColor = "#f3f2ee"
+textColor = "#0b0b0b"
+
+[server]
+# ローカルで動かすときの設定。自分の PC からだけ開けるようにする
+# Render で公開するときは、起動コマンドで次を渡してこの2つを上書きする（README の「Render への公開」参照）
+#   --server.address 0.0.0.0 --server.port $PORT --server.headless true
+# XSRF 保護（enableXsrfProtection）・CORS（enableCORS）は既定の有効のままにする。ここで無効にしないこと
+address = "localhost"
+port = 8501
+
+[client]
+# 予期しないエラーが起きても、エラーの詳細（ファイルの場所など）を画面に出さない（公開時の情報漏れ対策）
+showErrorDetails = "none"
+
+[browser]
+# 利用状況の送信をしない
+gatherUsageStats = false

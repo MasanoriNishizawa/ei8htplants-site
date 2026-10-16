@@ -5,6 +5,9 @@
 secret_key.json
 # Google Cloud のサービスアカウントの鍵（アクセス解析用。リポジトリの外に置くが、念のため除外する）
 *service-account*.json
+# 分析ダッシュボード（analytics/）: Streamlit の秘密設定と、フォルダ直下に置かれた鍵などの JSON はコミットしない
+**/.streamlit/secrets.toml
+analytics/*.json
 
 # Python
 __pycache__/

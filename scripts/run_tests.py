@@ -10,6 +10,8 @@
     2. フロントのロジック（Vitest）             cd frontend && npx vitest run
     3. 画面テスト（Playwright。API は MSW モック）cd frontend && npx playwright test
     4. バックエンド（pytest）                   cd backend && python -m pytest
+    5. 分析ダッシュボード（pytest）             cd analytics && .venv/bin/python -m pytest tests
+       （analytics/.venv が無い環境ではスキップと記録する。本番には接続しない）
 
 ログは新しいものが上。管理画面の「設計書」→「04_TEST」→「08_テスト実行ログ」で見られる。
 1 つでも失敗があれば終了コード 1 を返す（コミットしてはいけない合図）。
@@ -149,6 +151,37 @@ def run_pytest() -> dict:
     }
 
 
+def run_analytics() -> dict:
+    """分析ダッシュボード（analytics/ の Streamlit）のテスト（pytest）を実行して結果をまとめる。
+
+    analytics は専用の仮想環境（analytics/.venv）で動かすため、その Python で実行する。
+    仮想環境が無い環境（ライブラリ未導入）では実行できないので、スキップとして記録する。
+
+    Returns:
+        ほかのテストと同じ形の結果の dict
+    """
+    name = "分析ダッシュボード（pytest）"
+    analytics = ROOT / "analytics"
+    venv_python = analytics / ".venv" / "bin" / "python"
+    # 1. フォルダか仮想環境が無ければスキップ（失敗扱いにはしない）
+    if not venv_python.exists():
+        return {
+            "name": name, "code": 0, "sec": 0,
+            "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
+            "failed_names": [], "tail": ["analytics/.venv がないためスキップ"],
+        }
+    # 2. analytics の中で tests を実行し、件数と失敗したテスト名を取り出す
+    code, out, sec = run([str(venv_python), "-m", "pytest", "tests", "-rfE"], analytics)
+    failed_names = re.findall(r"^(?:FAILED|ERROR) (\S+)", out, flags=re.M)
+    return {
+        "name": name, "code": code, "sec": sec,
+        "passed": num(r"(\d+) passed", out), "failed": num(r"(\d+) failed", out) + num(r"(\d+) errors?\b", out),
+        "skipped": num(r"(\d+) skipped", out), "xfail": num(r"(\d+) xfailed", out),
+        "failed_names": failed_names[:10],
+        "tail": out.strip().splitlines()[-1:] if out.strip() else [],
+    }
+
+
 def git_info() -> str:
     """今のコミット番号と、まだコミットしていない変更があるかを返す。"""
     head = subprocess.run(
@@ -231,6 +264,10 @@ def main() -> int:
     # 4. pytest（バックエンド）
     print("pytest（バックエンド）を実行中…", flush=True)
     results.append(run_pytest())
+
+    # 5. pytest（分析ダッシュボード）
+    print("pytest（分析ダッシュボード）を実行中…", flush=True)
+    results.append(run_analytics())
 
     text = make_entry(results, args.note, skipped)
     print("\n" + text)
