@@ -10,10 +10,10 @@ type NavExternal = { href: string; label: string }
 type NavItem = NavGroup | NavLink_ | NavExternal
 
 /**
- * 分析ダッシュボード（analytics/ の Streamlit。Render の別サービス）の URL。
+ * 分析ダッシュボード（analytics/ の Streamlit。Streamlit Community Cloud で公開）の URL。
  * 管理画面と同じ Supabase アカウントでログインして見る
  */
-const ANALYTICS_URL = 'https://ei8htplants-analytics.onrender.com'
+const ANALYTICS_URL = 'https://ei8htplants-analytics.streamlit.app'
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/admin', label: 'ダッシュボード', end: true },

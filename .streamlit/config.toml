@@ -1,0 +1,29 @@
+# 分析ダッシュボード（analytics/app.py）を Streamlit Community Cloud で動かすときの設定
+#
+# なぜリポジトリ直下にあるか:
+#   Community Cloud は作業ディレクトリが常にリポジトリ直下で、エントリポイント（analytics/app.py）が
+#   サブフォルダにあっても、設定はリポジトリ直下の .streamlit/config.toml しか読まない。
+#   ローカルで analytics フォルダから起動したときは analytics/.streamlit/config.toml が使われる。
+#   [theme]・[client]・[browser] を変えるときは、このファイルと analytics/.streamlit/config.toml の両方をそろえること。
+#
+# [server]（待ち受けのアドレス・ポート）は Community Cloud が決めるため、ここには書かない。
+# XSRF 保護（enableXsrfProtection）・CORS（enableCORS）も既定の有効のままにする（無効にしないこと）。
+
+[theme]
+# 画面は明るいテーマに固定する（グラフの配色は明るい背景で検証しているため）
+base = "light"
+# ボタン・選択中の項目などの色（管理画面と同じ緑）
+primaryColor = "#4a6741"
+# ページ背景とグラフ背景を揃える
+backgroundColor = "#fcfcfb"
+secondaryBackgroundColor = "#f3f2ee"
+textColor = "#0b0b0b"
+
+[client]
+# 予期しないエラーが起きても、エラーの詳細（ファイルの場所など）を画面に出さない（公開時の情報漏れ対策）
+# 念のため analytics/app.py の先頭でも st.set_option で同じ値を入れている
+showErrorDetails = "none"
+
+[browser]
+# 利用状況の送信をしない
+gatherUsageStats = false

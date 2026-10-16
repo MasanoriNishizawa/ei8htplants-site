@@ -4,7 +4,8 @@
 - 取得する列はテーブルごとに明示し、氏名・電話番号・住所・問い合わせ本文などの個人情報は取らない
 - メールアドレスはリピート分析のためだけに取得し、取得直後にハッシュ化して元の値は捨てる
 - 接続情報は環境変数から読む。ローカルではリポジトリ直下の .env を読み込み、
-  Render では環境変数が直接入る（.env が無ければ load_dotenv は何もしない）。値は画面にもログにも出さない
+  Streamlit Community Cloud では Secrets のトップレベルの値が環境変数に入る（lib/secrets_env.py）。
+  .env が無ければ load_dotenv は何もしない。値は画面にもログにも出さない
 """
 
 from __future__ import annotations

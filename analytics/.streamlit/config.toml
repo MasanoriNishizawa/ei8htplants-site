@@ -1,4 +1,8 @@
-# Streamlit の設定（analytics フォルダで起動したときに読まれる）
+# Streamlit の設定（ローカルで analytics フォルダから起動したときに読まれる）
+#
+# Streamlit Community Cloud ではこのファイルは読まれず、リポジトリ直下の .streamlit/config.toml が使われる
+# （Community Cloud の作業ディレクトリは常にリポジトリ直下のため）。
+# [theme]・[client]・[browser] を変えるときは、このファイルとリポジトリ直下の .streamlit/config.toml の両方をそろえること。
 
 [theme]
 # 画面は明るいテーマに固定する（グラフの配色は明るい背景で検証しているため）
@@ -12,8 +16,7 @@ textColor = "#0b0b0b"
 
 [server]
 # ローカルで動かすときの設定。自分の PC からだけ開けるようにする
-# Render で公開するときは、起動コマンドで次を渡してこの2つを上書きする（README の「Render への公開」参照）
-#   --server.address 0.0.0.0 --server.port $PORT --server.headless true
+# Community Cloud ではアドレス・ポートは Community Cloud が決める（リポジトリ直下の設定にも [server] は書かない）
 # XSRF 保護（enableXsrfProtection）・CORS（enableCORS）は既定の有効のままにする。ここで無効にしないこと
 address = "localhost"
 port = 8501

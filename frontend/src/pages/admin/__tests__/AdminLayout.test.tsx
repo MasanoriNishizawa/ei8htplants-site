@@ -2,8 +2,8 @@
  * AdminLayout（管理画面の共通レイアウト）のテスト
  *
  * 確かめること:
- * 1. サイドメニューに「分析」リンクがあり、分析ダッシュボード（Render の別サービス）を新しいタブで開く
- *    - href が https://ei8htplants-analytics.onrender.com
+ * 1. サイドメニューに「分析」リンクがあり、分析ダッシュボード（Streamlit Community Cloud の別サービス）を新しいタブで開く
+ *    - href が https://ei8htplants-analytics.streamlit.app
  *    - target="_blank"・rel="noopener noreferrer"（開いた先から管理画面を操作されないように）
  *    - スクリーンリーダー向けに「（新しいタブで開きます）」が読み上げられる
  * 2. 「分析」は「ダッシュボード」の直後、「イベント」の前に並ぶ
@@ -19,7 +19,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AdminLayout from '../AdminLayout'
 
 // 分析ダッシュボードの公開 URL（仕様で決めた値）
-const ANALYTICS_URL = 'https://ei8htplants-analytics.onrender.com'
+const ANALYTICS_URL = 'https://ei8htplants-analytics.streamlit.app'
 
 // getSession が返すセッション（null なら未ログイン）。テストごとに切り替える
 const sessionHolder: { session: object | null } = { session: { user: { email: 'admin@example.com' } } }

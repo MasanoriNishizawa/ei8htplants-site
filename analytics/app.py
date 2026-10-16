@@ -2,21 +2,32 @@
 
 起動: analytics フォルダで `.venv/bin/streamlit run app.py`
 本番の Supabase を読み取り専用で参照し、イベント収支・WS・ショップ・問い合わせを分析する。
-Render で公開するため、管理画面と同じ Supabase のアカウントでログインした人だけが見られる（lib/auth.py）。
+Streamlit Community Cloud で公開するため、管理画面と同じ Supabase のアカウントでログインした人だけが見られる（lib/auth.py）。
 """
 
 import streamlit as st
 
-from lib.auth import render_sidebar, require_login
-from views import advanced, events, inbox, overview, shop, traffic, workshop
+# 0. 予期しないエラーの詳細（例外の種類・メッセージ・ファイルの場所）を画面に出さない。
+#    設定ファイル（.streamlit/config.toml）が読まれない起動の仕方でも効くように、コードでも同じ値を入れる。
+#    下の lib・views の import で起きたエラーにも効くよう、ほかの import より前に置く
+st.set_option("client.showErrorDetails", "none")
+
+from lib.auth import render_sidebar, require_login  # noqa: E402
+from lib.secrets_env import load_secrets_into_env  # noqa: E402
+from views import advanced, events, inbox, overview, shop, traffic, workshop  # noqa: E402
 
 # 1. ページ全体の設定（タブのタイトル・横幅いっぱいに使う）
 st.set_page_config(page_title="ei8ht plants 分析", page_icon="🌵", layout="wide")
 
-# 2. ログインしていなければログインフォームだけを出してここで止める（以降の画面・データ読み込みは行わない）
+# 2. Community Cloud の Secrets（secrets.toml）を環境変数に反映させる。
+#    接続情報は各モジュールが os.getenv で読むため、ログインの判定より前に済ませる。
+#    secrets.toml が無いローカル環境では何もしない（.env の値がそのまま使われる）
+load_secrets_into_env()
+
+# 3. ログインしていなければログインフォームだけを出してここで止める（以降の画面・データ読み込みは行わない）
 user_email = require_login()
 
-# 3. 画面の一覧。左のメニューにこの順番で並ぶ
+# 4. 画面の一覧。左のメニューにこの順番で並ぶ
 pages = st.navigation(
     {
         "ダッシュボード": [
@@ -33,7 +44,7 @@ pages = st.navigation(
     }
 )
 
-# 4. サイドバーの下にログイン中のアカウント・ログアウト・再読み込みボタンを置く（キャッシュを消して本番から取り直す）
+# 5. サイドバーの下にログイン中のアカウント・ログアウト・再読み込みボタンを置く（キャッシュを消して本番から取り直す）
 render_sidebar(user_email)
 with st.sidebar:
     if st.button("データを再読み込み", icon=":material/refresh:", width="stretch"):
@@ -41,5 +52,5 @@ with st.sidebar:
         st.rerun()
     st.caption("本番データを読み取り専用で表示しています（10分ごとに自動更新）。")
 
-# 5. 選ばれた画面を表示する
+# 6. 選ばれた画面を表示する
 pages.run()

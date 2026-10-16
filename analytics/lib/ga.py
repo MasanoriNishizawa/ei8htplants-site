@@ -1,15 +1,20 @@
 """Google アナリティクス 4（GA4）のデータを Data API で読み出すモジュール（読み取り専用）。
 
-- 接続には Google Cloud のサービスアカウントの鍵（JSON ファイル）を使う
-- 設定はリポジトリ直下の .env に書く
-    GA_PROPERTY_ID=123456789                       … GA4 の「プロパティ ID」（数字。測定 ID の G-… ではない）
-    GA_CREDENTIALS=/Users/…/ga-service-account.json … 鍵ファイルの場所（リポジトリの外に置くこと）
-- 鍵ファイルの中身は画面にもログにも出さない
+- 接続には Google Cloud のサービスアカウントの鍵（JSON）を使う
+- 設定は環境変数で渡す。ローカルではリポジトリ直下の .env、Streamlit Community Cloud では Secrets に書く
+    GA_PROPERTY_ID=123456789                         … GA4 の「プロパティ ID」（数字。測定 ID の G-… ではない）
+    鍵は次のどちらかで渡す（両方あれば GA_CREDENTIALS_JSON を優先する）
+    GA_CREDENTIALS=/Users/…/ga-service-account.json   … 鍵ファイルの場所（ローカル向け。リポジトリの外に置くこと）
+    GA_CREDENTIALS_JSON={"type": "service_account", …} … 鍵ファイルの中身そのもの（ファイルを置けない Community Cloud 向け）
+- 鍵の中身は画面にもログにも出さない。エラーメッセージにも中身は含めない
+- 鍵の中身は st.cache_data の引数に渡さない（キャッシュのキーに秘密が入らないよう、
+  キャッシュ関数には「どこから鍵を読むか」の目印だけを渡し、中身は通信の直前に環境変数から読む）
 - 権限は読み取り専用（analytics.readonly）だけを要求する
 """
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +27,20 @@ from .data import CACHE_TTL  # noqa: F401  （.env の読み込みを先に済�
 # 読み取り専用の権限
 SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"]
 
+# 鍵の中身（JSON 文字列）を入れる環境変数の名前
+CREDENTIALS_JSON_ENV = "GA_CREDENTIALS_JSON"
+
+# 鍵を GA_CREDENTIALS_JSON から読むことを表す目印。鍵ファイルの場所の代わりに run_report へ渡す
+# （ファイルの場所としては使わない書き方にして、取り違えないようにしている）
+JSON_CREDENTIALS_REF = "env:GA_CREDENTIALS_JSON"
+
+# サービスアカウントの鍵に必ず入っている項目（google-auth が接続に使うもの）
+REQUIRED_KEY_FIELDS = ("client_email", "private_key", "token_uri")
+
+
+class CredentialsError(ValueError):
+    """GA_CREDENTIALS_JSON の中身が鍵として読めないときの例外。メッセージに鍵の中身は含めない。"""
+
 
 @dataclass
 class GaConfig:
@@ -29,15 +48,60 @@ class GaConfig:
 
     Attributes:
         property_id: GA4 のプロパティ ID（数字）
-        credentials_path: サービスアカウントの鍵ファイルの場所
+        credentials_path: サービスアカウントの鍵ファイルの場所。鍵を GA_CREDENTIALS_JSON で渡すときは None
     """
 
     property_id: str
-    credentials_path: Path
+    credentials_path: Path | None = None
+
+    @property
+    def credentials_ref(self) -> str:
+        """run_report に渡す「鍵をどこから読むか」の目印（秘密の値は含まない）。
+
+        Returns:
+            鍵ファイルの場所、または JSON_CREDENTIALS_REF
+        """
+        return str(self.credentials_path) if self.credentials_path is not None else JSON_CREDENTIALS_REF
+
+
+def parse_credentials_json(text: str) -> dict:
+    """GA_CREDENTIALS_JSON の文字列を、サービスアカウントの鍵の辞書にする。
+
+    Secrets（TOML）で三重のダブルクォートを使うと、private_key の「\\n」が本物の改行に変わってしまうため、
+    文字列の中の改行も受け付ける（json.loads の strict=False）。本物の改行も PEM の区切りとしてそのまま使える。
+
+    Args:
+        text: 鍵ファイルの中身（JSON 文字列）
+
+    Returns:
+        鍵の辞書（service_account.Credentials.from_service_account_info に渡せる形）
+
+    Raises:
+        CredentialsError: JSON として読めない・オブジェクトでない・種類が違う・必要な項目が無いとき
+            （メッセージに鍵の中身は含めない）
+    """
+    # 1. JSON として読む。読めないときは位置だけを伝える（中身は出さない。元の例外もつなげない）
+    try:
+        info = json.loads(text, strict=False)
+    except json.JSONDecodeError as e:
+        raise CredentialsError(
+            f"{CREDENTIALS_JSON_ENV} を JSON として読めません（{e.lineno} 行 {e.colno} 文字目付近）。"
+            "鍵ファイルの中身をそのまま貼り付けてください（Secrets では ''' で囲む）。"
+        ) from None
+    # 2. 鍵ファイルは { … } のオブジェクトのはず
+    if not isinstance(info, dict):
+        raise CredentialsError(f"{CREDENTIALS_JSON_ENV} の中身がサービスアカウントの鍵の形（{{ … }}）ではありません。")
+    # 3. 種類と必要な項目があるか（足りない項目の名前だけを伝える）
+    if info.get("type", "service_account") != "service_account":
+        raise CredentialsError(f"{CREDENTIALS_JSON_ENV} はサービスアカウントの鍵ではありません（type が service_account でない）。")
+    missing = [k for k in REQUIRED_KEY_FIELDS if not info.get(k)]
+    if missing:
+        raise CredentialsError(f"{CREDENTIALS_JSON_ENV} に必要な項目がありません: {', '.join(missing)}")
+    return info
 
 
 def ga_config() -> tuple[GaConfig | None, str | None]:
-    """.env から GA の接続設定を読み、足りないものがあれば理由を返す。
+    """環境変数（ローカルでは .env、公開時は Secrets）から GA の接続設定を読み、足りないものがあれば理由を返す。
 
     Returns:
         (設定, None) または (None, 足りないものの説明)
@@ -45,35 +109,68 @@ def ga_config() -> tuple[GaConfig | None, str | None]:
     # 1. プロパティ ID は数字だけ（測定 ID「G-…」と取り違えやすいので確認する）
     pid = os.getenv("GA_PROPERTY_ID", "").strip()
     cred = os.getenv("GA_CREDENTIALS", "").strip()
+    cred_json = os.getenv(CREDENTIALS_JSON_ENV, "").strip()
     if not pid:
-        return None, "GA_PROPERTY_ID が .env にありません。"
+        return None, "GA_PROPERTY_ID が設定されていません（ローカルは .env、公開時は Secrets に入れてください）。"
     if pid.upper().startswith("G-"):
         return None, "GA_PROPERTY_ID に測定 ID（G-…）が入っています。数字の「プロパティ ID」を入れてください。"
     if not pid.isdigit():
         return None, "GA_PROPERTY_ID は数字だけで入れてください。"
-    # 2. 鍵ファイルがあるか
+    # 2. 鍵の中身（GA_CREDENTIALS_JSON）があればそちらを優先し、鍵として読めるかだけ確かめる
+    if cred_json:
+        try:
+            parse_credentials_json(cred_json)
+        except CredentialsError as e:
+            return None, str(e)
+        return GaConfig(property_id=pid), None
+    # 3. 鍵ファイルの場所（GA_CREDENTIALS）があり、ファイルが実在するか
     if not cred:
-        return None, "GA_CREDENTIALS（鍵ファイルの場所）が .env にありません。"
+        return None, (
+            "GA の鍵が設定されていません。GA_CREDENTIALS（鍵ファイルの場所）または "
+            "GA_CREDENTIALS_JSON（鍵の中身）を設定してください。"
+        )
     path = Path(cred).expanduser()
     if not path.is_file():
         return None, "GA_CREDENTIALS に書いた場所に鍵ファイルが見つかりません。"
     return GaConfig(property_id=pid, credentials_path=path), None
 
 
-def _client(cfg: GaConfig):
+def load_credentials(credentials_ref: str):
+    """「鍵をどこから読むか」の目印から、読み取り専用の権限を持つ認証情報を作る。
+
+    鍵の中身はここで初めて環境変数から読む（キャッシュ関数の引数には入れない）。
+
+    Args:
+        credentials_ref: GaConfig.credentials_ref の値（鍵ファイルの場所、または JSON_CREDENTIALS_REF）
+
+    Returns:
+        google.oauth2.service_account.Credentials
+
+    Raises:
+        CredentialsError: GA_CREDENTIALS_JSON が鍵として読めないとき
+    """
+    from google.oauth2 import service_account
+
+    # 1. GA_CREDENTIALS_JSON 方式なら、環境変数の中身を辞書にして使う
+    if credentials_ref == JSON_CREDENTIALS_REF:
+        info = parse_credentials_json(os.getenv(CREDENTIALS_JSON_ENV, ""))
+        return service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+    # 2. それ以外は鍵ファイルの場所として読む
+    return service_account.Credentials.from_service_account_file(credentials_ref, scopes=SCOPES)
+
+
+def _client(credentials_ref: str):
     """Data API のクライアントを作る（読み取り専用の権限で）。
 
     Args:
-        cfg: 接続設定
+        credentials_ref: GaConfig.credentials_ref の値
 
     Returns:
         BetaAnalyticsDataClient
     """
     from google.analytics.data_v1beta import BetaAnalyticsDataClient
-    from google.oauth2 import service_account
 
-    creds = service_account.Credentials.from_service_account_file(str(cfg.credentials_path), scopes=SCOPES)
-    return BetaAnalyticsDataClient(credentials=creds)
+    return BetaAnalyticsDataClient(credentials=load_credentials(credentials_ref))
 
 
 def response_to_frame(response, dimensions: list[str], metrics: list[str]) -> pd.DataFrame:
@@ -104,7 +201,7 @@ def response_to_frame(response, dimensions: list[str], metrics: list[str]) -> pd
 @st.cache_data(ttl=CACHE_TTL, show_spinner="Google アナリティクスのデータを読み込んでいます…")
 def run_report(
     property_id: str,
-    credentials_path: str,
+    credentials_ref: str,
     dimensions: tuple[str, ...],
     metrics: tuple[str, ...],
     start: str,
@@ -116,7 +213,8 @@ def run_report(
 
     Args:
         property_id: プロパティ ID
-        credentials_path: 鍵ファイルの場所
+        credentials_ref: 鍵をどこから読むかの目印（GaConfig.credentials_ref）。
+            キャッシュのキーになるため、鍵の中身ではなく場所・目印だけを渡す
         dimensions: ディメンション名（例: ("pagePath",)）
         metrics: 指標名（例: ("screenPageViews",)）
         start: 開始日（"28daysAgo" や "2026-10-01"）
@@ -129,7 +227,6 @@ def run_report(
     """
     from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, OrderBy, RunReportRequest
 
-    cfg = GaConfig(property_id=property_id, credentials_path=Path(credentials_path))
     request = RunReportRequest(
         property=f"properties/{property_id}",
         dimensions=[Dimension(name=d) for d in dimensions],
@@ -140,7 +237,7 @@ def run_report(
         else [],
         limit=limit,
     )
-    response = _client(cfg).run_report(request)
+    response = _client(credentials_ref).run_report(request)
     return response_to_frame(response, list(dimensions), list(metrics))
 
 

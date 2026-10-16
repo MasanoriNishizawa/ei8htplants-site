@@ -43,7 +43,7 @@ def render() -> None:
 
     def report(dims: tuple[str, ...], metrics: tuple[str, ...], order: str | None = None, limit: int = 1000):
         """選んだ期間で GA のレポートを取得する（引数は run_report と同じ）。"""
-        return run_report(cfg.property_id, str(cfg.credentials_path), dims, metrics, start, "today", order, limit)
+        return run_report(cfg.property_id, cfg.credentials_ref, dims, metrics, start, "today", order, limit)
 
     try:
         totals = report((), ("activeUsers", "sessions", "screenPageViews", "averageSessionDuration"))
@@ -150,12 +150,22 @@ def _setup_guide(problem: str | None) -> None:
 4. 鍵ファイルを **リポジトリの外**（例: `~/.config/ei8htplants/ga-service-account.json`）に置く
 5. Google アナリティクスの「管理 → プロパティのアクセス管理」で、サービスアカウントのメールアドレス（`…@….iam.gserviceaccount.com`）を **閲覧者** として追加する
 6. 「管理 → プロパティの詳細」で **プロパティ ID**（数字）を確認する
-7. リポジトリ直下の `.env` に次の2行を足して、このアプリを再起動する
+7. **ローカル**: リポジトリ直下の `.env` に次の2行を足して、このアプリを再起動する
 
 ```
 GA_PROPERTY_ID=123456789
 GA_CREDENTIALS=/Users/（ユーザー名）/.config/ei8htplants/ga-service-account.json
 ```
+
+8. **Streamlit Community Cloud**: アプリの Settings → Secrets に、プロパティ ID と鍵ファイルの中身を入れて保存する
+   （鍵ファイルは置けないので、中身をそのまま `GA_CREDENTIALS_JSON` に貼る。`'''` で囲む）
+
+```
+GA_PROPERTY_ID = "123456789"
+GA_CREDENTIALS_JSON = '''
+{ 鍵ファイルの中身をそのまま貼り付ける }
+'''
+```
 """
     )
-    st.caption("鍵ファイルはパスワードと同じ扱いです。リポジトリに入れたり、人に送ったりしないでください。")
+    st.caption("鍵ファイル（とその中身）はパスワードと同じ扱いです。リポジトリに入れたり、人に送ったりしないでください。")
