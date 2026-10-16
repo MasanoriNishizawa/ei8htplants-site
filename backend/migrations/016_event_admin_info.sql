@@ -25,6 +25,8 @@ CREATE POLICY "service_role_all" ON event_admin_info FOR ALL TO service_role USI
 -- 3. 二重の守り: Supabase が新しいテーブルに自動で付ける anon・authenticated の権限も取り消す
 --    （万一 RLS が無効にされても読めないようにする）
 REVOKE ALL ON event_admin_info FROM anon, authenticated;
+-- 注意: このプロジェクトでは service_role の権限も自動では付かなかったため、018 で付けている
+--       （新しい環境で作り直すときは 016 の後に 018 も実行する）
 
 -- 4. 今ある管理情報を新しいテーブルに写す（空のものは写さない。既に行があるイベントは上書きしない）
 INSERT INTO event_admin_info (event_id, info)

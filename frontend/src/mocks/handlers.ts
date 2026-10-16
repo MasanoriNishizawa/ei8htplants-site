@@ -10,6 +10,31 @@ import {
   MOCK_DOC_TREE,
   MOCK_DOC_CONTENTS,
 } from './data'
+import type { EventAdminInfo, EventFinances } from '../lib/api'
+
+/**
+ * 保存（PUT）された管理情報。イベントID → 管理情報
+ * ブラウザのメモリ上だけに持つため、ページを再読み込みすると空に戻る（E2E の各テストに影響しない）
+ */
+const savedAdminInfo: Record<string, EventAdminInfo> = {}
+
+/**
+ * 保存（PUT）された収支。イベントID → 収支
+ * 管理情報と同じく、ページを再読み込みすると空に戻る
+ */
+const savedFinances: Record<string, EventFinances> = {}
+
+/**
+ * 保存（PUT）でメモリに持った管理情報・収支を消して、モックデータの初期状態に戻す
+ * Vitest ではモジュールがテストファイル単位で共有されるため、テストごとに呼んで影響を残さない
+ * @returns なし
+ */
+export function resetSavedMockData(): void {
+  // 1. 管理情報の保存値をすべて消す
+  for (const key of Object.keys(savedAdminInfo)) delete savedAdminInfo[key]
+  // 2. 収支の保存値をすべて消す
+  for (const key of Object.keys(savedFinances)) delete savedFinances[key]
+}
 
 export const handlers = [
   // Events
@@ -30,10 +55,27 @@ export const handlers = [
     return HttpResponse.json(event)
   }),
 
+  // 収支の取得。このページ読み込み中に保存（PUT）した値があればそれを返す
   http.get('/api/events/:id/finances', ({ params }) => {
+    const saved = savedFinances[params.id as string]
+    if (saved) return HttpResponse.json(saved)
     const fin = MOCK_FINANCES.find(f => f.event_id === params.id)
     if (!fin) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(fin)
+  }),
+
+  // 収支の保存。送られた本文に id・event_id を付けて、メモリ上に保持して返す
+  // （管理情報ページの保存時に出店料・宿泊費を同期するため呼ばれる）
+  http.put('/api/events/:id/finances', async ({ params, request }) => {
+    const id = params.id as string
+    // 1. 送られた収支の入力項目を受け取る
+    const body = (await request.json()) as Record<string, unknown>
+    // 2. 既存の id があれば引き継ぎ、無ければモック用の id を付ける
+    const existing = savedFinances[id] ?? MOCK_FINANCES.find(f => f.event_id === id)
+    const saved = { ...body, id: existing?.id ?? `fin-${id}`, event_id: id } as unknown as EventFinances
+    // 3. メモリに保持し、保存後の内容を返す
+    savedFinances[id] = saved
+    return HttpResponse.json(saved)
   }),
 
   http.get('/api/events/:id/sessions', () => {
@@ -42,12 +84,16 @@ export const handlers = [
 
   // 管理情報（搬入時間・ホテル・ブース費用等）の取得・保存
   // mock-past-1 だけ出店要項（文章・画像3枚）を持つ管理情報を返し、ほかのイベントは未入力（{}）を返す
+  // このページ読み込み中に保存（PUT）した値があればそれを優先して返す
   http.get('/api/events/:id/admin-info', ({ params }) => {
-    const info = MOCK_ADMIN_INFO[params.id as string]
+    const id = params.id as string
+    const info = savedAdminInfo[id] ?? MOCK_ADMIN_INFO[id]
     return HttpResponse.json(info ?? {})
   }),
 
-  http.put('/api/events/:id/admin-info', () => {
+  // 管理情報の保存。送られた本文をメモリ上に保持する（ページを再読み込みすると元に戻る）
+  http.put('/api/events/:id/admin-info', async ({ params, request }) => {
+    savedAdminInfo[params.id as string] = (await request.json()) as EventAdminInfo
     return HttpResponse.json({ ok: true })
   }),
 

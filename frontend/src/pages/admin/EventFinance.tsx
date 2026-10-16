@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
-import { api, computeFinances, type Event, type EventFinancesBody, type EventAdminInfo } from '../../lib/api'
+import { api, computeFinances, type Event, type EventFinancesBody } from '../../lib/api'
 
 const BLANK: EventFinancesBody = {
   sales: 0,
@@ -30,8 +30,6 @@ export default function EventFinance() {
   const backTo: string = (location.state as any)?.from ?? '/admin/events'
   const [event, setEvent] = useState<Event | null>(null)
   const [form, setForm] = useState<EventFinancesBody>(BLANK)
-  /** EventAdminInfo から取得した管理情報。保存時に booth_fee / hotel_fee を同期するために保持する */
-  const [adminInfo, setAdminInfo] = useState<EventAdminInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   /** 読み込み・保存エラーのメッセージ。null なら非表示 */
@@ -49,7 +47,6 @@ export default function EventFinance() {
       api.events.getAdminInfo(id),
     ]).then(([ev, fin, reservations, info]) => {
       setEvent(ev)
-      setAdminInfo(info)
       const reservationTotal = reservations
         .filter((r) => r.status !== 'cancelled')
         .reduce((sum, r) => sum + r.participants, 0)
@@ -93,16 +90,16 @@ export default function EventFinance() {
     try {
       // 1. 収支データを保存する
       await api.events.saveFinances(id, form)
-      // 2. 管理情報（出店料・宿泊費）を収支の値で上書きして同期する。
-      //    管理情報の読み込みに失敗している（null）ときは同期しない。
-      //    空の値で丸ごと上書きすると、搬入・宿泊・出店要項などが消えてしまうため
-      if (adminInfo) {
-        await api.events.saveAdminInfo(id, {
-          ...adminInfo,
-          booth_fee: form.booth_fee,
-          hotel_fee: form.accommodation,
-        })
-      }
+      // 2. 管理情報の最新の内容を読み直す。
+      //    画面を開いた時点の内容を使うと、その後に管理情報ページで保存した搬入・出店要項などを
+      //    古い内容で上書きして消してしまうため、保存の直前に取り直す
+      const latestAdminInfo = await api.events.getAdminInfo(id)
+      // 3. 管理情報の出店料・宿泊費だけを収支の値に置き換えて保存する（ほかの項目は最新の内容のまま）
+      await api.events.saveAdminInfo(id, {
+        ...latestAdminInfo,
+        booth_fee: form.booth_fee,
+        hotel_fee: form.accommodation,
+      })
       // 保存後は遷移元（収支一覧またはイベント一覧）へ戻る
       navigate(backTo)
     } catch {

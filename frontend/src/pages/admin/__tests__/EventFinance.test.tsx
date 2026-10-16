@@ -6,7 +6,9 @@
  * 2. EventFinance ページのレンダリングテスト
  *    - API モックを使って収支情報が画面に表示されることを確認する
  * 3. 保存時の管理情報との同期
- *    - 管理情報を読み込めたときは既存値（出店要項など）を引き継いで出店料・宿泊費だけ上書きする
+ *    - 保存の直前に管理情報を読み直し、その最新の内容（出店要項など）を引き継いで出店料・宿泊費だけ上書きする
+ *      （画面を開いた後に管理情報ページで保存された搬入などを古い内容で消さない）
+ *    - 保存時の管理情報の読み直しに失敗したときはエラーを出して画面に留まる
  *    - 読み込み（イベント・収支・予約・管理情報のどれか）に失敗したときは保存ボタンを押せず、
  *      saveFinances / saveAdminInfo のどちらも呼ばない（初期値で既存データを上書きして消さない）
  */
@@ -371,6 +373,7 @@ describe('EventFinance ページ — 保存時の管理情報との同期', () =
   })
 
   it('管理情報を読み込めたときは、出店要項などの既存値を引き継ぎ出店料・宿泊費だけ収支の値で上書きして saveAdminInfo に渡す', async () => {
+    // 読み込み時と保存時の読み直しで同じ管理情報が返る場合（getAdminInfo は毎回 EXISTING_ADMIN_INFO を返す）
     vi.mocked(api.events.getAdminInfo).mockResolvedValue(EXISTING_ADMIN_INFO)
     renderFinancePageWithBack()
     await userEvent.click(await screen.findByRole('button', { name: '保存' }))
@@ -442,5 +445,57 @@ describe('EventFinance ページ — 保存時の管理情報との同期', () =
     await userEvent.click(await screen.findByRole('button', { name: '保存' }))
     expect(await screen.findByText('保存に失敗しました。もう一度お試しください。')).toBeInTheDocument()
     expect(screen.queryByText('イベント一覧ページ')).not.toBeInTheDocument()
+  })
+
+  it('画面を開いた後に管理情報が更新されていたときは、保存時に読み直した最新の管理情報を引き継ぎ、出店料・宿泊費だけ収支の値になる', async () => {
+    // 1. 画面を開いたとき（1回目）は搬入・出店要項が未入力。宿泊料金 7000 だけ入っている
+    const OLD_INFO: EventAdminInfo = { hotel_fee: 7000 } as EventAdminInfo
+    // 2. 保存時の読み直し（2回目）では、別の画面で保存された搬入・出店要項が入っている（宿泊料金は 3000 に変わっている）
+    const LATEST_INFO: EventAdminInfo = {
+      ...EXISTING_ADMIN_INFO,
+      carry_in_time: '2099-11-01T07:45',
+      guidelines_text: '後から保存した出店要項',
+      hotel_fee: 3000,
+      booth_fee: 4000,
+    }
+    vi.mocked(api.events.getAdminInfo)
+      .mockResolvedValueOnce(OLD_INFO)
+      .mockResolvedValueOnce(LATEST_INFO)
+    renderFinancePageWithBack()
+    await userEvent.click(await screen.findByRole('button', { name: '保存' }))
+
+    // 3. 保存が終わって一覧へ戻る
+    await waitFor(() => expect(api.events.saveAdminInfo).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('イベント一覧ページ')).toBeInTheDocument()
+
+    // 4. getAdminInfo は読み込み時と保存時の2回呼ばれ、保存時の読み直しは収支の保存の後
+    expect(api.events.getAdminInfo).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(api.events.getAdminInfo).mock.calls[1][0]).toBe('ev-finance-1')
+    expect(vi.mocked(api.events.saveFinances).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(api.events.getAdminInfo).mock.invocationCallOrder[1])
+
+    // 5. saveAdminInfo には最新の内容がそのまま使われ、出店料は収支の 10000・宿泊費は画面の値（読み込み時の 7000）になる
+    const body = vi.mocked(api.events.saveAdminInfo).mock.calls[0][1]
+    expect(body).toEqual({ ...LATEST_INFO, booth_fee: 10000, hotel_fee: 7000 })
+    expect(body.carry_in_time).toBe('2099-11-01T07:45')
+    expect(body.guidelines_text).toBe('後から保存した出店要項')
+  })
+
+  it('保存時の管理情報の読み直し（getAdminInfo）に失敗すると「保存に失敗しました」が出て画面に留まり、saveAdminInfo は呼ばれない', async () => {
+    // 1. 読み込み時は成功し、保存時の読み直しだけ失敗させる
+    vi.mocked(api.events.getAdminInfo)
+      .mockResolvedValueOnce(EXISTING_ADMIN_INFO)
+      .mockRejectedValueOnce(new Error('500'))
+    renderFinancePageWithBack()
+    await userEvent.click(await screen.findByRole('button', { name: '保存' }))
+
+    // 2. エラーが出て一覧へは戻らない
+    expect(await screen.findByText('保存に失敗しました。もう一度お試しください。')).toBeInTheDocument()
+    expect(screen.queryByText('イベント一覧ページ')).not.toBeInTheDocument()
+    // 3. 収支は保存済み、管理情報は古い内容で上書きしない（保存しない）
+    expect(api.events.saveFinances).toHaveBeenCalledTimes(1)
+    expect(api.events.saveAdminInfo).not.toHaveBeenCalled()
+    // 4. 保存ボタンはもう一度押せる
+    expect(screen.getByRole('button', { name: '保存' })).toBeEnabled()
   })
 })

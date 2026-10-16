@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, Link, useLocation } from 'react-router-dom'
-import { api, type Event, type EventAdminInfo, type EventFinancesBody } from '../../lib/api'
+import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
 const BLANK: EventAdminInfo = {
@@ -21,20 +21,27 @@ const BLANK: EventAdminInfo = {
 /** 出店要項の画像として受け付けるファイル形式（api.upload が受け付ける形式と合わせる） */
 const GUIDELINE_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
 
-/** saveFinances 呼び出し時に finData が null だった場合に使う収支の初期値 */
-const BLANK_FIN: EventFinancesBody = {
-  sales: 0,
-  booth_fee: 0,
-  distance: 0,
-  gas_price: 160,
-  expressway_toll: 0,
-  accommodation: 0,
-  ws_participants: 0,
-  payment_flag: false,
-  ws_payment_done: false,
-  other_expenses: 0,
-  other_expenses_note: null,
-  notes: null,
+/**
+ * 収支 API の取得結果から、保存 API に送る項目だけを取り出す
+ * @param fin - getFinances で取得した収支データ（id・event_id などを含む）
+ * @returns saveFinances に渡せる収支の入力項目
+ */
+function toFinanceBody(fin: EventFinances): EventFinancesBody {
+  return {
+    sales: fin.sales,
+    booth_fee: fin.booth_fee,
+    distance: fin.distance,
+    gas_price: fin.gas_price,
+    expressway_toll: fin.expressway_toll,
+    accommodation: fin.accommodation,
+    ws_participants: fin.ws_participants,
+    // 古い行では null のことがあり、そのまま送るとサーバーの入力チェック（bool）で弾かれるため false で補う
+    payment_flag: fin.payment_flag ?? false,
+    ws_payment_done: fin.ws_payment_done ?? false,
+    other_expenses: fin.other_expenses,
+    other_expenses_note: fin.other_expenses_note,
+    notes: fin.notes,
+  }
 }
 
 /** 出店料支払い方法の選択肢 */
@@ -58,8 +65,6 @@ export default function EventAdminInfo() {
 
   const [event, setEvent] = useState<Event | null>(null)
   const [form, setForm] = useState<EventAdminInfo>(BLANK)
-  /** EventFinances から取得した収支データ。保存時に booth_fee / accommodation を同期するために保持する */
-  const [finData, setFinData] = useState<EventFinancesBody | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   /** 保存成功メッセージの表示フラグ。3秒後に自動で消える */
@@ -98,22 +103,8 @@ export default function EventAdminInfo() {
       api.events.getFinances(id),
     ]).then(([ev, info, fin]) => {
       setEvent(ev)
-      // 収支データを state に保持する（保存時の同期用）
-      const finBody: EventFinancesBody = {
-        sales: fin.sales,
-        booth_fee: fin.booth_fee,
-        distance: fin.distance,
-        gas_price: fin.gas_price,
-        expressway_toll: fin.expressway_toll,
-        accommodation: fin.accommodation,
-        ws_participants: fin.ws_participants,
-        payment_flag: fin.payment_flag,
-        ws_payment_done: fin.ws_payment_done,
-        other_expenses: fin.other_expenses,
-        other_expenses_note: fin.other_expenses_note,
-        notes: fin.notes,
-      }
-      setFinData(finBody)
+      // 収支の出店料・宿泊費を、管理情報が未入力のときの初期値に使う
+      const finBody = toFinanceBody(fin)
       setForm({
         carry_in_time: info.carry_in_time ?? null,
         carry_out_time: info.carry_out_time ?? null,
@@ -192,11 +183,13 @@ export default function EventAdminInfo() {
     try {
       // 1. 管理情報を保存する
       await api.events.saveAdminInfo(id, form)
-      // 2. 収支データ（出店料・宿泊費）を管理情報の値で上書きして同期する。
-      //    finData が未取得（null）のときは空の初期値をベースにする
-      const baseFinData = finData ?? BLANK_FIN
+      // 2. 収支の最新の内容を読み直す。
+      //    画面を開いた時点の内容を使うと、その後に収支画面で保存した売上などを
+      //    古い内容で上書きして消してしまうため、保存の直前に取り直す
+      const latestFin = toFinanceBody(await api.events.getFinances(id))
+      // 3. 収支の出店料・宿泊費だけを管理情報の値に置き換えて保存する（ほかの項目は最新の内容のまま）
       await api.events.saveFinances(id, {
-        ...baseFinData,
+        ...latestFin,
         booth_fee: form.booth_fee ?? 0,
         accommodation: form.hotel_fee ?? 0,
       })

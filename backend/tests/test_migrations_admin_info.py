@@ -212,3 +212,29 @@ class TestMigration017Safety:
     def test_017_NOTIFY_pgrstでスキーマ再読み込みを知らせる(self):
         """NOTIFY pgrst, 'reload schema' がある。"""
         assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('017_drop_events_admin_info.sql')
+
+
+class TestMigration018GrantServiceRole:
+    """018_grant_event_admin_info.sql（サーバーへの読み書き権限の付与）のチェック。"""
+
+    def test_018_service_roleに読み書きの権限を付ける(self):
+        """GRANT の対象が service_role で、SELECT・INSERT・UPDATE・DELETE がそろっている。"""
+        norm = _norm('018_grant_event_admin_info.sql')
+        # 1. event_admin_info への GRANT 文を取り出す
+        grants = re.findall(r'GRANT [^;]* ON EVENT_ADMIN_INFO TO [^;]*;', norm)
+        assert grants, 'event_admin_info への GRANT が無い'
+        # 2. 管理情報 API が使う操作（読む・作る・上書き）に必要な権限がそろっている
+        for priv in ('SELECT', 'INSERT', 'UPDATE', 'DELETE'):
+            assert any(priv in g for g in grants), f'{priv} の権限が無い'
+        # 3. 権限を付ける相手は service_role だけ
+        for g in grants:
+            assert g.endswith('TO SERVICE_ROLE;'), f'service_role 以外に権限を付けている: {g}'
+
+    def test_018_anonやauthenticatedには権限を付けない(self):
+        """未ログイン（anon）・ログイン済み（authenticated）・public への GRANT が無い。"""
+        norm = _norm('018_grant_event_admin_info.sql')
+        assert not re.search(r'\bGRANT\b[^;]*\bTO\b[^;]*\b(ANON|AUTHENTICATED|PUBLIC)\b', norm)
+
+    def test_018_NOTIFY_pgrstでスキーマ再読み込みを知らせる(self):
+        """NOTIFY pgrst, 'reload schema' がある。"""
+        assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('018_grant_event_admin_info.sql')

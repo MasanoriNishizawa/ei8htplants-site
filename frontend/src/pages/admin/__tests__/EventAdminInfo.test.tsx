@@ -8,6 +8,7 @@
  * 5. 保存ボタンが表示されること
  * 6. 出店要項セクション（文章・画像のアップロード／削除／拡大表示・保存時の送信内容）
  * 7. 読み込みに失敗したときは保存ボタンが押せず、送信しても保存されない
+ * 8. 保存時の収支との同期（保存の直前に収支を読み直し、最新の内容に出店料・宿泊費だけ反映する）
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
@@ -593,5 +594,126 @@ describe('EventAdminInfo ページ — 読み込み失敗時は保存できな�
     // 出店要項は読み込んだ値のまま送られる
     expect(vi.mocked(api.events.saveAdminInfo).mock.calls[0][1].guidelines_image_urls).toEqual(INFO_WITH_GUIDELINES.guidelines_image_urls)
     expect(await screen.findByText('保存しました')).toBeInTheDocument()
+  })
+})
+
+// ---- 保存時の収支との同期 ----
+
+/**
+ * ラベルの文字から、同じ欄の入力 input を取り出す（ラベルと input が for で結ばれていないため親要素からたどる）
+ * @param text - ラベルの文字（完全一致）
+ * @returns ラベルの親要素の中にある input
+ */
+function getInputByLabelText(text: string): HTMLInputElement {
+  const label = screen.getAllByText(text, { selector: 'label' })[0]
+  const input = label.parentElement?.querySelector('input')
+  if (!input) throw new Error(`${text} の input が見つからない`)
+  return input as HTMLInputElement
+}
+
+describe('EventAdminInfo ページ — 保存時の収支との同期', () => {
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset()
+    vi.mocked(api.events.getAdminInfo).mockReset()
+    vi.mocked(api.events.getFinances).mockReset()
+    vi.mocked(api.events.saveAdminInfo).mockReset()
+    vi.mocked(api.events.saveFinances).mockReset()
+
+    vi.mocked(api.events.get).mockResolvedValue(MOCK_EVENT)
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue(INFO_WITH_GUIDELINES)
+    vi.mocked(api.events.saveAdminInfo).mockResolvedValue({ ok: true })
+    vi.mocked(api.events.saveFinances).mockResolvedValue(MOCK_FINANCES)
+  })
+
+  it('画面を開いた後に収支が更新されていたときは、保存時に読み直した最新の収支を使い、出店料・宿泊費だけ管理情報の値になる', async () => {
+    // 1. 画面を開いたとき（1回目）は売上 0 の収支、保存時の読み直し（2回目）では別の画面で売上などが保存されている
+    const LATEST_FIN: EventFinances = {
+      ...MOCK_FINANCES,
+      sales: 88000,
+      booth_fee: 1000,
+      accommodation: 2000,
+      expressway_toll: 1500,
+      other_expenses: 300,
+      other_expenses_note: '後から入力した備品代',
+      notes: '収支メモ',
+      payment_flag: true,
+      updated_at: '2099-07-16T10:00:00Z',
+    }
+    vi.mocked(api.events.getFinances)
+      .mockResolvedValueOnce(MOCK_FINANCES)
+      .mockResolvedValueOnce(LATEST_FIN)
+    renderAdminInfoPage()
+    await screen.findByRole('button', { name: '保存する' })
+
+    // 2. 管理情報の出店料・宿泊料金を入力して保存する
+    await userEvent.type(getInputByLabelText('出店料'), '15000')
+    await userEvent.type(getInputByLabelText('宿泊料金'), '6000')
+    await userEvent.click(screen.getByRole('button', { name: '保存する' }))
+    expect(await screen.findByText('保存しました')).toBeInTheDocument()
+
+    // 3. getFinances は読み込み時と保存時の2回呼ばれ、保存時の読み直しは管理情報の保存の後
+    expect(api.events.getFinances).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(api.events.saveAdminInfo).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(api.events.getFinances).mock.invocationCallOrder[1])
+
+    // 4. saveFinances には最新の収支の入力項目がそのまま使われ、出店料・宿泊費だけ管理情報の値になる
+    expect(api.events.saveFinances).toHaveBeenCalledTimes(1)
+    const [savedId, body] = vi.mocked(api.events.saveFinances).mock.calls[0]
+    expect(savedId).toBe('event-admin-info-1')
+    expect(body).toEqual({
+      sales: 88000,
+      booth_fee: 15000,
+      distance: 0,
+      gas_price: 160,
+      expressway_toll: 1500,
+      accommodation: 6000,
+      ws_participants: 0,
+      payment_flag: true,
+      ws_payment_done: false,
+      other_expenses: 300,
+      other_expenses_note: '後から入力した備品代',
+      notes: '収支メモ',
+    })
+    // 5. 保存用でない項目（id・event_id・updated_at）は送らない
+    expect(body).not.toHaveProperty('id')
+    expect(body).not.toHaveProperty('event_id')
+    expect(body).not.toHaveProperty('updated_at')
+  })
+
+  it('管理情報の出店料・宿泊料金が空のまま保存すると、収支の出店料・宿泊費は 0 で送られ、ほかは最新の収支のまま', async () => {
+    // 1. 読み込み時の収支は 0 なので、出店料・宿泊料金の欄は空のまま
+    vi.mocked(api.events.getFinances)
+      .mockResolvedValueOnce(MOCK_FINANCES)
+      .mockResolvedValueOnce({ ...MOCK_FINANCES, sales: 5000, booth_fee: 9999, accommodation: 8888 })
+    renderAdminInfoPage()
+    await screen.findByRole('button', { name: '保存する' })
+    expect(getInputByLabelText('出店料')).toHaveValue(null)
+    expect(getInputByLabelText('宿泊料金')).toHaveValue(null)
+
+    // 2. 保存すると、出店料・宿泊費は管理情報の空（0）で上書きされ、売上は最新の 5000 のまま
+    await userEvent.click(screen.getByRole('button', { name: '保存する' }))
+    await waitFor(() => expect(api.events.saveFinances).toHaveBeenCalledTimes(1))
+    const body = vi.mocked(api.events.saveFinances).mock.calls[0][1]
+    expect(body.booth_fee).toBe(0)
+    expect(body.accommodation).toBe(0)
+    expect(body.sales).toBe(5000)
+  })
+
+  it('保存時の収支の読み直し（getFinances）に失敗すると「保存に失敗しました」が出て、saveFinances は呼ばれず「保存しました」も出ない', async () => {
+    // 1. 読み込み時は成功し、保存時の読み直しだけ失敗させる
+    vi.mocked(api.events.getFinances)
+      .mockResolvedValueOnce(MOCK_FINANCES)
+      .mockRejectedValueOnce(new Error('500'))
+    renderAdminInfoPage()
+    await userEvent.click(await screen.findByRole('button', { name: '保存する' }))
+
+    // 2. エラーが出る
+    expect(await screen.findByText('保存に失敗しました。もう一度お試しください。')).toBeInTheDocument()
+    // 3. 管理情報は保存済み、収支は古い内容で上書きしない（保存しない）
+    expect(api.events.saveAdminInfo).toHaveBeenCalledTimes(1)
+    expect(api.events.saveFinances).not.toHaveBeenCalled()
+    expect(screen.queryByText('保存しました')).not.toBeInTheDocument()
+    // 4. 保存ボタンはもう一度押せる
+    expect(screen.getByRole('button', { name: '保存する' })).toBeEnabled()
   })
 })
