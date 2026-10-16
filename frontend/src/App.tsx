@@ -54,6 +54,7 @@ import AdminChatLogs from './pages/admin/AdminChatLogs'
 import AdminHelperPayment from './pages/admin/AdminHelperPayment'
 import AdminWsSummary from './pages/admin/AdminWsSummary'
 import AdminEventAdminInfo from './pages/admin/EventAdminInfo'
+import AdminEventAdminInfoView from './pages/admin/EventAdminInfoView'
 import AdminEventImages from './pages/admin/EventImages'
 import Chat from './pages/Chat'
 import Media from './pages/Media'
@@ -105,7 +106,9 @@ export default function App() {
             <Route path="events/:id/finances" element={<AdminEventFinance />} />
             <Route path="events/:id/reservations" element={<AdminEventReservations />} />
             <Route path="events/:id/site" element={<AdminEventSite />} />
-            <Route path="events/:id/admin-info" element={<AdminEventAdminInfo />} />
+            {/* 管理情報: 確認画面と、その「編集」ボタンから開く編集画面 */}
+            <Route path="events/:id/admin-info" element={<AdminEventAdminInfoView />} />
+            <Route path="events/:id/admin-info/edit" element={<AdminEventAdminInfo />} />
             <Route path="events/:id/images" element={<AdminEventImages />} />
             <Route path="gallery" element={<AdminGallery />} />
             <Route path="stockists" element={<AdminStockists />} />

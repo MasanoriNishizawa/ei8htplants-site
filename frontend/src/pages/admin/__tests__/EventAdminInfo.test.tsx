@@ -9,14 +9,23 @@
  * 6. 出店要項セクション（文章・画像のアップロード／削除／拡大表示・保存時の送信内容）
  * 7. 読み込みに失敗したときは保存ボタンが押せず、送信しても保存されない
  * 8. 保存時の収支との同期（保存の直前に収支を読み直し、最新の内容に出店料・宿泊費だけ反映する）
+ * 9. 確認画面との行き来（保存成功で確認画面へ state { from, saved } を渡して移る・「← 戻る」は確認画面へ・未保存なら confirm）
+ * 10. 保存後の遷移と「← 戻る」は replace（履歴の編集画面が確認画面に置き換わり、ブラウザの戻るで一覧へ戻る）
+ * 11. 未保存の判定（全項目が対象。「未保存の変更があります」・戻るときの confirm・beforeunload）
+ *
+ * 編集画面の URL は /admin/events/:id/admin-info/edit。確認画面（/admin-info）はスタブに置き換えて遷移と state を確かめる
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import EventAdminInfoPage from '../EventAdminInfo'
 import { api } from '../../../lib/api'
 import type { Event, EventFinances, EventAdminInfo } from '../../../lib/api'
+
+// このファイルのテストは時・分の select（選択肢が多い）や画像の操作を含み、単独でも 1〜3 秒かかるものがある。
+// 全テストをまとめて実行したときやマシンが混んでいるときに既定の 5 秒で打ち切られないよう、1 テストあたり 20 秒まで待つ
+vi.setConfig({ testTimeout: 20000 })
 
 // api モジュールのモック。実装は保持せず api の関数だけをモックする
 vi.mock('../../../lib/api', async (importActual) => {
@@ -84,14 +93,35 @@ const MOCK_FINANCES: EventFinances = {
 }
 
 /**
- * EventAdminInfo ページを Routes/MemoryRouter でラップしてレンダリングするヘルパー
- * @param eventId - URL パラメータとして渡すイベントID
+ * 確認画面（/admin/events/:id/admin-info）の代わりに置くスタブ。
+ * 保存後・「← 戻る」で遷移してきたことと、受け取った location.state を画面に出して確かめられるようにする
  */
-function renderAdminInfoPage(eventId: string = 'event-admin-info-1') {
+function ViewStub() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return (
+    <div>
+      <p>確認画面スタブ</p>
+      {/* ブラウザの「戻る」と同じく履歴を1つ戻る（replace になっているかを確かめる） */}
+      <button type="button" onClick={() => navigate(-1)}>履歴を戻る</button>
+      {/* 受け取った state（from・saved）を JSON で表示する */}
+      <p data-testid="view-state">{JSON.stringify(location.state ?? null)}</p>
+    </div>
+  )
+}
+
+/**
+ * EventAdminInfo（編集画面）を Routes/MemoryRouter でラップしてレンダリングするヘルパー
+ * 編集画面は /admin/events/:id/admin-info/edit。保存後の遷移先として確認画面のスタブも置く
+ * @param eventId - URL パラメータとして渡すイベントID
+ * @param from - 確認画面から引き継いだ遷移元（location.state.from）。省略時は state なし
+ */
+function renderAdminInfoPage(eventId: string = 'event-admin-info-1', from?: string) {
   return render(
-    <MemoryRouter initialEntries={[`/admin/events/${eventId}/admin-info`]}>
+    <MemoryRouter initialEntries={[{ pathname: `/admin/events/${eventId}/admin-info/edit`, state: from ? { from } : null }]}>
       <Routes>
-        <Route path="/admin/events/:id/admin-info" element={<EventAdminInfoPage />} />
+        <Route path="/admin/events/:id/admin-info/edit" element={<EventAdminInfoPage />} />
+        <Route path="/admin/events/:id/admin-info" element={<ViewStub />} />
       </Routes>
     </MemoryRouter>
   )
@@ -425,7 +455,9 @@ describe('EventAdminInfo ページ — 出店要項', () => {
     expect(savedId).toBe('event-admin-info-1')
     expect(body.guidelines_text).toBe('新しい要項')
     expect(body.guidelines_image_urls).toEqual(['https://ex.com/gl-2.png', 'https://ex.com/new-1.png'])
-    expect(await screen.findByText('保存しました')).toBeInTheDocument()
+    // 3. 保存に成功すると確認画面へ移り、saved: true が渡る（編集画面の「未保存の変更があります」も消える）
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    expect(JSON.parse(screen.getByTestId('view-state').textContent ?? 'null')).toMatchObject({ saved: true })
     expect(screen.queryByText('未保存の変更があります')).not.toBeInTheDocument()
   })
 
@@ -573,7 +605,8 @@ describe('EventAdminInfo ページ — 読み込み失敗時は保存できな�
     await new Promise((r) => setTimeout(r, 50))
     expect(api.events.saveAdminInfo).not.toHaveBeenCalled()
     expect(api.events.saveFinances).not.toHaveBeenCalled()
-    expect(screen.queryByText('保存しました')).not.toBeInTheDocument()
+    // 確認画面へも移らない
+    expect(screen.queryByText('確認画面スタブ')).not.toBeInTheDocument()
   })
 
   it('読み込みに失敗した後に要項の文章を入力しても保存ボタンは押せないまま', async () => {
@@ -593,7 +626,8 @@ describe('EventAdminInfo ページ — 読み込み失敗時は保存できな�
     expect(api.events.saveAdminInfo).toHaveBeenCalledTimes(1)
     // 出店要項は読み込んだ値のまま送られる
     expect(vi.mocked(api.events.saveAdminInfo).mock.calls[0][1].guidelines_image_urls).toEqual(INFO_WITH_GUIDELINES.guidelines_image_urls)
-    expect(await screen.findByText('保存しました')).toBeInTheDocument()
+    // 保存に成功すると確認画面へ移る
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
   })
 })
 
@@ -649,7 +683,8 @@ describe('EventAdminInfo ページ — 保存時の収支との同期', () => {
     await userEvent.type(getInputByLabelText('出店料'), '15000')
     await userEvent.type(getInputByLabelText('宿泊料金'), '6000')
     await userEvent.click(screen.getByRole('button', { name: '保存する' }))
-    expect(await screen.findByText('保存しました')).toBeInTheDocument()
+    // 保存に成功すると確認画面へ移る
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
 
     // 3. getFinances は読み込み時と保存時の2回呼ばれ、保存時の読み直しは管理情報の保存の後
     expect(api.events.getFinances).toHaveBeenCalledTimes(2)
@@ -712,8 +747,332 @@ describe('EventAdminInfo ページ — 保存時の収支との同期', () => {
     // 3. 管理情報は保存済み、収支は古い内容で上書きしない（保存しない）
     expect(api.events.saveAdminInfo).toHaveBeenCalledTimes(1)
     expect(api.events.saveFinances).not.toHaveBeenCalled()
-    expect(screen.queryByText('保存しました')).not.toBeInTheDocument()
+    // 確認画面へは移らず、編集画面に留まる
+    expect(screen.queryByText('確認画面スタブ')).not.toBeInTheDocument()
     // 4. 保存ボタンはもう一度押せる
     expect(screen.getByRole('button', { name: '保存する' })).toBeEnabled()
+  })
+})
+
+// ---- 確認画面との行き来 ----
+
+describe('EventAdminInfo ページ — 確認画面との行き来', () => {
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset()
+    vi.mocked(api.events.getAdminInfo).mockReset()
+    vi.mocked(api.events.getFinances).mockReset()
+    vi.mocked(api.events.saveAdminInfo).mockReset()
+    vi.mocked(api.events.saveFinances).mockReset()
+
+    vi.mocked(api.events.get).mockResolvedValue(MOCK_EVENT)
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue(INFO_WITH_GUIDELINES)
+    vi.mocked(api.events.getFinances).mockResolvedValue(MOCK_FINANCES)
+    vi.mocked(api.events.saveAdminInfo).mockResolvedValue({ ok: true })
+    vi.mocked(api.events.saveFinances).mockResolvedValue(MOCK_FINANCES)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('保存に成功すると確認画面へ移り、state に受け取った from と saved: true が渡り、編集画面に「保存しました」は出ない', async () => {
+    renderAdminInfoPage('event-admin-info-1', '/admin/events')
+    await userEvent.click(await screen.findByRole('button', { name: '保存する' }))
+
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    expect(JSON.parse(screen.getByTestId('view-state').textContent ?? 'null')).toEqual({ from: '/admin/events', saved: true })
+    // 編集画面は閉じている（保存ボタンが無い）
+    expect(screen.queryByRole('button', { name: '保存する' })).not.toBeInTheDocument()
+  })
+
+  it('from を受け取っていないときは保存後の state に from が無く saved: true だけ渡る', async () => {
+    renderAdminInfoPage()
+    await userEvent.click(await screen.findByRole('button', { name: '保存する' }))
+
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    const state = JSON.parse(screen.getByTestId('view-state').textContent ?? 'null')
+    expect(state.saved).toBe(true)
+    expect(state.from).toBeUndefined()
+  })
+
+  it('管理情報の保存（saveAdminInfo）に失敗すると確認画面へ移らずエラーが出る', async () => {
+    vi.mocked(api.events.saveAdminInfo).mockRejectedValue(new Error('500'))
+    renderAdminInfoPage('event-admin-info-1', '/admin/events')
+    await userEvent.click(await screen.findByRole('button', { name: '保存する' }))
+
+    expect(await screen.findByText('保存に失敗しました。もう一度お試しください。')).toBeInTheDocument()
+    expect(screen.queryByText('確認画面スタブ')).not.toBeInTheDocument()
+  })
+
+  it('「← 戻る」は確認画面（/admin-info）を指し、押すと確認画面へ from を引き継いで戻る', async () => {
+    renderAdminInfoPage('event-admin-info-1', '/admin/events')
+    const back = await screen.findByRole('link', { name: /戻る/ })
+    expect(back).toHaveAttribute('href', '/admin/events/event-admin-info-1/admin-info')
+
+    await userEvent.click(back)
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    expect(JSON.parse(screen.getByTestId('view-state').textContent ?? 'null')).toEqual({ from: '/admin/events' })
+  })
+
+  it('画像の変更が無いときは「← 戻る」で confirm を出さずに確認画面へ戻る', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm')
+    renderAdminInfoPage()
+    await userEvent.click(await screen.findByRole('link', { name: /戻る/ }))
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    expect(confirmSpy).not.toHaveBeenCalled()
+  })
+
+  it('画像を削除して未保存のまま「← 戻る」で confirm をキャンセルすると編集画面に留まる', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderAdminInfoPage()
+    await screen.findByLabelText('要項の文章')
+    // 1. 画像の削除（confirm OK）で未保存にする
+    await userEvent.click(screen.getAllByRole('button', { name: '削除' })[0])
+    expect(screen.getByText('未保存の変更があります')).toBeInTheDocument()
+
+    // 2. 戻るときの confirm はキャンセル
+    confirmSpy.mockReturnValue(false)
+    await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
+    expect(confirmSpy).toHaveBeenLastCalledWith('保存していない変更があります。破棄して戻りますか？')
+    expect(screen.queryByText('確認画面スタブ')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '保存する' })).toBeInTheDocument()
+  })
+
+  it('画像を削除して未保存のまま「← 戻る」で confirm を OK にすると確認画面へ戻る', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderAdminInfoPage()
+    await screen.findByLabelText('要項の文章')
+    await userEvent.click(screen.getAllByRole('button', { name: '削除' })[0])
+
+    await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+  })
+})
+
+// ---- 保存後の遷移と「← 戻る」の replace ----
+
+/**
+ * 一覧 → 確認画面 → 編集画面 の順に開いた履歴で編集画面を表示する（今いるのは編集画面）
+ * 保存後・「← 戻る」の遷移が replace なら履歴は 一覧 → 確認画面 → 確認画面 になり、
+ * 1つ戻ると最初の確認画面（state に entry: 'first' の目印あり）、2つ戻ると一覧に着く。
+ * push だと 一覧 → 確認 → 編集 → 確認 になり、1つ戻ると編集画面に戻ってしまう
+ */
+function renderWithHistory() {
+  return render(
+    <MemoryRouter
+      initialEntries={[
+        '/admin/events',
+        { pathname: '/admin/events/event-admin-info-1/admin-info', state: { from: '/admin/events', entry: 'first' } },
+        { pathname: '/admin/events/event-admin-info-1/admin-info/edit', state: { from: '/admin/events' } },
+      ]}
+      initialIndex={2}
+    >
+      <Routes>
+        <Route path="/admin/events" element={<p>イベント一覧スタブ</p>} />
+        <Route path="/admin/events/:id/admin-info/edit" element={<EventAdminInfoPage />} />
+        <Route path="/admin/events/:id/admin-info" element={<ViewStub />} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
+describe('EventAdminInfo ページ — 保存後と「← 戻る」の遷移は replace', () => {
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset()
+    vi.mocked(api.events.getAdminInfo).mockReset()
+    vi.mocked(api.events.getFinances).mockReset()
+    vi.mocked(api.events.saveAdminInfo).mockReset()
+    vi.mocked(api.events.saveFinances).mockReset()
+
+    vi.mocked(api.events.get).mockResolvedValue(MOCK_EVENT)
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue(INFO_WITH_GUIDELINES)
+    vi.mocked(api.events.getFinances).mockResolvedValue(MOCK_FINANCES)
+    vi.mocked(api.events.saveAdminInfo).mockResolvedValue({ ok: true })
+    vi.mocked(api.events.saveFinances).mockResolvedValue(MOCK_FINANCES)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('保存後に確認画面で履歴を戻ると、編集画面には戻らず、1つ目で最初の確認画面・2つ目でイベント一覧に着く', async () => {
+    renderWithHistory()
+    await userEvent.click(await screen.findByRole('button', { name: '保存する' }))
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+
+    // 1. 1つ戻ると、編集画面ではなく最初に開いた確認画面（目印 entry: 'first'）
+    await userEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    await waitFor(() => expect(JSON.parse(screen.getByTestId('view-state').textContent ?? 'null')).toEqual({ from: '/admin/events', entry: 'first' }))
+    expect(screen.queryByRole('button', { name: '保存する' })).not.toBeInTheDocument()
+
+    // 2. もう1つ戻るとイベント一覧
+    await userEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    expect(await screen.findByText('イベント一覧スタブ')).toBeInTheDocument()
+  })
+
+  it('「← 戻る」で確認画面に戻った後に履歴を戻ると、編集画面には戻らず、最初の確認画面 → イベント一覧の順に着く', async () => {
+    renderWithHistory()
+    await userEvent.click(await screen.findByRole('link', { name: /戻る/ }))
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    // 「← 戻る」で着いた確認画面には目印が無い（from だけ）
+    expect(JSON.parse(screen.getByTestId('view-state').textContent ?? 'null')).toEqual({ from: '/admin/events' })
+
+    await userEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    await waitFor(() => expect(JSON.parse(screen.getByTestId('view-state').textContent ?? 'null')).toEqual({ from: '/admin/events', entry: 'first' }))
+    expect(screen.queryByRole('button', { name: '保存する' })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    expect(await screen.findByText('イベント一覧スタブ')).toBeInTheDocument()
+  })
+
+  it('「← 戻る」は inline-block で上下に 12px の余白があり、タップしやすい', async () => {
+    renderAdminInfoPage()
+    const back = await screen.findByRole('link', { name: /戻る/ })
+    expect(back).toHaveStyle({ display: 'inline-block', paddingTop: '12px', paddingBottom: '12px' })
+  })
+})
+
+// ---- 未保存の判定（全項目） ----
+
+/**
+ * beforeunload を発火させ、ページを離れるのを止めようとしたか（preventDefault されたか）を返す
+ * @returns 未保存の確認を出す登録があれば true
+ */
+function fireBeforeUnload(): boolean {
+  const ev = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(ev)
+  return ev.defaultPrevented
+}
+
+describe('EventAdminInfo ページ — 未保存の変更の判定', () => {
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset()
+    vi.mocked(api.events.getAdminInfo).mockReset()
+    vi.mocked(api.events.getFinances).mockReset()
+    vi.mocked(api.events.saveAdminInfo).mockReset()
+    vi.mocked(api.events.saveFinances).mockReset()
+
+    vi.mocked(api.events.get).mockResolvedValue(MOCK_EVENT)
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue({ ...INFO_WITH_GUIDELINES, carry_in_time: '2099-07-15T09:00' })
+    vi.mocked(api.events.getFinances).mockResolvedValue(MOCK_FINANCES)
+    vi.mocked(api.events.saveAdminInfo).mockResolvedValue({ ok: true })
+    vi.mocked(api.events.saveFinances).mockResolvedValue(MOCK_FINANCES)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('読み込み直後（変更なし）は「未保存の変更があります」が出ず、「← 戻る」で confirm も出ず、beforeunload も止めない', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm')
+    renderAdminInfoPage()
+    await screen.findByLabelText('要項の文章')
+    expect(screen.queryByText('未保存の変更があります')).not.toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(false)
+
+    await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+  })
+
+  it('収支の出店料・宿泊費を初期値に使ったときも、読み込み直後は未保存にならない', async () => {
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue({} as EventAdminInfo)
+    vi.mocked(api.events.getFinances).mockResolvedValue({ ...MOCK_FINANCES, booth_fee: 12000, accommodation: 5000 })
+    renderAdminInfoPage()
+    await waitFor(() => expect(getInputByLabelText('出店料')).toHaveValue(12000))
+    expect(screen.queryByText('未保存の変更があります')).not.toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(false)
+  })
+
+  it('要項の文章だけを変えると「未保存の変更があります」が出て、beforeunload で離れるのを止める', async () => {
+    renderAdminInfoPage()
+    const textarea = await screen.findByLabelText('要項の文章')
+    await userEvent.type(textarea, '追記')
+    expect(screen.getByText('未保存の変更があります')).toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(true)
+  })
+
+  it.each([
+    ['ホテル名', async () => { await userEvent.type(getInputByLabelText('ホテル名'), 'ホテルA') }],
+    ['出店料', async () => { await userEvent.type(getInputByLabelText('出店料'), '3000') }],
+    ['支払い済み', async () => { await userEvent.click(screen.getByRole('checkbox')) }],
+    ['搬入の時（プルダウン）', async () => { await userEvent.selectOptions(screen.getByDisplayValue('09'), '10') }],
+    ['搬入の分（プルダウン）', async () => { await userEvent.selectOptions(screen.getByDisplayValue('00'), '30') }],
+    ['搬出の日付', async () => {
+      const dates = document.querySelectorAll('input[type="date"]')
+      fireEvent.change(dates[1], { target: { value: '2099-07-16' } })
+    }],
+  ])('%s だけを変えても「未保存の変更があります」が出る', async (_label, change) => {
+    renderAdminInfoPage()
+    await screen.findByLabelText('要項の文章')
+    expect(screen.queryByText('未保存の変更があります')).not.toBeInTheDocument()
+    await change()
+    expect(await screen.findByText('未保存の変更があります')).toBeInTheDocument()
+  })
+
+  it('変更してから元の値に戻すと未保存ではなくなり、beforeunload も止めなくなる', async () => {
+    renderAdminInfoPage()
+    const textarea = await screen.findByLabelText('要項の文章')
+    await userEvent.type(textarea, 'X')
+    expect(screen.getByText('未保存の変更があります')).toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(true)
+
+    await userEvent.type(textarea, '{Backspace}')
+    expect(screen.queryByText('未保存の変更があります')).not.toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(false)
+  })
+
+  it('文章だけを変えて「← 戻る」を押すと confirm「保存していない変更があります。破棄して戻りますか？」が出て、キャンセルなら留まる', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderAdminInfoPage()
+    await userEvent.type(await screen.findByLabelText('要項の文章'), '追記')
+    await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
+    expect(confirmSpy).toHaveBeenCalledTimes(1)
+    expect(confirmSpy).toHaveBeenCalledWith('保存していない変更があります。破棄して戻りますか？')
+    expect(screen.queryByText('確認画面スタブ')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('要項の文章')).toHaveValue('出店要項の本文です\n搬入は9時まで追記')
+  })
+
+  it('文章だけを変えて「← 戻る」の confirm を OK にすると確認画面へ戻り、beforeunload の登録も外れる', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderAdminInfoPage()
+    await userEvent.type(await screen.findByLabelText('要項の文章'), '追記')
+    expect(fireBeforeUnload()).toBe(true)
+    await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(false)
+  })
+
+  it('変更して保存すると確認画面へ移り、confirm は出ず、beforeunload の登録も外れる', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm')
+    renderAdminInfoPage()
+    await screen.findByLabelText('要項の文章')
+    await userEvent.type(getInputByLabelText('ホテル名'), 'ホテルB')
+    expect(fireBeforeUnload()).toBe(true)
+    await userEvent.click(screen.getByRole('button', { name: '保存する' }))
+    expect(await screen.findByText('確認画面スタブ')).toBeInTheDocument()
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(fireBeforeUnload()).toBe(false)
+  })
+
+  it('保存に失敗したときは未保存のまま（「未保存の変更があります」が残り、beforeunload も止める）', async () => {
+    vi.mocked(api.events.saveAdminInfo).mockRejectedValue(new Error('500'))
+    renderAdminInfoPage()
+    await userEvent.type(await screen.findByLabelText('要項の文章'), '追記')
+    await userEvent.click(screen.getByRole('button', { name: '保存する' }))
+    expect(await screen.findByText('保存に失敗しました。もう一度お試しください。')).toBeInTheDocument()
+    expect(screen.getByText('未保存の変更があります')).toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(true)
+  })
+
+  it('読み込みに失敗したときは入力しても未保存扱いにならず、「← 戻る」で confirm を出さない', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm')
+    vi.mocked(api.events.getAdminInfo).mockRejectedValue(new Error('500'))
+    renderAdminInfoPage()
+    await userEvent.type(await screen.findByLabelText('要項の文章'), '入力')
+    expect(screen.queryByText('未保存の変更があります')).not.toBeInTheDocument()
+    expect(fireBeforeUnload()).toBe(false)
+    await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
+    expect(confirmSpy).not.toHaveBeenCalled()
   })
 })

@@ -79,8 +79,8 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
   })
 
   test('管理情報ページの textarea は caret-color が透明ではない（入力カーソルが見える）', async ({ page }) => {
-    // 1. イベント管理情報ページを開く（MSW の収支モックがある mock-past-1 を使う）
-    await page.goto('/admin/events/mock-past-1/admin-info')
+    // 1. イベント管理情報の編集画面を開く（MSW の収支モックがある mock-past-1 を使う。確認画面には入力欄が無いため /edit）
+    await page.goto('/admin/events/mock-past-1/admin-info/edit')
     const textarea = page.locator('textarea').first()
     await expect(textarea).toBeVisible()
     // 2. textarea の caret-color が透明でない

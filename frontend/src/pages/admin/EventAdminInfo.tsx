@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { useParams, Link, useLocation } from 'react-router-dom'
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
+import { SectionBox, ImageViewer } from './AdminInfoParts'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
 const BLANK: EventAdminInfo = {
@@ -44,6 +44,40 @@ function toFinanceBody(fin: EventFinances): EventFinancesBody {
   }
 }
 
+/** 搬入・搬出の日時を日付・時・分に分けた値（画面の入力欄の単位） */
+interface DateTimeParts {
+  /** 日付 "YYYY-MM-DD"。未入力なら空文字 */
+  date: string
+  /** 時 "HH"。未入力なら空文字 */
+  hour: string
+  /** 分 "MM"。未入力なら空文字 */
+  min: string
+}
+
+/** 未保存の変更を判定するために比べる、入力欄の値一式 */
+interface EditSnapshot {
+  /** 管理情報フォームの値 */
+  form: EventAdminInfo
+  /** 搬入日時の入力欄（日付だけ入れた途中の状態も変更として扱うため、form とは別に持つ） */
+  carryIn: DateTimeParts
+  /** 搬出日時の入力欄 */
+  carryOut: DateTimeParts
+}
+
+/**
+ * "YYYY-MM-DDTHH:MM" 形式の日時を日付・時・分に分ける
+ * @param value - 日時文字列（null・undefined なら全部空）
+ * @returns 日付・時・分
+ */
+function splitDateTime(value: string | null | undefined): DateTimeParts {
+  if (!value) return { date: '', hour: '', min: '' }
+  const sepIdx = value.indexOf('T')
+  const date = sepIdx !== -1 ? value.slice(0, sepIdx) : ''
+  const timePart = sepIdx !== -1 ? value.slice(sepIdx + 1) : ''
+  const [h, m] = timePart.split(':')
+  return { date, hour: h ?? '', min: m ? m.slice(0, 2) : '' }
+}
+
 /** 出店料支払い方法の選択肢 */
 const PAY_METHODS = ['当日現金', '事前振込', 'その他'] as const
 
@@ -54,21 +88,23 @@ const HOUR_OPTIONS: string[] = Array.from({ length: 17 }, (_, i) => String(i + 6
 const MINUTE_OPTIONS: string[] = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
 
 /**
- * イベント管理情報（搬入・搬出・宿泊・出店料）を入力・保存するページ
- * URL: /admin/events/:id/admin-info
+ * イベント管理情報（搬入・搬出・宿泊・出店料・出店要項・メモ）を入力・保存するページ
+ * URL: /admin/events/:id/admin-info/edit
+ * 確認画面（/admin/events/:id/admin-info）の「編集」ボタンから開き、保存に成功したら確認画面へ戻る
  */
 export default function EventAdminInfo() {
   const { id } = useParams<{ id: string }>()
   const location = useLocation()
-  // 遷移元のパスを取得。未設定時はイベント編集画面へ戻る
-  const backTo: string = (location.state as { from?: string } | null)?.from ?? `/admin/events/${id ?? ''}/edit`
+  const navigate = useNavigate()
+  /** 確認画面に来たときの遷移元（イベント一覧など）。確認画面へ戻るときにそのまま引き継ぎ、確認画面の「← 戻る」が元の画面に戻れるようにする */
+  const viewFrom: string | undefined = (location.state as { from?: string } | null)?.from
+  /** 確認画面の URL。「← 戻る」と保存後の遷移先 */
+  const viewPath = `/admin/events/${id ?? ''}/admin-info`
 
   const [event, setEvent] = useState<Event | null>(null)
   const [form, setForm] = useState<EventAdminInfo>(BLANK)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  /** 保存成功メッセージの表示フラグ。3秒後に自動で消える */
-  const [saved, setSaved] = useState(false)
   /** 読み込み・保存エラーのメッセージ。null なら非表示 */
   const [error, setError] = useState<string | null>(null)
   /** 読み込みに失敗したかどうか。true の間は保存できなくする（空のフォームで搬入・宿泊・出店要項などを上書きしないため） */
@@ -89,8 +125,12 @@ export default function EventAdminInfo() {
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null)
   /** 出店要項画像のアップロード失敗メッセージ。null なら非表示 */
   const [uploadError, setUploadError] = useState<string | null>(null)
-  /** 出店要項画像を追加・削除してからまだ保存していないかどうか（保存ボタン横の注意表示に使う） */
-  const [imagesDirty, setImagesDirty] = useState(false)
+  /**
+   * 読み込み直後の入力欄の値（JSON 文字列にした写し）。今の値と比べて未保存の変更があるかを判定する。
+   * 判定を描画中に行うため、ref ではなく state で持つ（描画中に ref を読むと更新が画面に反映されないことがある）。
+   * 読み込み前・読み込み失敗時は null（変更なしとして扱う）
+   */
+  const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null)
   /** 拡大表示中の出店要項画像の位置（0始まり）。null なら拡大表示を閉じている */
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
 
@@ -103,9 +143,9 @@ export default function EventAdminInfo() {
       api.events.getFinances(id),
     ]).then(([ev, info, fin]) => {
       setEvent(ev)
-      // 収支の出店料・宿泊費を、管理情報が未入力のときの初期値に使う
+      // 1-1. 収支の出店料・宿泊費を、管理情報が未入力のときの初期値に使う
       const finBody = toFinanceBody(fin)
-      setForm({
+      const loadedForm: EventAdminInfo = {
         carry_in_time: info.carry_in_time ?? null,
         carry_out_time: info.carry_out_time ?? null,
         hotel_name: info.hotel_name ?? null,
@@ -120,36 +160,46 @@ export default function EventAdminInfo() {
         // 出店要項は後から追加した項目のため、既存データでは undefined のことがある
         guidelines_text: info.guidelines_text ?? null,
         guidelines_image_urls: info.guidelines_image_urls ?? [],
-      })
+      }
+      // 1-2. 搬入・搬出日時を YYYY-MM-DDTHH:MM 形式から日付・時・分に分割する
+      const carryIn = splitDateTime(info.carry_in_time)
+      const carryOut = splitDateTime(info.carry_out_time)
 
-      // 搬入日時を YYYY-MM-DDTHH:MM 形式から日付・時・分に分割してローカル state に反映する
-      if (info.carry_in_time) {
-        const sepIdx = info.carry_in_time.indexOf('T')
-        setCarryInDate(sepIdx !== -1 ? info.carry_in_time.slice(0, sepIdx) : '')
-        const timePart = sepIdx !== -1 ? info.carry_in_time.slice(sepIdx + 1) : ''
-        const [h, m] = timePart.split(':')
-        setCarryInHour(h ?? '')
-        setCarryInMin(m ? m.slice(0, 2) : '')
-      } else {
-        setCarryInDate(''); setCarryInHour(''); setCarryInMin('')
-      }
-      // 搬出日時も同様に分割する
-      if (info.carry_out_time) {
-        const sepIdx = info.carry_out_time.indexOf('T')
-        setCarryOutDate(sepIdx !== -1 ? info.carry_out_time.slice(0, sepIdx) : '')
-        const timePart = sepIdx !== -1 ? info.carry_out_time.slice(sepIdx + 1) : ''
-        const [h, m] = timePart.split(':')
-        setCarryOutHour(h ?? '')
-        setCarryOutMin(m ? m.slice(0, 2) : '')
-      } else {
-        setCarryOutDate(''); setCarryOutHour(''); setCarryOutMin('')
-      }
+      // 1-3. フォームと入力欄に反映する
+      setForm(loadedForm)
+      setCarryInDate(carryIn.date); setCarryInHour(carryIn.hour); setCarryInMin(carryIn.min)
+      setCarryOutDate(carryOut.date); setCarryOutHour(carryOut.hour); setCarryOutMin(carryOut.min)
+
+      // 1-4. 未保存の変更の判定に使うため、読み込み直後の値を写しておく
+      const snapshot: EditSnapshot = { form: loadedForm, carryIn, carryOut }
+      setInitialSnapshot(JSON.stringify(snapshot))
     }).catch(() => {
       // 読み込み失敗時にエラーメッセージを表示し、保存を止める
       setError('データの読み込みに失敗しました。ページを再読み込みしてください。')
       setLoadFailed(true)
     }).finally(() => setLoading(false))
   }, [id])
+
+  /** 今の入力欄の値一式（読み込み直後の写しと同じ形） */
+  const currentSnapshot: EditSnapshot = {
+    form,
+    carryIn: { date: carryInDate, hour: carryInHour, min: carryInMin },
+    carryOut: { date: carryOutDate, hour: carryOutHour, min: carryOutMin },
+  }
+  /** 読み込み直後から入力が変わっていて、まだ保存していないかどうか（戻るときの確認・注意表示・beforeunload に使う） */
+  const isDirty: boolean = initialSnapshot !== null && JSON.stringify(currentSnapshot) !== initialSnapshot
+
+  // 2. 未保存の変更があるあいだは、再読み込み・タブを閉じるときにブラウザの確認を出す
+  useEffect(() => {
+    if (!isDirty) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      // 古いブラウザは returnValue の設定で確認を出す
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [isDirty])
 
   /**
    * フォームの特定フィールドを更新するヘルパー
@@ -173,7 +223,7 @@ export default function EventAdminInfo() {
     return null
   }
 
-  // 2. 保存ボタン押下時の処理
+  // 3. 保存ボタン押下時の処理
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     // 読み込みに失敗した画面では保存しない（空のフォームで既存の管理情報と収支を上書きしてしまうため）
@@ -193,11 +243,9 @@ export default function EventAdminInfo() {
         booth_fee: form.booth_fee ?? 0,
         accommodation: form.hotel_fee ?? 0,
       })
-      // 画像の追加・削除も保存できたので、未保存の注意表示を消す
-      setImagesDirty(false)
-      setSaved(true)
-      // 3秒後に保存済みメッセージを消す
-      setTimeout(() => setSaved(false), 3000)
+      // 4. 確認画面へ戻る。確認画面では state.saved を見て「保存しました」を表示し、from で元の画面への「← 戻る」を保つ。
+      //    replace にして編集画面の履歴を確認画面で置き換え、確認画面でブラウザの戻るを押すと一覧などの元の画面へ戻れるようにする
+      navigate(viewPath, { replace: true, state: { from: viewFrom, saved: true } })
     } catch {
       // 保存失敗時にエラーメッセージを表示する
       setError('保存に失敗しました。もう一度お試しください。')
@@ -229,7 +277,6 @@ export default function EventAdminInfo() {
           const url = await api.upload(file)
           // アップロード中に削除操作があっても消えないよう、前の state を元に末尾へ追加する
           setForm((prev) => ({ ...prev, guidelines_image_urls: [...(prev.guidelines_image_urls ?? []), url] }))
-          setImagesDirty(true)
         } catch {
           failedNames.push(file.name)
         }
@@ -255,7 +302,6 @@ export default function EventAdminInfo() {
       ...prev,
       guidelines_image_urls: (prev.guidelines_image_urls ?? []).filter((_, i) => i !== index),
     }))
-    setImagesDirty(true)
   }
 
   /** 出店要項の画像 URL 一覧（既存データで undefined のときは空配列として扱う） */
@@ -304,9 +350,21 @@ export default function EventAdminInfo() {
       </p>
     )}
     <div style={{ maxWidth: 580 }}>
-      {/* 戻るリンク */}
-      <div style={{ marginBottom: 24 }}>
-        <Link to={backTo} style={{ fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}>
+      {/* 戻るリンク（確認画面へ）。上下に余白を持たせてスマホでもタップしやすくする。
+          replace で編集画面の履歴を確認画面に置き換え、確認画面でブラウザの戻るを押すと元の画面（一覧など）へ戻れるようにする */}
+      <div style={{ marginBottom: 12 }}>
+        <Link
+          to={viewPath}
+          state={{ from: viewFrom }}
+          replace
+          onClick={(e) => {
+            // 保存していない入力があるまま戻ると変更が消えるため、確認してから戻る
+            if (isDirty && !window.confirm('保存していない変更があります。破棄して戻りますか？')) {
+              e.preventDefault()
+            }
+          }}
+          style={{ display: 'inline-block', padding: '12px 0', fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}
+        >
           &larr; 戻る
         </Link>
       </div>
@@ -620,12 +678,8 @@ export default function EventAdminInfo() {
           >
             {saving ? '保存中...' : '保存する'}
           </button>
-          {/* 保存成功時に3秒間表示するフィードバック */}
-          {saved && (
-            <span style={{ fontSize: 14, color: '#4a6741' }}>保存しました</span>
-          )}
-          {/* 出店要項画像の追加・削除がまだ保存されていないときの注意。画面を離れると変更が消える */}
-          {imagesDirty && !saved && (
+          {/* 入力がまだ保存されていないときの注意。画面を離れると変更が消える */}
+          {isDirty && (
             <span style={{ fontSize: 13, color: '#b9770e' }}>未保存の変更があります</span>
           )}
         </div>
@@ -642,150 +696,5 @@ export default function EventAdminInfo() {
       />
     )}
     </>
-  )
-}
-
-/**
- * フォームのセクションを囲む枠コンポーネント
- * @param label - セクション見出し
- * @param hint - 見出し右側に表示する補足テキスト（任意）
- * @param children - セクション内のコンテンツ
- */
-function SectionBox({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      {/* 見出しと補足。狭い幅では補足が下に折り返す */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 10, rowGap: 2, marginBottom: 8 }}>
-        <div style={{ fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase' }}>
-          {label}
-        </div>
-        {hint && <span style={{ fontSize: 11, color: 'var(--c-muted)' }}>{hint}</span>}
-      </div>
-      <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '16px', minWidth: 0 }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/** 拡大表示の操作ボタン（閉じる・前へ・次へ）の見た目。スマホでも押しやすいよう 44px 以上にする */
-const viewerButtonStyle: React.CSSProperties = {
-  minWidth: 44,
-  minHeight: 44,
-  padding: '10px 16px',
-  border: '1px solid rgba(255,255,255,0.4)',
-  borderRadius: 4,
-  background: 'rgba(0,0,0,0.4)',
-  color: '#ffffff',
-  fontSize: 14,
-  fontFamily: 'inherit',
-  cursor: 'pointer',
-}
-
-/**
- * 画像を画面いっぱいに拡大表示するオーバーレイ
- * 背景タップ・閉じるボタン・Esc キーで閉じ、複数枚のときは前へ／次へボタンと左右キーで切り替える。
- * 表示中は後ろのページがスクロールしないよう body のスクロールを止める
- * @param urls - 表示する画像 URL の一覧
- * @param index - 表示中の画像の位置（0始まり）
- * @param onChange - 表示する画像を切り替えるときに呼ぶ（新しい位置を渡す）
- * @param onClose - 閉じるときに呼ぶ
- */
-function ImageViewer({ urls, index, onChange, onClose }: {
-  urls: string[]
-  index: number
-  onChange: (index: number) => void
-  onClose: () => void
-}) {
-  /** 前の画像があるかどうか（先頭では前へを押せない） */
-  const hasPrev = index > 0
-  /** 次の画像があるかどうか（末尾では次へを押せない） */
-  const hasNext = index < urls.length - 1
-
-  // 表示中は body のスクロールを止め、閉じたら元の値に戻す
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prevOverflow
-    }
-  }, [])
-
-  // Esc で閉じる・左右キーで前後の画像に切り替える
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      else if (e.key === 'ArrowLeft' && hasPrev) onChange(index - 1)
-      else if (e.key === 'ArrowRight' && hasNext) onChange(index + 1)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [index, hasPrev, hasNext, onChange, onClose])
-
-  // 管理画面のレイアウト（親要素の transform など）の影響を受けないよう body 直下に出す
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="出店要項の画像の拡大表示"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        background: 'rgba(0,0,0,0.88)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: 'max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom))',
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* 上部: 何枚目かの表示と閉じるボタン */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
-        <span style={{ color: '#ffffff', fontSize: 14 }}>
-          {urls.length > 1 ? `${index + 1} / ${urls.length}` : ''}
-        </span>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onClose() }}
-          style={viewerButtonStyle}
-        >
-          閉じる
-        </button>
-      </div>
-
-      {/* 中央: 画像。残りの高さに収まるよう contain で縮小する。画像以外の余白をタップすると閉じる */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
-        <img
-          src={urls[index]}
-          alt={`出店要項の画像 ${index + 1}`}
-          onClick={(e) => e.stopPropagation()}
-          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
-        />
-      </div>
-
-      {/* 下部: 複数枚のときだけ前へ／次へボタンを出す。端のボタンを disabled にすると、押したクリックが背景に届いて閉じてしまうブラウザがあるため aria-disabled で表す */}
-      {urls.length > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexShrink: 0 }}>
-          <button
-            type="button"
-            aria-disabled={!hasPrev}
-            onClick={(e) => { e.stopPropagation(); if (hasPrev) onChange(index - 1) }}
-            style={{ ...viewerButtonStyle, minWidth: 96, opacity: hasPrev ? 1 : 0.35, cursor: hasPrev ? 'pointer' : 'default' }}
-          >
-            &larr; 前へ
-          </button>
-          <button
-            type="button"
-            aria-disabled={!hasNext}
-            onClick={(e) => { e.stopPropagation(); if (hasNext) onChange(index + 1) }}
-            style={{ ...viewerButtonStyle, minWidth: 96, opacity: hasNext ? 1 : 0.35, cursor: hasNext ? 'pointer' : 'default' }}
-          >
-            次へ &rarr;
-          </button>
-        </div>
-      )}
-    </div>,
-    document.body,
   )
 }

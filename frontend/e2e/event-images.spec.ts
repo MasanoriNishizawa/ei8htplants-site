@@ -1,6 +1,6 @@
 import { test, expect, type Page, type Locator } from '@playwright/test'
 
-// イベント画像DLページと、管理情報ページの「出店要項」セクションの画面テスト
+// イベント画像DLページと、管理情報の編集画面（/admin-info/edit）の「出店要項」セクションの画面テスト
 // VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true（npm run mock:e2e）で実行する。本番には接続しない
 // モックデータ: mock-past-1（Habitat Exhibition 2026）
 //   - イベント画像 1 枚（placehold.co）
@@ -134,7 +134,7 @@ test.describe('イベント画像DLページ', () => {
 
 test.describe('管理情報ページ — 出店要項', () => {
   test('出店要項セクションに文章と画像サムネイルが表示される', async ({ page }) => {
-    await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+    await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     // 1. セクション見出しと文章
     await expect(page.getByText('出店要項', { exact: true })).toBeVisible()
     await expect(page.getByLabel('要項の文章')).toHaveValue('出店要項モック本文\n搬入は9時までに完了してください。')
@@ -145,7 +145,7 @@ test.describe('管理情報ページ — 出店要項', () => {
   })
 
   test('サムネイルを押すと拡大表示が開き、前へ・次へで切り替わり、Esc と閉じるボタンで閉じる', async ({ page }) => {
-    await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+    await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
 
     // 1. 1枚目のサムネイルで拡大表示を開く
     await page.getByRole('button', { name: '出店要項の画像 1 を拡大表示' }).click()
@@ -185,7 +185,7 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
   test('管理情報ページで横スクロールが出ず、主要ボタンが画面内に収まる', async ({ page }) => {
-    await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+    await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
 
     // 1. 横スクロールが出ていない
@@ -204,7 +204,7 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
   })
 
   test('管理情報ページの拡大表示がスマホ幅でも画面内に収まり、閉じられる', async ({ page }) => {
-    await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+    await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await page.getByRole('button', { name: '出店要項の画像 2 を拡大表示' }).click()
     const dialog = page.getByRole('dialog', { name: '出店要項の画像の拡大表示' })
     await expect(dialog).toBeVisible()
@@ -266,7 +266,7 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
     test.use({ viewport: { width: 375, height: 812 } })
 
     test('管理情報ページの input・textarea・select がすべて 16px になる', async ({ page }) => {
-      await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+      await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       await expect(page.getByLabel('要項の文章')).toBeVisible()
 
       // 1. 入力欄が一通りそろっている（日付 3・数値 2・テキスト 1・select 5・textarea 2）
@@ -282,7 +282,7 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
     })
 
     test('チェックボックスとファイル選択欄は 16px の対象外', async ({ page }) => {
-      await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+      await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       await expect(page.getByLabel('要項の文章')).toBeVisible()
       // ルールの :not() 指定どおり、checkbox と file はスマホ幅のルールの影響を受けない
       // （checkbox・file はもともと別の全体指定で 16px のため、値そのものではなくデスクトップ幅と同じ値であることを確かめる）
@@ -304,7 +304,7 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
     test.use({ viewport: { width: 1280, height: 800 } })
 
     test('管理情報ページの入力欄は各画面の指定どおり（16px に上書きされない）', async ({ page }) => {
-      await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+      await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       await expect(page.getByLabel('要項の文章')).toBeVisible()
 
       // 1. 画面のインライン指定の値のまま（要項の文章 14px・日付 15px・時の select 15px）
@@ -323,7 +323,7 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
     test('767px では 16px、768px では元の値になる', async ({ page }) => {
       // 1. 767px（スマホ用ルールの上限）
       await page.setViewportSize({ width: 767, height: 900 })
-      await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+      await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       const textarea = page.getByLabel('要項の文章')
       await expect(textarea).toBeVisible()
       expect(await textarea.evaluate((el) => getComputedStyle(el).fontSize)).toBe('16px')

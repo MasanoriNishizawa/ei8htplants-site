@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// 管理情報ページの「搬入・搬出」（日付・時・分）を入力して保存したとき、
-// 保存 API（PUT /api/events/:id/admin-info）に日時が送られることを確かめる画面テスト。
+// 管理情報の編集画面（/admin/events/:id/admin-info/edit）の「搬入・搬出」（日付・時・分）を入力して保存したとき、
+// 保存 API（PUT /api/events/:id/admin-info）に日時が送られ、確認画面（/admin-info）に戻って表示されることを確かめる画面テスト。
 // VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true（npm run mock:e2e）で実行する。本番には接続しない
 // 認証まわりの前提は event-images.spec.ts と同じ（偽セッションを入れ、Supabase への通信は遮断する）
 
@@ -38,8 +38,8 @@ test.beforeEach(async ({ page }) => {
 const EVENT_ID = 'mock-past-1'
 
 test('搬入・搬出の日付・時・分を選んで保存すると、保存 API に日時が送られる', async ({ page }) => {
-  // 1. 管理情報ページを開き、読み込みが終わるのを待つ
-  await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+  // 1. 管理情報の編集画面を開き、読み込みが終わるのを待つ
+  await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
   await expect(page.getByText('搬入日時')).toBeVisible()
 
   // 2. 搬入・搬出の日付 input と、時・分の select を取り出す（画面の並び順: 搬入の日付・時・分 → 搬出の日付・時・分）
@@ -67,13 +67,15 @@ test('搬入・搬出の日付・時・分を選んで保存すると、保存 A
   // 5. 搬入・搬出の日時が「YYYY-MM-DDTHH:MM」で送られている
   expect(body.carry_in_time).toBe('2099-11-14T08:30')
   expect(body.carry_out_time).toBe('2099-11-15T17:05')
-  await expect(page.getByText('保存しました')).toBeVisible()
+  // 6. 保存後は確認画面へ戻り「保存しました」が出る
+  await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
+  await expect(page.getByRole('status')).toHaveText('保存しました')
 })
 
-test('搬入・搬出を保存した後にページを開き直すと、選んだ日付・時・分が表示され、収支にも出店料・宿泊費が同期される', async ({ page }) => {
+test('搬入・搬出を保存すると確認画面に日時・金額が表示され、編集画面に入り直すと選んだ値が入っていて、収支にも出店料・宿泊費が同期される', async ({ page }) => {
   // MSW は保存（PUT）した値をブラウザのメモリに持つため、再読み込みせずに画面内リンクで開き直して確かめる
-  // 1. 管理情報ページを開く
-  await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
+  // 1. 管理情報の編集画面を開く
+  await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
   await expect(page.getByText('搬入日時')).toBeVisible()
 
   // 2. 搬入・搬出・宿泊料金・出店料を入力する
@@ -97,7 +99,9 @@ test('搬入・搬出を保存した後にページを開き直すと、選ん�
   )
   await page.getByRole('button', { name: '保存する' }).click()
   const finBody = JSON.parse((await finPut).postData() ?? '{}')
-  await expect(page.getByText('保存しました')).toBeVisible()
+  // 保存後は確認画面へ戻り「保存しました」が出る
+  await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
+  await expect(page.getByRole('status')).toHaveText('保存しました')
 
   // 4. 収支には出店料・宿泊費だけが管理情報の値で送られ、売上などはモックの値のまま
   expect(finBody.booth_fee).toBe(12000)
@@ -108,14 +112,20 @@ test('搬入・搬出を保存した後にページを開き直すと、選ん�
   expect(finBody).not.toHaveProperty('id')
   expect(finBody).not.toHaveProperty('event_id')
 
-  // 5. 「← 戻る」で別のページ（遷移元が無いときはイベント編集ページ）へ移ってから、
-  //    ブラウザの「戻る」で管理情報ページを開き直す（再読み込みはしない）
-  await page.getByRole('link', { name: '← 戻る' }).click()
-  await expect(page).not.toHaveURL(/\/admin-info$/)
-  await page.goBack()
+  // 5. 確認画面に、保存した日時（曜日つき）と金額（3桁区切り）が表示される
+  //    各値はラベルの次の要素に出るため、ラベルの親（行）の文字で確かめる
+  const row = (label: string) => page.getByText(label, { exact: true }).last().locator('..')
+  await expect(row('搬入日時')).toContainText('2099年11月14日（土） 08:30')
+  await expect(row('搬出日時')).toContainText('2099年11月15日（日） 17:05')
+  await expect(row('宿泊料金')).toContainText('8,000円')
+  await expect(row('出店料')).toContainText('12,000円')
+
+  // 6. 「編集」で編集画面に入り直す（再読み込みはしない）
+  await page.getByRole('link', { name: '編集' }).first().click()
+  await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info/edit$`))
   await expect(page.getByText('搬入日時')).toBeVisible()
 
-  // 6. 保存した日付・時・分・金額が表示される
+  // 7. 保存した日付・時・分・金額がプルダウンと入力欄に入っている
   const reDates = page.locator('input[type="date"]')
   await expect(reDates.nth(0)).toHaveValue('2099-11-14')
   await expect(reDates.nth(1)).toHaveValue('2099-11-15')
