@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import Header from './Header'
 import Footer from './Footer'
+import Analytics from './Analytics'
 
 /** チャットページ以外の全ページに表示する右下固定のAIチャットボタン */
 function ChatFab() {
@@ -71,6 +72,8 @@ function ChatFab() {
 export default function Layout() {
   return (
     <>
+      {/* 本番サイトでだけ GA4 にページビューを送る（画面には何も出ない） */}
+      <Analytics />
       <Header />
       <main className="site-main" style={{ paddingTop: 64, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Outlet />

@@ -30,7 +30,7 @@ const linkStyle: React.CSSProperties = {
   fontWeight: 300,
 }
 
-/** サイト共通フッター。ショップ系ページのみ特定商取引法リンクを表示する */
+/** サイト共通フッター。プライバシーポリシーのリンクは全ページ、特定商取引法リンクはショップ系ページのみ表示する */
 export default function Footer() {
   const { pathname } = useLocation()
   const t = useT()
@@ -95,6 +95,13 @@ export default function Footer() {
             {t('※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! (およびTHE SUCCULENTIST)の登録商標です。', '※ "HABITATSTYLE" is a registered trademark of Shabomaniac! (and THE SUCCULENTIST).')}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            {/* プライバシーポリシーは全ページに表示する（アクセス解析の利用を知らせるため） */}
+            <Link to="/privacy" style={{ ...linkStyle, fontSize: 10 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-muted)' }}
+            >
+              {t('プライバシーポリシー', 'Privacy Policy')}
+            </Link>
             {showLegal && (
               <Link to="/legal" style={{ ...linkStyle, fontSize: 10 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}

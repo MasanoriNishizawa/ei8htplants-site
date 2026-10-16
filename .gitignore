@@ -3,6 +3,8 @@
 .env.local
 .env*.local
 secret_key.json
+# Google Cloud のサービスアカウントの鍵（アクセス解析用。リポジトリの外に置くが、念のため除外する）
+*service-account*.json
 
 # Python
 __pycache__/

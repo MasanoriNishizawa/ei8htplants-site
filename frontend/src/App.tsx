@@ -62,6 +62,7 @@ import Journal from './pages/Journal'
 import JournalArticle from './pages/JournalArticle'
 import EventSite from './pages/EventSite'
 import LegalPage from './pages/LegalPage'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 /** アプリ全体のルーティング定義。言語・カートの Context を最上位で提供する */
 export default function App() {
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="/hue" element={<Hue />} />
             <Route path="/events/:id" element={<EventSite />} />
             <Route path="/legal" element={<LegalPage />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/reserve" element={<Reserve />} />
             <Route path="/cancel" element={<CancelReservation />} />
