@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { GA_MEASUREMENT_ID, isAnalyticsEnabled, isExcludedPath, sanitizeSearch, trackPageView } from '../analytics'
+import { GA_MEASUREMENT_ID, hasAdminSession, isAnalyticsEnabled, isExcludedPath, sanitizeSearch, setAnalyticsDisabled, trackPageView } from '../analytics'
 
 describe('isAnalyticsEnabled', () => {
   it('本番ビルドかつ本番ドメインのときだけ有効になる', () => {
@@ -116,5 +116,103 @@ describe('loadGtag', () => {
     loadGtag()
     expect(JSON.stringify(window.dataLayer)).not.toContain('secret-token-123')
     window.history.replaceState({}, '', '/')
+  })
+})
+
+/**
+ * テスト用の保存領域（localStorage の代わり）を作る
+ * @param entries - 最初に入れておくキーと値
+ * @returns Storage と同じ形の偽物
+ */
+function makeStorage(entries: Record<string, string>): Storage {
+  // 保存している中身（キー → 値）
+  const map = new Map(Object.entries(entries))
+  return {
+    get length() {
+      return map.size
+    },
+    key: (i: number) => Array.from(map.keys())[i] ?? null,
+    getItem: (k: string) => (map.has(k) ? (map.get(k) as string) : null),
+    setItem: (k: string, v: string) => void map.set(k, v),
+    removeItem: (k: string) => void map.delete(k),
+    clear: () => map.clear(),
+  }
+}
+
+describe('hasAdminSession', () => {
+  afterEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('Supabase のログイン情報のキー（sb-<プロジェクト>-auth-token）に値があると true になる', () => {
+    expect(hasAdminSession(makeStorage({ 'sb-abcdef-auth-token': '{"access_token":"x"}' }))).toBe(true)
+    // 他のキーと混ざっていても見つける
+    expect(
+      hasAdminSession(makeStorage({ lang: 'ja', 'other-app': '1', 'sb-abcdef-auth-token': 'x' }))
+    ).toBe(true)
+  })
+
+  it('実際の window.localStorage でもログイン情報を入れると true、消すと false になる', () => {
+    expect(hasAdminSession(window.localStorage)).toBe(false)
+    window.localStorage.setItem('sb-proj-auth-token', 'x')
+    expect(hasAdminSession(window.localStorage)).toBe(true)
+    window.localStorage.removeItem('sb-proj-auth-token')
+    expect(hasAdminSession(window.localStorage)).toBe(false)
+  })
+
+  it('ログイン情報のキーがあっても値が空なら false になる', () => {
+    expect(hasAdminSession(makeStorage({ 'sb-abcdef-auth-token': '' }))).toBe(false)
+  })
+
+  it('似た名前のキー（-code-verifier 付き・プロジェクト名が空・別アプリ）だけなら false になる', () => {
+    expect(hasAdminSession(makeStorage({ 'sb-abcdef-auth-token-code-verifier': 'x' }))).toBe(false)
+    expect(hasAdminSession(makeStorage({ 'sb--auth-token': 'x' }))).toBe(false)
+    expect(hasAdminSession(makeStorage({ 'auth-token': 'x', 'myapp-auth-token': 'x', 'xsb-a-auth-token': 'x' }))).toBe(false)
+  })
+
+  it('キーが1つも無ければ false になる', () => {
+    expect(hasAdminSession(makeStorage({}))).toBe(false)
+  })
+
+  it('保存領域の length がエラーを投げると false になる（例外を外に出さない）', () => {
+    const storage = makeStorage({ 'sb-abcdef-auth-token': 'x' })
+    Object.defineProperty(storage, 'length', {
+      get() {
+        throw new Error('SecurityError')
+      },
+    })
+    expect(() => hasAdminSession(storage)).not.toThrow()
+    expect(hasAdminSession(storage)).toBe(false)
+  })
+
+  it('保存領域の key がエラーを投げると false になる（例外を外に出さない）', () => {
+    const storage = makeStorage({ 'sb-abcdef-auth-token': 'x' })
+    storage.key = () => {
+      throw new Error('SecurityError')
+    }
+    expect(() => hasAdminSession(storage)).not.toThrow()
+    expect(hasAdminSession(storage)).toBe(false)
+  })
+})
+
+describe('setAnalyticsDisabled', () => {
+  // GA4 公式のオプトアウト用のフラグ名（window['ga-disable-<測定ID>']）
+  const flag = `ga-disable-${GA_MEASUREMENT_ID}`
+  // window をフラグの読み書きができる形として扱う
+  const win = window as unknown as Record<string, unknown>
+
+  afterEach(() => {
+    delete win[flag]
+  })
+
+  it('true を渡すと window["ga-disable-G-HCVVDNYL94"] が true、false を渡すと false になる', () => {
+    // 1. フラグ名が本番の測定 ID と一致している
+    expect(flag).toBe('ga-disable-G-HCVVDNYL94')
+    // 2. true で送信を止める
+    setAnalyticsDisabled(true)
+    expect(win[flag]).toBe(true)
+    // 3. false で送信を再開する（ログアウト後）
+    setAnalyticsDisabled(false)
+    expect(win[flag]).toBe(false)
   })
 })

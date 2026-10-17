@@ -5,6 +5,7 @@
  *   開発サーバー・自動テスト・プレビューではタグを読み込まず、外部への送信もしない
  * - SPA なので、自動のページビューは止め（send_page_view: false）、画面が切り替わるたびに自分で送る
  * - 管理画面（/admin）は送信しない（公開ページのレイアウトからだけ呼ぶうえ、念のためここでも除外する）
+ * - 管理画面にログインしているブラウザでは、公開ページを見ても送信しない（管理者自身の閲覧を数えないため）
  */
 
 /** GA4 の測定 ID（公開して問題ない値。秘密情報ではない） */
@@ -51,6 +52,38 @@ export function isAnalyticsEnabled(hostname: string, isProdBuild: boolean): bool
  */
 export function isExcludedPath(pathname: string): boolean {
   return pathname === '/admin' || pathname.startsWith('/admin/')
+}
+
+/** Supabase がログイン情報をブラウザに保存するときのキー名（例: sb-<プロジェクト>-auth-token） */
+const SUPABASE_SESSION_KEY = /^sb-.+-auth-token$/
+
+/**
+ * このブラウザが管理画面にログインしているかを判定する（管理者自身の閲覧を計測から外すため）。
+ * Supabase はログイン中の情報を localStorage に保存し、ログアウトすると消すので、そのキーがあるかと値が空でないかだけを見る（ログイン情報の中身は解析も利用もしない）
+ * @param storage - 調べる保存領域（通常は window.localStorage）
+ * @returns 管理画面のログイン情報があれば true。保存領域が使えないとき（プライベートモードなど）は false
+ */
+export function hasAdminSession(storage: Storage): boolean {
+  try {
+    // 1. 保存されているキーを順に見て、Supabase のログイン情報のキーで値が空でないものがあるか調べる
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i)
+      if (key && SUPABASE_SESSION_KEY.test(key) && storage.getItem(key)) return true
+    }
+    return false
+  } catch {
+    // 2. 保存領域にアクセスできない環境では、管理者ではないものとして扱う
+    return false
+  }
+}
+
+/**
+ * このブラウザでの GA4 への送信をまとめて止める・再開する（Google 公式のオプトアウトの仕組み）。
+ * ページビューだけでなく、タグを読み込んだ後に GA が自動で送るスクロール・クリックなどの計測も止まる
+ * @param disabled - true で送信を止める、false で再開する
+ */
+export function setAnalyticsDisabled(disabled: boolean): void {
+  ;(window as unknown as Record<string, boolean>)[`ga-disable-${GA_MEASUREMENT_ID}`] = disabled
 }
 
 /**
