@@ -1,10 +1,20 @@
 """予測・シミュレーション画面：今期の売上の着地見込み、売上を左右する要因、出店判断シミュレーター。"""
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from lib.analysis import MIN_ROWS_FOR_ANALYSIS, fit_linear, forecast_fiscal_year, simulate_event
+from lib.analysis import (
+    MIN_ROWS_FOR_ANALYSIS,
+    SERIES_PRIOR_K,
+    displayed_median,
+    fit_linear,
+    forecast_fiscal_year,
+    season_weight,
+    series_weight,
+    simulate_event,
+)
 from lib.charts import INK_SECONDARY, SERIES, style, yen
 from lib.context import get_context, not_enough
 from lib.finance import break_even_sales
@@ -50,8 +60,19 @@ def _forecast(ctx, fin) -> None:
         return
     st.caption(
         f"{fc['fiscal_year']}年度の実績に、まだ売上が入っていない {fc['remaining']} 回（今後の予定と入力待ち）の売上を"
-        "「これまでの1回あたり売上」から"
         "無作為に引いて足す計算を 5,000 回くり返しました（ブートストラップ法）。"
+        "1回分の売上は、次の2つのどちらかから引きます。"
+        "(1) 同じイベント（「vol.5」「第3回」「2026」などの回の番号を除いた名前が同じもの）の過去の売上。"
+        "年に複数回あるイベントは時期によって売上が違うため、この中では開催月が近い回ほど引かれやすくします"
+        f"（同じ月を 1 として、1か月差 {season_weight(1):.2f}、2か月差 {season_weight(2):.2f}、"
+        f"3か月差 {season_weight(3):.2f}、半年差はほぼ 0）。"
+        "(2) 全イベントの1回あたり売上（時期は考慮しません）。"
+        "(1) の重みの合計を「時期を考慮した実質の回数」n とし、(1) から引く割合を "
+        f"n ÷ (n + {SERIES_PRIOR_K})、残りを (2) から引きます"
+        f"（1回で{series_weight(1):.0%}、2回で{series_weight(2):.0%}、4回で{series_weight(4):.0%}）。"
+        "回数が少ないうちに、たまたまの1回に引っぱられないためです。"
+        "同じイベントの実績が無いときは全イベントの実績だけで、"
+        "時期の離れた回しか無いときは主に全イベントの実績で見込みます。"
     )
     # 1. 実績と見込みを数字で並べる
     c1, c2, c3, c4 = st.columns(4)
@@ -68,6 +89,66 @@ def _forecast(ctx, fin) -> None:
     fig.update_layout(title="今期の売上合計の分布（5,000回のシミュレーション）", showlegend=False)
     fig.update_yaxes(title_text="回数")
     st.plotly_chart(style(fig, height=300, yen_axis="x"), width="stretch")
+    # 3. 残りのイベントごとに、参考にした同じイベントの過去の実績を表で見せる
+    _forecast_details(fc["details"])
+
+
+def _forecast_details(details: pd.DataFrame) -> None:
+    """着地見込みで、残りのイベントごとに参考にした同じイベントの過去の実績を表で表示する。
+
+    Args:
+        details: forecast_fiscal_year の戻り値の details（series_references の結果）
+    """
+    st.subheader("残りのイベントと参考にした実績")
+    if details.empty:
+        st.caption("今期の残りのイベントはありません。")
+        return
+    # 1. 画面で読みやすい列名と表示形式にそろえる
+    table = pd.DataFrame({
+        "イベント名": details["name"].fillna("（名前なし）"),
+        "開催日": pd.to_datetime(details["start_date"]).dt.strftime("%Y-%m-%d"),
+        "同じイベントの過去の回数": details["n_past"].astype(int),
+        # 開催月の近さで重み付けした回数（小数1桁で表示）
+        "時期を考慮した実質の回数": [f"{float(n):.1f}" for n in details["n_eff"]],
+        # 中央値は時期の重み付き。同じイベントの重みが小さく見込みにほとんど効いていない行は出さない
+        "過去の売上の中央値": [
+            yen(shown) if (shown := displayed_median(m, w)) is not None else "なし（全体の実績で見込み）"
+            for m, w in zip(details["median_past"], details["weight"])
+        ],
+        "同じイベントの重み": [f"{w:.0%}" for w in details["weight"]],
+        # どの過去の回とまとめたかを、開催時期と時期の重みつきで開催日順に並べる
+        "まとめた過去の回": [
+            _past_label(names, dates, weights)
+            for names, dates, weights in zip(details["past_names"], details["past_dates"],
+                                             details["past_season_weights"])
+        ],
+    })
+    # 2. 表を表示する
+    st.dataframe(table, hide_index=True, width="stretch")
+    st.caption(
+        "「同じイベントの重み」は、そのイベントの見込みを同じイベントの過去の売上から引く割合です。"
+        "残りは全イベントの実績から引きます。「まとめた過去の回」の重みは開催月の近さによるもので、"
+        "同じイベントの過去の売上から引くときは、この重みに比例して選ばれやすくなります。"
+    )
+
+
+def _past_label(names: list, dates: list, weights: list) -> str:
+    """まとめた過去の回を「名前（YYYY年M月・重み80%）」の形で「 / 」区切りにつなげる。
+
+    Args:
+        names: 過去の回のイベント名のリスト
+        dates: 過去の回の開催日のリスト（names と同じ順）
+        weights: 過去の回の時期の重みのリスト（names と同じ順）
+
+    Returns:
+        表示用の文字列。過去の回が無ければ空文字
+    """
+    parts = []
+    for name, date, w in zip(names, dates, weights):
+        # 開催日が分からない回は時期を「時期不明」と出す
+        when = f"{date.year}年{date.month}月" if pd.notna(date) else "時期不明"
+        parts.append(f"{name}（{when}・重み{w:.0%}）")
+    return " / ".join(parts)
 
 
 def _factors(done) -> None:
