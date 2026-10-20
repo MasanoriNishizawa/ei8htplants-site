@@ -782,7 +782,7 @@
 
 ### POST /api/chat
 
-Gemini 1.5 Flash を使った植物相談・ワークショップ案内チャット。会話履歴をそのまま送信し、モデルの返答を受け取る。
+Gemini（`gemini-flash-lite-latest`）を使った植物相談・ワークショップ案内チャット。会話履歴を送信し、モデルの返答を受け取る。
 
 **認証**: 不要
 
@@ -800,13 +800,32 @@ Gemini 1.5 Flash を使った植物相談・ワークショップ案内チャッ
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| `messages` | `Message[]` | 会話履歴（最後の要素が今回の質問）。`role` は `"user"` または `"model"` |
+| `messages` | `Message[]` | 会話履歴（最後の要素が今回の質問）。1〜40 件 |
+| `messages[].role` | `"user"` \| `"model"` | 送り手。この2つ以外は受け付けない |
+| `messages[].content` | `string` | 本文。1〜2,000 文字で、空白・改行だけは不可。前後の空白は削らずにそのまま使う |
+
+**入力の条件（2026-10-20 追加）**
+
+次のどれかに当てはまると `422` を返す。この判定は処理の最初に行うため、Gemini は呼ばず、送信回数の制限にも数えない。
+
+| 条件 | 例 |
+|---|---|
+| `messages` が 0 件、または 41 件以上 | `{"messages": []}` |
+| `role` が `user`・`model` 以外 | `"role": "system"` |
+| `content` が空文字、または空白・改行だけ | `"content": " \n "` |
+| `content` が 2,001 文字以上（過去の AI の返事も含めてどの1件でも） | — |
+| 最後のメッセージの `role` が `user` でない | 最後が `model` |
+
+上限は `backend/app/routes/chat.py` の定数 `MAX_MESSAGE_CHARS = 2000`・`MAX_MESSAGES = 40`。文字数は絵文字も 1 文字として数える（Python の文字数と同じ数え方）。画面側（`frontend/src/lib/chatHistory.ts`）も同じ上限で送る前に整える。
 
 **バックエンド処理**
 
-1. `messages` の末尾1件を今回のユーザーメッセージとし、それ以前を Gemini `history` として渡す
-2. `system_instruction` に ei8ht plants コンシェルジュ用プロンプトを設定
-3. `gemini-1.5-flash-latest` モデルで返答を生成
+1. 入力の条件を確かめる（合わなければ `422`）
+2. `GEMINI_API_KEY` が未設定なら `503`
+3. 送り元の IP ごとに 1 分間 10 回までに制限（超えたら `429`）
+4. `system_instruction` に ei8ht plants コンシェルジュ用プロンプトと、サイトの公開データ・有効な Q&A を設定
+5. `messages` の末尾1件を今回のユーザーメッセージとし、それ以前を Gemini `history` として渡す
+6. 返答を `chat_logs` テーブルに保存（失敗してもチャットは成功扱い）
 
 **レスポンス `200`**
 
@@ -816,10 +835,14 @@ Gemini 1.5 Flash を使った植物相談・ワークショップ案内チャッ
 }
 ```
 
+AI が安全フィルタなどで本文を返さなかった場合、`reply` が空や `null` になることがある。画面はこのとき「うまくお答えできませんでした。言い方を変えてもう一度お試しください。」と表示し、その質問は次の送信に含めない。
+
 **エラー**
 
 | ステータス | 原因 |
 |---|---|
+| `422` | 入力の条件に合わない（上の表。2026-10-20 追加）。画面には「メッセージを送れませんでした。内容を短くするか、ページを開き直してください。」と出す |
+| `429` | 送信回数の上限（1 分間に 10 回）を超えた |
 | `503` | `GEMINI_API_KEY` が未設定（`{"detail": "Chat is not available"}`） |
 | `500` | Gemini API 呼び出し失敗 |
 
@@ -940,3 +963,19 @@ api.shipping.calculate(postalCode, subtotal) → POST /api/shipping/calculate
 api.upload(file)                         → POST   /api/upload  (auth)  ← 画像
 api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  ← 動画
 ```
+
+### `(auth)` の付いた呼び出しで送るトークン（2026-10-20 変更）
+
+`(auth)` の付いた呼び出し（`authRequest`・`api.upload`・`api.uploadVideo`）は、共通の関数 `getAccessToken()` で `Authorization: Bearer <トークン>` のトークンを決める。
+
+| 状態 | 送るトークン |
+|---|---|
+| 管理画面にログインしている（Supabase のセッションがある） | そのセッションのトークン |
+| ログインしていない・開発用のログイン省略モード | ダミーのトークン `dev-skip-admin-auth`（テスト用のモックが受け取る） |
+| ログインしていない・通常 | 送らずに「401 Unauthorized」のエラーにする |
+
+開発用のログイン省略モードは `frontend/src/lib/devAuth.ts` の `SKIP_ADMIN_AUTH` で判定する。開発サーバーで `VITE_SKIP_ADMIN_AUTH=true` のとき（`npm run mock:e2e`）だけ働き、本番ビルドでは常に無効。本物のバックエンドはダミーのトークンを受け付けず `401` を返す。
+
+管理画面の「チャット Q&A」（`AdminChatQA.tsx`）と「チャットログ」（`AdminChatLogs.tsx`）は `api.ts` を通さず自分でセッションを読んでいるため、このダミーのトークンは使わない。
+
+*最終更新: 2026-10-20（POST /api/chat に入力の条件と 422・429 を追加。`(auth)` の呼び出しで送るトークンの決め方を追加）*

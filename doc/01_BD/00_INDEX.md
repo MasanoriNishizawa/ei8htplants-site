@@ -34,13 +34,13 @@
 | PG-12 | [Reserve](pages/public/12_Reserve.md) | `/reserve` | FT-06 |
 | PG-13 | [予約キャンセル](pages/public/13_CancelReservation.md) | `/cancel` | FT-06 |
 | PG-14 | [Shop](pages/public/14_Shop.md) | `/shop` | FT-13 |
-| PG-15 | [ShopProduct](pages/public/15_ShopProduct.md) | `/shop/:id` | FT-13 |
-| PG-16 | [Checkout](pages/public/16_Checkout.md) | `/checkout` | FT-13 |
-| PG-17 | [OrderComplete](pages/public/17_OrderComplete.md) | `/order/complete` | FT-13 |
+| PG-15 | ShopProduct（ページ設計書は未作成） | `/shop/:id` | FT-13 |
+| PG-16 | Checkout（ページ設計書は未作成） | `/checkout` | FT-13 |
+| PG-17 | OrderComplete（ページ設計書は未作成） | `/order/complete` | FT-13 |
 | PG-18 | [Journal](pages/public/18_Journal.md) | `/journal` | FT-14 |
-| PG-19 | [JournalArticle](pages/public/19_JournalArticle.md) | `/journal/:id` | FT-14 |
-| PG-20 | [EventSite](pages/public/20_EventSite.md) | `/events/:id` | FT-03 |
-| PG-21 | [LegalPage](pages/public/21_LegalPage.md) | `/legal` | — |
+| PG-19 | JournalArticle（ページ設計書は未作成） | `/journal/:id` | FT-14 |
+| PG-20 | EventSite（ページ設計書は未作成） | `/events/:id` | FT-03 |
+| PG-21 | LegalPage（ページ設計書は未作成） | `/legal` | — |
 
 ### 管理ページ（要認証）
 

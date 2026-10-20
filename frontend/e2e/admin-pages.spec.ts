@@ -96,3 +96,32 @@ test.describe('管理画面スモークテスト', () => {
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 })
+
+// 認証つき API（authRequest）がダミートークンで MSW まで届き、モックのデータが画面に出ることの確認
+// VITE_SKIP_ADMIN_AUTH=true の開発サーバーでは、Supabase のセッションが無くても lib/devAuth.ts のダミートークンを付けて送る。
+// 以前は authRequest が fetch の前に 401 を投げていたため、イベント一覧が「予定なし」・ダッシュボードの数が「-」になっていた
+test.describe('管理画面: 認証つき API がモックまで届く', () => {
+  // イベント一覧は events.list と reserve.list（authRequest）を Promise.all でまとめて読むため、
+  // reserve.list が 401 になると一覧全体が空になる。モックのイベント名が出ていれば MSW まで届いている
+  test('/admin/events — モックの今後・過去のイベント名が一覧に表示される', async ({ page }) => {
+    await page.goto('/admin/events')
+    // 今後のイベント（src/mocks/data.ts の MOCK_EVENTS）
+    await expect(page.getByText('Green Market 2027').first()).toBeVisible()
+    await expect(page.getByText('HUE POP-UP at Spiral').first()).toBeVisible()
+    // 過去のイベント（MOCK_PAST_EVENTS）
+    await expect(page.getByText('Habitat Exhibition 2026').first()).toBeVisible()
+    // 「予定なし」は出ていない
+    await expect(page.getByText('予定なし')).toHaveCount(0)
+  })
+
+  // ダッシュボードの統計（api.stats）は contacts・orders（authRequest）を含むため、401 だと全項目が「-」のまま
+  test('/admin — ダッシュボードの「公開中のイベント」にモックの件数（3）が表示される', async ({ page }) => {
+    await page.goto('/admin')
+    // 統計カード（リンク）の中に件数とラベルが並ぶ
+    const card = page.getByRole('link', { name: /公開中のイベント/ })
+    await expect(card).toContainText('3')
+    // お問い合わせ・注文のモックは空配列なので 0 件になる（「-」ではない）
+    await expect(page.getByRole('link', { name: /未読お問い合わせ/ })).toContainText('0')
+    await expect(page.getByRole('link', { name: /未発送の注文/ })).toContainText('0')
+  })
+})

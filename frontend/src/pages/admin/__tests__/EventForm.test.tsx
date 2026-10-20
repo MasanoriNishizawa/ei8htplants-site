@@ -338,24 +338,18 @@ describe('イベントフォーム 編集', () => {
     expect(calledBody.name).toBe('テストイベント')
   })
 
-  it('削除機能: EventForm.tsx には削除ボタンがないため api.events.delete は呼ばれない', () => {
-    // TODO: known issue — EventForm.tsx に削除ボタンは存在しない。
-    // 削除機能は別のページ（EventList など）に実装されている可能性がある。
-    // api.events.delete のテストは削除ボタンが存在するコンポーネントで行う必要がある。
+  it('編集画面には削除ボタンが無く、表示しても api.events.delete は呼ばれない', async () => {
+    // 仕様: イベントの削除はイベント一覧（pages/admin/Events.tsx）で行い、編集画面には削除ボタンを置かない
+    // 1. 編集画面を表示し、既存データの読み込みを待つ
     renderEditForm()
+    await waitFor(() => {
+      const nameInputs = screen.getAllByRole('textbox') as HTMLInputElement[]
+      expect(nameInputs[0].value).toBe('テストイベント')
+    })
 
-    // フォーム内に削除ボタンが存在しないことを確認する
-    const deleteButton = screen.queryByRole('button', { name: /削除/i })
-    expect(deleteButton).toBeNull()
-  })
-
-  it('削除後に管理画面イベント一覧に遷移する（api.events.delete を直接呼んだ場合）', async () => {
-    // TODO: known issue — EventForm.tsx に削除ボタンが存在しないため、
-    // このテストは api.events.delete を直接呼んでナビゲーションを確認することはできない。
-    // 削除フローのテストは削除ボタンがある別コンポーネントで実装する。
-    // ここではスモークテストとして api.events.delete のモックが機能することだけ確認する。
-    vi.mocked(api.events.delete).mockResolvedValue({ ok: true })
-    await api.events.delete('mock-event-1')
-    expect(vi.mocked(api.events.delete)).toHaveBeenCalledWith('mock-event-1')
+    // 2. 「削除」という名前のボタンが無いことを確認する
+    expect(screen.queryByRole('button', { name: /削除/ })).toBeNull()
+    // 3. 表示しただけで削除 API が呼ばれていないことを確認する
+    expect(vi.mocked(api.events.delete)).not.toHaveBeenCalled()
   })
 })

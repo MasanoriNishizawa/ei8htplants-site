@@ -59,8 +59,9 @@ export default function ImageLightbox({ images, index, onClose, onChange }: Prop
         </div>
       )}
 
+      {/* 閉じるボタン。クリックが外側の背景（onClick={onClose}）に伝わると onClose が2回呼ばれるため、伝播を止めてから1回だけ閉じる */}
       <button
-        onClick={onClose}
+        onClick={e => { e.stopPropagation(); onClose() }}
         style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: '#fff', fontSize: 28, cursor: 'pointer', padding: '6px 10px', lineHeight: 1, opacity: 0.7 }}
       >✕</button>
 

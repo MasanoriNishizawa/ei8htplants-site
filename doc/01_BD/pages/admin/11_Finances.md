@@ -18,7 +18,7 @@
 |---|---|---|
 | [FT-01](../../features/01_認証.md) | 認証 | AdminLayout による認証ガード |
 | [FT-02](../../features/02_APIクライアント.md) | APIクライアント | events 系・finances 系API呼び出し |
-| [FT-23](../../features/23_収支一覧.md) | 収支一覧 | 全イベント収支表示・合計計算 |
+| FT-23（機能設計書は未作成） | 収支一覧 | 全イベント収支表示・合計計算 |
 
 ## 画面レイアウト
 
@@ -70,4 +70,6 @@
 - 収支データなし: 各列をグレー「-」で表示
 - 「編集」ボタン: `/admin/events/{id}/finances` へ遷移
 
-## 詳細は [FT-12 イベント管理](../../features/12_イベント管理.md) / [PG-A08 イベント収支管理](08_EventFinance.md) を参照
+## 詳細は [FT-12 イベント管理](../../features/12_イベント管理.md) / [PG-A02 イベント管理](02_Events.md) の「収支入力画面（EventFinance）での保存の制限」を参照
+
+収支入力画面（PG-A11、`/admin/events/:id/finances`）だけのページ設計書は未作成。

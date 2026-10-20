@@ -7,43 +7,14 @@ import { test, expect, type Page, type Locator } from '@playwright/test'
 //   - 管理情報の出店要項: 文章 + 画像 3 枚（public/img のローカル画像。src/mocks/data.ts の MOCK_ADMIN_INFO）
 
 // 【認証まわりの前提】
-// 管理情報（getAdminInfo / getFinances）や予約一覧（reserve.list）は authRequest を使い、Supabase のログインセッションが
-// ないと fetch の前に「401 Unauthorized」を投げて MSW まで届かない。VITE_SKIP_ADMIN_AUTH はログイン画面を飛ばすだけで
-// authRequest には効かないため、このテストでは localStorage の Supabase セッション（sb-*-auth-token）の読み出しを
-// 差し替えて、有効期限の遠い偽セッションを返す。期限が遠いので supabase-js はトークン更新の通信をしない。
+// 管理情報（getAdminInfo / getFinances）や予約一覧（reserve.list）は authRequest を使う。
+// VITE_SKIP_ADMIN_AUTH=true の開発サーバーでは、Supabase のセッションが無くても authRequest がダミートークン
+// （lib/devAuth.ts の DEV_SKIP_AUTH_TOKEN）を付けて送るため、偽セッションを入れなくても MSW まで届く。
 // 念のため *.supabase.co への通信はすべて遮断し、本番には一切接続しないようにする
-// TODO: known issue — VITE_SKIP_ADMIN_AUTH=true でも authRequest が 401 になるため、既存 E2E（admin-pages / caret）の
-//       管理画面は認証つき API が失敗した状態で表示されている（イベント一覧が「予定なし」になる等）
 
-/**
- * 偽の管理者セッションを入れ、Supabase への通信を遮断する
- * @param page - 対象ページ（goto より前に呼ぶ）
- */
-async function useFakeAdminSession(page: Page) {
-  // 1. Supabase（認証・DB）への通信をすべて遮断する
-  await page.context().route(/supabase\.co/, (route) => route.abort())
-  // 2. ページの読み込み前に localStorage.getItem を差し替え、Supabase のセッションキーだけ偽セッションを返す
-  await page.addInitScript(() => {
-    const fakeSession = {
-      access_token: 'e2e-fake-access-token',
-      token_type: 'bearer',
-      expires_in: 3600,
-      // 2100 年まで有効（期限切れ扱いにしてトークン更新の通信をさせない）
-      expires_at: 4102444800,
-      refresh_token: 'e2e-fake-refresh-token',
-      user: { id: 'e2e-admin', aud: 'authenticated', role: 'authenticated', email: 'e2e@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' },
-    }
-    const originalGetItem = Storage.prototype.getItem
-    Storage.prototype.getItem = function (key: string) {
-      if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)
-      return originalGetItem.call(this, key)
-    }
-  })
-}
-
-// すべてのテストで偽セッションを使う
+// すべてのテストで Supabase（認証・DB）への通信を遮断する
 test.beforeEach(async ({ page }) => {
-  await useFakeAdminSession(page)
+  await page.context().route(/supabase\.co/, (route) => route.abort())
 })
 
 /** 対象イベントの ID */

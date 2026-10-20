@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { SKIP_ADMIN_AUTH, DEV_SKIP_AUTH_TOKEN } from './devAuth'
 
 const BASE = '/api'
 
@@ -31,14 +32,29 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 /**
+ * Authorization ヘッダーに付けるアクセストークンを取得する
+ * 1. Supabase のログインセッションがあれば、その JWT を返す
+ * 2. セッションが無く、開発用のログイン省略モード（SKIP_ADMIN_AUTH）なら、ダミーのトークンを返す
+ *    （E2E では MSW がリクエストを受けるので、ここで 401 を投げると MSW まで届かないため）。
+ *    SKIP_ADMIN_AUTH は本番ビルドでは常に false なので、本番でこの分岐に入ることはない
+ * 3. どちらでもなければ「401 Unauthorized」を投げる（fetch はしない）
+ * @returns アクセストークン
+ */
+async function getAccessToken(): Promise<string> {
+  const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
+  const token = data.session?.access_token
+  if (token) return token
+  if (SKIP_ADMIN_AUTH) return DEV_SKIP_AUTH_TOKEN
+  throw new Error('401 Unauthorized')
+}
+
+/**
  * Supabase セッションから JWT を取得して Authorization ヘッダーに付与する認証済みリクエスト
  * @param path - API パス
  * @param options - fetch のオプション
  */
 async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
-  const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
-  const token = data.session?.access_token
-  if (!token) throw new Error('401 Unauthorized')
+  const token = await getAccessToken()
   return request<T>(path, {
     ...options,
     headers: { Authorization: `Bearer ${token}`, ...options?.headers },
@@ -61,9 +77,7 @@ export const api = {
     }
   },
   upload: async (file: File): Promise<string> => {
-    const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
-    const token = data.session?.access_token
-    if (!token) throw new Error('401 Unauthorized')
+    const token = await getAccessToken()
     const form = new FormData()
     form.append('file', file)
     const res = await fetch(`${BASE}/upload`, {
@@ -79,9 +93,7 @@ export const api = {
     return url
   },
   uploadVideo: async (file: File): Promise<string> => {
-    const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
-    const token = data.session?.access_token
-    if (!token) throw new Error('401 Unauthorized')
+    const token = await getAccessToken()
     const form = new FormData()
     form.append('file', file)
     const res = await fetch(`${BASE}/upload/video`, {

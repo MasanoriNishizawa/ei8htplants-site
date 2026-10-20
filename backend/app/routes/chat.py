@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Literal
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 import hashlib
@@ -148,19 +149,70 @@ def _build_site_context() -> str:
     return '\n\n'.join(parts)
 
 
+# 1 件のメッセージ本文の最大文字数。
+# 公開チャットは誰でも送れるため、長文を貼り付けられると Gemini の入力トークン（＝利用料）が増える。
+# 植物の相談や予約の質問なら 2,000 文字あれば十分で、AI の返答（簡潔に答えるよう指示している）も通常この範囲に収まる。
+MAX_MESSAGE_CHARS = 2000
+
+# 1 回のリクエストで送れる会話履歴の最大件数（ウェルカムメッセージ・AI の返答も含む）。
+# 画面は毎回これまでの履歴をすべて送るので、上限がないと会話が長くなるほど 1 回あたりの料金が増え続ける。
+# 40 件はおよそ 20 往復分で、通常の相談では届かない量にしている。
+MAX_MESSAGES = 40
+
+
 class Message(BaseModel):
-    """チャットメッセージの単一エントリ。"""
-    role: str  # 'user' または 'model'
-    content: str
+    """チャットメッセージの単一エントリ。
+
+    Args:
+        role: 送り手。'user'（利用者）か 'model'（AI）のどちらかだけ受け付ける
+        content: 本文。1〜MAX_MESSAGE_CHARS 文字で、前後の空白を除いて空のものは受け付けない
+    """
+    role: Literal['user', 'model']
+    content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
+
+    @field_validator('content')
+    @classmethod
+    def _content_not_blank(cls, v: str) -> str:
+        """空白・改行だけの本文を 422 にする（Gemini に空の質問を送らないため）。
+
+        Args:
+            v: 送られてきた本文
+
+        Returns:
+            str: そのままの本文（空白の削除はしない）
+
+        Raises:
+            ValueError: 前後の空白を除くと空になる場合
+        """
+        if not v.strip():
+            raise ValueError('content must not be blank')
+        return v
 
 
 class ChatRequest(BaseModel):
     """チャットAPIのリクエストボディ。
 
     Args:
-        messages: これまでの会話履歴（role + content のリスト）
+        messages: これまでの会話履歴（role + content のリスト）。1〜MAX_MESSAGES 件で、最後は role='user'
     """
-    messages: list[Message]
+    messages: list[Message] = Field(min_length=1, max_length=MAX_MESSAGES)
+
+    @model_validator(mode='after')
+    def _last_message_is_user(self) -> 'ChatRequest':
+        """最後のメッセージが利用者の発言であることを確かめる。
+
+        最後のメッセージを Gemini に「今回の質問」として送るため、AI の発言で終わっていると
+        質問のないまま料金だけかかる呼び出しになる。
+
+        Returns:
+            ChatRequest: 検証済みのリクエスト
+
+        Raises:
+            ValueError: 最後のメッセージの role が 'user' でない場合（FastAPI が 422 にする）
+        """
+        if self.messages[-1].role != 'user':
+            raise ValueError("the last message must have role 'user'")
+        return self
 
 
 @router.post('/chat')
@@ -177,6 +229,8 @@ def chat(body: ChatRequest, request: Request):
         dict: { reply: str } — モデルの返答テキスト
 
     Raises:
+        422（FastAPI が自動で返す）: 入力が ChatRequest の条件（件数・文字数・role・最後が user）に
+            合わない場合。この関数に入る前に弾かれるので、回数制限にも数えず Gemini も呼ばない
         HTTPException(503): GEMINI_API_KEY が未設定の場合
         HTTPException(500): Gemini API 呼び出しに失敗した場合
     """

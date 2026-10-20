@@ -1,6 +1,7 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { SKIP_ADMIN_AUTH } from '../../lib/devAuth'
 
 // ナビゲーション項目の型定義。グループヘッダーかリンクかを判別する
 type NavGroup = { group: string }
@@ -61,7 +62,8 @@ export default function AdminLayout() {
 
   // 既存セッションの有無を確認して認証状態を初期化する
   useEffect(() => {
-    if (import.meta.env.DEV && import.meta.env.VITE_SKIP_ADMIN_AUTH === 'true') {
+    // 開発用のログイン省略モード（本番ビルドでは常に false）。判定は lib/devAuth.ts にまとめている
+    if (SKIP_ADMIN_AUTH) {
       setAuthed(true)
       setChecking(false)
       return

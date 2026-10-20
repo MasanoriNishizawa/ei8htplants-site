@@ -55,9 +55,9 @@ describe('ImageLightbox コンポーネント', () => {
     expect(img!.getAttribute('src')).toBe(TWO_IMAGES[1])
   })
 
-  it('閉じるボタン（✕）をクリックすると onClose が呼ばれる', () => {
-    // 1. ✕ ボタンをクリックして onClose が呼ばれることを確認する
-    // TODO: known issue — ✕ ボタンのクリックが外側 div にバブリングするため onClose が 2 回呼ばれる実装になっている
+  it('閉じるボタン（✕）をクリックすると onClose がちょうど1回呼ばれる', () => {
+    // 1. ✕ ボタンをクリックする
+    // 2. クリックが外側の背景（onClick={onClose}）に伝わらず、onClose が1回だけ呼ばれることを確認する
     const onClose = vi.fn()
     const onChange = vi.fn()
     render(
@@ -69,7 +69,7 @@ describe('ImageLightbox コンポーネント', () => {
       />
     )
     fireEvent.click(screen.getByText('✕'))
-    expect(onClose).toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('複数画像のとき次へ（❯）・前へ（❮）ボタンが表示される', () => {

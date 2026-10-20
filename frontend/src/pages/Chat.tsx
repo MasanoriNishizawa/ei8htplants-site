@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
+import { MAX_MESSAGE_CHARS, toSendHistory, type ChatMessage } from '../lib/chatHistory'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
-interface Message {
-  role: 'user' | 'model'
-  content: string
-}
+/** 画面に表示するチャットメッセージ（定義は lib/chatHistory.ts） */
+type Message = ChatMessage
 
 const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g
 // URL末尾に来やすい句読点・括弧類（日本語・ASCII）
@@ -80,8 +79,9 @@ export default function Chat() {
       const res = await fetch(`${API}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: toSendHistory(next) }),
       })
+      // 送信回数の上限（サーバーの回数制限）に達したときの案内。表示専用で履歴には入れない
       if (res.status === 429) {
         setMessages([...next, {
           role: 'model',
@@ -89,11 +89,37 @@ export default function Chat() {
             'メッセージの送信回数が上限に達しました。しばらく経ってからもう一度お試しください。',
             'You have reached the message limit. Please wait a moment and try again.'
           ),
+          localOnly: true,
+        }])
+        return
+      }
+      // 入力チェック（件数・文字数など）で弾かれたときの案内。表示専用で履歴には入れない
+      if (res.status === 422) {
+        setMessages([...next, {
+          role: 'model',
+          content: t(
+            'メッセージを送れませんでした。内容を短くするか、ページを開き直してください。',
+            'Your message could not be sent. Please shorten it or reload the page.'
+          ),
+          localOnly: true,
         }])
         return
       }
       if (!res.ok) throw new Error()
       const data = await res.json()
+      // AI が安全フィルタなどで本文を返さなかった（reply が空・null）ときは、表示専用の案内にする。
+      // 空の返事を履歴に入れると次の送信で壊れるため、送る履歴には入れない（返事の無い質問として除かれる）
+      if (typeof data.reply !== 'string' || data.reply.trim() === '') {
+        setMessages([...next, {
+          role: 'model',
+          content: t(
+            'うまくお答えできませんでした。言い方を変えてもう一度お試しください。',
+            'Sorry, I could not answer that. Please try rephrasing your question.'
+          ),
+          localOnly: true,
+        }])
+        return
+      }
       setMessages([...next, { role: 'model', content: data.reply }])
     } catch {
       setMessages([...next, {
@@ -102,6 +128,7 @@ export default function Chat() {
           '申し訳ありません、エラーが発生しました。しばらく経ってからもう一度お試しください。',
           'Sorry, an error occurred. Please try again later.'
         ),
+        localOnly: true,
       }])
     } finally {
       setLoading(false)
@@ -201,6 +228,7 @@ export default function Chat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            maxLength={MAX_MESSAGE_CHARS}
             placeholder={t('メッセージを入力（Enterで送信）', 'Type a message (Enter to send)')}
             rows={3}
             style={{
