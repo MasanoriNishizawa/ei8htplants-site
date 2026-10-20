@@ -88,8 +88,11 @@ export const MOCK_EVENTS: Event[] = [
     ws_requires_reservation: true,
     is_past: false,
     display_order: 1,
+    // 写真の左右矢印（前へ・次へ）の位置を画面テストで確かめるため、写真を2枚持たせる
+    // 外部に接続しないよう public/img のローカル画像を使う（EventSite は height: auto のため、読み込めないと写真の高さが 0 になる）
     images: [
-      { id: 'img-1', url: 'https://placehold.co/600x800/a8c5a0/ffffff?text=Green+Market', display_order: 1 },
+      { id: 'img-1', url: '/img/habitatOides/habitat_oides_hero.jpg', display_order: 1 },
+      { id: 'img-2', url: '/img/habitatOides/habitat_oides_workshop_main.jpg', display_order: 2 },
     ],
     page_content: {
       hero: { tagline: '緑とともに過ごす週末', subtitle: '全国から集まるプランツショップ' },

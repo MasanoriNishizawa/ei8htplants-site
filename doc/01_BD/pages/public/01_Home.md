@@ -17,7 +17,7 @@
 | 機能ID | 機能名 | 用途 |
 |---|---|---|
 | [FT-02](../../features/02_APIクライアント.md) | APIクライアント | events.list / gallery.list 呼び出し |
-| [FT-03](../../features/03_イベント表示.md) | イベント表示 | `EventCard` で直近イベント1件を表示（isHome / isNext） |
+| [FT-03](../../features/03_イベント表示.md) | イベント表示 | `EventPreview`（`horizontal`）で直近イベント1件を表示（2026-10-20 訂正。以前は `EventCard` と書いていたが、現在 `EventCard` はどの画面からも使われていない） |
 | [FT-04](../../features/04_ギャラリー.md) | ギャラリー | マーキー用ギャラリー画像の取得・横スクロールアニメーション |
 
 ## 画面レイアウト
@@ -33,7 +33,7 @@
 │    Color Plants テキスト        │
 ├─────────────────────────────────┤
 │ NEXT EVENT（イベントある場合）  │
-│  ・EventCard（isHome）          │
+│  ・EventPreview（horizontal）   │
 │  ・VIEW ALL EVENTS ボタン       │
 ├─────────────────────────────────┤
 │ GALLERY（画像ある場合）         │
@@ -76,4 +76,4 @@
 | VIEW ALL EVENTS クリック | `/events` |
 | VIEW ALL GALLERY クリック | `/gallery` |
 | Instagram ロゴクリック | 各ブランドのInstagram（外部リンク） |
-| EventCard の予約ボタン | `/reserve?event_id={id}` |
+| EventPreview の予約ボタン | `/reserve?event_id={id}` |

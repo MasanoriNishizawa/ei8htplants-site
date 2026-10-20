@@ -14,7 +14,7 @@
 
 ## 遷移元
 
-- [PG-02 Events](02_Events.md) または [PG-01 Home](01_Home.md) の EventCard「予約する」ボタン
+- [PG-02 Events](02_Events.md) または [PG-01 Home](01_Home.md) の EventPreview「予約する」ボタン
 
 ## 使用機能（FT紐付け）
 

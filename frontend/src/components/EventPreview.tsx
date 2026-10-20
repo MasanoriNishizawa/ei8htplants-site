@@ -124,13 +124,14 @@ export default function EventPreview({ event, horizontal = false }: Props) {
           )}
           {images.length > 1 && (
             <>
+              {/* 前へ・次へのボタン。写真の高さに関係なく上下の真ん中に置く（top 50% から自分の高さの半分だけ上げる） */}
               <button
                 onClick={() => setImgIdx((i) => (i - 1 + images.length) % images.length)}
-                style={{ position: 'absolute', top: 40, left: 6, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
+                style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 6, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
               >&#10094;</button>
               <button
                 onClick={() => setImgIdx((i) => (i + 1) % images.length)}
-                style={{ position: 'absolute', top: 40, right: 6, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
+                style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: 6, background: 'rgba(0,0,0,0.45)', color: '#fff', width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
               >&#10095;</button>
               <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4, pointerEvents: 'none' }}>
                 {images.map((_, i) => (
