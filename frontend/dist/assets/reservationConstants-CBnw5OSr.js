@@ -1,0 +1,1 @@
+const e={pending:"受付済",confirmed:"受付済",cancelled:"キャンセル"},d={pending:{bg:"#d4edda",color:"#155724"},confirmed:{bg:"#d4edda",color:"#155724"},cancelled:{bg:"#f8d7da",color:"#721c24"}},c=[{value:"pending",label:"受付済"},{value:"cancelled",label:"キャンセル"}];export{d as S,e as a,c as b};

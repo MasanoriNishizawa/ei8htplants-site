@@ -1,10 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+import logging
 import os
 
+from .routes import seo
 from .routes import events, gallery, stockists, contact, reserve, collaborations, upload, products, shipping, orders, articles, pot_artists, price_calc_entries, media_appearances, docs, chat, chat_qa, chat_logs
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title='ei8ht plants API')
 
@@ -88,6 +92,8 @@ app.include_router(docs.router, prefix='/api')
 app.include_router(chat.router, prefix='/api')
 app.include_router(chat_qa.router, prefix='/api')
 app.include_router(chat_logs.router, prefix='/api')
+# robots.txt / sitemap.xml。SPA のフォールバック（下の serve_spa）より前に登録して index.html が返らないようにする
+app.include_router(seo.router)
 
 # 本番: Viteビルド済みSPAを配信
 DIST = os.path.join(os.path.dirname(__file__), '../../frontend/dist')
@@ -97,10 +103,36 @@ if os.path.isdir(DIST):
         if os.path.isdir(_path):
             app.mount(f'/{_subdir}', StaticFiles(directory=_path), name=_subdir)
 
+    # SPA の index.html（全ページ共通の入口）
+    INDEX_HTML = os.path.join(DIST, 'index.html')
+
     # SPA ルーティング: 静的ファイルが存在しない場合は index.html を返す
     @app.get('/{full_path:path}')
-    def serve_spa(full_path: str):
-        file_path = os.path.join(DIST, full_path)
-        if os.path.isfile(file_path):
+    def serve_spa(full_path: str, request: Request):
+        """静的ファイルがあればそれを、無ければ SPA の index.html を返す。
+
+        index.html には、SNS のクローラー（JavaScript を実行しない）向けに、パスに応じた
+        タイトル・説明・OGP・構造化データを入れて返す（routes/seo.py）。メタ情報の作成に
+        失敗したときは、これまでどおり index.html をそのまま返す。
+
+        Args:
+            full_path: リクエストのパス（先頭のスラッシュなし）
+            request: クエリ文字列を読むためのリクエスト
+
+        Returns:
+            静的ファイル、またはメタ情報入りの index.html
+        """
+        # 1. 静的ファイル（dist 直下の manifest・sw.js など）があればそのまま返す。
+        #    「..%2F」や「%2Fetc%2F…」のようなパスで dist の外（.env やソースなど）を読まれないよう、
+        #    実際の場所に直してから dist の中にあるときだけ返す（外を指すときは SPA の index.html を返す）
+        dist_real = os.path.realpath(DIST)
+        file_path = os.path.realpath(os.path.join(dist_real, full_path))
+        if file_path.startswith(dist_real + os.sep) and os.path.isfile(file_path):
             return FileResponse(file_path)
-        return FileResponse(os.path.join(DIST, 'index.html'))
+        # 2. パスに応じたメタ情報を index.html に入れて返す
+        try:
+            return HTMLResponse(seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params)))
+        except Exception as e:
+            # 3. 失敗しても SPA は表示できるよう、元の index.html を返す
+            logger.error('serve_spa メタ情報の埋め込みエラー（%s）: %s', full_path, e)
+            return FileResponse(INDEX_HTML)

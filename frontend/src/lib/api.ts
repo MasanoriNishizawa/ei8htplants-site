@@ -1,4 +1,3 @@
-import { supabase } from './supabase'
 import { SKIP_ADMIN_AUTH, DEV_SKIP_AUTH_TOKEN } from './devAuth'
 
 const BASE = '/api'
@@ -41,6 +40,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
  * @returns アクセストークン
  */
 async function getAccessToken(): Promise<string> {
+  // Supabase のクライアント（約 200KB）はログインが必要な呼び出しでだけ使うので、ここで初めて読み込む。
+  // 先頭で import すると、公開サイトだけを見る人も最初に読み込むことになり表示が遅くなるため
+  const { supabase } = await import('./supabase')
   const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
   const token = data.session?.access_token
   if (token) return token
@@ -135,6 +137,15 @@ export const api = {
     /** イベントの管理情報を保存する */
     saveAdminInfo: (id: string, body: EventAdminInfo) =>
       authRequest<{ ok: boolean }>(`/events/${id}/admin-info`, { method: 'PUT', body: JSON.stringify(body) }),
+    /**
+     * 管理画面ダッシュボード用に、イベントごとの管理情報（搬入・ホテル・出店料）をまとめて取得する
+     * 対象は終了日が今日以降のイベントと、終了済みでも出店料が未払いのイベント（並びは開始日の昇順。絞り込みはバックエンド）
+     * @returns イベントごとの管理情報の一覧
+     */
+    getAdminInfoDashboard: async (): Promise<AdminInfoDashboardItem[]> => {
+      const res = await authRequest<{ items: AdminInfoDashboardItem[] }>('/events/admin-info/dashboard')
+      return res.items
+    },
   },
   gallery: {
     list: (brand?: string) =>
@@ -475,6 +486,34 @@ export interface EventAdminInfo {
   guidelines_text?: string | null
   /** 出店要項の画像 URL 一覧（アップロード順・複数枚） */
   guidelines_image_urls?: string[]
+}
+
+/** 管理画面ダッシュボードの「出店料の支払い」「今後の搬入予定」に使う、イベント1件分の管理情報 */
+export interface AdminInfoDashboardItem {
+  /** イベント ID（管理情報の確認画面 /admin/events/:id/admin-info へのリンクに使う） */
+  event_id: string
+  /** イベント名 */
+  name: string
+  /** 開始日 "YYYY-MM-DD" */
+  start_date: string
+  /** 終了日 "YYYY-MM-DD"（1日だけのイベントでは null のこともある） */
+  end_date: string | null
+  /** 会場 */
+  location: string | null
+  /** 搬入日時 "YYYY-MM-DDTHH:MM" */
+  carry_in_time: string | null
+  /** 搬出日時 "YYYY-MM-DDTHH:MM" */
+  carry_out_time: string | null
+  /** 宿泊ホテル名 */
+  hotel_name: string | null
+  /** 出店料（円） */
+  booth_fee: number | null
+  /** 出店料の支払い方法（"当日現金" | "事前振込" | "その他"） */
+  booth_fee_pay_method: string | null
+  /** 出店料の支払い期限 "YYYY-MM-DD" */
+  booth_fee_due: string | null
+  /** 出店料の支払い済みフラグ */
+  booth_fee_paid: boolean
 }
 
 export interface Article {

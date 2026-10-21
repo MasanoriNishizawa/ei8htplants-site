@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { CartProvider } from './lib/cart'
 import { LangProvider } from './lib/lang'
 
@@ -12,65 +12,87 @@ function ScrollToTop() {
 }
 import Layout from './components/Layout'
 import StoreLayout from './components/StoreLayout'
+import PageLoading from './components/PageLoading'
+import LoadErrorBoundary from './components/LoadErrorBoundary'
 import Home from './pages/Home'
-import Events from './pages/Events'
-import Gallery from './pages/Gallery'
-import Concept from './pages/Concept'
-import Contact from './pages/Contact'
-import Stockists from './pages/Stockists'
-import Collaborations from './pages/Collaborations'
-import Ei8htPlants from './pages/brands/Ei8htPlants'
-import HabitatOides from './pages/brands/HabitatOides'
-import HabitatOidesWorkshop from './pages/brands/HabitatOidesWorkshop'
-import Hue from './pages/brands/Hue'
-import Reserve from './pages/Reserve'
-import CancelReservation from './pages/CancelReservation'
-import Shop from './pages/Shop'
-import ShopProduct from './pages/ShopProduct'
-import Checkout from './pages/Checkout'
-import OrderComplete from './pages/OrderComplete'
-import AdminLayout from './pages/admin/AdminLayout'
-import AdminDashboard from './pages/admin/Dashboard'
-import AdminEvents from './pages/admin/Events'
-import AdminEventForm from './pages/admin/EventForm'
-import AdminGallery from './pages/admin/Gallery'
-import AdminStockists from './pages/admin/Stockists'
-import AdminReservations from './pages/admin/Reservations'
-import AdminCollaborations from './pages/admin/Collaborations'
-import AdminContacts from './pages/admin/Contacts'
-import AdminEventFinance from './pages/admin/EventFinance'
-import AdminEventReservations from './pages/admin/EventReservations'
-import AdminEventSite from './pages/admin/AdminEventSite'
-import AdminProducts from './pages/admin/Products'
-import AdminOrders from './pages/admin/Orders'
-import AdminArticles from './pages/admin/Articles'
-import AdminFinances from './pages/admin/Finances'
-import PriceCalc from './pages/admin/PriceCalc'
-import AdminPotArtists from './pages/admin/AdminPotArtists'
-import AdminMedia from './pages/admin/AdminMedia'
-import AdminDocs from './pages/admin/AdminDocs'
-import AdminChatQA from './pages/admin/AdminChatQA'
-import AdminChatLogs from './pages/admin/AdminChatLogs'
-import AdminHelperPayment from './pages/admin/AdminHelperPayment'
-import AdminWsSummary from './pages/admin/AdminWsSummary'
-import AdminEventAdminInfo from './pages/admin/EventAdminInfo'
-import AdminEventAdminInfoView from './pages/admin/EventAdminInfoView'
-import AdminEventImages from './pages/admin/EventImages'
-import Chat from './pages/Chat'
-import Media from './pages/Media'
-import Journal from './pages/Journal'
-import JournalArticle from './pages/JournalArticle'
-import EventSite from './pages/EventSite'
-import LegalPage from './pages/LegalPage'
-import PrivacyPolicy from './pages/PrivacyPolicy'
+import { adminPageLoaders } from './pages/admin/adminPages'
+
+/*
+ * 画面ごとの読み込み（コード分割）
+ * トップ（Home）とレイアウト・計測など全ページで使う部品は通常の import で最初に読み、
+ * それ以外のページは React.lazy で「そのページを開いたときに」別ファイルとして読み込む。
+ * 管理画面（AdminLayout と /admin 以下の全ページ）も別ファイルになり、公開サイトの訪問者は管理画面のプログラムを読み込まない
+ */
+
+// 公開サイト（ブランドサイト・ショップ）のページ
+const Events = lazy(() => import('./pages/Events'))
+const Gallery = lazy(() => import('./pages/Gallery'))
+const Concept = lazy(() => import('./pages/Concept'))
+const Contact = lazy(() => import('./pages/Contact'))
+const Stockists = lazy(() => import('./pages/Stockists'))
+const Collaborations = lazy(() => import('./pages/Collaborations'))
+const Ei8htPlants = lazy(() => import('./pages/brands/Ei8htPlants'))
+const HabitatOides = lazy(() => import('./pages/brands/HabitatOides'))
+const HabitatOidesWorkshop = lazy(() => import('./pages/brands/HabitatOidesWorkshop'))
+const Hue = lazy(() => import('./pages/brands/Hue'))
+const Reserve = lazy(() => import('./pages/Reserve'))
+const CancelReservation = lazy(() => import('./pages/CancelReservation'))
+const Shop = lazy(() => import('./pages/Shop'))
+const ShopProduct = lazy(() => import('./pages/ShopProduct'))
+const Checkout = lazy(() => import('./pages/Checkout'))
+const OrderComplete = lazy(() => import('./pages/OrderComplete'))
+
+// 管理画面（/admin 以下）のレイアウトとページ。ページを読み込む関数は先読みと共用するため adminPages.ts にまとめている
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
+const AdminDashboard = lazy(adminPageLoaders.Dashboard)
+const AdminEvents = lazy(adminPageLoaders.Events)
+const AdminEventForm = lazy(adminPageLoaders.EventForm)
+const AdminGallery = lazy(adminPageLoaders.Gallery)
+const AdminStockists = lazy(adminPageLoaders.Stockists)
+const AdminReservations = lazy(adminPageLoaders.Reservations)
+const AdminCollaborations = lazy(adminPageLoaders.Collaborations)
+const AdminContacts = lazy(adminPageLoaders.Contacts)
+const AdminEventFinance = lazy(adminPageLoaders.EventFinance)
+const AdminEventReservations = lazy(adminPageLoaders.EventReservations)
+const AdminEventSite = lazy(adminPageLoaders.AdminEventSite)
+const AdminProducts = lazy(adminPageLoaders.Products)
+const AdminOrders = lazy(adminPageLoaders.Orders)
+const AdminArticles = lazy(adminPageLoaders.Articles)
+const AdminFinances = lazy(adminPageLoaders.Finances)
+const PriceCalc = lazy(adminPageLoaders.PriceCalc)
+const AdminPotArtists = lazy(adminPageLoaders.AdminPotArtists)
+const AdminMedia = lazy(adminPageLoaders.AdminMedia)
+const AdminDocs = lazy(adminPageLoaders.AdminDocs)
+const AdminChatQA = lazy(adminPageLoaders.AdminChatQA)
+const AdminChatLogs = lazy(adminPageLoaders.AdminChatLogs)
+const AdminHelperPayment = lazy(adminPageLoaders.AdminHelperPayment)
+const AdminWsSummary = lazy(adminPageLoaders.AdminWsSummary)
+const AdminEventAdminInfo = lazy(adminPageLoaders.EventAdminInfo)
+const AdminEventAdminInfoView = lazy(adminPageLoaders.EventAdminInfoView)
+const AdminEventImages = lazy(adminPageLoaders.EventImages)
+
+// 公開サイトのその他のページ（チャット・メディア・ジャーナル・イベントページ・規約）
+const Chat = lazy(() => import('./pages/Chat'))
+const Media = lazy(() => import('./pages/Media'))
+const Journal = lazy(() => import('./pages/Journal'))
+const JournalArticle = lazy(() => import('./pages/JournalArticle'))
+const EventSite = lazy(() => import('./pages/EventSite'))
+const LegalPage = lazy(() => import('./pages/LegalPage'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 
 /** アプリ全体のルーティング定義。言語・カートの Context を最上位で提供する */
 export default function App() {
   return (
     <LangProvider>
+    {/* 分けたファイルの読み込み失敗などで画面全体が真っ白にならないよう、案内と再読み込みボタンに切り替える境界。
+        案内を日英で出すため LangProvider の内側に置く */}
+    <LoadErrorBoundary>
     <CartProvider>
       <BrowserRouter>
         <ScrollToTop />
+        {/* いちばん外側の読み込み中表示。各レイアウトの中にも Suspense があるので、ここが出るのは
+            管理画面のレイアウト（AdminLayout）自体を最初に読み込むあいだだけ */}
+        <Suspense fallback={<PageLoading />}>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
@@ -131,8 +153,10 @@ export default function App() {
             <Route path="ws-summary" element={<AdminWsSummary />} />
           </Route>
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </CartProvider>
+    </LoadErrorBoundary>
     </LangProvider>
   )
 }

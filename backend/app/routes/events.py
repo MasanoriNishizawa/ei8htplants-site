@@ -134,6 +134,72 @@ def list_all_finances(_=Depends(require_auth)):
     return admin_supabase.table('event_finances').select('*').execute().data
 
 
+# ダッシュボードに出す管理情報の項目（event_admin_info.info の中のキー）。値が無いイベントは null になる
+_DASHBOARD_INFO_KEYS = (
+    'carry_in_time', 'carry_out_time', 'hotel_name',
+    'booth_fee', 'booth_fee_pay_method', 'booth_fee_due',
+)
+
+
+# 管理画面ダッシュボード用に、今後のイベントと出店料が未払いのイベントの管理情報をまとめて返す（管理者のみ）
+# /{event_id}/... より前に置く（静的なパスを先に登録する）
+@router.get('/admin-info/dashboard')
+def get_admin_info_dashboard(_=Depends(require_auth)):
+    """管理画面ダッシュボード用に、イベントごとの管理情報（搬入・ホテル・出店料）を一覧で返す。
+
+    対象:
+    - 終了日（無ければ開始日）が今日（JST）以降のイベント全部
+    - 終了済みでも、出店料が未払い（booth_fee_paid が false）で、出店料（0 より大きい）か
+      支払い期限が入っているイベント
+    管理情報が無いイベントは各値 null・booth_fee_paid false にする。並びは開始日の昇順。
+
+    Returns:
+        {"items": [{event_id, name, start_date, end_date, location, carry_in_time, carry_out_time,
+                    hotel_name, booth_fee, booth_fee_pay_method, booth_fee_due, booth_fee_paid}, ...]}
+
+    Raises:
+        HTTPException(500): 読み取りに失敗した場合
+    """
+    try:
+        # 1. イベントを開始日の昇順で読む（必要な列だけ）
+        events = admin_supabase.table('events') \
+            .select('id, name, start_date, end_date, location') \
+            .order('start_date').execute().data or []
+        # 2. 管理情報を全件読み、event_id → info の dict にする（イベントごとに読まず 1 回で済ませる）
+        info_rows = admin_supabase.table('event_admin_info').select('event_id, info').execute().data or []
+        info_map = {
+            r.get('event_id'): r.get('info') if isinstance(r.get('info'), dict) else {}
+            for r in info_rows
+        }
+        # 3. 対象のイベントだけ残して、返す形にする
+        today = _today_jst()
+        items = []
+        for e in events:
+            info = info_map.get(e.get('id')) or {}
+            paid = bool(info.get('booth_fee_paid'))
+            effective_end = e.get('end_date') or e.get('start_date') or ''
+            is_upcoming = effective_end >= today
+            has_unpaid_fee = not paid and (bool(info.get('booth_fee')) or bool(info.get('booth_fee_due')))
+            if not (is_upcoming or has_unpaid_fee):
+                continue
+            item = {
+                'event_id': e.get('id'),
+                'name': e.get('name'),
+                'start_date': e.get('start_date'),
+                'end_date': e.get('end_date'),
+                'location': e.get('location'),
+            }
+            item.update({k: info.get(k) for k in _DASHBOARD_INFO_KEYS})
+            item['booth_fee_paid'] = paid
+            items.append(item)
+        # 4. 開始日の昇順にそろえる（DB の並びに頼らず、念のためここでも並べる）
+        items.sort(key=lambda i: i.get('start_date') or '')
+        return {'items': items}
+    except Exception as e:
+        logger.error('get_admin_info_dashboard 取得エラー: %s', e)
+        raise HTTPException(status_code=500, detail='ダッシュボードの管理情報の取得に失敗しました')
+
+
 class WsSessionInput(BaseModel):
     id: Optional[str] = None
     time_label: str

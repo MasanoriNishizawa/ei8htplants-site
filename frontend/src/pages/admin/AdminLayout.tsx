@@ -1,7 +1,10 @@
-import { Outlet, NavLink } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { SKIP_ADMIN_AUTH } from '../../lib/devAuth'
+import PageLoading from '../../components/PageLoading'
+import { UnsavedChangesProvider, useConfirmLeave } from './UnsavedChanges'
+import { preloadAdminPages } from './adminPages'
 
 // ナビゲーション項目の型定義。グループヘッダーかリンクかを判別する
 type NavGroup = { group: string }
@@ -58,7 +61,6 @@ export default function AdminLayout() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [menuOpen, setMenuOpen] = useState(false)
 
   // 既存セッションの有無を確認して認証状態を初期化する
   useEffect(() => {
@@ -73,11 +75,6 @@ export default function AdminLayout() {
       setAuthed(!!data.session)
       setChecking(false)
     })
-  }, [])
-
-  // ルート変更時にメニューを閉じる
-  useEffect(() => {
-    setMenuOpen(false)
   }, [])
 
   const login = async (e: React.FormEvent) => {
@@ -109,6 +106,57 @@ export default function AdminLayout() {
       </form>
     </div>
   )
+
+  // 未保存の変更の確認（サイドメニュー）を使えるよう、ログイン後の画面全体を Provider で包む
+  return (
+    <UnsavedChangesProvider>
+      <AdminShell onLogout={logout} />
+    </UnsavedChangesProvider>
+  )
+}
+
+/**
+ * ログイン後の管理画面の枠（サイドメニュー・モバイルのヘッダー・中身）
+ * UnsavedChangesProvider の内側で描画し、メニューのリンクを押したときに未保存の変更があれば確認を出す
+ * @param props.onLogout - ログアウトボタンを押したときの処理
+ * @returns 管理画面の枠
+ */
+function AdminShell({ onLogout }: { onLogout: () => void }) {
+  /** モバイルでサイドメニュー（ドロワー）を開いているかどうか */
+  const [menuOpen, setMenuOpen] = useState(false)
+  const { pathname } = useLocation()
+  /** 未保存の変更があれば確認ダイアログを出す関数（移動してよければ true） */
+  const confirmLeave = useConfirmLeave()
+
+  // ログイン後の画面が出たら、ほかの管理ページも手が空いたときに先に読み込み、ページ移動で待たないようにする
+  useEffect(() => {
+    preloadAdminPages()
+  }, [])
+
+  /**
+   * 管理画面内のメニューリンクを押したときの処理
+   * 1. Ctrl・Cmd・Shift・Alt を押しながらのクリックや左以外のボタンは、新しいタブ・ウィンドウで開く操作で
+   *    今の画面は残り入力も消えないので、確認を出さずブラウザの既定の動きに任せる（メニューもそのまま）
+   * 2. 今いる画面と同じリンクなら、入力は消えないので確認しない
+   * 3. 未保存の変更があれば確認し、キャンセルならリンクの移動を止める（メニューも開いたまま）
+   * 4. 移動するときはモバイルのメニューを閉じる
+   * @param e - クリックイベント
+   * @param to - リンク先のパス
+   */
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+    if (to !== pathname && !confirmLeave()) {
+      e.preventDefault()
+      return
+    }
+    setMenuOpen(false)
+  }
+
+  /** ログアウトボタンの処理。ログアウトすると編集中の入力も消えるので、未保存の変更があれば確認する */
+  const handleLogout = () => {
+    if (!confirmLeave()) return
+    onLogout()
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -153,6 +201,7 @@ export default function AdminLayout() {
             )
           }
           // 別サービスへのリンク（新しいタブで開く。管理画面内の現在地にはならないので常に非選択の見た目）
+          // 今の画面はそのまま残り入力は消えないので、未保存の変更があっても確認しない
           if ('href' in item) {
             return (
               <a
@@ -175,14 +224,14 @@ export default function AdminLayout() {
               to={item.to}
               end={item.end}
               style={(state) => navStyle(state, item.sub)}
-              onClick={() => setMenuOpen(false)}
+              onClick={(e) => handleNavClick(e, item.to)}
             >
               {item.label}
             </NavLink>
           )
         })}
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-          <button onClick={logout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', color: 'var(--c-muted)' }}>ログアウト</button>
+          <button onClick={handleLogout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', color: 'var(--c-muted)' }}>ログアウト</button>
         </div>
       </aside>
 
@@ -200,7 +249,10 @@ export default function AdminLayout() {
         </div>
 
         <main style={{ flex: 1, padding: 'clamp(16px, 3vw, 40px)', overflowY: 'auto', minWidth: 0 }}>
-          <Outlet />
+          {/* 各ページは画面ごとに別ファイルで読み込む（App.tsx の lazy）。読み込み中はサイドメニューを残したまま中身だけに表示を出す */}
+          <Suspense fallback={<PageLoading />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

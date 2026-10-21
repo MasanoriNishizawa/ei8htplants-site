@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import Header from './Header'
 import Footer from './Footer'
 import Analytics from './Analytics'
+import PageLoading from './PageLoading'
 
 /** チャットページ以外の全ページに表示する右下固定のAIチャットボタン */
 function ChatFab() {
@@ -76,7 +78,11 @@ export default function Layout() {
       <Analytics />
       <Header />
       <main className="site-main" style={{ paddingTop: 64, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Outlet />
+        {/* ページは画面ごとに別ファイルで読み込む（App.tsx の lazy）。読み込み中は中身の部分にだけ控えめな表示を出す。
+            遷移は startTransition で行われるので、一度表示したあとは読み込みが終わるまで前のページが残り、ちらつかない */}
+        <Suspense fallback={<PageLoading />}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer />
       <ChatFab />

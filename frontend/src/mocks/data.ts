@@ -1,4 +1,4 @@
-import type { Event, EventFinances, EventAdminInfo, GalleryImage, Stockist, Product } from '../lib/api'
+import type { Event, EventFinances, EventAdminInfo, AdminInfoDashboardItem, GalleryImage, Stockist, Product } from '../lib/api'
 
 type DocTreeNode = { type: 'file' | 'dir'; name: string; path: string; children?: DocTreeNode[] }
 
@@ -203,6 +203,73 @@ export const MOCK_ADMIN_INFO: Record<string, EventAdminInfo> = {
     ],
   },
 }
+
+/**
+ * 管理画面ダッシュボード（GET /api/events/admin-info/dashboard）のモック。MOCK_EVENTS・MOCK_PAST_EVENTS のイベントに合わせている
+ * - mock-past-1: 終了済みだが出店料が未払いで期限切れ（「出店料の支払い」の先頭に赤で出る）
+ * - mock-upcoming-1: 搬入・搬出・ホテル・出店料・期限がすべて入っている
+ * - mock-upcoming-2: 出店料だけ入っていて期限が未設定・搬入などは未入力
+ * - mock-no-time: 出店料は支払い済み（「出店料の支払い」には出ない）
+ * 日付は固定なので、「期限まで何日」「今日から60日以内」の表示を画面テストで確かめるときはブラウザの時計を固定する
+ */
+export const MOCK_ADMIN_DASHBOARD: AdminInfoDashboardItem[] = [
+  {
+    event_id: 'mock-past-1',
+    name: 'Habitat Exhibition 2026',
+    start_date: '2026-09-20',
+    end_date: '2026-09-22',
+    location: '渋谷ヒカリエ 8F',
+    carry_in_time: '2026-09-19T15:00',
+    carry_out_time: '2026-09-22T19:00',
+    hotel_name: null,
+    booth_fee: 50000,
+    booth_fee_pay_method: '事前振込',
+    booth_fee_due: '2026-09-10',
+    booth_fee_paid: false,
+  },
+  {
+    event_id: 'mock-upcoming-1',
+    name: 'Green Market 2027',
+    start_date: '2027-04-05',
+    end_date: '2027-04-06',
+    location: '代々木公園 イベント広場',
+    carry_in_time: '2027-04-05T08:00',
+    carry_out_time: '2027-04-06T18:00',
+    hotel_name: 'ホテル代々木',
+    booth_fee: 14000,
+    booth_fee_pay_method: '事前振込',
+    booth_fee_due: '2027-03-20',
+    booth_fee_paid: false,
+  },
+  {
+    event_id: 'mock-upcoming-2',
+    name: 'HUE POP-UP at Spiral',
+    start_date: '2027-05-15',
+    end_date: '2027-05-18',
+    location: 'スパイラルガーデン',
+    carry_in_time: null,
+    carry_out_time: null,
+    hotel_name: null,
+    booth_fee: 30000,
+    booth_fee_pay_method: '当日現金',
+    booth_fee_due: null,
+    booth_fee_paid: false,
+  },
+  {
+    event_id: 'mock-no-time',
+    name: 'time 未設定のイベント',
+    start_date: '2027-06-01',
+    end_date: '2027-06-01',
+    location: 'テスト会場',
+    carry_in_time: null,
+    carry_out_time: null,
+    hotel_name: null,
+    booth_fee: 10000,
+    booth_fee_pay_method: '当日現金',
+    booth_fee_due: null,
+    booth_fee_paid: true,
+  },
+]
 
 export const MOCK_GALLERY: GalleryImage[] = [
   { id: 'g-1', url: 'https://placehold.co/400x500/c8d8c4/ffffff?text=Gallery+1', alt: '植物 1', brand: 'ei8ht plants', display_order: 1 },

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
 import { SectionBox, ImageViewer } from './AdminInfoParts'
+import { useUnsavedChanges } from './UnsavedChanges'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
 const BLANK: EventAdminInfo = {
@@ -189,17 +190,9 @@ export default function EventAdminInfo() {
   /** 読み込み直後から入力が変わっていて、まだ保存していないかどうか（戻るときの確認・注意表示・beforeunload に使う） */
   const isDirty: boolean = initialSnapshot !== null && JSON.stringify(currentSnapshot) !== initialSnapshot
 
-  // 2. 未保存の変更があるあいだは、再読み込み・タブを閉じるときにブラウザの確認を出す
-  useEffect(() => {
-    if (!isDirty) return
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-      // 古いブラウザは returnValue の設定で確認を出す
-      e.returnValue = ''
-    }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [isDirty])
+  // 2. 未保存の変更があることを管理画面（AdminLayout）に登録する。
+  //    サイドメニューで別の画面へ移るときの確認と、再読み込み・タブを閉じるときのブラウザの確認（beforeunload）に使う
+  useUnsavedChanges(isDirty)
 
   /**
    * フォームの特定フィールドを更新するヘルパー

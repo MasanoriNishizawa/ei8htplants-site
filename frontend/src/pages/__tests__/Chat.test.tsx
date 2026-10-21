@@ -143,3 +143,14 @@ describe('Chat 画面', () => {
     expect(await screen.findByText(MSG_NO_REPLY)).toBeInTheDocument()
   })
 })
+
+describe('Chat 画面のページ情報', () => {
+  it('タイトルは「AI コンシェルジュ | ei8ht plants」になり、サイト名が二重にならない', async () => {
+    render(<Chat />)
+    // React 19 は <title> を document.head に入れる
+    await waitFor(() => expect(document.title).toBe('AI コンシェルジュ | ei8ht plants'))
+    expect(document.title.split('ei8ht plants')).toHaveLength(2)
+    const og = document.head.querySelector('meta[property="og:title"]')
+    expect(og).toHaveAttribute('content', 'AI コンシェルジュ | ei8ht plants')
+  })
+})

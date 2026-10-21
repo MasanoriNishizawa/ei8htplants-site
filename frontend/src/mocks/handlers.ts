@@ -4,6 +4,7 @@ import {
   MOCK_PAST_EVENTS,
   MOCK_FINANCES,
   MOCK_ADMIN_INFO,
+  MOCK_ADMIN_DASHBOARD,
   MOCK_GALLERY,
   MOCK_STOCKISTS,
   MOCK_PRODUCTS,
@@ -46,6 +47,12 @@ export const handlers = [
 
   http.get('/api/events/finances', () => {
     return HttpResponse.json(MOCK_FINANCES)
+  }),
+
+  // 管理画面ダッシュボード用の管理情報の一覧（出店料の支払い・今後の搬入予定）。
+  // /api/events/:id より前に置き、パスの取り違えが起きないようにする
+  http.get('/api/events/admin-info/dashboard', () => {
+    return HttpResponse.json({ items: MOCK_ADMIN_DASHBOARD })
   }),
 
   http.get('/api/events/:id', ({ params }) => {

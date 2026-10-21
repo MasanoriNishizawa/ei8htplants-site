@@ -308,6 +308,55 @@
 
 ---
 
+### GET /api/events/admin-info/dashboard
+
+管理画面のダッシュボード（「出店料の支払い」「今後の搬入予定」）用に、イベントごとの管理情報をまとめて返す（2026-10-21 追加）。
+
+**認証**: Bearer JWT 必須
+
+**対象のイベント**（今日は日本時間）
+
+- 終了日（無ければ開始日）が今日以降のイベント全部
+- 終了済みでも、出店料が未払い（`booth_fee_paid` が false）で、出店料（0・空以外）か支払い期限が入っているイベント
+
+**並び順**: 開始日の昇順
+
+**レスポンス `200`**
+
+```json
+{
+  "items": [
+    {
+      "event_id": "uuid",
+      "name": "秋の植物市",
+      "start_date": "2026-10-24",
+      "end_date": "2026-10-25",
+      "location": "代々木公園",
+      "carry_in_time": "2026-10-24T08:00",
+      "carry_out_time": "2026-10-25T17:00",
+      "hotel_name": null,
+      "booth_fee": 14000,
+      "booth_fee_pay_method": "事前振込",
+      "booth_fee_due": "2026-10-18",
+      "booth_fee_paid": false
+    }
+  ]
+}
+```
+
+- 管理情報（`event_admin_info`）が無いイベントは、管理情報の項目がすべて `null`、`booth_fee_paid` は `false`
+- 「出店料の支払い」「今後の搬入予定」への振り分けと並べ替えは画面側で行う（[DD-03](03_フロントエンドロジック.md) 22節）
+- `/api/events/{event_id}/...` より前に登録している（`admin-info` をイベントの ID と取り違えないため）
+
+**エラー**
+
+| ステータス | 原因 |
+|---|---|
+| `401` | Bearer トークン未送信または無効 |
+| `500` | 読み取りエラー（`{"detail": "ダッシュボードの管理情報の取得に失敗しました"}`） |
+
+---
+
 ### GET /api/events/{event_id}/admin-info
 
 イベントの管理情報（搬入・搬出時間、宿泊ホテル、出店料、出店要項など）を取得する。
@@ -907,6 +956,50 @@ AI が安全フィルタなどで本文を返さなかった場合、`reply` が
 
 ---
 
+## SEO（robots.txt・sitemap.xml。2026-10-21 追加）
+
+検索エンジン向けのファイル。`/api` の下ではなくサイトの直下にある。認証は不要。詳しくは [FT-26 検索エンジン・SNS 向けの情報](../01_BD/features/15_検索エンジン・SNS向け情報.md)。
+
+### GET /robots.txt
+
+**レスポンス `200`**（`text/plain`）
+
+```
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cancel
+Disallow: /checkout
+Disallow: /order
+
+Sitemap: https://ei8htplants.com/sitemap.xml
+```
+
+`/api` は Disallow にしない（Google がページを描画するときに `/api/...` を読むため）。
+
+### GET /sitemap.xml
+
+**レスポンス `200`**（`application/xml`）
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://ei8htplants.com/</loc></url>
+  <url><loc>https://ei8htplants.com/events/autumn-market-2026</loc></url>
+  <url><loc>https://ei8htplants.com/journal/uuid</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>https://ei8htplants.com/shop/uuid</loc><lastmod>2026-09-15</lastmod></url>
+</urlset>
+```
+
+- 載せるもの: 固定ページ 17 件・イベント全件（slug、無ければ ID）・公開中の記事（lastmod は公開日、無ければ作成日）・公開中の商品（lastmod は作成日）
+- 60 秒キャッシュする。イベント・記事・商品のどれかの読み取りに失敗したときは、読めた分だけ返し、キャッシュしない（エラーのステータスにはしない）
+
+### ページを返すときのメタ情報（API ではない）
+
+`/api`・`/assets` など以外のパス（dist の中にファイルが無いもの）は、SPA の `index.html` にページごとのタイトル・説明・canonical・OGP・X のカード・構造化データを入れて返す（ステータスは常に `200`、`text/html`）。作るのに失敗したときは元の `index.html` を返す。dist の外を指すパスでもファイルは返さず、`index.html` を返す。処理は [DD-04](04_バックエンドロジック.md) の12節・14節。
+
+---
+
 ## APIクライアント (`lib/api.ts`) との対応
 
 ```
@@ -925,6 +1018,7 @@ api.events.saveSessions(id, sessions)    → PUT    /api/events/{id}/sessions  (
 api.events.savePageContent(id, content)  → PATCH  /api/events/{id}/page  (auth)
 api.events.getAdminInfo(id)              → GET    /api/events/{id}/admin-info  (auth)
 api.events.saveAdminInfo(id, body)       → PUT    /api/events/{id}/admin-info  (auth)
+api.events.getAdminInfoDashboard()       → GET    /api/events/admin-info/dashboard  (auth)  ← 2026-10-21 追加。res.items を返す
 api.gallery.list(brand?)                 → GET    /api/gallery[?brand=...]
 api.gallery.add(body)                    → POST   /api/gallery  (auth)
 api.gallery.updateOrder(id, n)           → PATCH  /api/gallery/{id}  (auth)
@@ -978,4 +1072,6 @@ api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  �
 
 管理画面の「チャット Q&A」（`AdminChatQA.tsx`）と「チャットログ」（`AdminChatLogs.tsx`）は `api.ts` を通さず自分でセッションを読んでいるため、このダミーのトークンは使わない。
 
-*最終更新: 2026-10-20（POST /api/chat に入力の条件と 422・429 を追加。`(auth)` の呼び出しで送るトークンの決め方を追加）*
+2026-10-21 から、`getAccessToken()` は Supabase のプログラム（`lib/supabase.ts`）を呼ばれたときに初めて読み込む（`await import('./supabase')`）。公開ページだけを見る人が読み込まないようにして、最初の表示を速くするため。
+
+*最終更新: 2026-10-21（GET /api/events/admin-info/dashboard・GET /robots.txt・GET /sitemap.xml を追加。ページを返すときのメタ情報を追加）*

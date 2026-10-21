@@ -146,7 +146,7 @@ export default function Chat() {
   return (
     <>
       <PageMeta
-        title={t('AI コンシェルジュ | ei8ht plants', 'AI Concierge | ei8ht plants')}
+        title={t('AI コンシェルジュ', 'AI Concierge')}
         description={t(
           '植物の育て方・管理のご相談や、ワークショップ・予約に関するご質問にAIがお答えします。',
           'Ask our AI about plant care, management tips, workshops, and reservations.'

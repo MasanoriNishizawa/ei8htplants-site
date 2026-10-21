@@ -1,0 +1,186 @@
+"""
+GET /api/events/admin-info/dashboard（管理画面ダッシュボード用の管理情報一覧）のテスト。
+
+- admin_supabase は app.routes.events をパッチして差し替える
+- 今日の日付は app.routes.events._today_jst をパッチして固定する
+- require_auth は dependency_overrides でバイパスし、テスト後に必ず戻す
+"""
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.auth import require_auth
+
+# テストで「今日」とする日付（JST）
+TODAY = '2026-10-21'
+
+# ダッシュボードの1件が持つキー
+ITEM_KEYS = {
+    'event_id', 'name', 'start_date', 'end_date', 'location',
+    'carry_in_time', 'carry_out_time', 'hotel_name',
+    'booth_fee', 'booth_fee_pay_method', 'booth_fee_due', 'booth_fee_paid',
+}
+
+
+def _ev(eid, start, end=None, name=None, location='会場'):
+    """テスト用のイベント行を返す。"""
+    return {'id': eid, 'name': name or eid, 'start_date': start, 'end_date': end, 'location': location}
+
+
+def _make_sb(events, infos):
+    """events と event_admin_info を返す admin_supabase のモックを作る。
+
+    events: table('events').select().order().execute().data
+    infos:  table('event_admin_info').select().execute().data
+    """
+    sb = MagicMock()
+
+    def table(name):
+        q = MagicMock()
+        if name == 'events':
+            q.select.return_value.order.return_value.execute.return_value.data = events
+        elif name == 'event_admin_info':
+            q.select.return_value.execute.return_value.data = infos
+        else:
+            raise AssertionError(f'想定外のテーブル: {name}')
+        return q
+
+    sb.table.side_effect = table
+    return sb
+
+
+class TestAdminInfoDashboard:
+    """GET /api/events/admin-info/dashboard"""
+
+    def setup_method(self):
+        app.dependency_overrides[require_auth] = lambda: None
+
+    def teardown_method(self):
+        app.dependency_overrides.clear()
+
+    def _get(self, events, infos, today=TODAY):
+        """モックを差し替えて API を呼び、レスポンスを返す。"""
+        sb = _make_sb(events, infos)
+        with patch('app.routes.events.admin_supabase', sb), \
+             patch('app.routes.events._today_jst', return_value=today):
+            return TestClient(app).get('/api/events/admin-info/dashboard')
+
+    def test_認証なしで呼ぶと401になる(self):
+        app.dependency_overrides.clear()
+        resp = TestClient(app).get('/api/events/admin-info/dashboard')
+        assert resp.status_code == 401
+
+    def test_今後のイベントと未払いの終了済みイベントだけが開始日順で返る(self):
+        events = [
+            _ev('past-unpaid', '2026-01-01', '2026-01-02'),
+            _ev('past-paid', '2026-02-01'),
+            _ev('past-noinfo', '2026-03-01'),
+            _ev('future-b', '2026-12-01'),
+            _ev('future-a', '2026-11-01'),
+        ]
+        infos = [
+            {'event_id': 'past-unpaid', 'info': {'booth_fee': 5000, 'booth_fee_paid': False, 'hotel_name': 'H'}},
+            {'event_id': 'past-paid', 'info': {'booth_fee': 5000, 'booth_fee_paid': True}},
+            {'event_id': 'future-a', 'info': {'carry_in_time': '2026-11-01T09:00', 'booth_fee_due': '2026-10-25'}},
+        ]
+        resp = self._get(events, infos)
+        assert resp.status_code == 200
+        items = resp.json()['items']
+        assert [i['event_id'] for i in items] == ['past-unpaid', 'future-a', 'future-b']
+        for i in items:
+            assert set(i.keys()) == ITEM_KEYS
+
+    def test_返す値は管理情報の値がそのまま入る(self):
+        info = {
+            'carry_in_time': '2026-11-01T09:00', 'carry_out_time': '2026-11-02T18:00',
+            'hotel_name': 'ホテルA', 'booth_fee': 12000, 'booth_fee_pay_method': '振込',
+            'booth_fee_due': '2026-10-30', 'booth_fee_paid': False,
+            # ダッシュボードで返さない項目
+            'memo': '秘密のメモ',
+        }
+        resp = self._get([_ev('e1', '2026-11-01', '2026-11-02', name='イベント1', location='東京')],
+                         [{'event_id': 'e1', 'info': info}])
+        item = resp.json()['items'][0]
+        assert item == {
+            'event_id': 'e1', 'name': 'イベント1', 'start_date': '2026-11-01', 'end_date': '2026-11-02',
+            'location': '東京', 'carry_in_time': '2026-11-01T09:00', 'carry_out_time': '2026-11-02T18:00',
+            'hotel_name': 'ホテルA', 'booth_fee': 12000, 'booth_fee_pay_method': '振込',
+            'booth_fee_due': '2026-10-30', 'booth_fee_paid': False,
+        }
+        assert 'memo' not in item
+
+    def test_管理情報が無いイベントは各値がnullで支払い済みはfalseになる(self):
+        resp = self._get([_ev('e1', '2026-11-01')], [])
+        item = resp.json()['items'][0]
+        for k in ('carry_in_time', 'carry_out_time', 'hotel_name', 'booth_fee', 'booth_fee_pay_method', 'booth_fee_due'):
+            assert item[k] is None
+        assert item['booth_fee_paid'] is False
+
+    def test_infoがdictでない行は管理情報なしとして扱う(self):
+        resp = self._get([_ev('e1', '2026-11-01')], [{'event_id': 'e1', 'info': None}])
+        item = resp.json()['items'][0]
+        assert item['hotel_name'] is None
+        assert item['booth_fee_paid'] is False
+
+    @pytest.mark.parametrize('start,end,expected', [
+        ('2026-10-21', None, True),  # 開始日が今日（終了日なし）
+        ('2026-10-20', '2026-10-21', True),  # 終了日が今日
+        ('2026-10-19', '2026-10-20', False),  # 昨日終了
+        ('2026-10-20', None, False),  # 昨日開始・終了日なし
+    ])
+    def test_終了日が今日以降なら含まれ昨日までなら含まれない(self, start, end, expected):
+        resp = self._get([_ev('e1', start, end)], [])
+        assert (len(resp.json()['items']) == 1) is expected
+
+    @pytest.mark.parametrize('info,expected', [
+        ({'booth_fee': 3000}, True),  # 未払い・出店料あり
+        ({'booth_fee_due': '2026-09-30'}, True),  # 未払い・期限のみ
+        ({'booth_fee': 0}, False),  # 出店料 0・期限なし
+        ({'booth_fee': 0, 'booth_fee_due': '2026-09-30'}, True),  # 出店料 0 でも期限あり
+        ({'booth_fee': 3000, 'booth_fee_paid': True}, False),  # 支払い済み
+        ({'hotel_name': 'H'}, False),  # 出店料の情報なし
+        ({}, False),
+    ])
+    def test_終了済みイベントは未払いで出店料か期限があるときだけ含まれる(self, info, expected):
+        resp = self._get([_ev('old', '2026-05-01', '2026-05-02')], [{'event_id': 'old', 'info': info}])
+        assert (len(resp.json()['items']) == 1) is expected
+
+    def test_DBの並びが崩れていても開始日の昇順に並べ直す(self):
+        events = [_ev('c', '2026-12-03'), _ev('a', '2026-11-01'), _ev('b', '2026-11-15')]
+        resp = self._get(events, [])
+        assert [i['event_id'] for i in resp.json()['items']] == ['a', 'b', 'c']
+
+    def test_対象が無いときは空のitemsを返す(self):
+        resp = self._get([_ev('old', '2020-01-01')], [])
+        assert resp.status_code == 200
+        assert resp.json() == {'items': []}
+
+    def test_イベントが0件でも空のitemsを返す(self):
+        resp = self._get([], [])
+        assert resp.json() == {'items': []}
+
+    def test_DBの読み取りで例外が出ると500になる(self):
+        sb = MagicMock()
+        sb.table.side_effect = RuntimeError('boom')
+        with patch('app.routes.events.admin_supabase', sb):
+            resp = TestClient(app).get('/api/events/admin-info/dashboard')
+        assert resp.status_code == 500
+        assert 'boom' not in resp.text
+
+    def test_dashboardというパスがイベントIDとして扱われない(self):
+        """/admin-info/dashboard が /{event_id}/... の別ルートに吸われていない。"""
+        resp = self._get([_ev('e1', '2026-11-01')], [])
+        assert resp.status_code == 200
+        assert 'items' in resp.json()
+
+    def test_認証ヘッダー付きの応答はキャッシュされない(self):
+        """管理情報が CDN・ブラウザに残らないよう、Authorization 付きの GET は no-store になる。"""
+        sb = _make_sb([_ev('e1', '2026-11-01')], [])
+        with patch('app.routes.events.admin_supabase', sb), \
+             patch('app.routes.events._today_jst', return_value=TODAY):
+            resp = TestClient(app).get('/api/events/admin-info/dashboard', headers={'Authorization': 'Bearer x'})
+        assert resp.status_code == 200
+        assert resp.headers['cache-control'] == 'no-store'
+        assert resp.headers['cdn-cache-control'] == 'no-store'

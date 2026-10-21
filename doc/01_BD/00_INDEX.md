@@ -46,7 +46,7 @@
 
 | ID | ファイル | URL | 使用機能 |
 |---|---|---|---|
-| PG-A01 | [Dashboard](pages/admin/01_Dashboard.md) | `/admin` | FT-01 |
+| PG-A01 | [Dashboard](pages/admin/01_Dashboard.md) | `/admin` | FT-01, FT-12（出店料の支払い・今後の搬入予定。2026-10-21 追加） |
 | PG-A02 | [イベント管理](pages/admin/02_Events.md) | `/admin/events` | FT-01, FT-12 |
 | PG-A03 | [ギャラリー管理](pages/admin/03_Gallery.md) | `/admin/gallery` | FT-01, FT-04 |
 | PG-A04 | [取扱店管理](pages/admin/04_Stockists.md) | `/admin/stockists` | FT-01, FT-10 |
@@ -83,3 +83,4 @@
 | FT-14 | ジャーナル | 記事一覧・タグフィルター・ブロックエディタ・関連商品リンク | PG-18, PG-19, PG-A10 |
 | FT-15 | ファイルアップロード | 画像(images bucket)・動画(videos bucket) Supabase Storage 保存 | 管理画面全般 |
 | FT-25 | [分析ダッシュボード](features/14_分析ダッシュボード.md) | 収支・予約・注文・問い合わせ・アクセス数のグラフ（Streamlit Community Cloud で公開。管理画面と同じアカウントでログイン。2026-10-17 追加） | PG-A01（サイドメニュー「分析 ↗」から新しいタブで開く） |
+| FT-26 | [検索エンジン・SNS 向けの情報](features/15_検索エンジン・SNS向け情報.md) | ページを返すときにタイトル・説明・SNS のプレビュー用の情報（OGP）・正式な URL・構造化データを入れる。`robots.txt`・`sitemap.xml`（2026-10-21 追加） | 公開ページ全部（管理画面などには noindex） |

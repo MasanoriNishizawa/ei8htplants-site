@@ -6,7 +6,8 @@
     python scripts/run_tests.py --no-log                 # ログに残さず結果を見るだけ
 
 実行するテスト:
-    1. TypeScript チェック（型エラーがないか）  cd frontend && npx tsc --noEmit
+    1. TypeScript チェック（型エラーがないか）  cd frontend && npx tsc --noEmit -p tsconfig.app.json
+       ＋ 本番ビルドの確認                       cd frontend && npx tsc -b && npx vite build（一時フォルダに出力。frontend/dist は書き換えない）
     2. フロントのロジック（Vitest）             cd frontend && npx vitest run
     3. 画面テスト（Playwright。API は MSW モック）cd frontend && npx playwright test
     4. バックエンド（pytest）                   cd backend && python -m pytest
@@ -20,6 +21,7 @@ import argparse
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -69,7 +71,9 @@ def num(pattern: str, text: str) -> int:
 
 def run_tsc() -> dict:
     """TypeScript の型チェックを実行して結果をまとめる。"""
-    code, out, sec = run(["npx", "tsc", "--noEmit"], ROOT / "frontend")
+    # frontend/tsconfig.json は files: []（参照をまとめるだけ）なので、アプリのコードを含む tsconfig.app.json を指定する。
+    # 指定しないと何も検査せずに成功してしまう
+    code, out, sec = run(["npx", "tsc", "--noEmit", "-p", "tsconfig.app.json"], ROOT / "frontend")
     errors = re.findall(r"error TS\d+: .+", out)
     return {
         "name": "TypeScript チェック（tsc）", "code": code, "sec": sec,
@@ -77,6 +81,58 @@ def run_tsc() -> dict:
         "skipped": 0, "xfail": 0,
         "failed_names": errors[:10],
         "tail": out.strip().splitlines()[-2:] if out.strip() else [],
+    }
+
+
+def run_build() -> dict:
+    """本番ビルド（npm run build と同じ tsc -b ＋ vite build）が通るかを確かめる。
+
+    tsc --noEmit では見ない範囲（ビルド時の型チェックはテストファイルも含む）でも失敗しないかを確かめるため。
+    出力は一時フォルダにして、コミットする frontend/dist は書き換えない。
+    あわせて、開発用のログイン省略のダミートークンが本番用の出力に残っていないことも確かめる。
+
+    Returns:
+        ほかのテストと同じ形の結果の dict
+    """
+    name = "本番ビルド（tsc -b ＋ vite build）"
+    frontend = ROOT / "frontend"
+    start = time.time()
+    # 1. ビルド時の型チェック（npm run build の前半と同じ）
+    code, out, _ = run(["npx", "tsc", "-b"], frontend)
+    errors = re.findall(r"error TS\d+: .+", out)
+    if code != 0:
+        return {
+            "name": name, "code": code, "sec": time.time() - start,
+            "passed": 0, "failed": max(len(errors), 1), "skipped": 0, "xfail": 0,
+            "failed_names": errors[:10] or ["tsc -b が失敗しました"],
+            "tail": out.strip().splitlines()[-2:] if out.strip() else [],
+        }
+    # 2. 一時フォルダに本番ビルドする（npm run build の後半と同じ。モードは production）
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out, _ = run(["npx", "vite", "build", "--outDir", tmp, "--emptyOutDir"], frontend)
+        if code != 0:
+            return {
+                "name": name, "code": code, "sec": time.time() - start,
+                "passed": 0, "failed": 1, "skipped": 0, "xfail": 0,
+                "failed_names": ["vite build が失敗しました"],
+                "tail": out.strip().splitlines()[-3:] if out.strip() else [],
+            }
+        # 3. 本番用の出力に、開発用のダミートークンの文字列が残っていないこと（devAuth.ts の安全確認）
+        leaked = [
+            str(p.relative_to(tmp)) for p in Path(tmp).rglob("*.js")
+            if "dev-skip-admin-auth" in p.read_text(encoding="utf-8", errors="ignore")
+        ]
+    if leaked:
+        return {
+            "name": name, "code": 1, "sec": time.time() - start,
+            "passed": 0, "failed": 1, "skipped": 0, "xfail": 0,
+            "failed_names": [f"開発用のダミートークンが本番用の出力に残っています: {', '.join(leaked)}"],
+            "tail": [],
+        }
+    return {
+        "name": name, "code": 0, "sec": time.time() - start,
+        "passed": 1, "failed": 0, "skipped": 0, "xfail": 0,
+        "failed_names": [], "tail": [],
     }
 
 
@@ -249,6 +305,10 @@ def main() -> int:
     # 1. TypeScript チェック
     print("TypeScript チェック中…", flush=True)
     results.append(run_tsc())
+
+    # 1-2. 本番ビルドの確認（frontend/dist は書き換えない）
+    print("本番ビルドを確認中…", flush=True)
+    results.append(run_build())
 
     # 2. Vitest（フロントロジック）
     print("Vitest（フロントロジック）を実行中…", flush=True)
