@@ -3,6 +3,10 @@ import { useConfirmLeave, useUnsavedChanges } from './UnsavedChanges'
 import { api, type PotArtist, type PriceCalcEntry, type PriceCalcEntryBody } from '../../lib/api'
 import { BRAND } from '../../lib/brands'
 import { formatYen } from '../../lib/format'
+import {
+  MAX_COST_RATE, costRate, exceedsMaxCostRate, formatCostRate, formatRateLabel,
+  loadCostRateInput, parseCostRateInput, recommendPrice, saveCostRateInput,
+} from '../../lib/priceCalc'
 import { failMessage } from './errorMessage'
 
 /** 価格計算で使うブランドのキー（price_calc_entries.brand に保存する値） */
@@ -27,8 +31,11 @@ const TABS: { id: Brand; label: string }[] = (['ei8htplants', 'habitatoides', 'h
  */
 const yenRounded = (n: number) => formatYen(Math.round(n))
 
-/** 推奨販売価格の倍率（原価の 2 倍） */
-const PRICE_MARKUP = 2
+/** 目標原価率の既定値を % の数値の文字列にしたもの（「40% に戻す」ボタンで入れる値 = '40'） */
+const DEFAULT_COST_RATE_INPUT = String(Math.round(MAX_COST_RATE * 100))
+
+/** 原価率が目標を超えたときの注意の文字色（削除ボタン・失敗の文言と同じ赤） */
+const WARN_COLOR = '#c0392b'
 
 /** 実生（種から育てる）の原価の計算で、種子の金額を何粒分として入れるか（1 袋 20 粒） */
 const SEEDS_PER_PACK = 20
@@ -55,11 +62,17 @@ const labelStyle: React.CSSProperties = {
 }
 
 /**
- * 推奨販売価格を強調表示するコンポーネント
+ * 推奨販売価格を強調表示するコンポーネント。推奨価格の下に、その価格での原価率も出す
  * @param recommendedPrice - 表示する推奨価格。null の場合はプレースホルダーを表示する
+ * @param cost - 原価（原価率の計算に使う。未計算なら null）
+ * @param maxRate - 目標原価率（見出しに出す。正しく入っていなければ null）
  * @returns 推奨価格の枠（未計算なら灰色で「¥ —」）
  */
-function PriceDisplay({ recommendedPrice }: { recommendedPrice: number | null }) {
+function PriceDisplay({ recommendedPrice, cost, maxRate }: {
+  recommendedPrice: number | null
+  cost: number | null
+  maxRate: number | null
+}) {
   return (
     <div style={{
       background: recommendedPrice ? '#f0f4ee' : '#f5f5f5',
@@ -67,7 +80,10 @@ function PriceDisplay({ recommendedPrice }: { recommendedPrice: number | null })
       borderRadius: 6, padding: '16px 20px', maxWidth: 280,
       transition: 'background 0.2s, border-color 0.2s',
     }}>
-      <p style={{ fontSize: 12, color: '#888', margin: '0 0 4px', letterSpacing: 1 }}>推奨販売価格（× {PRICE_MARKUP}）</p>
+      <p style={{ fontSize: 12, color: '#888', margin: '0 0 4px', letterSpacing: 1 }}>
+        {/* 目標原価率が正しく入っていないときは率を出さない（推奨価格も「¥ —」になる） */}
+        {maxRate !== null ? `推奨販売価格（原価率 ${formatRateLabel(maxRate)} 以下）` : '推奨販売価格（目標原価率が未設定）'}
+      </p>
       <p style={{
         fontSize: 26, fontWeight: 600, margin: 0,
         color: recommendedPrice ? '#1c2417' : '#ccc',
@@ -75,6 +91,64 @@ function PriceDisplay({ recommendedPrice }: { recommendedPrice: number | null })
       }}>
         {recommendedPrice ? yenRounded(recommendedPrice) : '¥ —'}
       </p>
+      {/* 推奨価格での実際の原価率（切り上げているので目標以下になる） */}
+      {recommendedPrice !== null && cost !== null && maxRate !== null && (
+        <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0', fontVariantNumeric: 'tabular-nums' }}>
+          原価率 {formatCostRate(costRate(cost, recommendedPrice), maxRate)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * 推奨価格を上書きする任意価格の入力欄。入力があれば登録価格とその原価率を出し、
+ * 原価率が目標原価率を超えるときは注意を出す（登録は止めない）
+ * @param value - 任意価格の入力（文字のまま）
+ * @param onChange - 入力が変わったときのコールバック
+ * @param recommendedPrice - 推奨価格（placeholder に出す。未計算なら null）
+ * @param finalPrice - 登録する販売価格（未計算なら null）
+ * @param cost - 原価（原価率の計算に使う。未計算なら null）
+ * @param maxRate - 目標原価率（超えたかの判定に使う。正しく入っていなければ null で、原価率と注意を出さない）
+ * @returns 任意価格の項目名・入力欄・登録価格の表示
+ */
+function CustomPriceField({ value, onChange, recommendedPrice, finalPrice, cost, maxRate }: {
+  value: string
+  onChange: (v: string) => void
+  recommendedPrice: number | null
+  finalPrice: number | null
+  cost: number | null
+  maxRate: number | null
+}) {
+  /** 登録価格での原価率（原価・登録価格・目標原価率がそろっていなければ null） */
+  const rate = cost && finalPrice && maxRate !== null ? costRate(cost, finalPrice) : null
+  /** 登録価格の原価率が目標を超えているか */
+  const over = !!(cost && finalPrice && maxRate !== null && exceedsMaxCostRate(cost, finalPrice, maxRate))
+
+  return (
+    <div>
+      <p style={labelStyle}>任意価格（推奨価格を上書き）</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 15 }}>¥</span>
+        <input
+          type="number" min="0" className="num-plain"
+          placeholder={recommendedPrice ? String(Math.round(recommendedPrice)) : '—'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)} style={inputStyle}
+        />
+      </div>
+      {/* 任意価格を入れたときは、実際に登録する価格とその原価率を出す（目標を超えたら赤字） */}
+      {value && finalPrice !== null && (
+        <p style={{ fontSize: 12, color: over ? WARN_COLOR : '#3a7c5a', margin: '6px 0 0' }}>
+          登録価格: {yenRounded(finalPrice)}{rate !== null && maxRate !== null && `（原価率 ${formatCostRate(rate, maxRate)}）`}
+        </p>
+      )}
+      {/* 原価率が目標を超えるときの注意（登録はそのままできる） */}
+      {value && over && maxRate !== null && (
+        <p style={{ fontSize: 12, color: WARN_COLOR, margin: '4px 0 0' }}>
+          原価率が {formatRateLabel(maxRate)} を超えています
+        </p>
+      )}
     </div>
   )
 }
@@ -110,10 +184,14 @@ function RegisterButton({ label, disabled, saving, onClick }: {
 
 /**
  * ei8ht plants ブランドの価格計算コンポーネント
+ * @param maxRate - 目標原価率（親の PriceCalc の欄の値。正しく入っていなければ null で、推奨価格を出さず登録もできない）
  * @param onRegister - 価格エントリを登録するコールバック（失敗したら投げる）
  * @returns 植物名・種別・仕入れ値（または種子の金額）・任意価格の入力と推奨価格
  */
-function Ei8htPlantsCalc({ onRegister }: { onRegister: (d: PriceCalcEntryBody) => Promise<void> }) {
+function Ei8htPlantsCalc({ maxRate, onRegister }: {
+  maxRate: number | null
+  onRegister: (d: PriceCalcEntryBody) => Promise<void>
+}) {
   /** 仕入れの種類（仕入れ・実生） */
   const [source, setSource] = useState<SourceType>('purchase')
   /** 仕入れ値の入力（文字のまま持つ） */
@@ -136,15 +214,16 @@ function Ei8htPlantsCalc({ onRegister }: { onRegister: (d: PriceCalcEntryBody) =
   /** 原価（未入力・0 以下は null） */
   const cost = isNaN(raw) || raw <= 0 ? null : raw
   // 2. 推奨価格と、任意価格があればそれを優先した登録価格
-  /** 推奨販売価格（原価 × PRICE_MARKUP。原価が無ければ null） */
-  const recommendedPrice = cost ? cost * PRICE_MARKUP : null
+  /** 推奨販売価格（原価率が目標以下でキリの良い値。原価か目標原価率が無ければ null） */
+  const recommendedPrice = cost && maxRate !== null ? recommendPrice(cost, maxRate) : null
   /** 任意価格の入力を数値にしたもの */
   const parsedCustom = parseFloat(customPrice)
   /** 登録する販売価格（任意価格が正の数ならそれ、無ければ推奨価格） */
   const finalPrice = customPrice && !isNaN(parsedCustom) && parsedCustom > 0 ? parsedCustom : recommendedPrice
-  // 3. 植物名・原価・販売価格がそろったら登録できる
+  // 3. 植物名・原価・販売価格・目標原価率がそろったら登録できる
+  //    （目標原価率が正しくないと原価率の判定ができないため、任意価格が入っていても登録させない）
   /** 登録ボタンを押せるかどうか */
-  const canRegister = !!(plantName.trim() && finalPrice && finalPrice > 0 && cost)
+  const canRegister = !!(plantName.trim() && finalPrice && finalPrice > 0 && cost && maxRate !== null)
 
   /**
    * 入力内容を登録し、成功したら入力欄を空にする
@@ -226,24 +305,12 @@ function Ei8htPlantsCalc({ onRegister }: { onRegister: (d: PriceCalcEntryBody) =
         )}
       </div>
 
-      <PriceDisplay recommendedPrice={recommendedPrice} />
+      <PriceDisplay recommendedPrice={recommendedPrice} cost={cost} maxRate={maxRate} />
 
-      <div>
-        <p style={labelStyle}>任意価格（推奨価格を上書き）</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 15 }}>¥</span>
-          <input
-            type="number" min="0" className="num-plain"
-            placeholder={recommendedPrice ? String(Math.round(recommendedPrice)) : '—'}
-            value={customPrice}
-            onChange={(e) => setCustomPrice(e.target.value)} style={inputStyle}
-          />
-        </div>
-        {/* 任意価格を入れたときは、実際に登録する価格を出す */}
-        {customPrice && finalPrice && (
-          <p style={{ fontSize: 12, color: '#3a7c5a', margin: '6px 0 0' }}>登録価格: {yenRounded(finalPrice)}</p>
-        )}
-      </div>
+      <CustomPriceField
+        value={customPrice} onChange={setCustomPrice}
+        recommendedPrice={recommendedPrice} finalPrice={finalPrice} cost={cost} maxRate={maxRate}
+      />
 
       <RegisterButton
         label={finalPrice ? `登録  ${yenRounded(finalPrice)}` : '登録'}
@@ -253,15 +320,26 @@ function Ei8htPlantsCalc({ onRegister }: { onRegister: (d: PriceCalcEntryBody) =
   )
 }
 
+/** 植物 + 鉢の計算（PlantPotCalc）を使うブランド */
+type PlantPotBrand = Extract<Brand, 'habitatoides' | 'hue'>
+
 /**
- * Habitat Oides ブランドの価格計算コンポーネント（植物+鉢の合計コストから推奨価格を計算）
- * @param onRegister - 価格エントリを登録するコールバック
- * @param potArtists - 鉢作家の選択肢一覧
- * @returns 植物名・植物と鉢の仕入れ値・鉢作家・任意価格の入力と推奨価格
+ * 植物 + 鉢の合計を原価として推奨価格を計算するコンポーネント（Habitat Oides・HUE で共通）
+ * @param brand - 登録する記録のブランド（price_calc_entries.brand に保存する値）
+ * @param withPotArtist - 鉢作家の選択欄を出すか（Habitat Oides は出す。HUE は鉢作家の概念が無いので出さず、pot_artist_name は null で登録する）
+ * @param plantPlaceholder - 植物名の入力欄の placeholder
+ * @param potArtists - 鉢作家の選択肢一覧（withPotArtist が false なら使わない）
+ * @param maxRate - 目標原価率（親の PriceCalc の欄の値。正しく入っていなければ null で、推奨価格を出さず登録もできない）
+ * @param onRegister - 価格エントリを登録するコールバック（失敗したら投げる）
+ * @returns 植物名・植物と鉢の仕入れ値・（鉢作家）・任意価格の入力と推奨価格
  */
-function HabitatOidesCalc({ onRegister, potArtists }: {
-  onRegister: (d: PriceCalcEntryBody) => Promise<void>
+function PlantPotCalc({ brand, withPotArtist, plantPlaceholder, potArtists, maxRate, onRegister }: {
+  brand: PlantPotBrand
+  withPotArtist: boolean
+  plantPlaceholder: string
   potArtists: PotArtist[]
+  maxRate: number | null
+  onRegister: (d: PriceCalcEntryBody) => Promise<void>
 }) {
   /** 植物名の入力 */
   const [plantName, setPlantName] = useState('')
@@ -269,7 +347,7 @@ function HabitatOidesCalc({ onRegister, potArtists }: {
   const [plantPrice, setPlantPrice] = useState('')
   /** 鉢の値段の入力 */
   const [potPrice, setPotPrice] = useState('')
-  /** 選んだ鉢の作家の id（空は未選択） */
+  /** 選んだ鉢の作家の id（空は未選択。鉢作家の欄が無いブランドでは常に空） */
   const [artistId, setArtistId] = useState('')
   /** 推奨価格を上書きする任意価格の入力（空なら推奨価格で登録） */
   const [customPrice, setCustomPrice] = useState('')
@@ -279,23 +357,26 @@ function HabitatOidesCalc({ onRegister, potArtists }: {
   // （登録に成功したら入力欄を空にするので確認は出なくなる）
   useUnsavedChanges([plantName, plantPrice, potPrice, artistId, customPrice].some((v) => v.trim() !== ''))
 
-  // 植物と鉢の合計を原価とし、その PRICE_MARKUP 倍を推奨価格にする（未入力・0 以下は 0 として扱う）
+  // 1. 植物と鉢の合計を原価にする（未入力・0 以下は 0 として扱う）
   /** 植物の仕入れ値（数値でなければ NaN） */
   const plant = parseFloat(plantPrice)
   /** 鉢の仕入れ値（数値でなければ NaN） */
   const pot = parseFloat(potPrice)
   /** 原価（植物 + 鉢） */
   const totalCost = (!isNaN(plant) && plant > 0 ? plant : 0) + (!isNaN(pot) && pot > 0 ? pot : 0)
-  /** 推奨販売価格（原価 × PRICE_MARKUP。原価が 0 なら null） */
-  const recommendedPrice = totalCost > 0 ? totalCost * PRICE_MARKUP : null
+  // 2. 推奨価格と、任意価格があればそれを優先した登録価格
+  /** 推奨販売価格（原価率が目標以下でキリの良い値。原価が 0・目標原価率が無いなら null） */
+  const recommendedPrice = totalCost > 0 && maxRate !== null ? recommendPrice(totalCost, maxRate) : null
   /** 任意価格の入力を数値にしたもの */
   const parsedCustom = parseFloat(customPrice)
   /** 登録する販売価格（任意価格が正の数ならそれ、無ければ推奨価格） */
   const finalPrice = customPrice && !isNaN(parsedCustom) && parsedCustom > 0 ? parsedCustom : recommendedPrice
-  /** 選んだ鉢作家（未選択なら undefined で、「量産鉢」として登録する） */
-  const selectedArtist = potArtists.find((a) => a.id === artistId)
-  /** 登録ボタンを押せるかどうか（植物名・原価・販売価格がそろったとき） */
-  const canRegister = !!(plantName.trim() && totalCost > 0 && finalPrice && finalPrice > 0)
+  /** 選んだ鉢作家（未選択・鉢作家の欄が無いときは undefined で、pot_artist_name を null で登録する） */
+  const selectedArtist = withPotArtist ? potArtists.find((a) => a.id === artistId) : undefined
+  // 3. 植物名・原価・販売価格・目標原価率がそろったら登録できる
+  //    （目標原価率が正しくないと原価率の判定ができないため、任意価格が入っていても登録させない）
+  /** 登録ボタンを押せるかどうか */
+  const canRegister = !!(plantName.trim() && totalCost > 0 && finalPrice && finalPrice > 0 && maxRate !== null)
 
   /**
    * 入力内容を登録し、成功したら入力欄を空にする
@@ -306,7 +387,7 @@ function HabitatOidesCalc({ onRegister, potArtists }: {
     setSaving(true)
     try {
       await onRegister({
-        brand: 'habitatoides',
+        brand,
         plant_name: plantName.trim(),
         pot_artist_name: selectedArtist?.name ?? null,
         cost: totalCost,
@@ -325,7 +406,7 @@ function HabitatOidesCalc({ onRegister, potArtists }: {
       <div>
         <p style={labelStyle}>植物名</p>
         <input
-          type="text" placeholder="例: アガベ ポタトルム"
+          type="text" placeholder={plantPlaceholder}
           value={plantName} onChange={(e) => setPlantName(e.target.value)}
           style={inputStyle}
         />
@@ -355,37 +436,28 @@ function HabitatOidesCalc({ onRegister, potArtists }: {
         </div>
       </div>
 
-      <div>
-        <p style={labelStyle}>鉢作家</p>
-        <select
-          value={artistId} onChange={(e) => setArtistId(e.target.value)}
-          style={{ ...inputStyle, cursor: 'pointer' }}
-        >
-          <option value="">量産鉢</option>
-          {potArtists.map((a) => (
-            <option key={a.id} value={a.id}>{a.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <PriceDisplay recommendedPrice={recommendedPrice} />
-
-      <div>
-        <p style={labelStyle}>任意価格（推奨価格を上書き）</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 15 }}>¥</span>
-          <input
-            type="number" min="0" className="num-plain"
-            placeholder={recommendedPrice ? String(Math.round(recommendedPrice)) : '—'}
-            value={customPrice}
-            onChange={(e) => setCustomPrice(e.target.value)} style={inputStyle}
-          />
+      {/* 鉢作家の選択（Habitat Oides だけ。未選択は「量産鉢」） */}
+      {withPotArtist && (
+        <div>
+          <p style={labelStyle}>鉢作家</p>
+          <select
+            value={artistId} onChange={(e) => setArtistId(e.target.value)}
+            style={{ ...inputStyle, cursor: 'pointer' }}
+          >
+            <option value="">量産鉢</option>
+            {potArtists.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
         </div>
-        {/* 任意価格を入れたときは、実際に登録する価格を出す */}
-        {customPrice && finalPrice && (
-          <p style={{ fontSize: 12, color: '#3a7c5a', margin: '6px 0 0' }}>登録価格: {yenRounded(finalPrice)}</p>
-        )}
-      </div>
+      )}
+
+      <PriceDisplay recommendedPrice={recommendedPrice} cost={totalCost > 0 ? totalCost : null} maxRate={maxRate} />
+
+      <CustomPriceField
+        value={customPrice} onChange={setCustomPrice}
+        recommendedPrice={recommendedPrice} finalPrice={finalPrice} cost={totalCost > 0 ? totalCost : null} maxRate={maxRate}
+      />
 
       <RegisterButton
         label={finalPrice ? `登録  ${yenRounded(finalPrice)}` : '登録'}
@@ -396,12 +468,49 @@ function HabitatOidesCalc({ onRegister, potArtists }: {
 }
 
 /**
- * 未実装ブランドのプレースホルダーコンポーネント
- * @param brand - ブランド名
- * @returns 準備中の案内
+ * 目標原価率（%）の入力欄。3 ブランド共通の設定で、値は親（PriceCalc）が持つ
+ * 書きかけの確認（useUnsavedChanges）の対象にはしない（登録する内容ではなく、計算の設定のため）
+ * @param value - 入力欄の文字列（% の数値）
+ * @param onChange - 入力が変わったときのコールバック
+ * @returns 項目名・入力欄・「40% に戻す」ボタン・正しくない値のときの案内
  */
-function ComingSoon({ brand }: { brand: string }) {
-  return <p style={{ color: '#aaa', fontSize: 14 }}>{brand} の計算機は準備中です。</p>
+function CostRateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  /** 入力が受け付けられる値か（0 より大きく 100 以下の数） */
+  const valid = parseCostRateInput(value) !== null
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <p style={labelStyle}>目標原価率</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {/* 金額の欄（type="number"）と区別するため、text + inputMode="decimal" にする（スマホでは数字のキーボードが出る） */}
+        <input
+          type="text" inputMode="decimal" aria-label="目標原価率（%）"
+          value={value} onChange={(e) => onChange(e.target.value)}
+          aria-invalid={!valid}
+          style={{ ...inputStyle, maxWidth: 100, borderColor: valid ? '#dddde8' : WARN_COLOR }}
+        />
+        <span style={{ fontSize: 15 }}>%</span>
+        {/* 既定値と違うときだけ、既定値に戻すボタンを出す（'40.0' のように書き方が違うだけなら同じ率として出さない） */}
+        {parseCostRateInput(value) !== MAX_COST_RATE && (
+          <button
+            type="button" onClick={() => onChange(DEFAULT_COST_RATE_INPUT)}
+            style={{
+              padding: '4px 10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4,
+              color: '#666', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            {DEFAULT_COST_RATE_INPUT}% に戻す
+          </button>
+        )}
+      </div>
+      {/* 受け付けない値（空・0 以下・100 より大きい・数でない）のときの案内。推奨価格は出さず、登録もできない */}
+      {!valid && (
+        <p style={{ fontSize: 12, color: WARN_COLOR, margin: '6px 0 0' }}>
+          0 より大きく 100 以下の数を入れてください
+        </p>
+      )}
+    </div>
+  )
 }
 
 /**
@@ -436,7 +545,10 @@ function EntriesList({ entries, onDelete }: {
             <tr key={e.id} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
               <td style={{ padding: '12px 12px' }}>
                 <div style={{ fontWeight: 500 }}>{e.plant_name}</div>
-                <div style={{ fontSize: 12, color: '#888' }}>{e.pot_artist_name || '量産鉢'}</div>
+                {/* 2 行目の鉢作家は、鉢を選ぶ Habitat Oides の記録だけ出す（ei8ht plants は鉢が無く、HUE は鉢作家の概念が無い） */}
+                {e.brand === 'habitatoides' && (
+                  <div style={{ fontSize: 12, color: '#888' }}>{e.pot_artist_name || '量産鉢'}</div>
+                )}
               </td>
               <td style={{ padding: '12px 12px', color: '#666', fontSize: 12, whiteSpace: 'nowrap' }}>
                 {BRAND_LABELS[e.brand] ?? e.brand}
@@ -484,6 +596,19 @@ export default function PriceCalc() {
   const [error, setError] = useState<string | null>(null)
   /** 書きかけの計算フォームがあれば確認する関数（タブを切り替えると入力が消えるため） */
   const confirmLeave = useConfirmLeave()
+  /** 目標原価率の入力（% の数値の文字列）。初期値はこのブラウザに覚えさせた値（無ければ 40）。タブを切り替えても残る */
+  const [costRateInput, setCostRateInput] = useState(loadCostRateInput)
+  /** 目標原価率（0.4 = 40%）。入力が正しくなければ null で、各フォームは推奨価格を出さず登録もできない */
+  const maxRate = parseCostRateInput(costRateInput)
+
+  /**
+   * 目標原価率の入力を変え、正しい値ならこのブラウザに覚えさせる
+   * @param v - 入力欄の文字列（% の数値）
+   */
+  const handleCostRateChange = (v: string) => {
+    setCostRateInput(v)
+    saveCostRateInput(v)
+  }
 
   // 鉢の作家と登録リストを読み込む（失敗したら文言を出し、空のリストと区別できるようにする）
   useEffect(() => {
@@ -538,6 +663,9 @@ export default function PriceCalc() {
         <p role="alert" style={{ color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px', background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0' }}>{error}</p>
       )}
 
+      {/* 目標原価率（3 ブランド共通の設定。書きかけの確認の対象にはしない） */}
+      <CostRateField value={costRateInput} onChange={handleCostRateChange} />
+
       {/* ブランドの切り替えタブ */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid #dddde8' }}>
         {TABS.map(({ id, label }) => (
@@ -559,9 +687,20 @@ export default function PriceCalc() {
       </div>
 
       {/* 選んだブランドの計算フォーム（タブを切り替えると入力は消えるので、書きかけなら切り替える前に確認する） */}
-      {tab === 'ei8htplants' && <Ei8htPlantsCalc onRegister={handleRegister} />}
-      {tab === 'habitatoides' && <HabitatOidesCalc onRegister={handleRegister} potArtists={potArtists} />}
-      {tab === 'hue' && <ComingSoon brand={BRAND_LABELS.hue} />}
+      {tab === 'ei8htplants' && <Ei8htPlantsCalc maxRate={maxRate} onRegister={handleRegister} />}
+      {/* Habitat Oides と HUE は同じ PlantPotCalc。key をブランドにして、切り替えたら入力を作り直す */}
+      {tab === 'habitatoides' && (
+        <PlantPotCalc
+          key="habitatoides" brand="habitatoides" withPotArtist
+          plantPlaceholder="例: アガベ ポタトルム" potArtists={potArtists} maxRate={maxRate} onRegister={handleRegister}
+        />
+      )}
+      {tab === 'hue' && (
+        <PlantPotCalc
+          key="hue" brand="hue" withPotArtist={false}
+          plantPlaceholder="例: ユーフォルビア オベサ" potArtists={potArtists} maxRate={maxRate} onRegister={handleRegister}
+        />
+      )}
 
       {/* 登録リスト（全ブランド分） */}
       <div style={{ marginTop: 56, paddingTop: 40, borderTop: '2px solid #dddde8' }}>

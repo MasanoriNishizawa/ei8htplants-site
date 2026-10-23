@@ -1430,13 +1430,16 @@ POST と同じ形の全項目で上書きする。初めて公開する（今ま
 
 ```json
 {
-  "brand": "habitatoides",        // required（ei8htplants / habitatoides）
+  "brand": "habitatoides",        // required（ei8htplants / habitatoides / hue）
   "plant_name": "アガベ ポタトルム", // required
-  "pot_artist_name": "作家A",      // optional（量産鉢なら null）
+  "pot_artist_name": "作家A",      // optional（量産鉢・ei8htplants・hue なら null）
   "cost": 8000,                    // required（元値。小数も可）
-  "selling_price": 16000           // required（販売価格。小数も可）
+  "selling_price": 20000           // required（販売価格。小数も可）
 }
 ```
+
+- 推奨販売価格の計算（原価率が目標原価率以下になるキリの良い金額）は画面側（`frontend/src/lib/priceCalc.ts`）で行い、API は送られた `cost`・`selling_price` をそのまま保存する。目標原価率は保存しない。上の例は元値 8,000 円・目標原価率 40% の推奨販売価格 20,000 円
+- `brand` は1文字以上の文字であればそのまま保存する（API では種類を確かめない）。HUE の記録は 2026-10-23 から画面で登録できるようになった
 
 データベースの読み書きでエラーが起きたときは `500`。
 
@@ -1689,4 +1692,4 @@ api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  �
 
 2026-10-21 から、`getAccessToken()` は Supabase のプログラム（`lib/supabase.ts`）を呼ばれたときに初めて読み込む（`await import('./supabase')`）。公開ページだけを見る人が読み込まないようにして、最初の表示を速くするため。
 
-*最終更新: 2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*
+*最終更新: 2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*

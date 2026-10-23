@@ -7,7 +7,7 @@ import { test, expect, type Page } from '@playwright/test'
 //   2. 画面の中の「キャンセル」「戻る」でも確認が出る（ある画面だけ）
 //   3. 保存に成功したあとは確認が出ずに移れる
 // 対象: EventForm・EventFinance・AdminEventSite・Collaborations・AdminPotArtists・AdminMedia・AdminChatQA・
-//       Stockists（追加欄と編集のダイアログ）・PriceCalc（タブの切り替えも）
+//       Stockists（追加欄と編集のダイアログ）・PriceCalc（タブの切り替えも。HUE のフォームと登録も）
 
 /** 移るときの確認の文言（UnsavedChanges.ts の UNSAVED_LEAVE_MESSAGE） */
 const LEAVE_MESSAGE = '保存していない変更があります。破棄して移動しますか？'
@@ -279,5 +279,71 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await page.getByRole('button', { name: 'Habitat Oides' }).click()
     await expect(page.getByPlaceholder('例: アガベ ポタトルム')).toBeVisible()
     expect(dialogs).toBe(0)
+  })
+
+  test('HUE のタブで植物仕入れ値を入れると、移るときもタブを切り替えるときも確認が出る（キャンセルで HUE のまま残る）', async ({ page }) => {
+    await page.goto('/admin/price-calc')
+    await page.getByRole('button', { name: 'HUE' }).click()
+    // HUE のフォームには鉢作家の選択が無い
+    await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toBeVisible()
+    await expect(page.getByRole('combobox')).toHaveCount(0)
+    const plantPrice = page.getByPlaceholder('例: 3000')
+    await plantPrice.fill('1000')
+    await expectSidebarBlocked(page)
+    const dialog = dismissNextDialog(page)
+    await page.getByRole('button', { name: 'ei8ht plants' }).click()
+    expect(await dialog).toBe(LEAVE_MESSAGE)
+    // タブは切り替わらず、入力も残る
+    await expect(plantPrice).toHaveValue('1000')
+    await expect(page.getByPlaceholder('例: アガベ チタノタ')).toHaveCount(0)
+  })
+
+  test('HUE で登録すると登録リストに HUE の行が出て（植物名の下の 2 行目は無い）、そのあとは確認なしで移れる', async ({ page }) => {
+    await page.goto('/admin/price-calc')
+    await page.getByRole('button', { name: 'HUE' }).click()
+    await page.getByPlaceholder('例: ユーフォルビア オベサ').fill('オベサ E2E')
+    await page.getByPlaceholder('例: 3000').fill('1000')
+    await page.getByPlaceholder('例: 5000').fill('500')
+    // 原価 1,500 円 → 推奨価格 ¥3,800（1,500 ÷ 0.4 = 3,750 を 100 円単位で切り上げ。原価率 39.5%）
+    await expect(page.getByText('原価率 39.5%')).toBeVisible()
+    await page.getByRole('button', { name: /^登録\s+¥3,800$/ }).click()
+    // 登録リストの行（ブランドは HUE、元値 ¥1,500、販売価格 ¥3,800、2 行目の「量産鉢」は無い）
+    const row = page.getByRole('row').filter({ hasText: 'オベサ E2E' })
+    await expect(row).toBeVisible()
+    await expect(row.getByRole('cell').nth(1)).toHaveText('HUE')
+    await expect(row.getByRole('cell').nth(2)).toHaveText('¥1,500')
+    await expect(row.getByRole('cell').nth(3)).toHaveText('¥3,800')
+    await expect(row.getByRole('cell').first()).toHaveText('オベサ E2E')
+    // 入力が空になり、確認なしで移れる
+    await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toHaveValue('')
+    await expectSidebarFree(page)
+  })
+  test('目標原価率を 35 に変えても書きかけ扱いにならず、タブを切り替えても再読み込みしても 35 のまま', async ({ page }) => {
+    await page.goto('/admin/price-calc')
+    const rate = page.getByRole('textbox', { name: '目標原価率（%）' })
+    await expect(rate).toHaveValue('40')
+    await rate.fill('35')
+    await expect(page.getByText('推奨販売価格（原価率 35% 以下）')).toBeVisible()
+    // 1. 率だけなら確認なしでタブを切り替えられ、率は残る
+    let dialogs = 0
+    const onDialog = async (d: { dismiss: () => Promise<void> }) => { dialogs += 1; await d.dismiss() }
+    page.on('dialog', onDialog)
+    await page.getByRole('button', { name: 'HUE' }).click()
+    await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toBeVisible()
+    await expect(rate).toHaveValue('35')
+    // 原価 1,500 円 → ¥4,300（1,500 ÷ 0.35 = 4,285.7… を 100 円単位で切り上げ）
+    await page.getByPlaceholder('例: 3000').fill('1500')
+    await expect(page.getByRole('button', { name: /^登録\s+¥4,300$/ })).toBeVisible()
+    await page.getByPlaceholder('例: 3000').fill('')
+    page.off('dialog', onDialog)
+    expect(dialogs).toBe(0)
+    // 2. 再読み込みしても localStorage から 35 が戻る
+    await page.reload()
+    await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('35')
+    // 3. 「40% に戻す」で 40 に戻り、ボタンは消える
+    await page.getByRole('button', { name: '40% に戻す' }).click()
+    await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('40')
+    await expect(page.getByRole('button', { name: '40% に戻す' })).toHaveCount(0)
+    await expectSidebarFree(page)
   })
 })
