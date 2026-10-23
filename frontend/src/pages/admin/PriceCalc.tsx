@@ -66,12 +66,14 @@ const labelStyle: React.CSSProperties = {
  * @param recommendedPrice - 表示する推奨価格。null の場合はプレースホルダーを表示する
  * @param cost - 原価（原価率の計算に使う。未計算なら null）
  * @param maxRate - 目標原価率（見出しに出す。正しく入っていなければ null）
+ * @param title - 見出しを差し替えるときの文言（ei8ht plants の実生の「上代（種子 20粒の値段）」など。省略時は目標原価率の見出し）
  * @returns 推奨価格の枠（未計算なら灰色で「¥ —」）
  */
-function PriceDisplay({ recommendedPrice, cost, maxRate }: {
+function PriceDisplay({ recommendedPrice, cost, maxRate, title }: {
   recommendedPrice: number | null
   cost: number | null
   maxRate: number | null
+  title?: string
 }) {
   return (
     <div style={{
@@ -81,8 +83,9 @@ function PriceDisplay({ recommendedPrice, cost, maxRate }: {
       transition: 'background 0.2s, border-color 0.2s',
     }}>
       <p style={{ fontSize: 12, color: '#888', margin: '0 0 4px', letterSpacing: 1 }}>
-        {/* 目標原価率が正しく入っていないときは率を出さない（推奨価格も「¥ —」になる） */}
-        {maxRate !== null ? `推奨販売価格（原価率 ${formatRateLabel(maxRate)} 以下）` : '推奨販売価格（目標原価率が未設定）'}
+        {/* 見出しの差し替えがあればそれを出す。無ければ目標原価率の見出し
+            （目標原価率が正しく入っていないときは率を出さない。推奨価格も「¥ —」になる） */}
+        {title ?? (maxRate !== null ? `推奨販売価格（原価率 ${formatRateLabel(maxRate)} 以下）` : '推奨販売価格（目標原価率が未設定）')}
       </p>
       <p style={{
         fontSize: 26, fontWeight: 600, margin: 0,
@@ -91,7 +94,7 @@ function PriceDisplay({ recommendedPrice, cost, maxRate }: {
       }}>
         {recommendedPrice ? yenRounded(recommendedPrice) : '¥ —'}
       </p>
-      {/* 推奨価格での実際の原価率（切り上げているので目標以下になる） */}
+      {/* 推奨価格での実際の原価率（目標原価率から計算したときは切り上げているので目標以下になる） */}
       {recommendedPrice !== null && cost !== null && maxRate !== null && (
         <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0', fontVariantNumeric: 'tabular-nums' }}>
           原価率 {formatCostRate(costRate(cost, recommendedPrice), maxRate)}
@@ -214,8 +217,12 @@ function Ei8htPlantsCalc({ maxRate, onRegister }: {
   /** 原価（未入力・0 以下は null） */
   const cost = isNaN(raw) || raw <= 0 ? null : raw
   // 2. 推奨価格と、任意価格があればそれを優先した登録価格
-  /** 推奨販売価格（原価率が目標以下でキリの良い値。原価か目標原価率が無ければ null） */
-  const recommendedPrice = cost && maxRate !== null ? recommendPrice(cost, maxRate) : null
+  //    - 仕入れ: 原価率が目標以下でキリの良い値（原価か目標原価率が無ければ null）
+  //    - 実生: 種子 1 袋（SEEDS_PER_PACK 粒）の金額をそのまま上代にする（目標原価率からは計算しない。原価が無ければ null）
+  /** 推奨販売価格 */
+  const recommendedPrice = source === 'seedling'
+    ? (cost ? parseFloat(seedPrice) : null)
+    : (cost && maxRate !== null ? recommendPrice(cost, maxRate) : null)
   /** 任意価格の入力を数値にしたもの */
   const parsedCustom = parseFloat(customPrice)
   /** 登録する販売価格（任意価格が正の数ならそれ、無ければ推奨価格） */
@@ -305,7 +312,11 @@ function Ei8htPlantsCalc({ maxRate, onRegister }: {
         )}
       </div>
 
-      <PriceDisplay recommendedPrice={recommendedPrice} cost={cost} maxRate={maxRate} />
+      {/* 実生は種子 1 袋の金額が上代なので、見出しをそれに合わせる */}
+      <PriceDisplay
+        recommendedPrice={recommendedPrice} cost={cost} maxRate={maxRate}
+        title={source === 'seedling' ? `上代（種子 ${SEEDS_PER_PACK}粒の値段）` : undefined}
+      />
 
       <CustomPriceField
         value={customPrice} onChange={setCustomPrice}

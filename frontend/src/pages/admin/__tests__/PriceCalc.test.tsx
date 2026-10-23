@@ -105,13 +105,16 @@ describe('推奨販売価格の表示', () => {
     expect(screen.getByText('原価率 40.0%')).toBeInTheDocument()
   })
 
-  it('実生で種子 20 粒 600 円（1 粒 30 円）なら推奨価格は最小単位の ¥100、原価率 30.0% になる', async () => {
+  it('実生で種子 20 粒 600 円（1 粒 30 円）なら見出しは「上代（種子 20粒の値段）」で、上代は 600 円そのまま（¥600）、原価率 5.0% になる', async () => {
     render(<PriceCalc />)
     fireEvent.click(screen.getByRole('radio', { name: '実生' }))
     fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
     expect(screen.getByText('1粒あたり ¥30')).toBeInTheDocument()
-    expect(screen.getByText('¥100')).toBeInTheDocument()
-    expect(screen.getByText('原価率 30.0%')).toBeInTheDocument()
+    expect(screen.getByText('上代（種子 20粒の値段）')).toBeInTheDocument()
+    expect(screen.queryByText(/^推奨販売価格（/)).toBeNull()
+    expect(screen.getByText('¥600')).toBeInTheDocument()
+    expect(screen.queryByText('¥100')).toBeNull()
+    expect(screen.getByText('原価率 5.0%')).toBeInTheDocument()
   })
 
   it('仕入れ値が 0 なら推奨価格は「¥ —」のままで、植物名があっても登録ボタンは押せない', async () => {
@@ -573,5 +576,100 @@ describe('目標原価率の欄', () => {
     // Habitat Oides に切り替えても 35 のまま
     fireEvent.click(screen.getByRole('button', { name: 'Habitat Oides' }))
     expect(rateInput()).toHaveValue('35')
+  })
+})
+
+describe('ei8ht plants の実生（種子 20 粒の値段を上代にする）', () => {
+  /**
+   * 実生に切り替えて種子 20 粒の金額を入れる
+   * @param price - 種子 20 粒の金額（文字のまま）
+   */
+  const enterSeed = (price: string) => {
+    fireEvent.click(screen.getByRole('radio', { name: '実生' }))
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: price } })
+  }
+
+  it('種子の金額を入れる前は見出しが「上代（種子 20粒の値段）」で「¥ —」、登録ボタンは押せない', async () => {
+    render(<PriceCalc />)
+    fireEvent.click(screen.getByRole('radio', { name: '実生' }))
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'パキポディウム' } })
+    expect(screen.getByText('上代（種子 20粒の値段）')).toBeInTheDocument()
+    expect(screen.getByText('¥ —')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '登録' })).toBeDisabled()
+  })
+
+  it('登録すると元値は 1 粒の値段（cost 30）、販売価格は 20 粒の値段（selling_price 600）で送られる', async () => {
+    render(<PriceCalc />)
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'パキポディウム' } })
+    enterSeed('600')
+    fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥600$/ }))
+    await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith({
+      brand: 'ei8htplants', plant_name: 'パキポディウム', pot_artist_name: null, cost: 30, selling_price: 600,
+    }))
+  })
+
+  it('100 円に満たない金額（20 粒 70 円）も切り上げず ¥70 のまま上代になる', async () => {
+    render(<PriceCalc />)
+    enterSeed('70')
+    expect(screen.getByText('¥70')).toBeInTheDocument()
+    expect(screen.getByText('原価率 5.0%')).toBeInTheDocument()
+  })
+
+  it('キリの悪い金額（20 粒 1,234 円）も切り上げず ¥1,234 のまま上代になる', async () => {
+    render(<PriceCalc />)
+    enterSeed('1234')
+    expect(screen.getByText('¥1,234')).toBeInTheDocument()
+    expect(screen.queryByText('¥1,300')).toBeNull()
+  })
+
+  it('目標原価率を 35 に変えても上代は ¥600 のままで、見出しも「上代（種子 20粒の値段）」のまま', async () => {
+    render(<PriceCalc />)
+    enterSeed('600')
+    fireEvent.change(screen.getByRole('textbox', { name: '目標原価率（%）' }), { target: { value: '35' } })
+    expect(screen.getByText('¥600')).toBeInTheDocument()
+    expect(screen.getByText('上代（種子 20粒の値段）')).toBeInTheDocument()
+    expect(screen.queryByText('推奨販売価格（原価率 35% 以下）')).toBeNull()
+    expect(screen.getByText('原価率 5.0%')).toBeInTheDocument()
+  })
+
+  it('目標原価率が正しくない（空）ときも上代 ¥600 は出るが、登録ボタンは押せない', async () => {
+    render(<PriceCalc />)
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'パキポディウム' } })
+    enterSeed('600')
+    fireEvent.change(screen.getByRole('textbox', { name: '目標原価率（%）' }), { target: { value: '' } })
+    expect(screen.getByText('¥600')).toBeInTheDocument()
+    expect(screen.getByText('0 より大きく 100 以下の数を入れてください')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^登録/ })).toBeDisabled()
+  })
+
+  it('任意価格で上書きでき、原価率が目標を超えると注意が出る（1 粒 30 円・任意価格 50 円 = 60.0%）が登録はできる', async () => {
+    render(<PriceCalc />)
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'パキポディウム' } })
+    enterSeed('600')
+    fireEvent.change(numberInputs()[1], { target: { value: '50' } })
+    expect(screen.getByText('登録価格: ¥50（原価率 60.0%）')).toBeInTheDocument()
+    expect(screen.getByText('原価率が 40% を超えています')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥50$/ }))
+    await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith({
+      brand: 'ei8htplants', plant_name: 'パキポディウム', pot_artist_name: null, cost: 30, selling_price: 50,
+    }))
+  })
+
+  it('任意価格 1,000 円（原価率 3.0%）なら注意は出ない', async () => {
+    render(<PriceCalc />)
+    enterSeed('600')
+    fireEvent.change(numberInputs()[1], { target: { value: '1000' } })
+    expect(screen.getByText('登録価格: ¥1,000（原価率 3.0%）')).toBeInTheDocument()
+    expect(screen.queryByText(/を超えています/)).toBeNull()
+  })
+
+  it('仕入れに戻すと見出しは「推奨販売価格（原価率 40% 以下）」に戻り、仕入れ値は目標原価率から計算される', async () => {
+    render(<PriceCalc />)
+    enterSeed('600')
+    fireEvent.click(screen.getByRole('radio', { name: '仕入れ' }))
+    expect(screen.getByText('推奨販売価格（原価率 40% 以下）')).toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText('例: 1500'), { target: { value: '600' } })
+    // 600 ÷ 0.4 = 1,500
+    expect(screen.getByText('¥1,500')).toBeInTheDocument()
   })
 })
