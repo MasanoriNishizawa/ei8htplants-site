@@ -1,59 +1,91 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import LoadError from '../components/LoadError'
+import { useApi } from '../hooks/useApi'
 import { api, type Product } from '../lib/api'
-import { parseBlocks, blocksToText } from '../components/BlockEditor'
+import { parseBlocks, blocksToText } from '../lib/blocks'
 import { useCart } from '../lib/cart'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
+import { formatYen } from '../lib/format'
 
-const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
+/** ページの背景色（生成り） */
 const BG = '#faf9f7'
+/** 見出し用（明朝体）の書体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
+/** 本文用（ゴシック体）の書体 */
 const SANS = "'Noto Sans JP', sans-serif"
 
-/** 商品詳細ページ。ブロックコンテンツ・購入ボックス・フローティングカートボタンを提供する */
+/**
+ * 商品詳細ページ。ブロックコンテンツ・購入ボックス・フローティングカートボタンを提供する
+ * @returns 商品詳細の画面（読み込み中・失敗・見つからないときはそれぞれの案内）
+ */
 export default function ShopProduct() {
   const t = useT()
+  // URL の商品 id（/shop/:id）
   const { id } = useParams<{ id: string }>()
-  const [product, setProduct] = useState<Product | null>(null)
-  const [loading, setLoading] = useState(true)
+  // 選んでいる数量
   const [qty, setQty] = useState(1)
+  // 「カートに追加しました」を一時的に出しているあいだ true
   const [added, setAdded] = useState(false)
+  // カートへの追加と、カートの中身
   const { add, items } = useCart()
+  // 「すぐに購入する」で購入手続きへ移るため
   const navigate = useNavigate()
 
-  useEffect(() => {
-    if (!id) return
-    api.products.get(id).then((p) => { setProduct(p); setQty(1) }).catch(() => {}).finally(() => setLoading(false))
-    window.scrollTo(0, 0)
-  }, [id])
+  // URL の id で商品を取る。別の商品へ移ったら読み込み中に戻り、前の商品の応答が後から届いても捨てる（useApi）。
+  // ページの先頭へのスクロールは App.tsx の ScrollToTop が行う
+  const { data, loading, error, reload } = useApi(
+    (): Promise<Product> => api.products.get(id ?? ''),
+    [id],
+    { enabled: !!id },
+  )
+  // 表示する商品（見つからなければ null）
+  const product = data
 
+  // 別の商品へ移ったら数量を 1 に戻す
+  useEffect(() => { setQty(1) }, [id])
+
+  // 「カートに追加しました」を 1.6 秒後に戻す（画面を離れたらタイマーを止める）
+  useEffect(() => {
+    if (!added) return
+    const timer = setTimeout(() => setAdded(false), 1600)
+    return () => clearTimeout(timer)
+  }, [added])
+
+  // この商品がカートに入っている数と、カート全体の点数（フローティングのカートボタン用）
   const cartQty = items.find((i) => i.product.id === id)?.quantity ?? 0
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)
 
+  /** 選んだ数量をカートに入れ、「追加しました」を少しのあいだ出す */
   const handleAdd = () => {
     if (!product) return
     add(product, qty)
     setAdded(true)
-    setTimeout(() => setAdded(false), 1600)
   }
 
+  /** 選んだ数量をカートに入れて、そのまま購入手続きへ進む */
   const handleBuyNow = () => {
     if (!product) return
     add(product, qty)
     navigate('/checkout')
   }
 
+  // 読み込み中
   if (loading) {
     return (
-      <div style={{ background: BG, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontFamily: SANS, color: '#aaa', fontSize: 13, letterSpacing: 2 }}>Loading...</p>
+      <div role="status" style={{ background: BG, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ fontFamily: SANS, color: '#aaa', fontSize: 13, letterSpacing: 2 }}>{t('読み込み中...', 'Loading...')}</p>
       </div>
     )
   }
 
+  // 404 以外の失敗（通信の失敗など）は「見つかりません」ではなく再読み込みを案内する
+  if (error && !error.message.startsWith('404')) return <LoadError onRetry={reload} />
+
+  // 商品が無い（404・URL に id が無い）ときは「見つかりません」とショップへのリンク
   if (!product) {
     return (
       <div style={{ background: BG, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
@@ -63,12 +95,17 @@ export default function ShopProduct() {
     )
   }
 
+  // あと何点カートに入れられるか（在庫 − すでにカートにある数）
   const maxQty = product.stock - cartQty
+  // 売り切れか
   const soldOut = product.stock === 0
 
+  // 商品説明のブロック
   const allBlocks = parseBlocks(product.description)
-  const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!(b as any).url)
-  const heroUrl = heroImgIdx >= 0 ? (allBlocks[heroImgIdx] as any).url : (product.image_urls[0] ?? null)
+  // 最初の画像ブロックを大きな写真に使う（無ければ商品の 1 枚目の画像）
+  const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!b.url)
+  const heroBlock = allBlocks[heroImgIdx]
+  const heroUrl: string | null = heroBlock?.type === 'image' ? heroBlock.url : (product.image_urls[0] ?? null)
 
   return (
     <>
@@ -85,7 +122,7 @@ export default function ShopProduct() {
           </div>
         </div>
 
-        {/* 記事本文 */}
+        {/* 商品ページの本文（タイトル・価格・写真・説明・購入ボックス） */}
         <article style={{ maxWidth: 720, margin: '0 auto', padding: '56px 24px 0' }}>
 
           {/* ブランドラベル・タイトル */}
@@ -100,7 +137,7 @@ export default function ShopProduct() {
 
           {/* 価格（タイトル直下に小さく表示） */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 40, paddingBottom: 24, borderBottom: '1px solid #e8e3da' }}>
-            <span style={{ fontFamily: SERIF, fontSize: 22, color: '#1c1c1c' }}>{fmt(product.price)}</span>
+            <span style={{ fontFamily: SERIF, fontSize: 22, color: '#1c1c1c' }}>{formatYen(product.price)}</span>
             <span style={{ fontFamily: SANS, fontSize: 11, color: '#aaa' }}>{t('税込・送料別', 'Tax incl. · Shipping extra')}</span>
             {soldOut && <span style={{ fontFamily: SANS, fontSize: 12, color: '#c0392b', marginLeft: 8 }}>{t('売り切れ', 'Sold out')}</span>}
           </div>
@@ -116,10 +153,11 @@ export default function ShopProduct() {
           <div style={{ marginBottom: 48 }}>
             {allBlocks.map((block, i) => {
               if (block.type === 'image') {
+                // 大きな写真に使った画像は本文では繰り返さない。URL の無い画像ブロックも出さない
                 if (i === heroImgIdx) return null
-                return (block as any).url ? (
+                return block.url ? (
                   <div key={i} style={{ marginBottom: 32, background: '#f0ede8', overflow: 'hidden', aspectRatio: '4/3' }}>
-                    <img src={(block as any).url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <img src={block.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </div>
                 ) : null
               }
@@ -136,7 +174,7 @@ export default function ShopProduct() {
               return null
             })}
 
-            {/* ブロックなし・複数画像の場合グリッド表示 */}
+            {/* ブロックなし・複数画像の場合グリッド表示（2 枚目以降。1 枚目は上の大きな写真に使っている） */}
             {allBlocks.length === 0 && product.image_urls.length > 1 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
                 {product.image_urls.slice(1).map((url, i) => (
@@ -158,10 +196,11 @@ export default function ShopProduct() {
             </p>
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontFamily: SERIF, fontSize: 28, color: '#1c1c1c' }}>{fmt(product.price)}</span>
+              <span style={{ fontFamily: SERIF, fontSize: 28, color: '#1c1c1c' }}>{formatYen(product.price)}</span>
               <span style={{ fontFamily: SANS, fontSize: 12, color: '#aaa' }}>{t('税込・送料別', 'Tax incl. · Shipping extra')}</span>
             </div>
 
+            {/* 在庫の残り（カートに入れている数も添える） */}
             <p style={{ fontFamily: SANS, fontSize: 12, color: soldOut ? '#c0392b' : '#aaa', margin: '0 0 28px' }}>
               {soldOut
                 ? t('現在売り切れです', 'Out of stock')
@@ -169,19 +208,20 @@ export default function ShopProduct() {
                     `${product.stock} left${cartQty > 0 ? ` (in cart: ${cartQty})` : ''}`)}
             </p>
 
+            {/* 在庫があり、まだカートに入れられるときだけ数量とボタンを出す */}
             {!soldOut && maxQty > 0 && (
               <>
-                {/* 数量 */}
+                {/* 数量（1 〜 maxQty の範囲で増減） */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
                   <span style={{ fontFamily: SANS, fontSize: 12, color: '#717171', letterSpacing: 1 }}>{t('数量', 'Qty')}</span>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', background: '#fff' }}>
-                    <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 40, border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: '#1c1c1c' }}>−</button>
-                    <span style={{ width: 36, textAlign: 'center', fontFamily: SERIF, fontSize: 16, color: '#1c1c1c' }}>{qty}</span>
-                    <button onClick={() => setQty((q) => Math.min(maxQty, q + 1))} style={{ width: 40, height: 40, border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: '#1c1c1c' }}>+</button>
+                    <button type="button" aria-label={t('数量を減らす', 'Decrease quantity')} onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 40, height: 40, border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: '#1c1c1c' }}>−</button>
+                    <span aria-live="polite" style={{ width: 36, textAlign: 'center', fontFamily: SERIF, fontSize: 16, color: '#1c1c1c' }}>{qty}</span>
+                    <button type="button" aria-label={t('数量を増やす', 'Increase quantity')} onClick={() => setQty((q) => Math.min(maxQty, q + 1))} style={{ width: 40, height: 40, border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: '#1c1c1c' }}>+</button>
                   </div>
                 </div>
 
-                {/* ボタン */}
+                {/* カートに入れる（追加直後は少しのあいだ押せない）・すぐに購入する */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <button
                     onClick={handleAdd}
@@ -221,7 +261,7 @@ export default function ShopProduct() {
           </div>
         </article>
 
-        {/* ショップに戻るリンク */}
+        {/* シェアボタンとショップに戻るリンク */}
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 24px 80px' }}>
           <div style={{ marginBottom: 24 }}>
             <ShareButtons url={`${window.location.origin}/shop/${id}`} text={`${product.name} | ei8ht plants Shop`} />
@@ -231,7 +271,7 @@ export default function ShopProduct() {
           </Link>
         </div>
 
-        {/* フローティングカートボタン */}
+        {/* フローティングカートボタン（カートに商品があるときだけ右下に固定して出す） */}
         {cartCount > 0 && (
           <div style={{ position: 'fixed', bottom: 32, right: 32, zIndex: 100 }}>
             <Link

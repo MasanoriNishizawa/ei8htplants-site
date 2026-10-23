@@ -1,22 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
+import { api } from '../lib/api'
 import { MAX_MESSAGE_CHARS, toSendHistory, type ChatMessage } from '../lib/chatHistory'
-
-const API = import.meta.env.VITE_API_URL ?? ''
 
 /** 画面に表示するチャットメッセージ（定義は lib/chatHistory.ts） */
 type Message = ChatMessage
 
+/** 本文を URL とそれ以外に分ける正規表現（括弧で囲んでいるので split の結果に URL も残る） */
 const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g
-// URL末尾に来やすい句読点・括弧類（日本語・ASCII）
-const TRAILING_PUNCT = /[）」、。！？』】〕\)\].,;:!?'"]+$/
+/** URL末尾に来やすい句読点・括弧類（日本語・ASCII）。リンクから外して後ろに普通の文字として出す */
+const TRAILING_PUNCT = /[）」、。！？』】〕)\].,;:!?'"]+$/
 
-/** テキスト内のURLをリンクに変換して返す */
+/**
+ * テキスト内のURLをリンクに変換して返す
+ * @param line - 1 行分の本文
+ * @returns 文字とリンクの要素の配列
+ */
 function renderWithLinks(line: string) {
+  // URL とそれ以外を交互に並べた配列
   const parts = line.split(URL_SPLIT_RE)
   return parts.flatMap((part, i) => {
     if (!part.startsWith('http')) return [<span key={i}>{part}</span>]
+    // 末尾の句読点を除いた URL と、除いた句読点
     const url = part.replace(TRAILING_PUNCT, '')
     const trailing = part.slice(url.length)
     const link = <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{url}</a>
@@ -24,10 +30,13 @@ function renderWithLinks(line: string) {
   })
 }
 
-/** メッセージ本文を改行・URL対応で表示するサブコンポーネント。
+/**
+ * メッセージ本文を改行・URL対応で表示するサブコンポーネント
  * @param text - 表示するテキスト
+ * @returns 行ごとに改行を入れた本文
  */
 function MessageText({ text }: { text: string }) {
+  // 改行で分けた行
   const lines = text.split('\n')
   return (
     <span>
@@ -38,25 +47,31 @@ function MessageText({ text }: { text: string }) {
   )
 }
 
-/** 植物相談・ワークショップ案内AIチャットページ */
+/**
+ * 植物相談・ワークショップ案内AIチャットページ
+ * @returns チャットの画面
+ */
 export default function Chat() {
   const t = useT()
+  // 利用者と AI のやりとり（先頭の歓迎メッセージは含めない。下の welcome を毎回の表示で先頭に付ける）
   const [messages, setMessages] = useState<Message[]>([])
+  // 入力欄の文字
   const [input, setInput] = useState('')
+  // AI の返事を待っているあいだ true
   const [loading, setLoading] = useState(false)
+  // チャットの表示エリア（新しいメッセージが来たら下までスクロールする）
   const chatAreaRef = useRef<HTMLDivElement>(null)
+  // 最初の表示かどうか（最初はスクロールしない）
   const isFirstRender = useRef(true)
 
-  // 初回表示時のウェルカムメッセージ
-  useEffect(() => {
-    setMessages([{
-      role: 'model',
-      content: t(
-        'こんにちは。ei8ht plants のAIコンシェルジュです。\n植物の育て方・管理のご相談や、ワークショップ・予約に関するご質問にお答えします。\nどうぞお気軽にご質問ください。',
-        'Hello! I\'m the ei8ht plants AI concierge.\nI can help you with plant care, management advice, and questions about our workshops and reservations.\nFeel free to ask anything!'
-      ),
-    }])
-  }, [])
+  // 歓迎メッセージ。state に入れず毎回 t() で作るので、言語を切り替えると表示も送る履歴も今の言語になる
+  const welcome: Message = {
+    role: 'model',
+    content: t(
+      'こんにちは。ei8ht plants のAIコンシェルジュです。\n植物の育て方・管理のご相談や、ワークショップ・予約に関するご質問にお答えします。\nどうぞお気軽にご質問ください。',
+      'Hello! I\'m the ei8ht plants AI concierge.\nI can help you with plant care, management advice, and questions about our workshops and reservations.\nFeel free to ask anything!'
+    ),
+  }
 
   // メッセージ追加時にチャットエリア内を最下部へスクロール（初回ウェルカムメッセージは除く）
   useEffect(() => {
@@ -65,10 +80,19 @@ export default function Chat() {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages])
 
+  /**
+   * 入力したメッセージを送り、AI の返事を表示する
+   * 1. 空・返事待ちなら何もしない
+   * 2. 利用者のメッセージを画面に足し、入力欄を空にする
+   * 3. API に会話履歴を送る
+   * 4. 結果（回数制限・入力エラー・空の返事・成功・通信の失敗）ごとに表示を足す
+   */
   const send = async () => {
+    // 1. 送れるか確かめる
     const text = input.trim()
     if (!text || loading) return
 
+    // 2. 利用者のメッセージを足す
     const userMsg: Message = { role: 'user', content: text }
     const next = [...messages, userMsg]
     setMessages(next)
@@ -76,12 +100,10 @@ export default function Chat() {
     setLoading(true)
 
     try {
-      const res = await fetch(`${API}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: toSendHistory(next) }),
-      })
-      // 送信回数の上限（サーバーの回数制限）に達したときの案内。表示専用で履歴には入れない
+      // 3. 送信（api.chat.send は状態コードで案内を分けられるよう Response をそのまま返す）。
+      //    送る履歴は、これまでどおり先頭に歓迎メッセージを付ける
+      const res = await api.chat.send(toSendHistory([welcome, ...next]))
+      // 4. 送信回数の上限（サーバーの回数制限）に達したときの案内。表示専用で履歴には入れない
       if (res.status === 429) {
         setMessages([...next, {
           role: 'model',
@@ -105,7 +127,9 @@ export default function Chat() {
         }])
         return
       }
+      // そのほかの失敗は下の catch で共通の案内にする
       if (!res.ok) throw new Error()
+      // 応答の本文（reply に AI の返事が入る）
       const data = await res.json()
       // AI が安全フィルタなどで本文を返さなかった（reply が空・null）ときは、表示専用の案内にする。
       // 空の返事を履歴に入れると次の送信で壊れるため、送る履歴には入れない（返事の無い質問として除かれる）
@@ -120,8 +144,10 @@ export default function Chat() {
         }])
         return
       }
+      // 返事を足す
       setMessages([...next, { role: 'model', content: data.reply }])
     } catch {
+      // 通信の失敗・サーバーのエラー。表示専用で履歴には入れない
       setMessages([...next, {
         role: 'model',
         content: t(
@@ -135,6 +161,10 @@ export default function Chat() {
     }
   }
 
+  /**
+   * 入力欄でキーを押したとき、Enter だけなら送信する
+   * @param e - キーボードのイベント
+   */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Shift+Enter で改行、Enter のみで送信（IME変換中は送信しない）
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -154,6 +184,7 @@ export default function Chat() {
       />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '48px 20px 80px' }}>
+        {/* ページの見出しと説明 */}
         <h1 style={{
           fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
           fontSize: 'clamp(24px, 4vw, 36px)',
@@ -171,7 +202,7 @@ export default function Chat() {
           )}
         </p>
 
-        {/* チャット表示エリア */}
+        {/* チャット表示エリア（中だけスクロールする） */}
         <div ref={chatAreaRef} style={{
           border: '1px solid #dddde8',
           borderRadius: 4,
@@ -184,7 +215,8 @@ export default function Chat() {
           gap: 20,
           background: '#fafafa',
         }}>
-          {messages.map((msg, i) => (
+          {/* 歓迎メッセージとやりとり。利用者は右寄せの濃い緑、AI は左寄せの白い吹き出し */}
+          {[welcome, ...messages].map((msg, i) => (
             <div key={i} style={{
               display: 'flex',
               justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -205,6 +237,7 @@ export default function Chat() {
             </div>
           ))}
 
+          {/* 返事を待っているあいだの「...」 */}
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{
@@ -222,7 +255,7 @@ export default function Chat() {
 
         </div>
 
-        {/* 入力エリア */}
+        {/* 入力エリア（入力欄と送信ボタン。空・返事待ちのときは押せない） */}
         <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             value={input}
@@ -265,6 +298,7 @@ export default function Chat() {
           </button>
         </div>
 
+        {/* 注意書き */}
         <p style={{ fontSize: 11, color: '#bbb', marginTop: 8, letterSpacing: '0.03em', lineHeight: 1.8 }}>
           {t(
             '※ AIの回答は参考情報です。詳細はお問い合わせフォームよりご確認ください。',

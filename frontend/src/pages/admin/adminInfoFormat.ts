@@ -3,6 +3,8 @@
  * タイムゾーンで日付がずれないよう、Date に文字列をそのまま渡さず、年・月・日を分解して計算する
  */
 
+import { formatYen as formatYenCommon } from '../../lib/format'
+
 /** 曜日の表記（日曜始まり。Date.getUTCDay() の値と対応） */
 const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'] as const
 
@@ -63,8 +65,8 @@ export function formatJaDateTime(value: string | null | undefined): string | nul
  */
 export function formatYen(value: number | null | undefined): string | null {
   if (value === null || value === undefined || !Number.isFinite(value)) return null
-  // 実行環境の言語設定に左右されないよう ja-JP を指定する
-  return `${value.toLocaleString('ja-JP')}円`
+  // 表記は共通の関数（lib/format）の「1,234円」の形を使う
+  return formatYenCommon(value, 'suffix')
 }
 
 /**

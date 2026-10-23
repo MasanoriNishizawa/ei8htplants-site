@@ -10,6 +10,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import EventPreview from '../EventPreview'
 import type { Event } from '../../lib/api'
+import { LangProvider } from '../../lib/lang'
 
 /**
  * EventPreview を MemoryRouter でラップしてレンダリングするヘルパー
@@ -266,5 +267,42 @@ describe('EventPreview ワークショップセクション', () => {
     }))
     expect(screen.queryByText(/Habitat Style Workshop を予約する/)).toBeNull()
     expect(screen.queryByText(/ワークショップを開催しました/)).toBeNull()
+  })
+})
+
+// ---- 日毎の時間の曜日の表記（表示言語ごと） ----
+describe('EventPreview の日毎の時間の曜日（言語ごと）', () => {
+  /** 日毎に時間が違うイベント（2026-05-01 は金曜・05-02 は土曜） */
+  const DAILY = { '2026-05-01': '10:00〜16:00', '2026-05-02': '11:00〜17:00' }
+
+  /**
+   * 表示言語を決めて EventPreview を描画する
+   * @param lang - 表示言語（localStorage の site-lang に入れる）
+   * @returns render の結果
+   */
+  function renderWithLang(lang: 'ja' | 'en') {
+    localStorage.setItem('site-lang', lang)
+    return render(
+      <LangProvider>
+        <MemoryRouter>
+          <EventPreview event={makeEvent({ time: null, daily_times: DAILY })} />
+        </MemoryRouter>
+      </LangProvider>
+    )
+  }
+
+  it('英語表示では曜日が英語の略称になり「5/1 (Fri) 10:00〜16:00」の形になる', () => {
+    renderWithLang('en')
+    expect(screen.getByText(/5\/1 \(Fri\) 10:00〜16:00/)).toBeInTheDocument()
+    expect(screen.getByText(/5\/2 \(Sat\) 11:00〜17:00/)).toBeInTheDocument()
+    // 日本語の曜日は出ない
+    expect(screen.queryByText(/（金）/)).toBeNull()
+  })
+
+  it('日本語表示では今までどおり「5/1（金）10:00〜16:00」の形になる', () => {
+    renderWithLang('ja')
+    expect(screen.getByText(/5\/1（金）10:00〜16:00/)).toBeInTheDocument()
+    expect(screen.getByText(/5\/2（土）11:00〜17:00/)).toBeInTheDocument()
+    expect(screen.queryByText(/\(Fri\)/)).toBeNull()
   })
 })

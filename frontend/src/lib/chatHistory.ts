@@ -58,11 +58,11 @@ export function clampContent(content: string): string {
  * @returns API に送る { role, content } の配列
  */
 export function toSendHistory(history: ChatMessage[]): ChatSendMessage[] {
-  // 1. 送ってよいメッセージだけにする（本文が文字列でないものも念のため除き、送信処理を壊さない）
+  // 1. 送ってよいメッセージだけにする（sendable に入れる）（本文が文字列でないものも念のため除き、送信処理を壊さない）
   const sendable = history.filter(
     (m) => !m.localOnly && typeof m.content === 'string' && m.content.trim() !== '',
   )
-  // 2. 返事の付かなかった過去の質問を除く
+  // 2. 返事の付かなかった過去の質問を除く（user と model が交互に並ぶ履歴）
   const paired = sendable.filter((m, i) => {
     if (m.role !== 'user') return true
     const isLast = i === sendable.length - 1

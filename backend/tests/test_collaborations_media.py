@@ -63,12 +63,14 @@ class TestMediaAppearancesEndpoint:
         assert resp.status_code == 200
         assert resp.json() == []
 
-    def test_DB例外は500を返す(self):
+    def test_DB例外は500を返し例外の文字列は応答に出ない(self):
+        """DB の例外は一般的な文言の 500 になり、内部の例外の文字列（detail=str(e) だったもの）を返さないこと。"""
         mock_sb = _simple_mock([], error=Exception('DB connection failed'))
         with patch('app.routes.media_appearances.supabase', mock_sb):
             resp = TestClient(app).get('/api/media-appearances')
         assert resp.status_code == 500
-        assert 'DB connection failed' in resp.json()['detail']
+        assert 'DB connection failed' not in resp.text
+        assert resp.json()['detail'] == 'サーバーでエラーが発生しました。時間をおいて再度お試しください。'
 
 
 class TestCollaborationsCRUD:

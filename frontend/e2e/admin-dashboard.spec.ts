@@ -161,7 +161,7 @@ test.describe('サイドメニューでの未保存の変更の確認', () => {
     await page.setViewportSize({ width: 375, height: 812 })
     await openDirtyEditor(page)
     // モバイルのヘッダーにあるメニューボタンでドロワーを開く
-    await page.getByRole('button', { name: '☰' }).click()
+    await page.getByRole('button', { name: 'メニューを開く' }).click()
     // 閉じたドロワーは非表示でアクセシビリティツリーから外れるので、要素そのものを指す
     const aside = page.locator('aside')
     await expect(aside).toHaveClass(/drawer-open/)

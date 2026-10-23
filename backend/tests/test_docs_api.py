@@ -2,10 +2,25 @@
 /api/docs エンドポイントのテスト。
 設計書（doc/ ディレクトリ）の構造・内容・マークダウン有効性を検証する。
 """
+from unittest.mock import MagicMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.auth import require_auth
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _login_as_admin(request):
+    """/api/docs はログイン必須のため、TestDocsAuth 以外のテストでは管理者としてログインした扱いにする。"""
+    if request.cls is not None and request.cls.__name__ == 'TestDocsAuth':
+        yield
+        return
+    app.dependency_overrides[require_auth] = lambda: None
+    yield
+    app.dependency_overrides.pop(require_auth, None)
 
 
 def _collect_files(nodes: list) -> list[str]:
@@ -16,6 +31,33 @@ def _collect_files(nodes: list) -> list[str]:
         elif node.get('children'):
             paths.extend(_collect_files(node['children']))
     return paths
+
+
+class TestDocsAuth:
+    """設計書の API はログイン必須（未ログイン・無効なトークンは 401）。"""
+
+    def test_未ログインでツリーを取得すると401になる(self):
+        """Authorization ヘッダーなしの GET /api/docs/tree は 401 になり、ファイル名の一覧を返さないこと。"""
+        resp = client.get('/api/docs/tree')
+        assert resp.status_code == 401
+        assert 'TEST' not in resp.text
+
+    def test_未ログインで本文を取得すると401になる(self):
+        """Authorization ヘッダーなしの GET /api/docs/content は 401 になり、設計書の本文を返さないこと。"""
+        resp = client.get('/api/docs/content?path=04_TEST/01_マスターテスト計画書.md')
+        assert resp.status_code == 401
+        assert not resp.text.lstrip().startswith('#')
+
+    def test_無効なトークンで本文を取得すると401になる(self):
+        """Supabase がトークンを無効と判定したときも 401 になること。"""
+        mock_auth_sb = MagicMock()
+        mock_auth_sb.auth.get_user.return_value = MagicMock(user=None)
+        with patch('app.auth.supabase', mock_auth_sb):
+            resp = client.get(
+                '/api/docs/content?path=04_TEST/01_マスターテスト計画書.md',
+                headers={'Authorization': 'Bearer invalid'},
+            )
+        assert resp.status_code == 401
 
 
 class TestDocsTree:

@@ -1,42 +1,58 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Product, type Article, PRODUCT_CATEGORIES } from '../lib/api'
+import LoadError from '../components/LoadError'
+import { useApi } from '../hooks/useApi'
 import { useCart } from '../lib/cart'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
+import { formatYen } from '../lib/format'
 
-const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
+/** 見出し用（明朝体）の書体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
+/** 本文用（ゴシック体）の書体 */
 const SANS = "'Noto Sans JP', sans-serif"
 
+/** セクションの小さな見出し（「Category」など）の見た目 */
 const SECTION_LABEL: React.CSSProperties = {
   fontFamily: SANS, fontSize: 9, letterSpacing: '3px', textTransform: 'uppercase',
   color: 'var(--c-faint)', margin: '0 0 6px',
 }
 
-/** ショップページ。ジャーナル記事・カテゴリー別商品一覧・フローティングカートボタンを提供する */
+/**
+ * ショップページ。ジャーナル記事・カテゴリー別商品一覧・フローティングカートボタンを提供する
+ * @returns ショップの画面
+ */
 export default function Shop() {
   const t = useT()
-  const [products, setProducts] = useState<Product[]>([])
-  const [articles, setArticles] = useState<Article[]>([])
+  // 5 件目以降の記事（バックログ）を開いているか
   const [backlogOpen, setBacklogOpen] = useState(false)
+  // 選んでいるカテゴリー（null はすべて）
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  // カートの中身
   const { items } = useCart()
+  // カートに入っている数量の合計（右下のカートボタン用）
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)
 
-  useEffect(() => {
-    Promise.all([api.products.list(), api.articles.list()])
-      .then(([p, a]) => { setProducts(p); setArticles(a) })
-      .finally(() => setLoading(false))
-  }, [])
+  // 商品と記事をまとめて取る。失敗は error に入り、「販売中の商品はありません」とは分けて案内する
+  const { data, loading, error, reload } = useApi(
+    () => Promise.all([api.products.list(), api.articles.list()]),
+    [],
+  )
+  // 商品と記事（取得前・失敗時は空）
+  const products: Product[] = data?.[0] ?? []
+  const articles: Article[] = data?.[1] ?? []
 
+  // 最初から出す最新の 4 記事
   const latestArticles = articles.slice(0, 4)
+  // 「Backlog」ボタンで開く 5 件目以降の記事
   const backlogArticles = articles.slice(4)
+  // カテゴリーで絞り込んだ商品
   const filteredProducts = activeCategory
     ? products.filter((p) => p.category === activeCategory)
     : products
+  // 商品に実際に使われているカテゴリー（タブに出すのは、このうち PRODUCT_CATEGORIES にあるものを決まった順で）
   const usedCategories = Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[]
 
   return (
@@ -46,13 +62,16 @@ export default function Shop() {
       <div style={{ background: 'var(--c-bg)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(32px, 5vw, 56px) clamp(16px, 3vw, 40px) 80px' }}>
 
+          {/* 読み込み中・失敗・中身のどれか 1 つを出す */}
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <p style={{ fontFamily: SANS, color: 'var(--c-faint)', fontSize: 11, letterSpacing: 3 }}>Loading...</p>
+            <div role="status" style={{ textAlign: 'center', padding: '80px 0' }}>
+              <p style={{ fontFamily: SANS, color: 'var(--c-faint)', fontSize: 11, letterSpacing: 3 }}>{t('読み込み中...', 'Loading...')}</p>
             </div>
+          ) : error ? (
+            <LoadError onRetry={reload} />
           ) : (
             <>
-              {/* ── Journal ── */}
+              {/* ── Journal ──（記事が 1 件以上あるときだけ） */}
               {articles.length > 0 && (
                 <section style={{ marginBottom: 'clamp(40px, 6vw, 64px)' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -74,7 +93,7 @@ export default function Shop() {
                     ))}
                   </div>
 
-                  {/* バックログ */}
+                  {/* バックログ（5 件目以降。ボタンで開閉する） */}
                   {backlogArticles.length > 0 && (
                     <>
                       {backlogOpen && (
@@ -108,7 +127,7 @@ export default function Shop() {
                   </h2>
                 </div>
 
-                {/* カテゴリーフィルター */}
+                {/* カテゴリーフィルター（選んでいるタブに下線。横にスクロールできる） */}
                 {usedCategories.length > 0 && (
                   <div style={{ display: 'flex', gap: 0, overflowX: 'auto', borderBottom: '1px solid var(--c-border)', marginBottom: 28, scrollbarWidth: 'none' }}>
                     <button
@@ -129,6 +148,7 @@ export default function Shop() {
                   </div>
                 )}
 
+                {/* 商品が無いときの案内（全体で 0 件か、このカテゴリーだけ 0 件かで文を変える） */}
                 {filteredProducts.length === 0 ? (
                   <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-faint)', padding: '40px 0' }}>
                     {products.length === 0
@@ -143,6 +163,7 @@ export default function Shop() {
                   </div>
                 )}
 
+                {/* ショップのページのシェアボタン */}
                 <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid var(--c-border)' }}>
                   <ShareButtons url={`${window.location.origin}/shop`} text="ei8ht plants Shop" />
                 </div>
@@ -152,7 +173,7 @@ export default function Shop() {
         </div>
       </div>
 
-      {/* フローティングカート */}
+      {/* フローティングカート（カートに商品があるときだけ右下に固定して出す） */}
       {cartCount > 0 && (
         <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 100 }}>
           <Link
@@ -170,6 +191,7 @@ export default function Shop() {
 /**
  * ショップページ内で使うコンパクトな記事カード
  * @param article - 表示する記事データ
+ * @returns 記事ページへのリンク（マウスを乗せると画像が少し拡大する）
  */
 function ArticleCard({ article }: { article: Article }) {
   return (
@@ -196,6 +218,7 @@ function ArticleCard({ article }: { article: Article }) {
 /**
  * 商品サムネイル・名前・価格を表示するカードコンポーネント
  * @param product - 表示する商品データ
+ * @returns 商品ページへのリンク（マウスを乗せると画像が少し拡大する）
  */
 function ProductCard({ product }: { product: Product }) {
   return (
@@ -210,6 +233,7 @@ function ProductCard({ product }: { product: Product }) {
           ) : (
             <div style={{ width: '100%', height: '100%', background: '#e0dbd2' }} />
           )}
+          {/* 在庫切れは画像を暗くして「SOLD OUT」を重ねる */}
           {product.stock === 0 && (
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,26,24,0.36)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontFamily: SANS, fontSize: 9, letterSpacing: '3px', color: '#fffdf9', border: '1px solid rgba(255,253,249,0.6)', padding: '5px 14px' }}>SOLD OUT</span>
@@ -223,7 +247,7 @@ function ProductCard({ product }: { product: Product }) {
           {product.name}
         </p>
         <p style={{ fontFamily: SANS, fontSize: 12, color: product.stock === 0 ? 'var(--c-faint)' : 'var(--c-muted)', margin: 0 }}>
-          {fmt(product.price)}
+          {formatYen(product.price)}
         </p>
       </div>
     </Link>

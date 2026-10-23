@@ -204,6 +204,8 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     // 1. 一覧 → 確認画面 → 編集画面
     await page.goto('/admin/events')
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
+    // 確認画面に移ってから「編集」を押す（一覧の各行にも「編集」があるので、移る前に押すと別の画面へ行く）
+    await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
     await page.getByRole('link', { name: '編集' }).last().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 
@@ -214,7 +216,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     let dialogMessage = ''
     page.once('dialog', (d) => { dialogMessage = d.message(); void d.accept() })
     await page.getByRole('link', { name: '← 戻る' }).click()
-    await expect.poll(() => dialogMessage).toBe('保存していない変更があります。破棄して戻りますか？')
+    await expect.poll(() => dialogMessage).toBe('保存していない変更があります。破棄して移動しますか？')
 
     // 3. 確認画面に戻り、「保存しました」は出ず、値も変わっていない
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
@@ -240,7 +242,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     let dialogMessage = ''
     page.once('dialog', (d) => { dialogMessage = d.message(); void d.dismiss() })
     await page.getByRole('link', { name: '← 戻る' }).click()
-    await expect.poll(() => dialogMessage).toBe('保存していない変更があります。破棄して戻りますか？')
+    await expect.poll(() => dialogMessage).toBe('保存していない変更があります。破棄して移動しますか？')
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info/edit$`))
     await expect(page.getByLabel('要項の文章')).toHaveValue('文章だけ変更')
   })
@@ -285,6 +287,8 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     // 1. 一覧 → 確認画面 →「編集」
     await page.goto('/admin/events')
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
+    // 確認画面に移ってから「編集」を押す（一覧の各行にも「編集」があるので、移る前に押すと別の画面へ行く）
+    await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
     await page.getByRole('link', { name: '編集' }).first().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 

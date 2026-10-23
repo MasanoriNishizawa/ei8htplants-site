@@ -209,7 +209,7 @@ class TestCreateOrder:
 
         with patch('app.routes.orders.admin_supabase', mock_sb), \
              patch('app.routes.orders.http', mock_http), \
-             patch('app.routes.orders.resend', mock_resend), \
+             patch('app.mail.resend', mock_resend), \
              patch('app.routes.orders.SQUARE_ACCESS_TOKEN', 'test-token'), \
              patch('app.routes.orders.RESEND_API_KEY', ''):
             resp = TestClient(app).post('/api/orders', json=ORDER_REQUEST)

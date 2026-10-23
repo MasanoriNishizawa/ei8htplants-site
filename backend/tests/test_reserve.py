@@ -167,7 +167,7 @@ class TestCreateReservation:
 
         with patch('app.routes.reserve.supabase', mock_sb), \
              patch('app.routes.reserve.admin_supabase', mock_admin_sb), \
-             patch('app.routes.reserve.resend', mock_resend), \
+             patch('app.mail.resend', mock_resend), \
              patch('app.routes.reserve.HABITAT_RESEND_API_KEY', 'test-key'):
             resp = TestClient(app).post('/api/reserve', json=RESERVE_REQUEST)
 
@@ -181,7 +181,7 @@ class TestCancelReservation:
     """キャンセル POST /api/reserve/cancel のテスト。"""
 
     def test_有効なトークンでキャンセル成功(self):
-        """有効なキャンセルトークンで予約が取り消されること。"""
+        """有効なキャンセルトークン（古い 8 桁の形式）で予約が取り消され、応答は {"ok": true} だけになること。"""
         # キャンセル前の予約（status = 'pending'）
         pending_row = {
             'id': 'reservation-1',
@@ -209,8 +209,10 @@ class TestCancelReservation:
             resp = TestClient(app).post('/api/reserve/cancel', json={'token': '12345678'})
 
         assert resp.status_code == 200
-        data = resp.json()
-        assert data['status'] == 'cancelled'
+        # 応答には予約者の情報を含めない
+        assert resp.json() == {'ok': True}
+        # ステータスを cancelled に更新している
+        mock_admin_sb.table.return_value.update.assert_called_with({'status': 'cancelled'})
 
     def test_無効なトークンで404(self):
         """存在しないキャンセルトークンで 404 が返ること。"""

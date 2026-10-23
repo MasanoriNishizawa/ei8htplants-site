@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { computeFinances, fiscalYear, type EventFinances, api } from '../api'
+import { type EventFinances, api } from '../api'
+// 収支の計算は lib/finance.ts に移ったので、移動先から直接読み込む
+import { computeFinances, fiscalYear } from '../finance'
 
 // supabase モジュールをモック（authRequest が JWT トークンを取得するために使用）
 vi.mock('../supabase', () => ({

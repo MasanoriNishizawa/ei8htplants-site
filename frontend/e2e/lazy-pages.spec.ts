@@ -118,7 +118,9 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     test(`375px 幅で ${path} を開いても横スクロールが出ない`, async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 })
       await page.goto(path)
-      await expect(page.getByRole('navigation').first()).toBeAttached({ timeout: 20000 })
+      // 375px 幅では PC 用のメニューは非表示、スマホ用のメニュー（nav）は閉じているあいだ inert・非表示なので、
+      // ナビゲーションではなくヘッダー（banner）が出るのを待つ
+      await expect(page.getByRole('banner').first()).toBeVisible({ timeout: 20000 })
       await expectLoaded(page)
       await expectNoHorizontalScroll(page)
     })

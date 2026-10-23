@@ -21,8 +21,20 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from dotenv import load_dotenv
 
-from .data import CACHE_TTL  # noqa: F401  （.env の読み込みを先に済ませるため import する）
+from .data import ENV_PATH
+
+# GA の設定（GA_PROPERTY_ID など）を os.getenv で読む前に、リポジトリ直下の .env を読み込んでおく。
+# すでに環境変数にある値（Community Cloud の Secrets など）は上書きしない。.env が無ければ何もしない
+load_dotenv(ENV_PATH)
+
+# GA のレポートを取り直すまでのキャッシュ時間（秒）。GA の集計は数時間遅れて反映されるので、
+# Supabase のデータ（lib/data.py の CACHE_TTL）より長い1時間にして、API の呼び出し回数を減らす
+GA_CACHE_TTL = 60 * 60
+
+# 1回のレポートで取る行数の既定値（Data API の limit）
+DEFAULT_REPORT_LIMIT = 1000
 
 # 読み取り専用の権限
 SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"]
@@ -198,7 +210,7 @@ def response_to_frame(response, dimensions: list[str], metrics: list[str]) -> pd
     return df
 
 
-@st.cache_data(ttl=CACHE_TTL, show_spinner="Google アナリティクスのデータを読み込んでいます…")
+@st.cache_data(ttl=GA_CACHE_TTL, show_spinner="Google アナリティクスのデータを読み込んでいます…")
 def run_report(
     property_id: str,
     credentials_ref: str,
@@ -207,7 +219,7 @@ def run_report(
     start: str,
     end: str = "today",
     order_by_metric: str | None = None,
-    limit: int = 1000,
+    limit: int = DEFAULT_REPORT_LIMIT,
 ) -> pd.DataFrame:
     """GA4 のレポートを1つ取得する（キャッシュあり）。
 
@@ -227,6 +239,7 @@ def run_report(
     """
     from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, OrderBy, RunReportRequest
 
+    # 1. 取得する項目・期間・並び順・行数を指定したリクエストを作る
     request = RunReportRequest(
         property=f"properties/{property_id}",
         dimensions=[Dimension(name=d) for d in dimensions],
@@ -237,6 +250,7 @@ def run_report(
         else [],
         limit=limit,
     )
+    # 2. 読み取り専用の権限で送り、応答を表にする
     response = _client(credentials_ref).run_report(request)
     return response_to_frame(response, list(dimensions), list(metrics))
 
@@ -270,6 +284,14 @@ def label_paths(paths: pd.Series, events: pd.DataFrame, products: pd.DataFrame) 
     product_names = dict(zip(products["id"].astype(str), products["name"])) if not products.empty else {}
 
     def one(path: str) -> str:
+        """1つのパスを表示用の名前にする。
+
+        Args:
+            path: pagePath の値
+
+        Returns:
+            表示用の名前（置き換えられないときはクエリを外したパス）
+        """
         # 2. クエリは外して判定する
         p = path.split("?")[0].rstrip("/") or "/"
         if p in fixed:

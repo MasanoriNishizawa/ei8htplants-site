@@ -1,53 +1,68 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, type Article } from '../lib/api'
-import { parseBlocks } from '../components/BlockEditor'
+import { api } from '../lib/api'
+import { parseBlocks } from '../lib/blocks'
 import { useT } from '../lib/lang'
+import { parseLocalDate } from '../lib/localDate'
 import PageMeta from '../components/PageMeta'
+import LoadError from '../components/LoadError'
+import { useApi } from '../hooks/useApi'
 
+/** ページの背景色（生成り） */
 const BG = '#f8f7f5'
+/** 見出し用（明朝体）の書体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
+/** 本文用（ゴシック体）の書体 */
 const SANS = "'Noto Sans JP', sans-serif"
 
 /**
  * 記事コンテンツからテキストブロックを抽出し、指定文字数で切り詰めた抜粋を返す
  * @param text - ブロック JSON または生テキスト
  * @param max - 抜粋の最大文字数（デフォルト 120）
+ * @returns 抜粋（max を超えたら末尾に「…」を付ける）
  */
 function excerpt(text: string | null, max = 120): string {
   if (!text) return ''
+  // 1. 本文をブロックに分け、テキストのブロックだけをつなぐ（見出し・画像は除く）
   const blocks = parseBlocks(text)
   const plain = blocks
-    .filter((b) => b.type === 'text')
-    .map((b) => (b as any).value as string)
+    .flatMap((b) => (b.type === 'text' ? [b.value] : []))
     .join(' ')
+  // 2. テキストのブロックが無ければ、元の文字列から「## 見出し」の行を除き、改行を空白にして使う
   const src = plain || text.replace(/^## .+$/gm, '').replace(/\n+/g, ' ').trim()
+  // 3. 長ければ切り詰める
   return src.length > max ? src.slice(0, max) + '…' : src
 }
 
 /**
- * ISO 日付文字列を英語形式の日付ラベルに変換する
- * @param s - ISO 形式の日付文字列
+ * 日付の文字列を英語形式の日付ラベルに変換する（日付だけの文字列は現地の日付として読む）
+ * @param s - 日付の文字列（YYYY-MM-DD または ISO 形式）
+ * @returns 「May 1, 2026」の形（日付が無ければ空文字）
  */
 function fmtDate(s: string | null): string {
   if (!s) return ''
-  const d = new Date(s)
+  const d = parseLocalDate(s)
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-/** ジャーナル（記事）一覧ページ。タグフィルター・フィーチャー記事グリッドを提供する */
+/**
+ * ジャーナル（記事）一覧ページ。タグフィルター・フィーチャー記事グリッドを提供する
+ * @returns 記事一覧の画面
+ */
 export default function Journal() {
   const t = useT()
-  const [articles, setArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
+  // 選んでいるタグ（null はすべて）
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  // 記事の一覧（失敗は error に入り、「記事がありません」とは分けて案内する）
+  const { data, loading, error, reload } = useApi(() => api.articles.list(), [])
+  // 表示する記事（取得前・失敗時は空）
+  const articles = data ?? []
 
-  useEffect(() => {
-    api.articles.list().then(setArticles).finally(() => setLoading(false))
-  }, [])
-
+  // 全記事のタグ（重複なし・五十音／アルファベット順）
   const allTags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort()
+  // タグで絞り込んだ記事
   const filtered = activeTag ? articles.filter((a) => a.tags.includes(activeTag)) : articles
+  // 先頭の 1 件は大きく出し（featured）、残りはグリッドに並べる（rest）
   const [featured, ...rest] = filtered
 
   return (
@@ -71,7 +86,7 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* タグナビ */}
+          {/* タグナビ（タグが 1 つ以上あるときだけ。選んでいるタグに下線） */}
           {allTags.length > 0 && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', display: 'flex', gap: 0, overflowX: 'auto', flexWrap: 'nowrap', borderTop: '1px solid #f0ece6' }}>
               <button
@@ -93,10 +108,13 @@ export default function Journal() {
           )}
         </div>
 
+        {/* 読み込み中・失敗・0 件・記事の一覧のどれか 1 つを出す */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '100px 0' }}>
-            <p style={{ fontFamily: SANS, color: '#aaa', fontSize: 12, letterSpacing: 3 }}>Loading...</p>
+          <div role="status" style={{ textAlign: 'center', padding: '100px 0' }}>
+            <p style={{ fontFamily: SANS, color: '#aaa', fontSize: 12, letterSpacing: 3 }}>{t('読み込み中...', 'Loading...')}</p>
           </div>
+        ) : error ? (
+          <LoadError onRetry={reload} />
         ) : filtered.length === 0 ? (
           <p style={{ fontFamily: SERIF, fontSize: 18, color: '#999', textAlign: 'center', padding: '80px 0', fontWeight: 300 }}>
             {t('記事がありません。', 'No articles found.')}

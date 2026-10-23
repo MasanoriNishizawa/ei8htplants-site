@@ -2,7 +2,7 @@
 
 ## 概要
 
-コラボレーション記事の一覧取得・追加・削除機能。公開ページでは読み取りのみ、Adminページで管理操作を行う。
+コラボレーション記事の一覧取得・追加・削除機能。公開ページでは読み取りのみ、Adminページで管理操作を行う。動画・画像はどちらもファイルを選んでアップロードする（2026-10-22 に記述を今の画面に合わせた。それまでは URL を入力すると書いていた）。
 
 ## 使用ページ
 
@@ -48,8 +48,8 @@ interface Collaboration {
 | title | ○ | タイトル |
 | partner_name | — | コラボ相手 |
 | event_date | — | 開催日（type="date"） |
-| video_url | — | 動画URL |
-| image_url | — | 画像URL |
+| video_url | — | 動画。「動画ファイルを選択 (.mp4 / .mov / .webm)」からファイルを選ぶと `POST /api/upload/video` で保存し、その URL が入る（URL を直接入力する欄は無い） |
+| image_url | — | 画像。「+」の枠からファイルを選ぶと `POST /api/upload` で保存し、その URL が入る（URL を直接入力する欄は無い） |
 | description | — | 説明文（textarea） |
 
 ## 追加フロー
@@ -87,3 +87,5 @@ confirm('削除しますか？')
 - `image_url` がある場合：16:9アスペクト比で画像表示
 - `image_url` がなく `video_url` がある場合：autoplay/loop/muted の video 表示
 - `partner_name`・`event_date`・`description` は存在する場合のみ表示
+
+*最終更新: 2026-10-22（画像・動画はファイルを選んでアップロードする形に直した）*

@@ -1,87 +1,152 @@
+"""イベントの API。
+
+公開: イベント一覧（今後・過去）・1 件（slug または UUID）・ワークショップの時間枠と空き状況
+管理者: イベントの作成・更新・削除、時間枠の保存、イベントページの内容、収支、管理情報（搬入・宿泊・出店料など）
+
+過去のイベントかどうかは日本時間（JST）の今日で判定する（app/utils/dates.py）。
+"""
 import logging
+import re
+from datetime import date, datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
-from datetime import date, datetime, timezone, timedelta
+
+from ..auth import require_auth
+from ..db import admin_supabase, supabase
+from ..db_utils import execute_or_404, fetch_one_or_none
+from ..utils.dates import is_past_event, today_jst
+from ..utils.errors import error_summary
+from ..utils.ids import is_uuid
 
 logger = logging.getLogger(__name__)
-
-_JST = timezone(timedelta(hours=9))
-
-# is_past 判定をJST基準で行うため、現在日付をJSTで取得する
-def _today_jst() -> str:
-    """現在のJST日付を ISO 8601 形式の文字列（YYYY-MM-DD）で返す。"""
-    return datetime.now(_JST).date().isoformat()
-from ..db import supabase, admin_supabase
-from ..auth import require_auth
 
 router = APIRouter(prefix='/events', tags=['events'])
 
 
 class EventBody(BaseModel):
+    """イベントの作成・更新の入力。"""
+
+    # イベント名
     name: str
+    # URL に使う短い名前（任意。/events/{slug}）
     slug: Optional[str] = None
+    # 開始日（YYYY-MM-DD）
     start_date: str
+    # 終了日（YYYY-MM-DD・1 日だけのイベントは None）
     end_date: Optional[str] = None
+    # 開催時間の文字列（例 '10:00〜17:00'）
     time: Optional[str] = None
+    # 会場名
     location: str
+    # ブース番号（任意）
     booth_number: Optional[str] = None
+    # 会場の住所（任意。構造化データに使う）
     address: Optional[str] = None
+    # 主催者の公式サイトの URL（任意）
     official_url: Optional[str] = None
-    brands: list[str] = []
+    # 出店するブランド名の一覧
+    brands: list[str] = Field(default_factory=list)
+    # ワークショップがあるか
     has_workshop: bool = False
+    # ワークショップに予約が要るか
     ws_requires_reservation: bool = True
+    # 日ごとの開催時間（キーは 'YYYY-MM-DD'、値は時間の文字列）
     daily_times: Optional[dict] = None
-    image_urls: list[str] = []
+    # 画像の URL の一覧（並び順がそのまま表示順になる。event_images に保存する）
+    image_urls: list[str] = Field(default_factory=list)
 
     @field_validator('slug', 'end_date', 'time', 'booth_number', 'address', 'official_url', mode='before')
     @classmethod
     def empty_str_to_none(cls, v: object) -> object:
+        """画面から空文字で送られた任意の項目を None（未設定）にする。
+
+        Args:
+            v: 送られてきた値
+
+        Returns:
+            空文字なら None、それ以外はそのまま
+        """
         return None if v == '' else v
 
 
-# end_date があればそちらで、なければ start_date で過去イベント判定する
 def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
-    """イベントが過去かどうかをJST基準で判定して返す。
+    """イベントが過去かどうかをJST基準で判定して返す（保存するときの is_past 列の値）。
 
     Args:
         start_date: イベント開始日（YYYY-MM-DD）
         end_date: イベント終了日（YYYY-MM-DD）。指定した場合はこちらで判定する
 
     Returns:
-        過去のイベントであれば True、そうでなければ False
+        過去のイベントであれば True。日付として読めないときは False
     """
     try:
-        return date.fromisoformat(end_date or start_date).isoformat() < _today_jst()
-    except Exception:
+        last_day = date.fromisoformat(end_date or start_date).isoformat()
+    except (TypeError, ValueError):
         return False
+    return last_day < today_jst()
+
+
+# 日付の形（YYYY-MM-DD）。時間枠の空き状況の date で、日付でない文字列を DB に渡さないために使う
+_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+# イベントが見つからないときの文言
+_EVENT_NOT_FOUND = 'イベントが見つかりません'
+
+
+def _ensure_event_exists(event_id: str) -> None:
+    """id のイベントがあるか確かめる。無ければ 404 にする（管理者の保存の前に使う）。
+
+    存在しない id のまま保存すると外部キー違反（23503）、UUID でない id だと 22P02 で 500 になるため、
+    先にイベントを読んで 404 にする。
+
+    Args:
+        event_id: イベントの ID
+
+    Raises:
+        HTTPException(404): イベントが無い・id が UUID の形でない場合
+    """
+    if fetch_one_or_none(admin_supabase.table('events').select('id').eq('id', event_id)) is None:
+        raise HTTPException(404, _EVENT_NOT_FOUND)
+
+
+# ガソリン代の既定の単価（円/リットル）
+DEFAULT_GAS_PRICE = 170
 
 
 class FinanceBody(BaseModel):
+    """イベントの収支の入力（金額はすべて円）。"""
+
+    # 売上
     sales: int = 0
+    # 出店料
     booth_fee: int = 0
+    # 片道の距離（km）
     distance: int = 0
-    gas_price: int = 170
+    # ガソリンの単価（円/リットル）
+    gas_price: int = DEFAULT_GAS_PRICE
+    # 高速道路の料金
     expressway_toll: int = 0
+    # 宿泊費
     accommodation: int = 0
+    # ワークショップの参加人数
     ws_participants: int = 0
+    # 支払い済みフラグ
     payment_flag: bool = False
-    ws_payment_done: bool = False  # WSの手伝い支払い済みフラグ
+    # WSの手伝い支払い済みフラグ
+    ws_payment_done: bool = False
+    # その他の経費
     other_expenses: int = 0
+    # その他の経費のメモ
     other_expenses_note: Optional[str] = None
+    # 備考
     notes: Optional[str] = None
 
 
-_FINANCE_DEFAULTS = {
-    'sales': 0, 'booth_fee': 0, 'distance': 0, 'gas_price': 170,
-    'expressway_toll': 0, 'accommodation': 0, 'ws_participants': 0,
-    'payment_flag': False, 'ws_payment_done': False,
-    'other_expenses': 0, 'other_expenses_note': None, 'notes': None,
-}
+# 収支が未登録のイベントで返す既定値（FinanceBody の既定値から作るので、項目を足しても手で直さなくてよい）
+_FINANCE_DEFAULTS = FinanceBody().model_dump()
 
 
-# event_images テーブルから画像をバッチ取得してイベントリストに付加する（N+1を避ける）
 def _attach_images(events: list[dict]) -> list[dict]:
     """イベントリストに画像情報を一括で付加して返す。
 
@@ -110,27 +175,35 @@ def _attach_images(events: list[dict]) -> list[dict]:
     return events
 
 
-# イベント一覧を取得する。?past=true で過去イベント、デフォルトは今後のイベントのみ
 @router.get('')
-def list_events(past: bool = False):
-    """イベント一覧を返す。past=True で過去イベント、デフォルトは今後のイベントのみ。"""
-    today = _today_jst()
+def list_events(past: bool = False) -> list[dict]:
+    """イベント一覧を開始日の順で返す。
+
+    Args:
+        past: True なら終わったイベント、False（既定）なら今後・開催中のイベント
+
+    Returns:
+        is_past・images を付けたイベントの行のリスト
+    """
+    today = today_jst()
     data = supabase.table('events').select('*').order('start_date').execute().data
     result = []
     for e in data:
-        effective_end = e.get('end_date') or e.get('start_date', '')
-        e['is_past'] = effective_end < today
+        e['is_past'] = is_past_event(e, today)
         if e['is_past'] == past:
             result.append(e)
     return _attach_images(result)
 
 
-# IMPORTANT: static routes must be declared before /{event_id} to avoid
-# FastAPI matching the literal segment as a path parameter value.
-# 全イベントの収支情報を一覧取得する（管理者のみ）
+# 注意: 固定のパス（/finances・/admin-info/dashboard）は /{event_id} より前に登録する。
+# 後にすると、FastAPI が 'finances' などを event_id の値として扱ってしまう
 @router.get('/finances')
-def list_all_finances(_=Depends(require_auth)):
-    """全イベントの収支情報一覧を返す。"""
+def list_all_finances(_=Depends(require_auth)) -> list[dict]:
+    """全イベントの収支情報一覧を返す（管理者のみ）。
+
+    Returns:
+        event_finances の行のリスト
+    """
     return admin_supabase.table('event_finances').select('*').execute().data
 
 
@@ -141,10 +214,9 @@ _DASHBOARD_INFO_KEYS = (
 )
 
 
-# 管理画面ダッシュボード用に、今後のイベントと出店料が未払いのイベントの管理情報をまとめて返す（管理者のみ）
 # /{event_id}/... より前に置く（静的なパスを先に登録する）
 @router.get('/admin-info/dashboard')
-def get_admin_info_dashboard(_=Depends(require_auth)):
+def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
     """管理画面ダッシュボード用に、イベントごとの管理情報（搬入・ホテル・出店料）を一覧で返す。
 
     対象:
@@ -172,13 +244,12 @@ def get_admin_info_dashboard(_=Depends(require_auth)):
             for r in info_rows
         }
         # 3. 対象のイベントだけ残して、返す形にする
-        today = _today_jst()
+        today = today_jst()
         items = []
         for e in events:
             info = info_map.get(e.get('id')) or {}
             paid = bool(info.get('booth_fee_paid'))
-            effective_end = e.get('end_date') or e.get('start_date') or ''
-            is_upcoming = effective_end >= today
+            is_upcoming = not is_past_event(e, today)
             has_unpaid_fee = not paid and (bool(info.get('booth_fee')) or bool(info.get('booth_fee_due')))
             if not (is_upcoming or has_unpaid_fee):
                 continue
@@ -196,30 +267,63 @@ def get_admin_info_dashboard(_=Depends(require_auth)):
         items.sort(key=lambda i: i.get('start_date') or '')
         return {'items': items}
     except Exception as e:
-        logger.error('get_admin_info_dashboard 取得エラー: %s', e)
+        logger.error('get_admin_info_dashboard 取得エラー: %s', error_summary(e))
         raise HTTPException(status_code=500, detail='ダッシュボードの管理情報の取得に失敗しました')
 
 
+# 時間枠の定員の既定値
+DEFAULT_MAX_PARTICIPANTS = 10
+
+
 class WsSessionInput(BaseModel):
+    """ワークショップの時間枠 1 つ分の入力。"""
+
+    # 既存の時間枠の ID（新しく作る枠は None）
     id: Optional[str] = None
-    time_label: str
-    max_participants: int = 10
+    # 時間枠の表示名（例 '10:00〜11:00'）
+    time_label: str = Field(min_length=1)
+    # 定員（1 以上）
+    max_participants: int = Field(default=DEFAULT_MAX_PARTICIPANTS, ge=1)
 
 
 class WsSessionsBody(BaseModel):
+    """イベントの時間枠の一覧（この並びが表示順になる）。"""
+
+    # 時間枠のリスト
     sessions: list[WsSessionInput]
 
 
-# ワークショップセッション一覧を取得し、各セッションの予約済み人数を計算して付加する
 @router.get('/{event_id}/sessions')
-def get_sessions(event_id: str, date: Optional[str] = None):
-    """ワークショップセッション一覧を取得し、各セッションの予約済み人数を付加して返す。
-
-    session_id が古くなった予約も preferred_time による照合で漏れなく集計する。
+def get_sessions(event_id: str, date: Optional[str] = None) -> list[dict]:
+    """ワークショップの時間枠の一覧を、各枠の予約済みの人数を付けて返す（公開）。
 
     Args:
-        event_id: 対象イベントのID
+        event_id: 対象イベントの ID（UUID）
         date: 絞り込む日付（YYYY-MM-DD）。指定しない場合は全日程を対象にする
+
+    Returns:
+        reserved_count が付加されたセッションレコードのリスト（UUID の形の存在しない id では空のリスト）
+
+    Raises:
+        HTTPException(404): event_id が UUID の形でない場合（DB に渡すと 22P02 で 500 になるため）
+        HTTPException(400): date が YYYY-MM-DD の形でない場合
+    """
+    if not is_uuid(event_id):
+        raise HTTPException(404, _EVENT_NOT_FOUND)
+    if date and not _DATE_RE.match(date):
+        raise HTTPException(400, '日付の形が正しくありません')
+    return _sessions_with_counts(event_id, date)
+
+
+def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dict]:
+    """時間枠の一覧を読み、各枠の予約済みの人数（reserved_count）を付けて返す。
+
+    session_id が古くなった予約も preferred_time による照合で漏れなく集計する。
+    id の形は呼び出し元で確かめておく。
+
+    Args:
+        event_id: 対象イベントの ID
+        date: 絞り込む日付（YYYY-MM-DD）。None なら全日程
 
     Returns:
         reserved_count が付加されたセッションレコードのリスト
@@ -239,7 +343,7 @@ def get_sessions(event_id: str, date: Optional[str] = None):
         .neq('status', 'cancelled')
     if date:
         query = query.eq('preferred_date', date)
-    reservations = query.execute().data
+    reservations = query.execute().data or []
 
     count_map: dict[str, int] = {}
     for r in reservations:
@@ -255,10 +359,9 @@ def get_sessions(event_id: str, date: Optional[str] = None):
     return sessions
 
 
-# セッション一覧をupsert形式で保存し、送られてこなかった既存セッションは削除する
 @router.put('/{event_id}/sessions')
-def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)):
-    """セッション一覧を upsert 形式で保存し、リクエストに含まれないセッションを削除する。
+def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) -> list[dict]:
+    """セッション一覧を upsert 形式で保存し、リクエストに含まれないセッションを削除する（管理者のみ）。
 
     id が送られた場合はそれを優先してマッチし、なければ time_label でフォールバック照合する。
 
@@ -268,11 +371,18 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)):
 
     Returns:
         保存後の最新セッションリスト（reserved_count 付き）
+
+    Raises:
+        HTTPException(404): イベントが存在しない場合
     """
+    # 0. イベントがあるか確かめる（無い id で時間枠を作ると外部キー違反で 500 になるため）
+    _ensure_event_exists(event_id)
+    # 1. 既存の時間枠を読む
     existing = admin_supabase.table('ws_sessions').select('id, time_label').eq('event_id', event_id).execute().data or []
     existing_by_id = {s['id']: s for s in existing}
     existing_by_label = {s['time_label']: s['id'] for s in existing}
 
+    # 2. 送られた順に、既存の枠は更新・新しい枠は作成する
     incoming_ids: set[str] = set()
     for i, s in enumerate(body.sessions):
         # id が送られてきた場合はそれを優先、なければ time_label で照合
@@ -294,32 +404,46 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)):
             if result.data:
                 incoming_ids.add(result.data[0]['id'])
 
-    # 送られてこなかった既存セッションを削除
+    # 3. 送られてこなかった既存セッションを削除
     for s in existing:
         if s['id'] not in incoming_ids:
             admin_supabase.table('ws_sessions').delete().eq('id', s['id']).execute()
 
-    return get_sessions(event_id)
+    return _sessions_with_counts(event_id)
 
 
 class PageContentBody(BaseModel):
+    """イベント専用ページの内容（hero・venue・lineup などの JSON）。"""
+
+    # ページの内容
     page_content: dict
 
 
-# イベントページのJSONコンテンツを更新する（管理者のみ）
 @router.patch('/{event_id}/page')
-def save_page_content(event_id: str, body: PageContentBody, _=Depends(require_auth)):
-    """イベントの page_content フィールドを更新して最新のイベントレコードを返す。"""
+def save_page_content(event_id: str, body: PageContentBody, _=Depends(require_auth)) -> dict:
+    """イベントの page_content フィールドを更新して最新のイベントレコードを返す（管理者のみ）。
+
+    Args:
+        event_id: イベントの ID
+        body: ページの内容
+
+    Returns:
+        更新後のイベント（get_event と同じ形）
+
+    Raises:
+        HTTPException(404): イベントが存在しない場合
+    """
+    _ensure_event_exists(event_id)
     admin_supabase.table('events').update({'page_content': body.page_content}).eq('id', event_id).execute()
     return get_event(event_id)
 
 
-# イベントをslugまたはUUIDで取得する
 @router.get('/{event_id}')
-def get_event(event_id: str):
+def get_event(event_id: str) -> dict:
     """イベントを slug または UUID で取得し、is_past フラグと画像情報を付加して返す。
 
-    slug で先に検索し、見つからなければ UUID でフォールバック検索する。
+    slug で先に検索し、見つからなければ UUID の形のときだけ id で検索する
+    （UUID でない文字列で id 列を検索すると DB がエラーを返すため）。
 
     Args:
         event_id: イベントのスラッグまたはUUID
@@ -330,23 +454,30 @@ def get_event(event_id: str):
     Raises:
         HTTPException(404): イベントが存在しない場合
     """
-    # slug で検索、なければ UUID にフォールバック
+    # 1. slug で探す
     result = supabase.table('events').select('*').eq('slug', event_id).execute()
     data = result.data[0] if result.data else None
-    if not data:
+    # 2. 無ければ、UUID の形のときだけ id で探す
+    if not data and is_uuid(event_id):
         result = supabase.table('events').select('*').eq('id', event_id).execute()
         data = result.data[0] if result.data else None
     if not data:
-        raise HTTPException(404)
-    today = _today_jst()
-    data['is_past'] = (data.get('end_date') or data.get('start_date', '')) < today
+        raise HTTPException(404, 'イベントが見つかりません')
+    # 3. 過去かどうかと画像を付ける
+    data['is_past'] = is_past_event(data)
     return _attach_images([data])[0]
 
 
-# 新規イベントを作成し、画像URLを紐付ける
 @router.post('')
-def create_event(body: EventBody, _=Depends(require_auth)):
-    """新規イベントを作成し、画像URLを event_images テーブルに紐付けて返す。"""
+def create_event(body: EventBody, _=Depends(require_auth)) -> dict:
+    """新規イベントを作成し、画像URLを event_images テーブルに紐付けて返す（管理者のみ）。
+
+    Args:
+        body: イベントの内容
+
+    Returns:
+        作成したイベント（get_event と同じ形）
+    """
     row = body.model_dump(exclude={'image_urls'})
     row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     result = admin_supabase.table('events').insert(row).execute().data[0]
@@ -354,10 +485,23 @@ def create_event(body: EventBody, _=Depends(require_auth)):
     return get_event(result['id'])
 
 
-# イベントを更新する。画像は全削除後に再挿入する（順序変更に対応するため）
 @router.put('/{event_id}')
-def update_event(event_id: str, body: EventBody, _=Depends(require_auth)):
-    """イベントを更新する。画像は全削除後に再挿入して順序変更に対応する。"""
+def update_event(event_id: str, body: EventBody, _=Depends(require_auth)) -> dict:
+    """イベントを更新する。画像は全削除後に再挿入して順序変更に対応する（管理者のみ）。
+
+    Args:
+        event_id: イベントの ID
+        body: イベントの内容
+
+    Returns:
+        更新後のイベント（get_event と同じ形）
+
+    Raises:
+        HTTPException(404): イベントが存在しない場合
+    """
+    # 1. イベントがあるか確かめる（無い id のまま画像を入れると外部キー違反で 500 になるため）
+    _ensure_event_exists(event_id)
+    # 2. イベントを更新し、画像は全部消してから送られた順に入れ直す
     row = body.model_dump(exclude={'image_urls'})
     row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     admin_supabase.table('events').update(row).eq('id', event_id).execute()
@@ -366,40 +510,69 @@ def update_event(event_id: str, body: EventBody, _=Depends(require_auth)):
     return get_event(event_id)
 
 
-# イベントを削除する（管理者のみ）
 @router.delete('/{event_id}')
-def delete_event(event_id: str, _=Depends(require_auth)):
-    """指定IDのイベントを削除する。"""
-    admin_supabase.table('events').delete().eq('id', event_id).execute()
+def delete_event(event_id: str, _=Depends(require_auth)) -> dict:
+    """指定IDのイベントを削除する（管理者のみ）。
+
+    Args:
+        event_id: イベントの ID
+
+    Returns:
+        {"ok": True}（UUID の形の存在しない id でも同じ。消す対象が無いだけなので成功とする）
+
+    Raises:
+        HTTPException(404): id が UUID の形でない場合
+    """
+    execute_or_404(admin_supabase.table('events').delete().eq('id', event_id), _EVENT_NOT_FOUND)
     return {'ok': True}
 
 
-# 指定イベントの収支情報を取得する。未登録の場合はデフォルト値を返す
 @router.get('/{event_id}/finances')
-def get_finances(event_id: str, _=Depends(require_auth)):
-    """指定イベントの収支情報を返す。未登録の場合はデフォルト値のオブジェクトを返す。"""
-    result = admin_supabase.table('event_finances').select('*').eq('event_id', event_id).execute()
+def get_finances(event_id: str, _=Depends(require_auth)) -> dict:
+    """指定イベントの収支情報を返す。未登録の場合はデフォルト値のオブジェクトを返す（管理者のみ）。
+
+    Args:
+        event_id: イベントの ID
+
+    Returns:
+        event_finances の行、または {event_id, ...既定値}
+
+    Raises:
+        HTTPException(404): id が UUID の形でない場合
+    """
+    result = execute_or_404(admin_supabase.table('event_finances').select('*').eq('event_id', event_id), _EVENT_NOT_FOUND)
     if result.data:
         return result.data[0]
     return {'event_id': event_id, **_FINANCE_DEFAULTS}
 
 
-# 収支情報をupsertで保存する（存在すればupdate、なければinsert）
 @router.put('/{event_id}/finances')
-def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)):
-    """収支情報を upsert で保存して返す。既存レコードがあれば更新、なければ新規作成する。"""
-    data = {**body.model_dump(), 'event_id': event_id, 'updated_at': 'now()'}
-    existing = admin_supabase.table('event_finances').select('id').eq('event_id', event_id).execute()
-    if existing.data:
-        return admin_supabase.table('event_finances').update(data).eq('event_id', event_id).execute().data[0]
-    return admin_supabase.table('event_finances').insert(data).execute().data[0]
+def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)) -> dict:
+    """収支情報を upsert で保存して返す（管理者のみ）。
+
+    event_finances は event_id が一意なので、同じイベントの行があれば上書き、無ければ作成する
+    （読んでから書く 2 回の呼び出しをやめ、同時に保存しても行が 2 つにならないようにした）。
+
+    Args:
+        event_id: イベントの ID
+        body: 収支の内容
+
+    Returns:
+        保存した event_finances の行
+
+    Raises:
+        HTTPException(404): イベントが存在しない場合（無い id で保存すると外部キー違反で 500 になるため先に確かめる）
+    """
+    _ensure_event_exists(event_id)
+    data = {**body.model_dump(), 'event_id': event_id, 'updated_at': datetime.now(timezone.utc).isoformat()}
+    return admin_supabase.table('event_finances').upsert(data, on_conflict='event_id').execute().data[0]
 
 
-# 指定イベントの管理情報（搬入時間・ホテル・ブース費用等）を取得する（管理者のみ）
 @router.get('/{event_id}/admin-info')
-async def get_admin_info(event_id: str, _=Depends(require_auth)):
-    """指定イベントの管理情報を返す。未登録の場合は空の dict を返す。
+def get_admin_info(event_id: str, _=Depends(require_auth)) -> dict:
+    """指定イベントの管理情報（搬入時間・ホテル・ブース費用等）を返す。未登録の場合は空の dict を返す（管理者のみ）。
 
+    同期の関数にして、Supabase の同期の呼び出しを FastAPI のスレッドプールで行う（イベントループを止めない）。
     管理情報は未ログインでは読めない専用テーブル event_admin_info に保存している。
 
     Args:
@@ -407,15 +580,23 @@ async def get_admin_info(event_id: str, _=Depends(require_auth)):
 
     Returns:
         管理情報の dict。未登録の場合は {}
+
+    Raises:
+        HTTPException(404): id が UUID の形でない場合
+        HTTPException(500): 読み取りに失敗した場合
     """
     try:
         # 1. 専用テーブルから対象イベントの行を取得する（行が無ければ空のリスト）
-        result = admin_supabase.table('event_admin_info').select('info').eq('event_id', event_id).execute()
+        result = execute_or_404(
+            admin_supabase.table('event_admin_info').select('info').eq('event_id', event_id), _EVENT_NOT_FOUND
+        )
         # 2. 行があれば中身を返し、無ければ（または中身が null なら）空の dict を返す
         info = result.data[0].get('info') if result.data else None
         return info if info is not None else {}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error('get_admin_info 取得エラー: %s', e)
+        logger.error('get_admin_info 取得エラー: %s', error_summary(e))
         raise HTTPException(status_code=500, detail='管理情報の取得に失敗しました')
 
 
@@ -435,10 +616,9 @@ class AdminInfoBody(BaseModel):
     guidelines_image_urls: list[str] = Field(default_factory=list)  # 出店要項の画像 URL 一覧（アップロード順・複数枚）
 
 
-# 指定イベントの管理情報を保存する（管理者のみ）
 @router.put('/{event_id}/admin-info')
-async def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_auth)):
-    """指定イベントの管理情報を保存する。
+def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_auth)) -> dict:
+    """指定イベントの管理情報を保存する（管理者のみ）。
 
     管理情報は未ログインでは読めない専用テーブル event_admin_info に、1イベント1行で保存する
     （既に行があれば上書き、無ければ新規作成）。
@@ -456,9 +636,9 @@ async def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_
     """
     try:
         # 1. 対象イベントが存在するか確かめる。無ければ 404 を返す
-        exists = admin_supabase.table('events').select('id').eq('id', event_id).execute()
+        exists = execute_or_404(admin_supabase.table('events').select('id').eq('id', event_id), _EVENT_NOT_FOUND)
         if not exists.data:
-            raise HTTPException(status_code=404, detail='イベントが見つかりません')
+            raise HTTPException(status_code=404, detail=_EVENT_NOT_FOUND)
         # 2. 管理情報を専用テーブルに upsert する（event_id が同じ行があれば上書き）
         admin_supabase.table('event_admin_info').upsert(
             {'event_id': event_id, 'info': body.model_dump(), 'updated_at': datetime.now(timezone.utc).isoformat()},
@@ -468,12 +648,12 @@ async def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_
     except HTTPException:
         raise
     except Exception as e:
-        logger.error('save_admin_info 保存エラー: %s', e)
+        # 例外の文字列には保存しようとした管理情報が入りうるので、型名とコードだけを出す
+        logger.error('save_admin_info 保存エラー: %s', error_summary(e))
         raise HTTPException(status_code=500, detail='管理情報の保存に失敗しました')
 
 
-# 画像URLをevent_imagesテーブルに表示順を付けて一括挿入する
-def _save_images(event_id: str, urls: list[str]):
+def _save_images(event_id: str, urls: list[str]) -> None:
     """画像URLリストを display_order 付きで event_images テーブルに一括挿入する。
 
     Args:

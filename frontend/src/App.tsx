@@ -2,20 +2,24 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
 import { CartProvider } from './lib/cart'
 import { LangProvider } from './lib/lang'
-
-/** ページ遷移時にスクロール位置をトップに戻すユーティリティコンポーネント */
-function ScrollToTop() {
-  const { pathname } = useLocation()
-  // パス変更のたびにスクロールをリセット
-  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
-  return null
-}
 import Layout from './components/Layout'
 import StoreLayout from './components/StoreLayout'
 import PageLoading from './components/PageLoading'
 import LoadErrorBoundary from './components/LoadErrorBoundary'
 import Home from './pages/Home'
 import { adminPageLoaders } from './pages/admin/adminPages'
+
+/**
+ * ページ遷移時にスクロール位置をトップに戻すユーティリティコンポーネント（画面には何も出さない）
+ * @returns null
+ */
+function ScrollToTop() {
+  // 今のページのパス（クエリだけが変わったときは戻さない）
+  const { pathname } = useLocation()
+  // パス変更のたびにスクロールをリセット
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
 
 /*
  * 画面ごとの読み込み（コード分割）
@@ -70,6 +74,7 @@ const AdminWsSummary = lazy(adminPageLoaders.AdminWsSummary)
 const AdminEventAdminInfo = lazy(adminPageLoaders.EventAdminInfo)
 const AdminEventAdminInfoView = lazy(adminPageLoaders.EventAdminInfoView)
 const AdminEventImages = lazy(adminPageLoaders.EventImages)
+const AdminNotFound = lazy(adminPageLoaders.NotFound)
 
 // 公開サイトのその他のページ（チャット・メディア・ジャーナル・イベントページ・規約）
 const Chat = lazy(() => import('./pages/Chat'))
@@ -79,8 +84,13 @@ const JournalArticle = lazy(() => import('./pages/JournalArticle'))
 const EventSite = lazy(() => import('./pages/EventSite'))
 const LegalPage = lazy(() => import('./pages/LegalPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+// 存在しない URL 用のページ
+const NotFound = lazy(() => import('./pages/NotFound'))
 
-/** アプリ全体のルーティング定義。言語・カートの Context を最上位で提供する */
+/**
+ * アプリ全体のルーティング定義。言語・カートの Context を最上位で提供する
+ * @returns アプリ全体
+ */
 export default function App() {
   return (
     <LangProvider>
@@ -94,6 +104,7 @@ export default function App() {
             管理画面のレイアウト（AdminLayout）自体を最初に読み込むあいだだけ */}
         <Suspense fallback={<PageLoading />}>
         <Routes>
+          {/* ブランドサイト側のページ（大きいヘッダー・フッター・チャットボタン付き） */}
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<Events />} />
@@ -113,7 +124,10 @@ export default function App() {
             <Route path="/chat" element={<Chat />} />
             <Route path="/reserve" element={<Reserve />} />
             <Route path="/cancel" element={<CancelReservation />} />
+            {/* どのページにも当たらない URL は「ページが見つかりません」（公開サイトのレイアウトの中に出す） */}
+            <Route path="*" element={<NotFound />} />
           </Route>
+          {/* ショップ・ジャーナル側のページ（コンパクトなヘッダー） */}
           <Route element={<StoreLayout />}>
             <Route path="/shop" element={<Shop />} />
             <Route path="/shop/:id" element={<ShopProduct />} />
@@ -122,6 +136,7 @@ export default function App() {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order/complete" element={<OrderComplete />} />
           </Route>
+          {/* 管理画面（ログインが必要。AdminLayout がログイン画面とサイドメニューを出す） */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="events" element={<AdminEvents />} />
@@ -151,6 +166,8 @@ export default function App() {
             <Route path="chat-logs" element={<AdminChatLogs />} />
             <Route path="helper-payment" element={<AdminHelperPayment />} />
             <Route path="ws-summary" element={<AdminWsSummary />} />
+            {/* 管理画面の中で当たらない URL は、公開サイトの 404 ではなく管理画面のレイアウトの中で案内する */}
+            <Route path="*" element={<AdminNotFound />} />
           </Route>
         </Routes>
         </Suspense>

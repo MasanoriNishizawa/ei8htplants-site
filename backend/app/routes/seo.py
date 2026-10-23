@@ -19,7 +19,8 @@ import logging
 import os
 import re
 import threading
-import time
+# time はこのモジュールでは直接使わないが、テストが seo.time.monotonic を差し替えてキャッシュの期限を確かめるため残す
+import time  # noqa: F401
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Optional
@@ -28,7 +29,11 @@ from urllib.parse import quote
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse, Response
 
-from ..db import supabase, admin_supabase
+from ..config import SITE_ORIGIN
+from ..db import admin_supabase, supabase
+from ..utils.cache import TTLCache
+from ..utils.errors import error_summary
+from ..utils.ids import UUID_RE
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +43,7 @@ router = APIRouter(tags=['seo'])
 # サイト共通の定数（PageMeta.tsx の SITE / DEFAULT_DESC / ORIGIN / DEFAULT_OG_IMAGE と同じ値）
 # ---------------------------------------------------------------------------
 
-# サイトの URL（末尾のスラッシュなし）。canonical・og:url・画像の絶対 URL の土台にする
-SITE_ORIGIN = 'https://ei8htplants.com'
+# サイトの URL（SITE_ORIGIN）は config.py の値を使う。canonical・og:url・画像の絶対 URL の土台にする
 # サイト名。title の末尾（"ページ名 | ei8ht plants"）と og:site_name に使う
 SITE_NAME = 'ei8ht plants'
 # ページ固有の説明が無いときの説明文
@@ -67,9 +71,8 @@ NOINDEX_PREFIXES = ('/admin', '/cancel', '/checkout', '/order')
 # /api を除外するとイベント・記事などの本文が描画できず、索引されなくなる
 ROBOTS_DISALLOW = NOINDEX_PREFIXES
 
-# UUID の形（events/articles/products の id）。UUID でない文字列で id 列を検索すると
-# PostgREST がエラーを返すので、id で検索する前にこれで確かめる
-_UUID_RE = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+# UUID の形（events/articles/products の id）。共通の部品（app/utils/ids.py）のものを使う
+_UUID_RE = UUID_RE
 # 時刻（"10:00" など）を取り出す正規表現。event.time / daily_times の値（例 "10:00〜17:00"）から使う
 _TIME_RE = re.compile(r'(\d{1,2}):(\d{2})')
 
@@ -134,56 +137,8 @@ SITEMAP_STATIC_PATHS = (
 # メモリキャッシュ
 # ---------------------------------------------------------------------------
 
-class _TTLCache:
-    """一定時間だけ値を覚えておく、スレッドセーフな簡易キャッシュ。
-
-    serve_spa は同期関数でスレッドプールから同時に呼ばれるため、Lock で守る。
-    「DB に無かった」ことも覚えておけるよう、値が None でも保存する。
-    """
-
-    def __init__(self, ttl: float, max_entries: int):
-        # ttl: 値を覚えておく秒数 / max_entries: 保存する件数の上限
-        self._ttl = ttl
-        self._max = max_entries
-        # キー → (期限の時刻（time.monotonic 基準）, 値)
-        self._data: dict[Any, tuple[float, Any]] = {}
-        self._lock = threading.Lock()
-
-    def get(self, key: Any) -> tuple[bool, Any]:
-        """キーの値を返す。
-
-        Returns:
-            (見つかったか, 値)。期限切れ・未登録なら (False, None)
-        """
-        now = time.monotonic()
-        with self._lock:
-            hit = self._data.get(key)
-            if hit is None:
-                return False, None
-            expires, value = hit
-            if expires < now:
-                del self._data[key]
-                return False, None
-            return True, value
-
-    def set(self, key: Any, value: Any) -> None:
-        """キーに値を保存する。上限を超えたら期限切れを消し、それでも多ければ古い順に消す。"""
-        now = time.monotonic()
-        with self._lock:
-            if len(self._data) >= self._max:
-                # 1. 期限切れのものを消す
-                for k in [k for k, (exp, _) in self._data.items() if exp < now]:
-                    del self._data[k]
-                # 2. まだ多ければ、期限が早いもの（＝古いもの）から消す
-                if len(self._data) >= self._max:
-                    for k, _ in sorted(self._data.items(), key=lambda kv: kv[1][0])[: len(self._data) - self._max + 1]:
-                        del self._data[k]
-            self._data[key] = (now + self._ttl, value)
-
-    def clear(self) -> None:
-        """全件を消す（テスト用）。"""
-        with self._lock:
-            self._data.clear()
+# 一定時間だけ値を覚えておく簡易キャッシュ（共通の部品 app/utils/cache.py。以前の名前でも使えるようにしておく）
+_TTLCache = TTLCache
 
 
 # イベント・記事・商品・sitemap の読み取り結果のキャッシュ
@@ -200,12 +155,26 @@ def clear_cache() -> None:
 # ---------------------------------------------------------------------------
 
 def _str(value: Any) -> str:
-    """文字列ならそのまま、それ以外（None・数値・dict など）は空文字を返す。"""
+    """文字列ならそのまま、それ以外（None・数値・dict など）は空文字を返す。
+
+    Args:
+        value: DB から読んだ値（型は決まっていない）
+
+    Returns:
+        value が文字列ならそのまま、それ以外は ''
+    """
     return value if isinstance(value, str) else ''
 
 
 def _rows(result: Any) -> list[dict]:
-    """supabase の execute() の結果から行のリストを取り出す。形が違うときは空のリストを返す。"""
+    """supabase の execute() の結果から行のリストを取り出す。
+
+    Args:
+        result: supabase のクエリの execute() の戻り値
+
+    Returns:
+        dict の行だけのリスト。.data がリストでないときは空のリスト
+    """
     data = getattr(result, 'data', None)
     if not isinstance(data, list):
         return []
@@ -234,7 +203,15 @@ def _absolute_url(url: Any) -> Optional[str]:
 
 
 def _truncate(text: str, max_len: int = DESCRIPTION_MAX_LEN) -> str:
-    """空白・改行を1つの空白にまとめ、max_len 文字を超える分を切って「…」を付ける。"""
+    """空白・改行を1つの空白にまとめ、max_len 文字を超える分を切って「…」を付ける。
+
+    Args:
+        text: 切り詰める文字列
+        max_len: 「…」を含めた最大の文字数（既定は DESCRIPTION_MAX_LEN）
+
+    Returns:
+        max_len 文字以内の文字列
+    """
     t = re.sub(r'\s+', ' ', text).strip()
     if len(t) <= max_len:
         return t
@@ -277,7 +254,15 @@ def _parse_blocks(content: Any) -> list[dict]:
 
 
 def _blocks_to_text(blocks: list[dict], max_len: int = DESCRIPTION_MAX_LEN) -> str:
-    """見出し・本文ブロックの文字をつないで先頭 max_len 文字を返す（frontend の blocksToText と同じ）。"""
+    """見出し・本文ブロックの文字をつないで先頭 max_len 文字を返す（frontend の blocksToText と同じ）。
+
+    Args:
+        blocks: _parse_blocks() が返すブロックのリスト
+        max_len: 返す最大の文字数（既定は DESCRIPTION_MAX_LEN）
+
+    Returns:
+        text・heading ブロックの文字を空白でつないだ先頭 max_len 文字。無ければ ''
+    """
     parts = [
         _str(b.get('value')).replace('\n', ' ')
         for b in blocks
@@ -287,7 +272,14 @@ def _blocks_to_text(blocks: list[dict], max_len: int = DESCRIPTION_MAX_LEN) -> s
 
 
 def _first_image_block_url(blocks: list[dict]) -> Optional[str]:
-    """ブロック配列の中で最初の画像ブロックの URL を返す。無ければ None。"""
+    """ブロック配列の中で最初の画像ブロックの URL を返す。
+
+    Args:
+        blocks: _parse_blocks() が返すブロックのリスト
+
+    Returns:
+        最初の画像ブロックの URL。画像ブロックが無ければ None
+    """
     for b in blocks:
         if b.get('type') == 'image' and _str(b.get('url')):
             return _str(b.get('url'))
@@ -295,7 +287,14 @@ def _first_image_block_url(blocks: list[dict]) -> Optional[str]:
 
 
 def _parse_date(value: Any) -> Optional[date]:
-    """'YYYY-MM-DD'（後ろに時刻が付いていてもよい）を date にする。読めなければ None。"""
+    """'YYYY-MM-DD'（後ろに時刻が付いていてもよい）を date にする。
+
+    Args:
+        value: 日付の文字列（start_date・published_at など。文字列でなければ読めない扱い）
+
+    Returns:
+        date。読めなければ None
+    """
     s = _str(value)[:10]
     try:
         return date.fromisoformat(s)
@@ -304,13 +303,29 @@ def _parse_date(value: Any) -> Optional[date]:
 
 
 def _format_date_label(start: Any, end: Any) -> str:
-    """開催日を「2026年10月24日〜25日」の形にする（EventSite.tsx の formatDate と同じ）。"""
+    """開催日を「2026年10月24日〜25日」の形にする（EventSite.tsx の formatDate と同じ）。
+
+    Args:
+        start: 開始日（'YYYY-MM-DD'）
+        end: 終了日（'YYYY-MM-DD'。None や開始日と同じなら 1 日だけの表記）
+
+    Returns:
+        開催日の文字列。開始日が読めなければ ''
+    """
     s = _parse_date(start)
     if s is None:
         return ''
     e = _parse_date(end)
 
     def fmt(d: date) -> str:
+        """日付を「2026年10月24日」の形にする。
+
+        Args:
+            d: 日付
+
+        Returns:
+            「YYYY年M月D日」の文字列
+        """
         return f'{d.year}年{d.month}月{d.day}日'
 
     if e is None or e == s:
@@ -321,7 +336,14 @@ def _format_date_label(start: Any, end: Any) -> str:
 
 
 def _times_in(text: str) -> list[str]:
-    """文字列に含まれる時刻を "HH:MM" の形で順に返す（例 "10:00〜17:00" → ["10:00", "17:00"]）。"""
+    """文字列に含まれる時刻を "HH:MM" の形で順に返す（例 "10:00〜17:00" → ["10:00", "17:00"]）。
+
+    Args:
+        text: 時刻を含む文字列（event.time・daily_times の値）
+
+    Returns:
+        "HH:MM" のリスト（24 時・60 分以上のような時刻として読めないものは除く）
+    """
     result = []
     for h, m in _TIME_RE.findall(text):
         if int(h) < 24 and int(m) < 60:
@@ -330,7 +352,15 @@ def _times_in(text: str) -> list[str]:
 
 
 def _event_datetime(day: date, hhmm: Optional[str]) -> str:
-    """構造化データ用の日付（時刻が分かれば日本時間の日時）を返す。"""
+    """構造化データ用の日付（時刻が分かれば日本時間の日時）を返す。
+
+    Args:
+        day: 日付
+        hhmm: 時刻（"HH:MM"）。None なら日付だけにする
+
+    Returns:
+        'YYYY-MM-DDTHH:MM:00+09:00' または 'YYYY-MM-DD'
+    """
     if hhmm:
         return f'{day.isoformat()}T{hhmm}:00+09:00'
     return day.isoformat()
@@ -341,19 +371,32 @@ def _json_for_script(data: Any) -> str:
 
     "</script>" や "<!--" で script が閉じられないよう、< > & と
     JavaScript で改行扱いになる U+2028 / U+2029 を \\uXXXX の形に置き換える。
+
+    Args:
+        data: JSON にする値（構造化データの dict など）
+
+    Returns:
+        エスケープ済みの JSON 文字列
     """
     s = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
     return (
         s.replace('<', '\\u003c')
         .replace('>', '\\u003e')
         .replace('&', '\\u0026')
-        .replace(' ', '\\u2028')
-        .replace(' ', '\\u2029')
+        .replace('\u2028', '\\u2028')
+        .replace('\u2029', '\\u2029')
     )
 
 
 def _is_noindex(path: str) -> bool:
-    """検索結果に出さないページ（/admin・/cancel・/checkout・/order 以下）かどうかを返す。"""
+    """検索結果に出さないページ（/admin・/cancel・/checkout・/order 以下）かどうかを返す。
+
+    Args:
+        path: 先頭が "/" のパス
+
+    Returns:
+        NOINDEX_PREFIXES のどれかと一致するか、その下のパスなら True
+    """
     return any(path == p or path.startswith(p + '/') for p in NOINDEX_PREFIXES)
 
 
@@ -404,6 +447,12 @@ def _fetch_article(article_id: str) -> Optional[dict]:
     記事の公開 API（GET /api/articles）と同じく、管理用クライアントに is_published=true の
     条件を付けて読む（記事テーブルには anon 向けの読み取り設定が見当たらないため）。
     読むのはメタ情報に必要な列だけにする。
+
+    Args:
+        article_id: URL の /journal/ の後ろの部分
+
+    Returns:
+        記事の dict（id・title・content・image_urls・published_at・created_at）。無ければ None
     """
     if not _UUID_RE.match(article_id):
         return None
@@ -426,6 +475,12 @@ def _fetch_product(product_id: str) -> Optional[dict]:
 
     商品の公開 API（GET /api/products）と同じく、管理用クライアントに is_published=true の
     条件を付けて読む。読むのはメタ情報に必要な列だけにする。
+
+    Args:
+        product_id: URL の /shop/ の後ろの部分
+
+    Returns:
+        商品の dict（id・name・description・image_urls・created_at）。無ければ None
     """
     if not _UUID_RE.match(product_id):
         return None
@@ -470,7 +525,14 @@ class PageMeta:
 
 
 def _full_title(title: Optional[str]) -> str:
-    """ページ名から <title> の文字列を作る（PageMeta.tsx と同じく "ページ名 | ei8ht plants"）。"""
+    """ページ名から <title> の文字列を作る（PageMeta.tsx と同じく "ページ名 | ei8ht plants"）。
+
+    Args:
+        title: ページ名。None・空ならサイト名だけにする
+
+    Returns:
+        <title> に入れる文字列
+    """
     return f'{title} | {SITE_NAME}' if title else SITE_NAME
 
 
@@ -510,6 +572,12 @@ def _not_found_meta(path: str) -> PageMeta:
 
     SPA なのでステータスは 200 のままだが、中身の無いページが検索結果に載らないよう
     （ソフト 404 対策）noindex を入れ、canonical は入れない。
+
+    Args:
+        path: リクエストのパス（og:url に使う）
+
+    Returns:
+        既定値に noindex=True・canonical=False を付けた PageMeta
     """
     meta = _make_meta(path, None, None, None)
     meta.noindex = True
@@ -522,6 +590,12 @@ def _event_description(event: dict) -> str:
 
     page_content の hero.tagline・hero.subtitle・concept をつないだもの。どれも無ければ
     「開催日 / 会場」（EventSite.tsx の PageMeta と同じ形）にする。DESCRIPTION_MAX_LEN 字で切る。
+
+    Args:
+        event: _fetch_event() が返すイベントの dict
+
+    Returns:
+        説明文。材料が何も無ければ DEFAULT_DESCRIPTION
     """
     pc = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
     hero = pc.get('hero') if isinstance(pc.get('hero'), dict) else {}
@@ -538,6 +612,10 @@ def _event_json_ld(event: dict, meta: PageMeta) -> Optional[dict]:
 
     開始時刻は daily_times の開始日の値か event.time の最初の時刻、終了時刻は
     daily_times の終了日の値か event.time の2つ目の時刻から取る。
+
+    Args:
+        event: _fetch_event() が返すイベントの dict（image_urls 付き）
+        meta: このページの PageMeta（description・url を使う）
 
     Returns:
         Event の dict。開始日が読めない、または住所が無いときは None
@@ -590,7 +668,11 @@ def _event_json_ld(event: dict, meta: PageMeta) -> Optional[dict]:
 
 
 def _organization_json_ld() -> dict:
-    """トップページに入れる schema.org Organization を返す。"""
+    """トップページに入れる schema.org Organization を返す。
+
+    Returns:
+        Organization の dict
+    """
     return {
         '@context': 'https://schema.org',
         '@type': 'Organization',
@@ -662,7 +744,8 @@ def build_page_meta(path: str, query: Optional[dict] = None) -> PageMeta:
                 return _make_meta(norm, f'{name} | Shop', _blocks_to_text(blocks) or name, image_urls[0] if image_urls else None)
             return _not_found_meta(norm)
     except Exception as e:
-        logger.error('build_page_meta DB 読み取りエラー（%s）: %s', norm, e)
+        # 例外の文字列には URL の一部（利用者の入力）が入りうるので、型名とコードだけを出す
+        logger.error('build_page_meta DB 読み取りエラー（%r）: %s', norm, error_summary(e))
         return _make_meta(norm, None, None, None)
 
     # 4. 固定ページ
@@ -685,7 +768,14 @@ def build_page_meta(path: str, query: Optional[dict] = None) -> PageMeta:
 # ---------------------------------------------------------------------------
 
 def render_head_tags(meta: PageMeta) -> str:
-    """PageMeta から <head> に入れるタグの文字列を作る。値はすべて HTML エスケープする。"""
+    """PageMeta から <head> に入れるタグの文字列を作る。値はすべて HTML エスケープする。
+
+    Args:
+        meta: build_page_meta() が返すメタ情報
+
+    Returns:
+        title・meta・link・構造化データの script タグを改行でつないだ文字列
+    """
     e = lambda v: html.escape(v, quote=True)  # noqa: E731 属性値・本文のエスケープ（& < > " ' を実体参照にする）
     card = 'summary_large_image' if meta.has_own_image else 'summary'
     tags = [
@@ -715,7 +805,15 @@ def render_head_tags(meta: PageMeta) -> str:
 
 
 def inject_head(index_html: str, meta: PageMeta) -> str:
-    """index.html の <title> をメタ情報のタグに置き換える。<title> が無ければ </head> の前に入れる。"""
+    """index.html の <title> をメタ情報のタグに置き換える。<title> が無ければ </head> の前に入れる。
+
+    Args:
+        index_html: index.html の中身
+        meta: 入れるメタ情報
+
+    Returns:
+        メタ情報のタグを入れた HTML 文字列
+    """
     tags = render_head_tags(meta)
     # 置き換え文字列に "\" が含まれても正規表現の参照として解釈されないよう、関数で渡す
     replaced, count = re.subn(r'<title>.*?</title>', lambda _m: tags, index_html, count=1, flags=re.S | re.I)
@@ -724,13 +822,25 @@ def inject_head(index_html: str, meta: PageMeta) -> str:
     return index_html.replace('</head>', tags + '\n  </head>', 1)
 
 
-# index.html の中身と更新時刻（デプロイで差し替わったら読み直す）
+# index.html のパス → (更新時刻, 中身)。デプロイで差し替わって更新時刻が変わったら読み直す
 _index_cache: dict[str, tuple[float, str]] = {}
+# _index_cache を読み書きするときに取るロック（複数のリクエストが同時に読み書きしても壊れないようにする）。
+# ファイルの読み込み中は持たない（読み込みが遅くてもほかのリクエストを待たせないため）
 _index_lock = threading.Lock()
 
 
 def _read_index(index_path: str) -> str:
-    """index.html を読む。更新時刻が変わっていなければ前回読んだ中身を使う。"""
+    """index.html を読む。更新時刻が変わっていなければ前回読んだ中身を使う。
+
+    Args:
+        index_path: index.html のパス
+
+    Returns:
+        index.html の中身
+
+    Raises:
+        OSError: ファイルが無い・読めない場合
+    """
     mtime = os.path.getmtime(index_path)
     with _index_lock:
         hit = _index_cache.get(index_path)
@@ -762,8 +872,12 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None) -
 # ---------------------------------------------------------------------------
 
 @router.get('/robots.txt', response_class=PlainTextResponse)
-def robots_txt():
-    """クローラー向けの robots.txt を返す。管理画面・予約キャンセル・購入手続きは除外する（/api は除外しない）。"""
+def robots_txt() -> PlainTextResponse:
+    """クローラー向けの robots.txt を返す。管理画面・予約キャンセル・購入手続きは除外する（/api は除外しない）。
+
+    Returns:
+        robots.txt の本文（text/plain）
+    """
     lines = ['User-agent: *', 'Allow: /']
     lines += [f'Disallow: {p}' for p in ROBOTS_DISALLOW]
     lines += ['', f'Sitemap: {SITE_ORIGIN}/sitemap.xml', '']
@@ -771,7 +885,15 @@ def robots_txt():
 
 
 def _sitemap_url(path: str, lastmod: Any = None) -> str:
-    """sitemap の <url> 要素を1つ作る。lastmod は日付として読めるときだけ入れる。"""
+    """sitemap の <url> 要素を1つ作る。lastmod は日付として読めるときだけ入れる。
+
+    Args:
+        path: ページのパス（"/events/foo" など）
+        lastmod: 最終更新日（'YYYY-MM-DD...'）。読めなければ入れない
+
+    Returns:
+        <url> 要素の文字列
+    """
     loc = html.escape(SITE_ORIGIN + quote(path, safe='/'), quote=True)
     d = _parse_date(lastmod)
     if d:
@@ -801,7 +923,7 @@ def _build_sitemap() -> tuple[str, bool]:
                 entries.append(_sitemap_url(f'/events/{key}'))
     except Exception as e:
         ok = False
-        logger.error('sitemap イベント取得エラー: %s', e)
+        logger.error('sitemap イベント取得エラー: %s', error_summary(e))
     try:
         articles = _rows(
             admin_supabase.table('articles').select('id, published_at, created_at').eq('is_published', True).execute()
@@ -811,7 +933,7 @@ def _build_sitemap() -> tuple[str, bool]:
                 entries.append(_sitemap_url(f"/journal/{a['id']}", a.get('published_at') or a.get('created_at')))
     except Exception as e:
         ok = False
-        logger.error('sitemap 記事取得エラー: %s', e)
+        logger.error('sitemap 記事取得エラー: %s', error_summary(e))
     try:
         products = _rows(
             admin_supabase.table('products').select('id, created_at').eq('is_published', True).execute()
@@ -821,7 +943,7 @@ def _build_sitemap() -> tuple[str, bool]:
                 entries.append(_sitemap_url(f"/shop/{p['id']}", p.get('created_at')))
     except Exception as e:
         ok = False
-        logger.error('sitemap 商品取得エラー: %s', e)
+        logger.error('sitemap 商品取得エラー: %s', error_summary(e))
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -832,11 +954,14 @@ def _build_sitemap() -> tuple[str, bool]:
 
 
 @router.get('/sitemap.xml')
-def sitemap_xml():
+def sitemap_xml() -> Response:
     """公開ページ・イベント・公開済みの記事・公開中の商品の URL 一覧（sitemap.xml）を返す。
 
     作った XML は CACHE_TTL_SECONDS 秒メモリに残す。読み取りに失敗した部分があるときは
     次のリクエストで作り直せるよう、キャッシュしない。
+
+    Returns:
+        sitemap.xml の本文（application/xml）
     """
     found, xml = _cache.get(('sitemap',))
     if not found:

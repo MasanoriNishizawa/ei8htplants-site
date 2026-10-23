@@ -110,6 +110,7 @@ export function formatDueRemaining(due: string | null | undefined, today: string
  */
 export function isPaymentPending(item: AdminInfoDashboardItem): boolean {
   if (item.booth_fee_paid) return false
+  /** 出店料が 1 円以上入っているかどうか */
   const hasFee = item.booth_fee !== null && item.booth_fee > 0
   return hasFee || !!item.booth_fee_due
 }
@@ -127,13 +128,15 @@ export function selectPendingPayments(items: AdminInfoDashboardItem[], today: st
   return items
     .filter(isPaymentPending)
     .sort((a, b) => {
+      // 1. 期限の状態の順
       const sa = DUE_STATUS_ORDER[dueStatus(a.booth_fee_due, today)]
       const sb = DUE_STATUS_ORDER[dueStatus(b.booth_fee_due, today)]
       if (sa !== sb) return sa - sb
-      // "YYYY-MM-DD" どうしは文字列の大小で日付の前後を比べられる
+      // 2. 期限の早い順（"YYYY-MM-DD" どうしは文字列の大小で日付の前後を比べられる）
       const da = a.booth_fee_due ?? ''
       const db = b.booth_fee_due ?? ''
       if (da !== db) return da < db ? -1 : 1
+      // 3. 開始日の早い順
       if (a.start_date !== b.start_date) return a.start_date < b.start_date ? -1 : 1
       return 0
     })
@@ -152,6 +155,7 @@ export function selectUpcomingCarryIns(
   today: string,
   days: number = UPCOMING_DAYS,
 ): AdminInfoDashboardItem[] {
+  /** 出す範囲の最後の日（今日から days 日後） */
   const last = addDays(today, days)
   if (!last) return []
   return items

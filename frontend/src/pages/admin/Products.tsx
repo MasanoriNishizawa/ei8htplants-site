@@ -1,54 +1,159 @@
 import { useEffect, useState } from 'react'
 import { api, type Product, type ProductBody, type ProductCategory, PRODUCT_CATEGORIES } from '../../lib/api'
-import BlockEditor, { type Block, parseBlocks, serializeBlocks } from '../../components/BlockEditor'
+import BlockEditor from '../../components/BlockEditor'
+import { type Block, parseBlocks, serializeBlocks } from '../../lib/blocks'
+import { confirmDiscard, dirtySnapshotJson, useEscapeToClose, useUnsavedChanges } from './UnsavedChanges'
+import { failMessage } from './errorMessage'
+import { formatYen } from '../../lib/format'
 
-const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
+/** エラーの帯の見た目（一覧の上・編集モーダルで共通の赤い帯） */
+const errorBoxStyle: React.CSSProperties = {
+  color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px',
+  background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0',
+}
+
+/**
+ * ブロックエディタの中の画像の URL を、並び順のまま取り出す（image_urls に同期するため。空の URL は除く）
+ * @param blocks - ブロックの一覧
+ * @returns 画像の URL の一覧
+ */
+function imageUrlsOf(blocks: Block[]): string[] {
+  return blocks.flatMap((b) => (b.type === 'image' && b.url ? [b.url] : []))
+}
+
+/**
+ * 編集モーダルの入力の状態を、変更があるかの比較用に1つの文字列にする
+ * @param form - フォームの値
+ * @param blocks - 本文のブロック
+ * @param tagInput - 追加前のタグの入力欄
+ * @returns 比較用の文字列
+ */
+function snapshotOf(form: ProductBody, blocks: Block[], tagInput: string): string {
+  // '' と null は dirtySnapshotJson で同じ扱いにする（読み込んだ値と、入力して消した値の違いで「変更あり」にしない）
+  return dirtySnapshotJson({ form, blocks, tagInput })
+}
+
+/** 新規作成のときのフォームの初期値 */
 const BLANK: ProductBody = {
   name: '', description: '', price: 0, stock: 0,
   image_urls: [], tags: [], is_published: false, display_order: 0, category: null,
 }
 
-/** 商品管理。一覧表示・新規作成・編集・公開切替・削除を行うページ */
+/**
+ * 商品管理。一覧表示・新規作成・編集・公開切替・削除を行うページ
+ * @returns 商品の表と編集モーダル
+ */
 export default function AdminProducts() {
+  /** 商品の一覧（非公開も含む） */
   const [products, setProducts] = useState<Product[]>([])
+  /** 一覧を読み込み中か */
   const [loading, setLoading] = useState(true)
+  /** 編集中の商品（'new' なら新規作成、null ならモーダルを閉じている） */
   const [editing, setEditing] = useState<Product | null | 'new'>(null)
+  /** 編集モーダルのフォームの値 */
   const [form, setForm] = useState<ProductBody>(BLANK)
+  /** 保存中か */
   const [saving, setSaving] = useState(false)
+  /** タグの入力欄（Enter か「追加」で form.tags に入る） */
   const [tagInput, setTagInput] = useState('')
+  /** 本文・画像のブロック */
   const [blocks, setBlocks] = useState<Block[]>([])
+  /** モーダルを開いたときの入力の状態（snapshotOf の値。変更があるかの判定に使う） */
+  const [initialSnapshot, setInitialSnapshot] = useState('')
+  /** 一覧の操作（読み込み・削除・公開切り替え）の失敗の文言（一覧の上に出す） */
+  const [pageError, setPageError] = useState('')
+  /** 保存の失敗の文言（モーダルの中に出す） */
+  const [saveError, setSaveError] = useState('')
+  /** 削除・公開切り替えを処理中の商品の id（二重押しを防ぐ） */
+  const [busyId, setBusyId] = useState<string | null>(null)
 
+  /** 編集モーダルに、開いたときから変更があるか */
+  const isDirty = editing !== null && snapshotOf(form, blocks, tagInput) !== initialSnapshot
+  // 編集中に変更があれば、サイドメニューでの移動・再読み込みでも確認を出す
+  useUnsavedChanges(isDirty)
+
+  /** 一覧を読み込む（非公開も含む）。失敗したら「商品がありません」と区別できるようエラーを出す */
   const load = () => {
-    api.products.list(true).then(setProducts).finally(() => setLoading(false))
+    api.products.list(true)
+      .then(setProducts)
+      .catch((e: unknown) => setPageError(failMessage('商品の読み込みに失敗しました', e)))
+      .finally(() => setLoading(false))
   }
+  // 画面を開いたときに一覧を読み込む
   useEffect(load, [])
 
-  const openNew = () => { setEditing('new'); setForm({ ...BLANK, display_order: products.length }); setBlocks([]); setTagInput('') }
-  const openEdit = (p: Product) => {
-    setEditing(p)
-    setForm({ name: p.name, description: p.description ?? '', price: p.price, stock: p.stock, image_urls: p.image_urls, tags: p.tags ?? [], is_published: p.is_published, display_order: p.display_order, category: p.category ?? null })
-    setBlocks(parseBlocks(p.description))
+  /**
+   * モーダルを開き、入力の初期値と比較用の状態を入れる
+   * @param target - 編集する商品か 'new'
+   * @param nextForm - フォームの初期値
+   * @param nextBlocks - 本文のブロックの初期値
+   */
+  const openModal = (target: Product | 'new', nextForm: ProductBody, nextBlocks: Block[]) => {
+    setEditing(target)
+    setForm(nextForm)
+    setBlocks(nextBlocks)
     setTagInput('')
+    setSaveError('')
+    setInitialSnapshot(snapshotOf(nextForm, nextBlocks, ''))
   }
-  const closeModal = () => { setEditing(null); setForm(BLANK); setBlocks([]) }
+  /** 新規作成のモーダルを開く（表示順は末尾） */
+  const openNew = () => openModal('new', { ...BLANK, display_order: products.length }, [])
+  /**
+   * 既存の商品の編集モーダルを開く
+   * @param p - 編集する商品
+   */
+  const openEdit = (p: Product) => openModal(
+    p,
+    { name: p.name, description: p.description ?? '', price: p.price, stock: p.stock, image_urls: p.image_urls, tags: p.tags ?? [], is_published: p.is_published, display_order: p.display_order, category: p.category ?? null },
+    parseBlocks(p.description),
+  )
+  /** モーダルを閉じて入力を捨てる */
+  const closeModal = () => { setEditing(null); setForm(BLANK); setBlocks([]); setSaveError('') }
+  /** モーダルの外側のクリック・「キャンセル」ボタン・Esc で閉じるとき。保存中は閉じず、変更があれば確認してから閉じる */
+  const closeByBackdrop = () => {
+    if (saving) return
+    if (confirmDiscard(isDirty)) closeModal()
+  }
+  // モーダルを開いているあいだは Esc キーでも閉じる（書きかけなら確認、保存中は閉じない）。
+  // 日本語の変換中の Esc と、ほかの部品が preventDefault で受け取り済みの Esc では閉じない（useEscapeToClose）
+  useEscapeToClose(editing !== null, closeByBackdrop)
 
+  /** タグの入力欄の値を form.tags に足す（空・重複は足さない） */
   const addTag = () => {
+    /** 前後の空白を除いたタグ */
     const t = tagInput.trim()
     if (t && !form.tags.includes(t)) set('tags', [...form.tags, t])
     setTagInput('')
   }
+  /**
+   * タグを外す
+   * @param t - 外すタグ
+   */
   const removeTag = (t: string) => set('tags', form.tags.filter((x) => x !== t))
 
+  /**
+   * フォームの1項目を書き換える
+   * @param k - 項目名
+   * @param v - 新しい値
+   */
   const set = <K extends keyof ProductBody>(k: K, v: ProductBody[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
 
+  /**
+   * モーダルの内容を保存する
+   * 1. ブロック内の画像 URL を image_urls にも入れる（一覧のサムネイル・後方互換のため）
+   * 2. 新規なら作成、既存なら更新し、一覧に反映してモーダルを閉じる
+   * 3. 失敗したらモーダルを開いたまま（入力は残る）エラーを出す
+   */
   const handleSave = async () => {
     setSaving(true)
-    // ブロック内の画像URLをimage_urlsにも同期（後方互換）
-    const imageUrls = blocks.filter((b) => b.type === 'image').map((b) => (b as any).url).filter(Boolean)
-    const payload = { ...form, description: serializeBlocks(blocks), image_urls: imageUrls }
+    setSaveError('')
+    // 1. 画像 URL の同期
+    /** 送る内容（本文はブロックを文字列にしたもの） */
+    const payload = { ...form, description: serializeBlocks(blocks), image_urls: imageUrlsOf(blocks) }
     try {
+      // 2. 保存
       if (editing === 'new') {
         const p = await api.products.create(payload)
         setProducts((prev) => [...prev, p])
@@ -57,22 +162,53 @@ export default function AdminProducts() {
         setProducts((prev) => prev.map((x) => x.id === p.id ? p : x))
       }
       closeModal()
-    } catch { /* ignore */ }
-    setSaving(false)
+    } catch (e) {
+      // 3. 失敗
+      setSaveError(failMessage('保存に失敗しました', e))
+    } finally {
+      setSaving(false)
+    }
   }
 
+  /**
+   * 商品を削除する（確認のあと）。失敗したら一覧に残したままエラーを出す
+   * @param p - 削除する商品
+   */
   const handleDelete = async (p: Product) => {
     if (!confirm(`「${p.name}」を削除しますか？`)) return
-    await api.products.delete(p.id)
-    setProducts((prev) => prev.filter((x) => x.id !== p.id))
+    setBusyId(p.id)
+    setPageError('')
+    try {
+      await api.products.delete(p.id)
+      setProducts((prev) => prev.filter((x) => x.id !== p.id))
+    } catch (e) {
+      setPageError(failMessage(`「${p.name}」の削除に失敗しました`, e))
+    } finally {
+      setBusyId(null)
+    }
   }
 
-  // 一覧から直接公開状態をトグルする（モーダルを開かずに切り替え可能）
+  /**
+   * 一覧から直接公開状態を切り替える（モーダルを開かずに切り替え可能）。失敗したら表示は元のままエラーを出す
+   * @param p - 切り替える商品
+   */
   const togglePublish = async (p: Product) => {
-    const updated = await api.products.update(p.id, { ...p, is_published: !p.is_published })
-    setProducts((prev) => prev.map((x) => x.id === updated.id ? updated : x))
+    setBusyId(p.id)
+    setPageError('')
+    try {
+      const updated = await api.products.update(p.id, {
+        name: p.name, description: p.description, price: p.price, stock: p.stock, image_urls: p.image_urls,
+        tags: p.tags ?? [], is_published: !p.is_published, display_order: p.display_order, category: p.category,
+      })
+      setProducts((prev) => prev.map((x) => x.id === updated.id ? updated : x))
+    } catch (e) {
+      setPageError(failMessage(`「${p.name}」の公開状態の切り替えに失敗しました`, e))
+    } finally {
+      setBusyId(null)
+    }
   }
 
+  /** 編集モーダルの入力欄（商品名・価格・在庫・タグ）の共通の見た目。横幅いっぱい */
   const inputStyle: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', padding: '9px 12px',
     border: '1px solid #dddde8', fontSize: 14, fontFamily: 'inherit',
@@ -81,6 +217,7 @@ export default function AdminProducts() {
 
   return (
     <div>
+      {/* 見出しと商品追加ボタン */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>商品管理</h2>
         <button onClick={openNew} style={{ padding: '9px 20px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -88,19 +225,31 @@ export default function AdminProducts() {
         </button>
       </div>
 
+      {/* 一覧の操作の失敗 */}
+      {pageError && <p role="alert" style={errorBoxStyle}>{pageError}</p>}
+
+      {/* 商品の表（狭い幅では横にスクロール） */}
       {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
+                {/* 「操作」の列はスマホでは右端に固定する（index.css の .admin-sticky-col。横にスクロールしても編集・削除が見える） */}
                 {['画像', '商品名', 'カテゴリー', '価格', '在庫', '状態', '操作'].map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th
+                    key={h}
+                    className={h === '操作' ? 'admin-sticky-col' : undefined}
+                    style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap', ...(h === '操作' ? { background: 'var(--c-bg)' } : {}) }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {products.map((p) => (
                 <tr key={p.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
+                  {/* 1枚目の画像（無ければ灰色の四角） */}
                   <td style={{ padding: '10px 14px' }}>
                     {p.image_urls[0] ? (
                       <img src={p.image_urls[0]} alt="" style={{ width: 48, height: 48, objectFit: 'cover', display: 'block', border: '1px solid #dddde8' }} />
@@ -108,11 +257,14 @@ export default function AdminProducts() {
                   </td>
                   <td style={{ padding: '10px 14px' }}>{p.name}</td>
                   <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{p.category ?? '—'}</td>
-                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{fmt(p.price)}</td>
+                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{formatYen(p.price)}</td>
                   <td style={{ padding: '10px 14px', color: p.stock === 0 ? '#c0392b' : '#1c2417' }}>{p.stock}</td>
+                  {/* 公開状態（押すとその場で切り替える） */}
                   <td style={{ padding: '10px 14px' }}>
                     <button
                       onClick={() => togglePublish(p)}
+                      disabled={busyId === p.id}
+                      aria-label={`「${p.name}」の公開状態を切り替える（いまは${p.is_published ? '公開中' : '非公開'}）`}
                       style={{
                         padding: '3px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
                         fontSize: 12, fontFamily: 'inherit',
@@ -123,48 +275,50 @@ export default function AdminProducts() {
                       {p.is_published ? '公開中' : '非公開'}
                     </button>
                   </td>
-                  <td style={{ padding: '10px 14px' }}>
+                  {/* 編集・削除（スマホでは右端に固定する） */}
+                  <td className="admin-sticky-col" style={{ padding: '10px 14px', background: 'var(--c-bg)', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => openEdit(p)} style={{ padding: '5px 14px', border: '1px solid #dddde8', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>編集</button>
-                      <button onClick={() => handleDelete(p)} style={{ padding: '5px 14px', border: '1px solid #f8d7da', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}>削除</button>
+                      <button onClick={() => handleDelete(p)} disabled={busyId === p.id} style={{ padding: '5px 14px', border: '1px solid #f8d7da', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}>削除</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {products.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>商品がありません。</p>}
+          {products.length === 0 && !pageError && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>商品がありません。</p>}
         </div>
       )}
 
-      {/* 編集モーダル */}
+      {/* 編集モーダル（暗い背景を押すと、変更があれば確認してから閉じる） */}
       {editing !== null && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={closeModal}>
-          <div style={{ background: '#fff', maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 32 }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontWeight: 300, fontSize: 22 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={closeByBackdrop}>
+          <div role="dialog" aria-modal="true" aria-labelledby="product-modal-title" style={{ background: '#fff', maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 32 }} onClick={(e) => e.stopPropagation()}>
+            <h3 id="product-modal-title" style={{ margin: '0 0 24px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontWeight: 300, fontSize: 22 }}>
               {editing === 'new' ? '商品追加' : '商品編集'}
             </h3>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>商品名 *</label>
-              <input required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} />
+              <label htmlFor="product-name" style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>商品名 *</label>
+              <input id="product-name" required style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>価格（円・税込）*</label>
-                <input required type="number" min={0} style={inputStyle} value={form.price} onChange={(e) => set('price', Number(e.target.value))} />
+                <label htmlFor="product-price" style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>価格（円・税込）*</label>
+                <input id="product-price" required type="number" min={0} style={inputStyle} value={form.price} onChange={(e) => set('price', Number(e.target.value))} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>在庫数 *</label>
-                <input required type="number" min={0} style={inputStyle} value={form.stock} onChange={(e) => set('stock', Number(e.target.value))} />
+                <label htmlFor="product-stock" style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>在庫数 *</label>
+                <input id="product-stock" required type="number" min={0} style={inputStyle} value={form.stock} onChange={(e) => set('stock', Number(e.target.value))} />
               </div>
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10 }}>本文・画像</label>
+              {/* ブロックエディタは複数の入力欄の集まりなので、label ではなく見出しの文字にする */}
+              <p style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, margin: '0 0 10px' }}>本文・画像</p>
               <BlockEditor blocks={blocks} onChange={setBlocks} />
             </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10 }}>カテゴリー</label>
+            <fieldset style={{ border: 'none', padding: 0, margin: '0 0 20px', minWidth: 0 }}>
+              <legend style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 10, padding: 0 }}>カテゴリー</legend>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--c-body)' }}>
                   <input
@@ -187,20 +341,22 @@ export default function AdminProducts() {
                   </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
+            {/* タグ（付いているタグの一覧と、追加の入力欄） */}
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>タグ</label>
+              <label htmlFor="product-tag-input" style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>タグ</label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                 {form.tags.map((t) => (
                   <span key={t} style={{ fontSize: 12, padding: '4px 10px', background: '#f0f0f5', display: 'flex', alignItems: 'center', gap: 6 }}>
                     {t}
-                    <button onClick={() => removeTag(t)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#999', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                    <button onClick={() => removeTag(t)} aria-label={`タグ「${t}」を外す`} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#999', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
                   </span>
                 ))}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
+                  id="product-tag-input"
                   style={{ ...inputStyle, flex: 1 }}
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
@@ -218,8 +374,11 @@ export default function AdminProducts() {
               </label>
             </div>
 
+            {/* 保存の失敗 */}
+            {saveError && <p role="alert" style={errorBoxStyle}>{saveError}</p>}
+
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <button onClick={closeModal} style={{ padding: '10px 20px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>キャンセル</button>
+              <button onClick={closeByBackdrop} style={{ padding: '10px 20px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>キャンセル</button>
               <button onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {saving ? '保存中...' : '保存'}
               </button>

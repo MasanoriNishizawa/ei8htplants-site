@@ -1,10 +1,17 @@
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 
+/** 見出しに使う明朝体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
+/** 表の文字に使うゴシック体 */
 const SANS = "'Noto Sans JP', sans-serif"
+/** ページの背景色（生成り） */
 const BG = '#faf9f7'
 
+/**
+ * 表に並べる項目（label / labelEn: 項目名の日英、value / valueEn: 内容の日英。
+ * 配列のときは 1 要素を 1 行として出し、空文字は空行にする）
+ */
 const rows: { label: string; labelEn: string; value: string | string[]; valueEn: string | string[] }[] = [
   { label: '販売業者', labelEn: 'Seller', value: 'ei8ht plants', valueEn: 'ei8ht plants' },
   { label: '運営責任者', labelEn: 'Representative', value: '西澤 政徳', valueEn: 'Masanori Nishizawa' },
@@ -69,7 +76,10 @@ const rows: { label: string; labelEn: string; value: string | string[]; valueEn:
   { label: '販売数量', labelEn: 'Stock', value: '各商品ページに記載の在庫数の範囲内', valueEn: 'Within the stock quantity shown on each product page' },
 ]
 
-/** 特定商取引法に基づく表示ページ。販売業者情報・支払方法・返品ポリシー等を掲載する */
+/**
+ * 特定商取引法に基づく表示ページ。販売業者情報・支払方法・返品ポリシー等を掲載する
+ * @returns 特定商取引法の表示の画面
+ */
 export default function LegalPage() {
   const t = useT()
   return (
@@ -77,6 +87,7 @@ export default function LegalPage() {
       <PageMeta title={t('特定商取引法に基づく表示', 'Specified Commercial Transaction Act')} description={t('ei8ht plants 特定商取引法に基づく表示', 'ei8ht plants – Specified Commercial Transaction Act disclosure')} />
 
       <div style={{ background: BG, minHeight: '100vh' }}>
+        {/* ページの見出し（白い帯） */}
         <div style={{ borderBottom: '1px solid #e8e3da', background: '#fff' }}>
           <div style={{ maxWidth: 800, margin: '0 auto', padding: '52px 24px 44px' }}>
             <p style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '3px', textTransform: 'uppercase', color: '#aaa', margin: '0 0 12px' }}>
@@ -88,10 +99,12 @@ export default function LegalPage() {
           </div>
         </div>
 
+        {/* 項目名と内容の表 */}
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '56px 24px 100px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
               {rows.map((row) => {
+                /** 内容を描画する。配列なら 1 要素ずつ改行し、空文字は空行にする */
                 const renderLines = (val: string | string[]) =>
                   Array.isArray(val)
                     ? val.map((line, i) =>
@@ -104,13 +117,16 @@ export default function LegalPage() {
                       fontFamily: SANS, fontSize: 13, fontWeight: 500, color: '#1c1c1c',
                       textAlign: 'left', verticalAlign: 'top',
                       padding: '22px 24px 22px 0',
-                      width: '30%', whiteSpace: 'nowrap',
+                      // 狭い画面では見出しも折り返す（nowrap だと「返品・キャンセルについて」で横にはみ出す）
+                      width: '30%',
                     }}>
                       {t(row.label, row.labelEn)}
                     </th>
                     <td style={{
                       fontFamily: SANS, fontSize: 14, color: '#3a3a3a',
                       lineHeight: 2, padding: '22px 0',
+                      // URL・メールアドレスのような区切りの無い長い文字列も、枠の幅で折り返す
+                      overflowWrap: 'anywhere',
                     }}>
                       {t(<>{renderLines(row.value)}</>, <>{renderLines(row.valueEn)}</>)}
                     </td>

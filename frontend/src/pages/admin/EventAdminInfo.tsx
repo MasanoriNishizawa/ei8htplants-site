@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
 import { SectionBox, ImageViewer } from './AdminInfoParts'
-import { useUnsavedChanges } from './UnsavedChanges'
+import { confirmLeaveIfDirty, dirtySnapshotJson, useUnsavedChanges } from './UnsavedChanges'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
 const BLANK: EventAdminInfo = {
@@ -72,9 +72,13 @@ interface EditSnapshot {
  */
 function splitDateTime(value: string | null | undefined): DateTimeParts {
   if (!value) return { date: '', hour: '', min: '' }
+  /** 日付と時刻の区切りの「T」の位置（無ければ -1） */
   const sepIdx = value.indexOf('T')
+  /** 日付の部分 */
   const date = sepIdx !== -1 ? value.slice(0, sepIdx) : ''
+  /** 時刻の部分（"HH:MM" や "HH:MM:SS"） */
   const timePart = sepIdx !== -1 ? value.slice(sepIdx + 1) : ''
+  /** 時と分（秒は捨てる） */
   const [h, m] = timePart.split(':')
   return { date, hour: h ?? '', min: m ? m.slice(0, 2) : '' }
 }
@@ -92,19 +96,27 @@ const MINUTE_OPTIONS: string[] = ['00', '05', '10', '15', '20', '25', '30', '35'
  * イベント管理情報（搬入・搬出・宿泊・出店料・出店要項・メモ）を入力・保存するページ
  * URL: /admin/events/:id/admin-info/edit
  * 確認画面（/admin/events/:id/admin-info）の「編集」ボタンから開き、保存に成功したら確認画面へ戻る
+ * @returns 管理情報の入力フォーム（と出店要項の画像の拡大表示）
  */
 export default function EventAdminInfo() {
+  /** URL の :id（対象のイベントの id） */
   const { id } = useParams<{ id: string }>()
+  /** 今の画面の場所（state.from を読むため） */
   const location = useLocation()
+  /** 保存後に確認画面へ戻るための画面移動の関数 */
   const navigate = useNavigate()
   /** 確認画面に来たときの遷移元（イベント一覧など）。確認画面へ戻るときにそのまま引き継ぎ、確認画面の「← 戻る」が元の画面に戻れるようにする */
   const viewFrom: string | undefined = (location.state as { from?: string } | null)?.from
   /** 確認画面の URL。「← 戻る」と保存後の遷移先 */
   const viewPath = `/admin/events/${id ?? ''}/admin-info`
 
+  /** 対象のイベント（見出しのイベント名・開始日に使う） */
   const [event, setEvent] = useState<Event | null>(null)
+  /** 管理情報の入力（保存する値） */
   const [form, setForm] = useState<EventAdminInfo>(BLANK)
+  /** 読み込み中なら true */
   const [loading, setLoading] = useState(true)
+  /** 保存中なら true */
   const [saving, setSaving] = useState(false)
   /** 読み込み・保存エラーのメッセージ。null なら非表示 */
   const [error, setError] = useState<string | null>(null)
@@ -112,12 +124,18 @@ export default function EventAdminInfo() {
   const [loadFailed, setLoadFailed] = useState(false)
 
   // 搬入日時を日付・時・分に分けて管理するローカル state（EventAdminInfo 型には含まれない）
+  /** 搬入の日付 "YYYY-MM-DD"（未入力は空文字） */
   const [carryInDate, setCarryInDate] = useState<string>('')
+  /** 搬入の時 "HH"（未選択は空文字） */
   const [carryInHour, setCarryInHour] = useState<string>('')
+  /** 搬入の分 "MM"（未選択は空文字） */
   const [carryInMin, setCarryInMin] = useState<string>('')
   // 搬出日時を日付・時・分に分けて管理するローカル state（EventAdminInfo 型には含まれない）
+  /** 搬出の日付 "YYYY-MM-DD"（未入力は空文字） */
   const [carryOutDate, setCarryOutDate] = useState<string>('')
+  /** 搬出の時 "HH"（未選択は空文字） */
   const [carryOutHour, setCarryOutHour] = useState<string>('')
+  /** 搬出の分 "MM"（未選択は空文字） */
   const [carryOutMin, setCarryOutMin] = useState<string>('')
 
   /** 出店要項画像のファイル選択 input。「画像を追加」ボタンから click() で開く */
@@ -127,7 +145,7 @@ export default function EventAdminInfo() {
   /** 出店要項画像のアップロード失敗メッセージ。null なら非表示 */
   const [uploadError, setUploadError] = useState<string | null>(null)
   /**
-   * 読み込み直後の入力欄の値（JSON 文字列にした写し）。今の値と比べて未保存の変更があるかを判定する。
+   * 読み込み直後の入力欄の値（dirtySnapshotJson で JSON 文字列にした写し。'' と null は同じ扱い）。今の値と比べて未保存の変更があるかを判定する。
    * 判定を描画中に行うため、ref ではなく state で持つ（描画中に ref を読むと更新が画面に反映されないことがある）。
    * 読み込み前・読み込み失敗時は null（変更なしとして扱う）
    */
@@ -145,7 +163,9 @@ export default function EventAdminInfo() {
     ]).then(([ev, info, fin]) => {
       setEvent(ev)
       // 1-1. 収支の出店料・宿泊費を、管理情報が未入力のときの初期値に使う
+      /** 収支の入力項目 */
       const finBody = toFinanceBody(fin)
+      /** 読み込んだ値で作ったフォームの初期値 */
       const loadedForm: EventAdminInfo = {
         carry_in_time: info.carry_in_time ?? null,
         carry_out_time: info.carry_out_time ?? null,
@@ -163,7 +183,9 @@ export default function EventAdminInfo() {
         guidelines_image_urls: info.guidelines_image_urls ?? [],
       }
       // 1-2. 搬入・搬出日時を YYYY-MM-DDTHH:MM 形式から日付・時・分に分割する
+      /** 搬入日時の日付・時・分 */
       const carryIn = splitDateTime(info.carry_in_time)
+      /** 搬出日時の日付・時・分 */
       const carryOut = splitDateTime(info.carry_out_time)
 
       // 1-3. フォームと入力欄に反映する
@@ -172,8 +194,9 @@ export default function EventAdminInfo() {
       setCarryOutDate(carryOut.date); setCarryOutHour(carryOut.hour); setCarryOutMin(carryOut.min)
 
       // 1-4. 未保存の変更の判定に使うため、読み込み直後の値を写しておく
+      /** 読み込み直後の入力欄の値一式 */
       const snapshot: EditSnapshot = { form: loadedForm, carryIn, carryOut }
-      setInitialSnapshot(JSON.stringify(snapshot))
+      setInitialSnapshot(dirtySnapshotJson(snapshot))
     }).catch(() => {
       // 読み込み失敗時にエラーメッセージを表示し、保存を止める
       setError('データの読み込みに失敗しました。ページを再読み込みしてください。')
@@ -188,7 +211,7 @@ export default function EventAdminInfo() {
     carryOut: { date: carryOutDate, hour: carryOutHour, min: carryOutMin },
   }
   /** 読み込み直後から入力が変わっていて、まだ保存していないかどうか（戻るときの確認・注意表示・beforeunload に使う） */
-  const isDirty: boolean = initialSnapshot !== null && JSON.stringify(currentSnapshot) !== initialSnapshot
+  const isDirty: boolean = initialSnapshot !== null && dirtySnapshotJson(currentSnapshot) !== initialSnapshot
 
   // 2. 未保存の変更があることを管理画面（AdminLayout）に登録する。
   //    サイドメニューで別の画面へ移るときの確認と、再読み込み・タブを閉じるときのブラウザの確認（beforeunload）に使う
@@ -216,7 +239,12 @@ export default function EventAdminInfo() {
     return null
   }
 
-  // 3. 保存ボタン押下時の処理
+  /**
+   * 3. 保存ボタン押下時の処理
+   * 管理情報を保存し、収支の出店料・宿泊費も同じ値にそろえてから確認画面へ戻る（手順は中のコメント 1〜4）
+   * 途中で失敗したら画面に残り、文言を出す（管理情報だけ保存済みで収支は古いまま、ということもありうる）
+   * @param e - フォームの送信イベント
+   */
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     // 読み込みに失敗した画面では保存しない（空のフォームで既存の管理情報と収支を上書きしてしまうため）
@@ -229,6 +257,7 @@ export default function EventAdminInfo() {
       // 2. 収支の最新の内容を読み直す。
       //    画面を開いた時点の内容を使うと、その後に収支画面で保存した売上などを
       //    古い内容で上書きして消してしまうため、保存の直前に取り直す
+      /** 保存直前の収支 */
       const latestFin = toFinanceBody(await api.events.getFinances(id))
       // 3. 収支の出店料・宿泊費だけを管理情報の値に置き換えて保存する（ほかの項目は最新の内容のまま）
       await api.events.saveFinances(id, {
@@ -254,8 +283,10 @@ export default function EventAdminInfo() {
    * @param e - ファイル input の change イベント
    */
   const handleAddImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    /** ファイル選択欄（await のあとでも value を消せるよう先に控える） */
     const input = e.currentTarget
     // 1. 選択されたファイルを配列に写す（input の value をクリアすると FileList も空になるため先に写す）
+    /** 選ばれたファイル */
     const files = Array.from(input.files ?? [])
     if (files.length === 0) return
     setUploadError(null)
@@ -264,9 +295,11 @@ export default function EventAdminInfo() {
     try {
       // 2. 1枚ずつ順にアップロードし、進捗表示を更新する
       for (let i = 0; i < files.length; i++) {
+        /** いまアップロードするファイル */
         const file = files[i]
         setUploadProgress({ current: i + 1, total: files.length })
         try {
+          /** アップロードした画像の URL */
           const url = await api.upload(file)
           // アップロード中に削除操作があっても消えないよう、前の state を元に末尾へ追加する
           setForm((prev) => ({ ...prev, guidelines_image_urls: [...(prev.guidelines_image_urls ?? []), url] }))
@@ -302,6 +335,7 @@ export default function EventAdminInfo() {
   /** 出店要項画像をアップロード中かどうか */
   const uploading = uploadProgress !== null
 
+  /** テキスト・数値・日付・select・文章の入力欄の共通の見た目。横幅いっぱい */
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '10px 14px',
@@ -324,6 +358,7 @@ export default function EventAdminInfo() {
     background: '#ffffff',
   }
 
+  /** 入力欄の上の項目名の見た目 */
   const labelStyle: React.CSSProperties = {
     display: 'block',
     marginBottom: 6,
@@ -332,6 +367,7 @@ export default function EventAdminInfo() {
     color: 'var(--c-body)',
   }
 
+  // 読み込みが終わるまでは案内だけ出す
   if (loading) return <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>
 
   return (
@@ -351,10 +387,8 @@ export default function EventAdminInfo() {
           state={{ from: viewFrom }}
           replace
           onClick={(e) => {
-            // 保存していない入力があるまま戻ると変更が消えるため、確認してから戻る
-            if (isDirty && !window.confirm('保存していない変更があります。破棄して戻りますか？')) {
-              e.preventDefault()
-            }
+            // 保存していない入力があるまま戻ると変更が消えるため、確認してから戻る（ほかの編集画面と同じ文言）
+            if (!confirmLeaveIfDirty(isDirty)) e.preventDefault()
           }}
           style={{ display: 'inline-block', padding: '12px 0', fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}
         >
@@ -365,6 +399,7 @@ export default function EventAdminInfo() {
       <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, marginBottom: 4 }}>
         イベント管理情報
       </h2>
+      {/* イベント名と開始日 */}
       {event && (
         <p style={{ fontSize: 14, color: 'var(--c-muted)', marginBottom: 28 }}>
           {event.name} &mdash; {event.start_date}
@@ -378,10 +413,11 @@ export default function EventAdminInfo() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* 搬入日時: 日付 input・時 select・分 select を組み合わせる */}
             <div>
-              <label style={labelStyle}>搬入日時</label>
+              <label htmlFor="carry-in-date" style={labelStyle}>搬入日時</label>
               {/* 狭い幅では日付の下に時・分が折り返す */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                 <input
+                  id="carry-in-date"
                   type="date"
                   style={{ ...inputStyle, flex: '1 1 160px', minWidth: 0 }}
                   value={carryInDate}
@@ -393,6 +429,7 @@ export default function EventAdminInfo() {
                 {/* 時・分は折り返しても離れないよう1つのまとまりにする */}
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '0 0 auto' }}>
                   <select
+                    aria-label="搬入の時"
                     style={timeSelectStyle}
                     value={carryInHour}
                     onChange={(e) => {
@@ -405,6 +442,7 @@ export default function EventAdminInfo() {
                   </select>
                   <span style={{ fontSize: 15, color: 'var(--c-muted)' }}>:</span>
                   <select
+                    aria-label="搬入の分"
                     style={timeSelectStyle}
                     value={carryInMin}
                     onChange={(e) => {
@@ -420,10 +458,11 @@ export default function EventAdminInfo() {
             </div>
             {/* 搬出日時: 日付 input・時 select・分 select を組み合わせる */}
             <div>
-              <label style={labelStyle}>搬出日時</label>
+              <label htmlFor="carry-out-date" style={labelStyle}>搬出日時</label>
               {/* 狭い幅では日付の下に時・分が折り返す */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                 <input
+                  id="carry-out-date"
                   type="date"
                   style={{ ...inputStyle, flex: '1 1 160px', minWidth: 0 }}
                   value={carryOutDate}
@@ -435,6 +474,7 @@ export default function EventAdminInfo() {
                 {/* 時・分は折り返しても離れないよう1つのまとまりにする */}
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '0 0 auto' }}>
                   <select
+                    aria-label="搬出の時"
                     style={timeSelectStyle}
                     value={carryOutHour}
                     onChange={(e) => {
@@ -447,6 +487,7 @@ export default function EventAdminInfo() {
                   </select>
                   <span style={{ fontSize: 15, color: 'var(--c-muted)' }}>:</span>
                   <select
+                    aria-label="搬出の分"
                     style={timeSelectStyle}
                     value={carryOutMin}
                     onChange={(e) => {
@@ -467,8 +508,9 @@ export default function EventAdminInfo() {
         <SectionBox label="宿泊">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={labelStyle}>ホテル名</label>
+              <label htmlFor="hotel-name" style={labelStyle}>ホテル名</label>
               <input
+                id="hotel-name"
                 type="text"
                 style={inputStyle}
                 value={form.hotel_name ?? ''}
@@ -477,9 +519,10 @@ export default function EventAdminInfo() {
               />
             </div>
             <div>
-              <label style={labelStyle}>宿泊料金</label>
+              <label htmlFor="hotel-fee" style={labelStyle}>宿泊料金</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input
+                  id="hotel-fee"
                   type="number"
                   min={0}
                   style={{ ...inputStyle, textAlign: 'right' }}
@@ -497,9 +540,10 @@ export default function EventAdminInfo() {
         <SectionBox label="出店料">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={labelStyle}>出店料</label>
+              <label htmlFor="booth-fee" style={labelStyle}>出店料</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input
+                  id="booth-fee"
                   type="number"
                   min={0}
                   style={{ ...inputStyle, textAlign: 'right' }}
@@ -511,8 +555,9 @@ export default function EventAdminInfo() {
               </div>
             </div>
             <div>
-              <label style={labelStyle}>支払い方法</label>
+              <label htmlFor="booth-fee-pay-method" style={labelStyle}>支払い方法</label>
               <select
+                id="booth-fee-pay-method"
                 style={inputStyle}
                 value={form.booth_fee_pay_method ?? ''}
                 onChange={(e) => set('booth_fee_pay_method', e.target.value || null)}
@@ -524,8 +569,9 @@ export default function EventAdminInfo() {
               </select>
             </div>
             <div>
-              <label style={labelStyle}>支払い期限</label>
+              <label htmlFor="booth-fee-due" style={labelStyle}>支払い期限</label>
               <input
+                id="booth-fee-due"
                 type="date"
                 style={inputStyle}
                 value={form.booth_fee_due ?? ''}
@@ -595,6 +641,7 @@ export default function EventAdminInfo() {
                           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                         />
                       </button>
+                      {/* この画像を外すボタン（アップロード中は押せない） */}
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(i)}
@@ -625,6 +672,7 @@ export default function EventAdminInfo() {
               >
                 {uploadProgress ? `アップロード中...（${uploadProgress.current}/${uploadProgress.total}）` : '画像を追加'}
               </button>
+              {/* 受け付ける画像の案内 */}
               <p style={{ fontSize: 12, color: 'var(--c-muted)', margin: '8px 0 0' }}>
                 JPEG・PNG・WebP・GIF、1枚 10MB まで。複数枚まとめて選べます
               </p>

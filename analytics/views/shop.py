@@ -1,12 +1,16 @@
 """ショップ画面：売上推移・商品ランキング・都道府県別・顧客分析（RFM）・併売分析・在庫。"""
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 from lib.analysis import MIN_ROWS_FOR_ANALYSIS, co_purchase_pairs, repeat_summary, rfm_table, valid_orders
-from lib.charts import SERIES, style, yen
+from lib.charts import TOP_N, bar_chart, monthly_bar, style, to_month, yen
 from lib.context import get_context, not_enough
+
+# 併売分析の表に出す組み合わせの数（多い順）
+TOP_PAIRS = 20
+# 商品ランキング・都道府県別のグラフの高さ（px。2つ並べるので同じ高さにそろえる）
+RANKING_HEIGHT = 420
 
 
 def render() -> None:
@@ -15,12 +19,13 @@ def render() -> None:
     st.title("ショップ")
     st.caption("オンラインショップの注文（キャンセルを除く）")
 
+    # 1. 有効な注文と、その注文の明細だけを使う
     orders = valid_orders(ctx.raw["orders"])
     items = ctx.raw["order_items"]
     items = items[items["order_id"].isin(orders["id"])]
     products = ctx.raw["products"]
 
-    # 1. まとめの数字（件数が少なくても表示する）
+    # 2. まとめの数字（件数が少なくても表示する）
     rep = repeat_summary(orders)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("注文数", f"{len(orders)}件")
@@ -28,51 +33,46 @@ def render() -> None:
     c3.metric("平均注文額", yen(orders["total"].mean()) if len(orders) else "—")
     c4.metric("リピーター率", f"{rep['repeat_rate']:.0%}" if rep["customers"] else "—")
 
-    # 2. 分析は注文がある程度たまってから。少ないうちは理由を出して在庫だけ見せる
+    # 3. 分析は注文がある程度たまってから。少ないうちは理由を出して在庫だけ見せる
     if len(orders) < MIN_ROWS_FOR_ANALYSIS:
         not_enough("有効な注文", len(orders), MIN_ROWS_FOR_ANALYSIS)
         st.caption("注文がたまると、月別の売上・商品ランキング・都道府県別・顧客分析（RFM）・併売分析が表示されます。")
         _stock(products)
         return
 
-    # 3. 月ごとの売上
-    monthly = orders.assign(month=orders["created_at"].dt.tz_localize(None).dt.to_period("M").dt.to_timestamp())
+    # 4. 月ごとの売上
+    monthly = orders.assign(month=to_month(orders["created_at"]))
     monthly = monthly.groupby("month").agg(売上=("total", "sum"), 件数=("id", "count")).reset_index()
-    fig = go.Figure(go.Bar(x=monthly["month"], y=monthly["売上"], marker_color=SERIES[0], customdata=monthly["件数"],
-                           hovertemplate="%{x|%Y年%-m月}<br>%{y:,.0f}円（%{customdata}件）<extra></extra>"))
-    fig.update_layout(title="月ごとの売上", showlegend=False)
-    fig.update_xaxes(tickformat="%Y/%-m", dtick="M1")
+    fig = monthly_bar(monthly["month"], monthly["売上"], "%{x|%Y年%-m月}<br>%{y:,.0f}円（%{customdata}件）<extra></extra>",
+                      title="月ごとの売上", customdata=monthly["件数"])
     st.plotly_chart(style(fig, height=300), width="stretch")
 
-    # 4. 商品ランキング（売上の多い順・上位15）
+    # 5. 商品ランキング（売上の多い順・上位 TOP_N）
     c1, c2 = st.columns(2)
     rank = (items.assign(amount=items["price"] * items["quantity"]).groupby("product_name")
-            .agg(売上=("amount", "sum"), 個数=("quantity", "sum")).sort_values("売上").tail(15).reset_index())
-    fig = go.Figure(go.Bar(x=rank["売上"], y=rank["product_name"], orientation="h", marker_color=SERIES[0],
-                           customdata=rank["個数"], hovertemplate="%{y}<br>%{x:,.0f}円（%{customdata}個）<extra></extra>"))
-    fig.update_layout(title="商品別の売上（上位15）", showlegend=False)
-    c1.plotly_chart(style(fig, height=420, yen_axis="x"), width="stretch")
+            .agg(売上=("amount", "sum"), 個数=("quantity", "sum")).sort_values("売上").tail(TOP_N).reset_index())
+    fig = bar_chart(rank["売上"], rank["product_name"], "%{y}<br>%{x:,.0f}円（%{customdata}個）<extra></extra>",
+                    title=f"商品別の売上（上位{TOP_N}）", customdata=rank["個数"])
+    c1.plotly_chart(style(fig, height=RANKING_HEIGHT, yen_axis="x"), width="stretch")
 
-    # 5. 都道府県別の注文数
-    pref = orders["prefecture"].value_counts().sort_values().tail(15)
-    fig = go.Figure(go.Bar(x=pref.values, y=pref.index, orientation="h", marker_color=SERIES[0],
-                           hovertemplate="%{y}<br>%{x}件<extra></extra>"))
-    fig.update_layout(title="都道府県別の注文数（上位15）", showlegend=False)
-    c2.plotly_chart(style(fig, height=420, yen_axis=None), width="stretch")
+    # 6. 都道府県別の注文数（上位 TOP_N）
+    pref = orders["prefecture"].value_counts().sort_values().tail(TOP_N)
+    fig = bar_chart(pref.values, pref.index, "%{y}<br>%{x}件<extra></extra>", title=f"都道府県別の注文数（上位{TOP_N}）")
+    c2.plotly_chart(style(fig, height=RANKING_HEIGHT, yen_axis=None), width="stretch")
 
-    # 6. 顧客分析（RFM）：最近買ったか・何回買ったか・いくら買ったか
+    # 7. 顧客分析（RFM）：最近買ったか・何回買ったか・いくら買ったか。基準日はほかの画面と同じ「今日（日本時間）」
     st.subheader("顧客分析（RFM）")
-    rfm = rfm_table(orders, pd.Timestamp.now(tz="Asia/Tokyo"))
+    rfm = rfm_table(orders, ctx.today)
     seg = rfm.groupby("segment").agg(人数=("customer_key", "count"), 平均購入額=("monetary", "mean")).reset_index()
     st.dataframe(seg.style.format({"平均購入額": "{:,.0f}円"}), hide_index=True, width="stretch")
 
-    # 7. 併売分析：一緒に買われやすい商品の組み合わせ
+    # 8. 併売分析：一緒に買われやすい商品の組み合わせ
     st.subheader("一緒に買われている商品")
     pairs = co_purchase_pairs(items)
     if pairs.empty:
         st.caption("2種類以上を同時に買った注文はまだありません。")
     else:
-        st.dataframe(pairs.head(20), hide_index=True, width="stretch")
+        st.dataframe(pairs.head(TOP_PAIRS), hide_index=True, width="stretch")
 
     _stock(products)
 
@@ -84,7 +84,8 @@ def _stock(products: pd.DataFrame) -> None:
         products: products テーブル
     """
     st.subheader("在庫")
-    pub = products[products["is_published"]].sort_values("stock")
+    # 0件のとき is_published が object 型の空の列になり、そのまま使うと「列の選択」と解釈されるので真偽値にそろえる
+    pub = products[products["is_published"].fillna(False).astype(bool)].sort_values("stock")
     if pub.empty:
         st.caption("公開中の商品はありません。")
         return

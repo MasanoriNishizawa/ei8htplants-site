@@ -2,6 +2,9 @@ import { Link } from 'react-router-dom'
 import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
 
+/**
+ * 紹介する 3 つのライン（name: ライン名、subtitle: 英語の副題、teaser: 紹介文の日英、to: ブランドページのパス）
+ */
 const LINES = [
   {
     name: 'ei8ht plants',
@@ -32,18 +35,23 @@ const LINES = [
   },
 ]
 
-// ブランドのフィロソフィーと3つの専門ラインを紹介するコンセプトページ
+/**
+ * ブランドのフィロソフィーと3つの専門ラインを紹介するコンセプトページ
+ * @returns コンセプトページの画面
+ */
 export default function Concept() {
   const t = useT()
 
   return (
     <>
       <PageMeta title="Concept" description="ei8ht plants のブランドコンセプト。ビザールプランツ・ハビタットスタイル・オーナメントプランツの3ラインをご紹介します。" />
+      {/* ページの見出し */}
       <div style={{ textAlign: 'center', padding: '80px 20px', background: '#f5f5f7', borderBottom: '1px solid #dddde8' }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Concept</h1>
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
+        {/* Philosophy: ブランドの考え方 */}
         <div style={{ marginTop: 80 }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 40px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Philosophy</h2>
           <div style={{ maxWidth: 750, margin: '0 auto', lineHeight: 2.2, fontSize: 16, color: 'var(--c-body)', textAlign: 'justify' }}>
@@ -65,6 +73,7 @@ export default function Concept() {
           </div>
         </div>
 
+        {/* Specialized Lines: 3 つのラインのカード（マウスを乗せると少し浮く） */}
         <div style={{ marginTop: 80, marginBottom: 100 }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 0', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Specialized Lines</h2>
           <div className="brand-line-grid">

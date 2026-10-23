@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react'
 import { api, type MediaAppearance } from '../lib/api'
 import PageMeta from '../components/PageMeta'
+import LoadError from '../components/LoadError'
+import { useApi } from '../hooks/useApi'
 import { useLang, useT } from '../lib/lang'
+import { parseLocalDate } from '../lib/localDate'
 
+/** 見出し用（明朝体）の書体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
 
 /**
  * YouTube URL から動画 ID を抽出する
  * @param url - youtube.com または youtu.be 形式の URL
+ * @returns 動画 ID（読み取れなければ null）
  */
 function getYouTubeId(url: string): string | null {
+  // watch?v=・youtu.be/・embed/ の 3 つの形に対応する
   const patterns = [
     /youtube\.com\/watch\?v=([^&]+)/,
     /youtu\.be\/([^?/]+)/,
@@ -23,22 +28,27 @@ function getYouTubeId(url: string): string | null {
 }
 
 /**
- * ISO 日付文字列を言語に応じた年月ラベルに変換する
- * @param s - ISO 形式の日付文字列
+ * 日付の文字列を言語に応じた年月ラベルに変換する（日付だけの文字列は現地の日付として読む）
+ * @param s - 日付の文字列（YYYY-MM-DD または ISO 形式）
  * @param lang - 表示言語（'ja' | 'en'）
+ * @returns 「2026年5月」「May 2026」のような文字列（日付が無ければ空文字）
  */
 function fmtDate(s: string | null, lang: 'ja' | 'en'): string {
   if (!s) return ''
-  return new Date(s).toLocaleDateString(lang === 'ja' ? 'ja-JP' : 'en-US', { year: 'numeric', month: 'long' })
+  return parseLocalDate(s).toLocaleDateString(lang === 'ja' ? 'ja-JP' : 'en-US', { year: 'numeric', month: 'long' })
 }
 
 /**
  * YouTube サムネイルとメタ情報を表示する動画カードコンポーネント
  * @param item - メディア出演データ
+ * @returns YouTube を新しいタブで開くカード
  */
 function VideoCard({ item }: { item: MediaAppearance }) {
+  // 今の表示言語（日付の書式に使う）
   const { lang } = useLang()
+  // YouTube の動画 ID
   const videoId = getYouTubeId(item.youtube_url)
+  // YouTube が用意しているサムネイル画像の URL（ID が読めなければ灰色の枠だけを出す）
   const thumb = videoId
     ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
     : null
@@ -63,7 +73,7 @@ function VideoCard({ item }: { item: MediaAppearance }) {
             onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)' }}
           />
         )}
-        {/* play button */}
+        {/* 中央の再生マーク（飾り。クリックはカード全体のリンクが受ける） */}
         <div style={{
           position: 'absolute', inset: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -80,6 +90,7 @@ function VideoCard({ item }: { item: MediaAppearance }) {
           </div>
         </div>
       </div>
+      {/* 公開日・タイトル・説明 */}
       <div style={{ padding: '14px 0 0' }}>
         {item.published_at && (
           <p style={{ fontSize: 11, letterSpacing: 2, color: 'var(--c-muted)', margin: '0 0 6px', textTransform: 'uppercase' }}>
@@ -99,21 +110,23 @@ function VideoCard({ item }: { item: MediaAppearance }) {
   )
 }
 
-/** メディア出演情報ページ。YouTube サムネイル付きの動画カードグリッドを表示する */
+/**
+ * メディア出演情報ページ。YouTube サムネイル付きの動画カードグリッドを表示する
+ * @returns メディア出演情報の画面
+ */
 export default function Media() {
-  const [items, setItems] = useState<MediaAppearance[]>([])
-  const [loading, setLoading] = useState(true)
   const t = useT()
-
-  useEffect(() => {
-    api.mediaAppearances.list().then(setItems).finally(() => setLoading(false))
-  }, [])
+  // 出演情報の一覧（失敗は error に入り、「まだ登録されていません」とは分けて案内する）
+  const { data, loading, error, reload } = useApi(() => api.mediaAppearances.list(), [])
+  // 表示する出演情報（取得前・失敗時は空）
+  const items: MediaAppearance[] = data ?? []
 
   return (
     <>
       <PageMeta title="Media" description="ei8ht plants のメディア出演情報をまとめています。" />
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(48px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
+        {/* ページの見出し */}
         <header style={{ marginBottom: 'clamp(40px, 6vw, 72px)' }}>
           <p style={{ fontFamily: SERIF, fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>
             Media
@@ -123,8 +136,11 @@ export default function Media() {
           </h1>
         </header>
 
+        {/* 読み込み中・失敗・0 件・カードの一覧のどれか 1 つを出す */}
         {loading ? (
-          <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>{t('読み込み中...', 'Loading...')}</p>
+          <p role="status" style={{ color: 'var(--c-muted)', fontSize: 14 }}>{t('読み込み中...', 'Loading...')}</p>
+        ) : error ? (
+          <LoadError onRetry={reload} />
         ) : items.length === 0 ? (
           <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>{t('まだ登録されていません。', 'No appearances registered yet.')}</p>
         ) : (

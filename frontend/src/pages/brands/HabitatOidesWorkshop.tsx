@@ -1,51 +1,41 @@
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
+import { useSectionSpy } from '../../hooks/useSectionSpy'
+import { formatYen } from '../../lib/format'
+import { WS_FEE_YEN } from '../../lib/constants'
 
+/** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
 const SECTIONS = ['about', 'contents', 'flow', 'fee'] as const
 
-/** Habitat Style Workshop 詳細ページ。内容・フロー・参加費のセクション別サブナビを提供する */
+/**
+ * Habitat Style Workshop 詳細ページ。内容・フロー・参加費のセクション別サブナビを提供する
+ * @returns ワークショップ詳細の画面
+ */
 export default function HabitatOidesWorkshop() {
   const t = useT()
-  const [active, setActive] = useState('')
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
+  const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)
 
+  // 「Contents」に並べる 3 枚のカード（bg: カードの背景色、title: 見出し、text: 説明。言語で切り替わるので中で作る）
   const FEATURES = [
     { bg: '#3a58b8', title: t('植物の選び方', 'Choosing Plants'), text: t('ハビタットスタイルに向いた植物の種類や特性、組み合わせ方について解説します。', 'Learn about the types, characteristics, and combinations of plants suited for the habitat style.') },
     { bg: '#9a6888', title: t('レイアウトの技術', 'Layout Techniques'), text: t('岩・流木などの資材を使ったハビタットスタイルのレイアウトを実際に体験します。', 'Experience creating habitat-style layouts using materials like rocks and driftwood.') },
     { bg: '#4a72b8', title: t('管理・メンテナンス', 'Care & Maintenance'), text: t('制作後の水やり・換気・光管理など、長く楽しむためのポイントを伝授します。', 'Learn the key points for long-term enjoyment: watering, ventilation, and light management after creation.') },
   ]
 
+  // 「Flow」に並べる当日の流れ（num: 番号、title: 見出し、text: 説明）
   const FLOW = [
     { num: '01', title: t('植物・素材の説明', 'Plants & Materials Overview'), text: t('使用する植物や素材について、生態・特性・取り扱い方を丁寧に解説します。', 'We carefully explain the ecology, characteristics, and handling of the plants and materials used.') },
     { num: '02', title: t('制作タイム', 'Creation Time'), text: t('一人ひとりオリジナルのレイアウトを制作します。スタッフがサポートします。', 'Each participant creates their own original layout, with staff support throughout.') },
     { num: '03', title: t('管理方法のレクチャー & お持ち帰り', 'Care Lecture & Take-Home'), text: t('完成後、アフターケアについてご説明します。制作物はそのままお持ち帰りいただけます。', 'After completion, we explain aftercare. You take your creation home with you.') },
   ]
 
-  // 各セクションの中央付近がビューポートに入ったときにサブナビのアクティブ項目を更新する
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id) })
-      },
-      { rootMargin: '-55% 0px -45% 0px' }
-    )
-    SECTIONS.forEach((id) => {
-      const el = sectionRefs.current[id]
-      if (el) obs.observe(el)
-    })
-    return () => obs.disconnect()
-  }, [])
-
-  const scrollTo = (id: string) => (e: React.MouseEvent) => {
-    e.preventDefault()
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   return (
     <>
       <PageMeta title="Habitat Style Workshop" description={t('ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', 'A habitat-style workshop where you can create your own layout inspired by the natural environments of plants.')} ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_workshop_main.jpg" />
+      {/* ページ内のセクションへ移動するサブナビ。左端は Habitat Oides のページへ戻るリンク */}
       <nav className="brand-subnav" style={{ top: 60 }}>
         <div className="brand-subnav-inner">
           <Link to="/habitatoides" style={{ borderRight: '1px solid #dddde8', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--c-muted)', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
@@ -59,6 +49,7 @@ export default function HabitatOidesWorkshop() {
         </div>
       </nav>
 
+      {/* ファーストビュー（左上に Habitat Oides へ戻るリンク） */}
       <section className="wspage-hero">
         <Link to="/habitatoides" style={{ position: 'absolute', top: 28, left: 28, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#9aaedd', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, zIndex: 1 }}>
           ← Habitat Oides
@@ -74,7 +65,8 @@ export default function HabitatOidesWorkshop() {
 
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
-      <section id="about" className="brand-section" ref={(el) => { sectionRefs.current.about = el }}>
+      {/* About: 写真とワークショップの紹介 */}
+      <section id="about" className="brand-section" ref={sectionRef('about')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>About Workshop</h2>
           <div className="wspage-about-grid">
@@ -105,7 +97,8 @@ export default function HabitatOidesWorkshop() {
 
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
-      <section id="contents" className="brand-section" ref={(el) => { sectionRefs.current.contents = el }}>
+      {/* Contents: 学べる内容のカード */}
+      <section id="contents" className="brand-section" ref={sectionRef('contents')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Contents</h2>
           <div className="wspage-features">
@@ -121,7 +114,8 @@ export default function HabitatOidesWorkshop() {
 
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
-      <section id="flow" className="brand-section" ref={(el) => { sectionRefs.current.flow = el }}>
+      {/* Flow: 当日の流れ */}
+      <section id="flow" className="brand-section" ref={sectionRef('flow')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Flow</h2>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -140,13 +134,14 @@ export default function HabitatOidesWorkshop() {
 
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
-      <section id="fee" className="brand-section" ref={(el) => { sectionRefs.current.fee = el }}>
+      {/* Fee & Info: 参加費・持ち込み・お子様連れの案内 */}
+      <section id="fee" className="brand-section" ref={sectionRef('fee')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Fee & Info</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
               <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('参加費', 'Fee')}</p>
-              <p style={{ fontSize: 28, fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 6px', letterSpacing: '0.04em' }}>1,000円</p>
+              <p style={{ fontSize: 28, fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 6px', letterSpacing: '0.04em' }}>{t(formatYen(WS_FEE_YEN, 'suffix'), formatYen(WS_FEE_YEN))}</p>
               <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>{t(<>鉢・資材含む<br />植物は別途</>, <>Pot & materials included<br />Plants priced separately</>)}</p>
             </div>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
@@ -163,6 +158,7 @@ export default function HabitatOidesWorkshop() {
         </div>
       </section>
 
+      {/* 予約の案内とイベント一覧へのリンク（紺色の帯） */}
       <section style={{ background: '#1e3272', color: '#f0f2ff', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(22px, 4vw, 44px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 14px' }}>Reservation</h2>
         <p style={{ fontSize: 13, letterSpacing: 2, color: '#9aaedd', textTransform: 'uppercase', margin: '0 0 40px', lineHeight: 1.8 }}>

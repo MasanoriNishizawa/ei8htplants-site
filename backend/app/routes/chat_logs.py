@@ -1,15 +1,20 @@
+"""AI チャットの履歴を管理画面で見るための API（管理者のみ）。"""
 from fastapi import APIRouter, Depends
-from ..db import admin_supabase
+
 from ..auth import require_auth
+from ..db import admin_supabase
 
 router = APIRouter(prefix='/chat-logs', tags=['chat_logs'])
 
+# 一度に返すチャット履歴の最大件数
+MAX_CHAT_LOGS = 200
+
 
 @router.get('')
-def list_chat_logs(_=Depends(require_auth)):
+def list_chat_logs(_=Depends(require_auth)) -> list[dict]:
     """チャット履歴を新しい順で返す（管理者のみ）。
 
     Returns:
-        list: 最新200件のチャットログ
+        最新 MAX_CHAT_LOGS 件のチャットログ
     """
-    return admin_supabase.table('chat_logs').select('*').order('created_at', desc=True).limit(200).execute().data
+    return admin_supabase.table('chat_logs').select('*').order('created_at', desc=True).limit(MAX_CHAT_LOGS).execute().data

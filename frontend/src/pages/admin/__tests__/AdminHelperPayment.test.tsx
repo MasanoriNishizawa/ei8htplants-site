@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import AdminHelperPayment from '../AdminHelperPayment'
 import { api } from '../../../lib/api'
+import type { Event, EventFinances } from '../../../lib/api'
 
 vi.mock('../../../lib/api', async (importActual) => {
   const actual = await importActual<typeof import('../../../lib/api')>()
@@ -46,8 +47,8 @@ const FINANCES = [
 
 describe('AdminHelperPayment 年度別集計', () => {
   beforeEach(() => {
-    vi.mocked(api.events.list).mockResolvedValue(EVENTS as any)
-    vi.mocked(api.events.getAllFinances).mockResolvedValue(FINANCES as any)
+    vi.mocked(api.events.list).mockResolvedValue(EVENTS as unknown as Event[])
+    vi.mocked(api.events.getAllFinances).mockResolvedValue(FINANCES as unknown as EventFinances[])
   })
 
   it('payment_flag=false のイベントは集計に含まれない', async () => {
@@ -112,7 +113,7 @@ describe('AdminHelperPayment 年度別集計', () => {
 
   it('全イベントが payment_flag=false のとき「手伝いありのイベントがありません」と表示される', async () => {
     vi.mocked(api.events.getAllFinances).mockResolvedValue(
-      FINANCES.map(f => ({ ...f, payment_flag: false })) as any
+      FINANCES.map(f => ({ ...f, payment_flag: false })) as unknown as EventFinances[]
     )
     render(<AdminHelperPayment />)
     await waitFor(() => {

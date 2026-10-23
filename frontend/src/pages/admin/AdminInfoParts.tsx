@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 
 /*
  * イベント管理情報の確認画面（EventAdminInfoView.tsx）と編集画面（EventAdminInfo.tsx）で
@@ -11,6 +12,7 @@ import { createPortal } from 'react-dom'
  * @param label - セクション見出し
  * @param hint - 見出し右側に表示する補足テキスト（任意）
  * @param children - セクション内のコンテンツ
+ * @returns 見出しと白い枠で囲んだ中身
  */
 export function SectionBox({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -20,8 +22,10 @@ export function SectionBox({ label, hint, children }: { label: string; hint?: st
         <div style={{ fontSize: 12, letterSpacing: 2, color: 'var(--c-muted)', textTransform: 'uppercase' }}>
           {label}
         </div>
+        {/* 補足（指定されたときだけ） */}
         {hint && <span style={{ fontSize: 11, color: 'var(--c-muted)' }}>{hint}</span>}
       </div>
+      {/* 中身を囲む白い枠 */}
       <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '16px', minWidth: 0 }}>
         {children}
       </div>
@@ -51,6 +55,7 @@ const viewerButtonStyle: React.CSSProperties = {
  * @param index - 表示中の画像の位置（0始まり）
  * @param onChange - 表示する画像を切り替えるときに呼ぶ（新しい位置を渡す）
  * @param onClose - 閉じるときに呼ぶ
+ * @returns body 直下に出す拡大表示のオーバーレイ
  */
 export function ImageViewer({ urls, index, onChange, onClose }: {
   urls: string[]
@@ -63,17 +68,15 @@ export function ImageViewer({ urls, index, onChange, onClose }: {
   /** 次の画像があるかどうか（末尾では次へを押せない） */
   const hasNext = index < urls.length - 1
 
-  // 表示中は body のスクロールを止め、閉じたら元の値に戻す
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prevOverflow
-    }
-  }, [])
+  // 表示中は body のスクロールを止め、閉じたら元の値に戻す（共通のフック。ほかの部品と同時に止めても途中で解除されない）
+  useBodyScrollLock(true)
 
   // Esc で閉じる・左右キーで前後の画像に切り替える
   useEffect(() => {
+    /**
+     * 押されたキーに応じて閉じる・前後の画像に切り替える
+     * @param e - キーボードのイベント
+     */
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       else if (e.key === 'ArrowLeft' && hasPrev) onChange(index - 1)

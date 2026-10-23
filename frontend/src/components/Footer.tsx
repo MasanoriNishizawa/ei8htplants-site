@@ -1,8 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useT } from '../lib/lang'
+import { BRANDS, TEXT_LOGO } from '../lib/brands'
 
+/** 特定商取引法のリンクを出すページのパス（ショップ・チェックアウト・注文完了とその下の階層） */
 const SHOP_PATHS = ['/shop', '/checkout', '/order']
 
+/** 「Pages」の列に並べるサイト内のリンク（to: パス、label: 表示名） */
 const NAV_LINKS = [
   { to: '/events', label: 'Event' },
   { to: '/gallery', label: 'Gallery' },
@@ -12,39 +15,41 @@ const NAV_LINKS = [
   { to: '/shop', label: 'Shop' },
 ]
 
-const BRAND_LINKS = [
-  { to: '/ei8htplants', label: 'ei8ht plants' },
-  { to: '/habitatoides', label: 'Habitat Oides' },
-  { to: '/hue', label: 'HUE by ei8ht plants' },
-]
+/** 「Brand」の列に並べるブランドページへのリンク */
+const BRAND_LINKS = BRANDS.map((b) => ({ to: b.path, label: b.name }))
 
-const IG_LINKS = [
-  { href: 'https://www.instagram.com/ei8ht.plants/', label: '@ei8ht.plants' },
-  { href: 'https://www.instagram.com/habitatoides/', label: '@habitatoides' },
-  { href: 'https://www.instagram.com/hue_by.ei8ht.plants/', label: '@hue_by.ei8ht.plants' },
-]
+/** ロゴの下に並べる、3 ブランドの Instagram のアカウントへのリンク */
+const IG_LINKS = BRANDS.map((b) => ({ href: b.instagramUrl, label: b.instagramHandle }))
 
+/** フッターの各リンク（Instagram・メニュー・ブランド）の文字の見た目（小さめ・大文字・薄い色） */
 const linkStyle: React.CSSProperties = {
   fontSize: 11, letterSpacing: '1.5px', textDecoration: 'none',
   color: 'var(--c-muted)', transition: 'color 0.2s', textTransform: 'uppercase',
   fontWeight: 300,
 }
 
-/** サイト共通フッター。プライバシーポリシーのリンクは全ページ、特定商取引法リンクはショップ系ページのみ表示する */
+/**
+ * サイト共通フッター。プライバシーポリシーのリンクは全ページ、特定商取引法リンクはショップ系ページのみ表示する
+ * @returns フッターの要素
+ */
 export default function Footer() {
+  // 今のページのパス（特定商取引法のリンクを出すかの判定に使う）
   const { pathname } = useLocation()
   const t = useT()
   // ショップ・チェックアウト・注文完了ページのみ特定商取引法リンクを表示
   const showLegal = SHOP_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
 
   return (
+    // marginTop: 'auto' で、中身が短いページでもフッターを画面の下端に寄せる
     <footer style={{ background: 'var(--c-bg)', borderTop: '1px solid var(--c-border)', marginTop: 'auto' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(48px, 7vw, 80px) clamp(20px, 4vw, 48px) 40px' }}>
 
+        {/* 上段: 左にロゴと Instagram、右に Pages・Brand のリンクの列 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', marginBottom: 56 }}>
+          {/* ロゴ（トップへ）と Instagram のリンク */}
           <div style={{ minWidth: 180 }}>
             <Link to="/">
-              <img src="/img/text-logo-ei8htplants.png" alt="ei8ht plants" style={{ height: 22, display: 'block', marginBottom: 24, opacity: 0.7 }} />
+              <img src={TEXT_LOGO} alt="ei8ht plants" style={{ height: 22, display: 'block', marginBottom: 24, opacity: 0.7 }} />
             </Link>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {IG_LINKS.map(({ href, label }) => (
@@ -60,6 +65,7 @@ export default function Footer() {
           </div>
 
           <div style={{ display: 'flex', gap: '40px 56px', flexWrap: 'wrap' }}>
+            {/* Pages: サイト内のページへのリンク */}
             <div>
               <p style={{ fontSize: 9, letterSpacing: '2.5px', color: 'var(--c-faint)', textTransform: 'uppercase', margin: '0 0 16px' }}>Pages</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -74,6 +80,7 @@ export default function Footer() {
               </div>
             </div>
 
+            {/* Brand: ブランドページへのリンク */}
             <div>
               <p style={{ fontSize: 9, letterSpacing: '2.5px', color: 'var(--c-faint)', textTransform: 'uppercase', margin: '0 0 16px' }}>Brand</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -90,6 +97,7 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* 下段: 商標の注記と、プライバシーポリシー・特定商取引法・著作権表示 */}
         <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 28, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <p style={{ fontSize: 10, color: 'var(--c-faint)', margin: 0, letterSpacing: '0.5px', lineHeight: 1.8 }}>
             {t('※「HABITATSTYLE / ハビタットスタイル」は Shabomaniac! (およびTHE SUCCULENTIST)の登録商標です。', '※ "HABITATSTYLE" is a registered trademark of Shabomaniac! (and THE SUCCULENTIST).')}
@@ -102,6 +110,7 @@ export default function Footer() {
             >
               {t('プライバシーポリシー', 'Privacy Policy')}
             </Link>
+            {/* 特定商取引法はショップ系のページだけ */}
             {showLegal && (
               <Link to="/legal" style={{ ...linkStyle, fontSize: 10 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}

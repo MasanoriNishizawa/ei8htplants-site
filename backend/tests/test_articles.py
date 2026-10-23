@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import require_auth
+from tests._helpers import as_admin, not_found_error
 
 # --- テスト用サンプルデータ ---
 
@@ -69,19 +70,40 @@ class TestListArticles:
         assert len(data) == 1
         assert data[0]['id'] == 'a1'
 
-    def test_all_true_で全件返す(self):
-        """?all=true のとき非公開も含む全件が返ること。"""
+    def test_ログイン済みでall_trueを指定すると非公開も含む全件が返る(self):
+        """管理者としてログインして ?all=true を指定すると、非公開も含む全件が返り is_published で絞らないこと。"""
         mock_sb = _make_sb_mock()
         chain = mock_sb.table.return_value.select.return_value.order.return_value.order.return_value
         # all=true では eq を呼ばずそのまま execute する
         chain.execute.return_value.data = [PUBLISHED_ARTICLE, DRAFT_ARTICLE]
 
-        with patch('app.routes.articles.admin_supabase', mock_sb):
+        with patch('app.routes.articles.admin_supabase', mock_sb), as_admin():
             resp = TestClient(app).get('/api/articles?all=true')
 
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
+        chain.eq.assert_not_called()
+
+    def test_未ログインでall_trueを指定すると401になりDBを読まない(self):
+        """Authorization ヘッダーなしで ?all=true を指定すると 401 になり、非公開の記事が漏れないこと。"""
+        mock_sb = _make_sb_mock()
+
+        with patch('app.routes.articles.admin_supabase', mock_sb):
+            resp = TestClient(app).get('/api/articles?all=true')
+
+        assert resp.status_code == 401
+        mock_sb.table.assert_not_called()
+
+    def test_無効なトークンでall_trueを指定すると401になる(self):
+        """Authorization ヘッダーがあってもトークンが無効なら 401（期限切れに気づけるよう未ログイン扱いにしない）。"""
+        mock_auth_sb = MagicMock()
+        mock_auth_sb.auth.get_user.side_effect = Exception('invalid token')
+
+        with patch('app.auth.supabase', mock_auth_sb):
+            resp = TestClient(app).get('/api/articles?all=true', headers={'Authorization': 'Bearer bad'})
+
+        assert resp.status_code == 401
 
     def test_記事が0件のとき空配列(self):
         """DBが空のとき空配列が返ること。"""
@@ -100,27 +122,57 @@ class TestGetArticle:
     """記事単件取得 GET /api/articles/:id のテスト。"""
 
     def test_存在するIDで記事を取得できる(self):
-        """存在するIDを指定したとき記事オブジェクトが返ること。"""
+        """未ログインで公開済みの記事の ID を指定すると、is_published=True で絞った上で記事が返ること。"""
         mock_sb = _make_sb_mock()
-        # table().select().eq().single().execute().data のチェーン
-        mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = PUBLISHED_ARTICLE
+        # 未ログイン: table().select().eq('id').eq('is_published', True).single().execute().data
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        eq_id.eq.return_value.single.return_value.execute.return_value.data = PUBLISHED_ARTICLE
 
         with patch('app.routes.articles.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/articles/a1')
 
         assert resp.status_code == 200
         assert resp.json()['id'] == 'a1'
+        eq_id.eq.assert_called_once_with('is_published', True)
 
     def test_存在しないIDで404(self):
-        """存在しないIDを指定したとき404が返ること。"""
+        """存在しない ID（single() が PGRST116 を投げる）を指定すると 404 が返ること。"""
         mock_sb = _make_sb_mock()
-        # data = None で存在しないことを表現
-        mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        eq_id.eq.return_value.single.return_value.execute.side_effect = not_found_error()
 
         with patch('app.routes.articles.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/articles/nonexistent')
 
         assert resp.status_code == 404
+
+    def test_未ログインで非公開の記事を指定すると404になる(self):
+        """非公開の記事は公開で絞ると 0 件（PGRST116）になるため、未ログインでは 404 が返り下書きが漏れないこと。"""
+        mock_sb = _make_sb_mock()
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        # 公開で絞った結果は 0 件
+        eq_id.eq.return_value.single.return_value.execute.side_effect = not_found_error()
+        # 絞らない場合は下書きが取れてしまう（使われないことを確かめるため設定しておく）
+        eq_id.single.return_value.execute.return_value.data = DRAFT_ARTICLE
+
+        with patch('app.routes.articles.admin_supabase', mock_sb):
+            resp = TestClient(app).get('/api/articles/a2')
+
+        assert resp.status_code == 404
+        assert '下書き' not in resp.text
+
+    def test_ログイン済みなら非公開の記事も取得できる(self):
+        """管理者としてログインしていれば is_published で絞らず、非公開の記事も返ること。"""
+        mock_sb = _make_sb_mock()
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        eq_id.single.return_value.execute.return_value.data = DRAFT_ARTICLE
+
+        with patch('app.routes.articles.admin_supabase', mock_sb), as_admin():
+            resp = TestClient(app).get('/api/articles/a2')
+
+        assert resp.status_code == 200
+        assert resp.json()['id'] == 'a2'
+        eq_id.eq.assert_not_called()
 
 
 class TestCreateArticle:

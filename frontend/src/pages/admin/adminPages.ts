@@ -35,6 +35,7 @@ export const adminPageLoaders = {
   EventAdminInfo: () => import('./EventAdminInfo'),
   EventAdminInfoView: () => import('./EventAdminInfoView'),
   EventImages: () => import('./EventImages'),
+  NotFound: () => import('./AdminNotFound'),
 }
 
 /** 先読みを一度始めたかどうか（ログインし直しなどで何度も始めないため） */

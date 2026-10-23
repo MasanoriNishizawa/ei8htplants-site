@@ -1,24 +1,43 @@
+/*
+ * サイト全体の CSS（main.tsx で読み込む）。
+ * 画面ごとの細かい見た目は各コンポーネントのインラインスタイルで指定し、ここには
+ * 色の変数・メディアクエリ（画面幅での切り替え）・:hover / :focus-visible・アニメーションなど、インラインで書けないものを置く
+ */
+
+/* Tailwind の基本スタイル・部品・ユーティリティを読み込む */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 色の変数（画面のインラインスタイルから var(--c-...) で使う）。ダークモードでも明るい配色のままにする */
 :root {
   color-scheme: only light;
+  /* ページの背景（薄い灰色） */
   --c-bg:        #f2f2f2;
+  /* カード・ヘッダーなどの面（白） */
   --c-surface:   #ffffff;
+  /* 見出し・強調の文字 */
   --c-ink:       #424242;
+  /* 本文の文字 */
   --c-body:      #424242;
+  /* 控えめな文字（補足・未選択のリンク） */
   --c-muted:     #9e9e9e;
+  /* さらに薄い文字（小さな見出し・著作権表示） */
   --c-faint:     #bdbdbd;
+  /* 枠線・区切り線 */
   --c-border:    #dadada;
+  /* ブランドの濃い緑 */
   --c-green:     #2d4a27;
+  /* Habitat Oides の紺（Workshop の印など） */
   --c-blue:      #1e3272;
 }
 
+/* すべての要素: 幅・高さに余白と枠線を含める */
 * {
   box-sizing: border-box;
 }
 
+/* ページ本体: 細めのゴシック体・広めの行間と字間・背景色 */
 body {
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   font-weight: 300;
@@ -31,7 +50,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---- ハンバーガーボタン ---- */
+/* ---- ハンバーガーボタン（Header のモバイルメニューの開閉ボタン。PC では隠し、768px 以下で出す） ---- */
 .menu-btn {
   display: none;
   cursor: pointer;
@@ -41,36 +60,6 @@ body {
   z-index: 1100;
 }
 
-/* ---- ヘッダーナビ（モバイル） ---- */
-.header-nav-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  right: -100%;
-  width: 75%;
-  height: 100vh;
-  background: rgba(255,255,255,0.99);
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-  transition: right 0.4s cubic-bezier(0.4,0,0.2,1);
-  z-index: 1050;
-  box-shadow: -5px 0 30px rgba(40,35,20,0.10);
-}
-
-/* ---- イベントカード（next-card / レスポンシブ） ---- */
-.next-card {
-  flex-direction: column;
-}
-.next-image-wrap {
-  width: 100%;
-  background: #e8e8f0;
-}
-.next-content {
-  flex: 1;
-}
-
 /* ---- 予約ページ 2カラムレイアウト ---- */
 .reserve-layout {
   display: grid;
@@ -78,6 +67,7 @@ body {
   gap: 40px;
   align-items: start;
 }
+/* 720px 以上: 左（イベント情報）2 : 右（フォーム）3 の 2 列 */
 @media (min-width: 720px) {
   .reserve-layout {
     grid-template-columns: 2fr 3fr;
@@ -86,6 +76,7 @@ body {
 }
 
 /* ---- 管理画面 予約一覧 カード/テーブル切り替え ---- */
+/* PC はテーブル、767px 以下はカードの一覧を出す */
 .reservation-cards { display: none; flex-direction: column; gap: 8px; }
 .reservation-table { display: block; }
 @media (max-width: 767px) {
@@ -94,9 +85,11 @@ body {
 }
 
 /* ---- EventPreview 横並びレイアウト（Home用） ---- */
+/* 狭い画面では写真と文字を縦に並べる（インラインの flexDirection を !important で上書き） */
 .ep-horizontal {
   flex-direction: column !important;
 }
+/* 700px 以上: 左に写真（幅 50%）、右に文字の横並び */
 @media (min-width: 700px) {
   .ep-horizontal {
     flex-direction: row !important;
@@ -110,7 +103,23 @@ body {
   }
 }
 
-/* ---- イベント固有サイト 2カラムレイアウト ---- */
+/* ---- 注文手続き（Checkout）のレイアウト ----
+   狭い画面は 1 列（入力フォームの下に注文サマリー）、768px 以上で左にフォーム 1.3 : 右にサマリー 1 の 2 列。
+   minmax(0, …) で、長い商品名などがあっても列が広がらないようにする */
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+@media (min-width: 768px) {
+  .checkout-layout {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+
+/* ---- イベント固有サイト 2カラムレイアウト（EventSite。狭い画面は 1 列、700px 以上で写真 2 : 情報 3） ---- */
 .event-site-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -124,7 +133,7 @@ body {
   }
 }
 
-/* ---- イベントフィルター PC/モバイル切り替え ---- */
+/* ---- イベントフィルター PC/モバイル切り替え（Events。719px 以下はボタンの行を隠してプルダウンを出す） ---- */
 .filter-pc     { display: flex; flex-direction: column; gap: 10px; }
 .filter-mobile { display: none; }
 
@@ -133,7 +142,7 @@ body {
   .filter-mobile { display: flex; flex-direction: column; gap: 12px; }
 }
 
-/* ---- イベントグリッド ---- */
+/* ---- イベントグリッド（Events のカードの一覧。1 列 → 600px 以上で 2 列 → 900px 以上で 3 列） ---- */
 .events-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -141,16 +150,13 @@ body {
   align-items: start;
 }
 
+/* 768px 以下: PC のナビを隠し、ハンバーガーボタンを出す */
 @media (max-width: 768px) {
   .menu-btn {
     display: block;
   }
   .header-nav-desktop {
     display: none !important;
-  }
-  .header-nav-overlay.nav-open {
-    display: flex;
-    right: 0;
   }
 }
 
@@ -160,26 +166,22 @@ body {
   }
 }
 
+/* 900px 以上: イベントの一覧を 3 列にする */
 @media (min-width: 900px) {
-  .next-card {
-    flex-direction: row;
-  }
-  .next-image-wrap {
-    width: 55%;
-    flex-shrink: 0;
-  }
   .events-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-/* ---- Brand pages ---- */
+/* ---- Brand pages（ブランドページ・ワークショップページ） ---- */
+/* ファーストビューの外枠: ヘッダー（64px）を除いた画面の高さいっぱいに、サブナビとヒーローを縦に並べる */
 .hero-wrapper {
   height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
 }
 
+/* サブナビの帯: スクロールしてもヘッダーの直下に貼り付く、半透明でぼかした帯 */
 .brand-subnav {
   position: sticky;
   top: 64px;
@@ -189,6 +191,7 @@ body {
   border-bottom: 1px solid var(--c-border);
   flex-shrink: 0;
 }
+/* サブナビの中身: リンクを中央に横並び。はみ出したら横にスクロールする（スクロールバーは隠す） */
 .brand-subnav-inner {
   display: flex;
   align-items: center;
@@ -200,6 +203,7 @@ body {
   scrollbar-width: none;
 }
 .brand-subnav-inner::-webkit-scrollbar { display: none; }
+/* サブナビのリンク: 大文字の薄い緑の文字。選択中・ホバーで濃くし、選択中は下線を付ける */
 .brand-subnav-inner a {
   font-size: 16px;
   letter-spacing: 1px;
@@ -216,7 +220,7 @@ body {
 .brand-subnav-inner a:hover { color: #1c2417; }
 .brand-subnav-inner a.subnav-active { color: #1c2417; border-bottom-color: #1c2417; }
 
-/* ei8ht plants hero */
+/* ei8ht plants のヒーロー: PC は背景画像として写真を敷き、上に文字ロゴを置く（写真の img 要素は PC では隠す） */
 .ep-hero {
   background: #eaeae6 url('https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0') center 65%/cover no-repeat;
   flex: 1;
@@ -229,6 +233,7 @@ body {
   position: relative;
   overflow: hidden;
 }
+/* ヒーローの中の文字ロゴの部分（上寄せ・中央揃え） */
 .ep-hero-content {
   display: flex;
   flex-direction: column;
@@ -239,7 +244,7 @@ body {
 }
 .ep-hero-bg-img { display: none; }
 
-/* Habitat Oides hero */
+/* Habitat Oides のヒーロー: PC は背景画像として写真を敷く（写真の img 要素は PC では隠す） */
 .ho-hero {
   background: #1e3272 url('/img/habitatOides/habitat_oides_hero.jpg') center/cover no-repeat;
   flex: 1;
@@ -254,7 +259,7 @@ body {
 }
 .ho-hero-bg-img { display: none; }
 
-/* HUE hero */
+/* HUE のヒーロー: 薄い背景の中央に HUE のロゴを置く（上に色の円 .hue-blob を重ねる） */
 .hue-hero {
   background: #f8f8fb url('/img/logo-hue.png') center / 55% auto no-repeat;
   flex: 1;
@@ -268,7 +273,7 @@ body {
   overflow: hidden;
 }
 
-/* Workshop hero */
+/* ワークショップページのヒーロー: 紺の帯（中央を明るくする円形のグラデーションを ::before で重ねる） */
 .wspage-hero {
   min-height: 60vh;
   background: #1e3272;
@@ -289,7 +294,7 @@ body {
   pointer-events: none;
 }
 
-/* Shared brand concept grid */
+/* ブランドページのコンセプト: 左にロゴ、右に文章の 2 列（680px 以下で 1 列） */
 .brand-concept-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -297,7 +302,7 @@ body {
   align-items: center;
 }
 
-/* Habitat Oides workshop feature card */
+/* Habitat Oides のワークショップ紹介のカード: 紺の 2 列（700px 以下で 1 列） */
 .ho-workshop-feature {
   background: #1e3272;
   border-radius: 4px;
@@ -306,7 +311,7 @@ body {
   grid-template-columns: 1fr 1fr;
 }
 
-/* Workshop about grid */
+/* ワークショップページの About: 左に写真、右に文章の 2 列（680px 以下で 1 列） */
 .wspage-about-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -314,14 +319,14 @@ body {
   align-items: start;
 }
 
-/* Workshop features grid */
+/* ワークショップページの Contents: カード 3 列（680px 以下で 1 列） */
 .wspage-features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
 
-/* Concept brand line grid */
+/* コンセプトページの 3 ラインのカード: 1 列（768px 以上で 2 列） */
 .brand-line-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -329,12 +334,13 @@ body {
   margin-top: 40px;
 }
 
-/* Gallery grid */
+/* ギャラリーの写真の一覧: 220px 以上の正方形を入るだけ並べる（600px 以下は 140px 以上） */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 15px;
 }
+/* 写真 1 枚の枠（正方形・角丸・押すと拡大表示） */
 .gallery-item {
   position: relative;
   aspect-ratio: 1/1;
@@ -343,6 +349,7 @@ body {
   cursor: zoom-in;
   border-radius: 4px;
 }
+/* 枠いっぱいに切り抜いた写真。マウスを乗せると少し拡大して暗くする */
 .gallery-item img {
   width: 100%;
   height: 100%;
@@ -351,8 +358,23 @@ body {
   display: block;
 }
 .gallery-item:hover img { transform: scale(1.08); filter: brightness(0.9); }
+/* ギャラリーの写真を包むボタン: ボタンの既定の見た目（枠線・余白・背景）を消し、写真いっぱいに広げる */
+button.gallery-item {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+}
+/* キーボードで選んだ写真: 写真の内側に枠線を出して、どれを選んでいるか分かるようにする */
+button.gallery-item:focus-visible {
+  outline: 2px solid var(--c-ink);
+  outline-offset: -2px;
+}
+/* キーボードで選んだ写真もマウスを乗せたときと同じく拡大して暗くする */
+button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightness(0.9); }
 
-/* Scroll hint animation */
+/* ヒーロー下の「Scroll」の縦線: 上から下へ伸びて消える動きを 2 秒ごとに繰り返す */
 .scroll-hint-line {
   width: 1px;
   height: 38px;
@@ -363,7 +385,7 @@ body {
   60% { opacity: 1; transform: scaleY(1); transform-origin: top; }
 }
 
-/* HUE color blobs */
+/* HUE のヒーローの色の円: ぼかした円を 5 つ、それぞれ違う速さでゆっくり動かす */
 .hue-blob {
   position: absolute;
   border-radius: 50%;
@@ -382,16 +404,18 @@ body {
 @keyframes hueBlob4 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(55px,65px) scale(0.85);} 66%{transform:translate(-45px,25px) scale(1.1);} }
 @keyframes hueBlob5 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(65px,-55px) scale(1.2);} }
 
-/* section scroll-margin for sticky subnav */
+/* ブランドページの各セクション: サブナビのリンクで移ったとき、ヘッダーとサブナビ（計 116px）の下に見出しが来るようにする */
 .brand-section {
   scroll-margin-top: 116px;
 }
 
+/* 768px 以下（スマホ）: ブランドページのヒーローを写真の高さに合わせる */
 @media (max-width: 768px) {
+  /* ファーストビューを画面の高さに固定しない。HUE は高さを半分にしてロゴを大きくする */
   .hero-wrapper { height: auto; min-height: 0; }
   .hue-hero { min-height: 50vh; background-size: 80% auto; }
 
-  /* Grid stacking: <img> sizes the section, content overlays it */
+  /* 写真と中身を同じグリッドのマスに重ねる。背景画像の代わりに img 要素を出し、その高さでヒーローの高さを決める */
   .ep-hero, .ho-hero {
     display: grid;
     background-image: none;
@@ -399,12 +423,14 @@ body {
     padding: 0;
   }
   .ep-hero > *, .ho-hero > * { grid-area: 1/1; }
+  /* スマホでだけ出す写真（幅いっぱい・高さは写真の比率のまま） */
   .ep-hero-bg-img, .ho-hero-bg-img {
     display: block;
     width: 100%; height: auto;
     align-self: start;
     z-index: 0;
   }
+  /* 文字ロゴを写真の上に重ねる */
   .ep-hero-content {
     padding: 40px 20px 20px;
     z-index: 1;
@@ -426,6 +452,7 @@ body {
 }
 
 /* ---- Journal グリッド ---- */
+/* 先頭の大きな記事: 狭い画面は写真の下に文字（写真は 16:9）、860px 以上で写真 1.55 : 文字 1 の横並び（写真は 4:3） */
 .journal-featured-grid {
   grid-template-columns: 1fr;
 }
@@ -442,6 +469,7 @@ body {
     aspect-ratio: 4/3;
   }
 }
+/* 残りの記事の一覧: 1 列 → 600px 以上で 2 列 → 960px 以上で 3 列 */
 .journal-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -454,20 +482,7 @@ body {
   .journal-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* ---- Shop 4カラムグリッド ---- */
-.shop-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 32px 20px;
-}
-@media (min-width: 600px) {
-  .shop-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (min-width: 900px) {
-  .shop-grid { grid-template-columns: repeat(4, 1fr); }
-}
-
-/* ---- Shop Journal グリッド (4カラム) ---- */
+/* ---- Shop Journal グリッド (4カラム) ----（ショップの記事カード。2 列 → 600px 以上で 4 列） */
 .shop-journal-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -477,7 +492,7 @@ body {
   .shop-journal-grid { grid-template-columns: repeat(4, 1fr); gap: 20px 16px; }
 }
 
-/* ---- Shop Product グリッド (3カラム) ---- */
+/* ---- Shop Product グリッド (3カラム) ----（ショップの商品カード。2 列 → 600px 以上で 3 列） */
 .shop-product-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -487,7 +502,8 @@ body {
   .shop-product-grid { grid-template-columns: repeat(3, 1fr); gap: 36px 24px; }
 }
 
-/* ---- Home ヒーロー テキスト2カラム ---- */
+/* ---- Home ヒーロー テキスト2カラム ----
+   左に英語の小さなコピー、右に大きなキャッチコピーを下揃えで並べる。600px 以下は大きいほうを上にして縦に並べる */
 .hero-catch {
   display: flex;
   align-items: flex-end;
@@ -512,7 +528,9 @@ body {
   }
 }
 
-/* ---- Brand grow-strip ---- */
+/* ---- Brand grow-strip ----
+   トップページの 3 ブランドのカードの帯。PC は横に並べ、広げたカードの幅を 0.85 秒かけて変える。
+   767px 以下は高さ 240px のカードを縦に並べ、幅の動きを止める */
 .brand-strip {
   overflow: hidden;
   display: flex;
@@ -537,19 +555,7 @@ body {
   }
 }
 
-/* ---- Home ヒーロー グリッド ---- */
-.home-hero-grid {
-  grid-template-columns: 1fr;
-  gap: clamp(32px, 5vw, 48px);
-}
-@media (min-width: 700px) {
-  .home-hero-grid {
-    grid-template-columns: 1fr 1.6fr;
-    gap: clamp(48px, 6vw, 80px);
-  }
-}
-
-/* ---- Home ショップ グリッド ---- */
+/* ---- Home ショップ グリッド ----（トップの商品カード。2 列 → 600px 以上で 3 列 → 900px 以上で 4 列） */
 .home-shop-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -562,7 +568,7 @@ body {
   .home-shop-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* ---- Home ジャーナル グリッド ---- */
+/* ---- Home ジャーナル グリッド ----（トップの記事カード。1 列、700px 以上で 2 列にして先頭の記事を 2 列分の幅にする） */
 .home-journal-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -581,7 +587,10 @@ body {
   }
 }
 
-/* ---- Admin レスポンシブ ---- */
+/* ---- Admin レスポンシブ ----
+   管理画面のサイドメニュー（AdminLayout）。768px 以下は隠して、開いたときだけ左に固定した引き出しとして出し、
+   スマホ用のヘッダーと閉じるボタンを出す。769px 以上は常に左に置き、スマホ用の部品を隠す。
+   インラインスタイルを上書きするため !important を付けている */
 @media (max-width: 768px) {
   .admin-sidebar {
     display: none !important;
@@ -603,12 +612,14 @@ body {
   }
 }
 @media (min-width: 769px) {
+  /* PC のサイドメニュー: 画面の高さに合わせ、項目が収まらないときはメニューの中だけ縦にスクロールする
+     （親の AdminLayout が height:100vh; overflow:hidden のため、ここで止めないと下の項目に届かない） */
   .admin-sidebar {
     display: flex !important;
     position: static !important;
-    height: auto !important;
+    height: 100vh !important;
     z-index: auto !important;
-    overflow-y: visible !important;
+    overflow-y: auto !important;
   }
   .admin-menu-close {
     display: none !important;
@@ -641,19 +652,21 @@ textarea,
   }
 }
 
+/* 数値の入力欄（class="num-plain"。管理画面の収支・価格計算）: Chrome・Safari の上下の増減ボタンを消す */
 .num-plain::-webkit-outer-spin-button,
 .num-plain::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* Markdown docs viewer */
+/* Markdown docs viewer（管理画面「設計書」の本文。.docs-markdown の中の見出し・リスト・コード・表などの見た目） */
 .docs-markdown {
   font-size: 15px;
   line-height: 1.8;
   color: var(--c-body);
   max-width: 860px;
 }
+/* 大見出し: 明朝体・下線つき */
 .docs-markdown h1 {
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: clamp(20px, 3vw, 28px);
@@ -664,6 +677,7 @@ textarea,
   border-bottom: 1px solid #dddde8;
   color: var(--c-ink);
 }
+/* 中見出し: 太字・薄い下線つき */
 .docs-markdown h2 {
   font-size: 16px;
   font-weight: 600;
@@ -672,24 +686,28 @@ textarea,
   border-bottom: 1px solid #ebebf0;
   color: var(--c-ink);
 }
+/* 小見出し */
 .docs-markdown h3 {
   font-size: 14px;
   font-weight: 600;
   margin: 24px 0 8px;
   color: var(--c-ink);
 }
+/* さらに小さな見出し */
 .docs-markdown h4 {
   font-size: 13px;
   font-weight: 600;
   margin: 16px 0 6px;
   color: var(--c-body);
 }
+/* 段落・リスト */
 .docs-markdown p { margin: 0 0 12px; }
 .docs-markdown ul, .docs-markdown ol {
   padding-left: 20px;
   margin: 0 0 12px;
 }
 .docs-markdown li { margin-bottom: 4px; }
+/* 文中のコード: 等幅・薄い灰色の背景・赤い文字 */
 .docs-markdown code {
   font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 12.5px;
@@ -698,6 +716,7 @@ textarea,
   border-radius: 3px;
   color: #c0392b;
 }
+/* コードのかたまり: 枠つきの灰色の箱。折り返さず横にスクロールする */
 .docs-markdown pre {
   background: #f5f5f7;
   border: 1px solid #dddde8;
@@ -710,6 +729,7 @@ textarea,
   font-family: 'M PLUS 1 Code', 'SFMono-Regular', Consolas, 'Courier New', monospace;
   font-size: 13px;
 }
+/* かたまりの中のコードは、文中のコードの背景・色を外して箱の設定に従う */
 .docs-markdown pre code {
   background: none;
   padding: 0;
@@ -718,6 +738,7 @@ textarea,
   white-space: inherit;
   line-height: inherit;
 }
+/* 表: 中身の幅に合わせ、はみ出したら横にスクロールする */
 .docs-markdown table {
   border-collapse: collapse;
   width: max-content;
@@ -728,6 +749,7 @@ textarea,
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+/* 表のマス: 枠線つき。長い文字は 300px で折り返す */
 .docs-markdown th, .docs-markdown td {
   border: 1px solid #dddde8;
   padding: 8px 12px;
@@ -736,6 +758,7 @@ textarea,
   max-width: 300px;
   word-break: break-word;
 }
+/* 表の見出しのマス: 灰色の背景・太字・折り返さない */
 .docs-markdown th {
   background: #f5f5f7;
   font-weight: 600;
@@ -743,15 +766,212 @@ textarea,
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
+/* 引用: 左に線を引いた薄い文字 */
 .docs-markdown blockquote {
   border-left: 3px solid #dddde8;
   margin: 0 0 12px;
   padding: 4px 16px;
   color: var(--c-muted);
 }
+/* リンクの色（緑）と区切り線 */
 .docs-markdown a { color: #2d6a4f; }
 .docs-markdown hr {
   border: none;
   border-top: 1px solid #dddde8;
   margin: 24px 0;
+}
+
+/* ---- 管理画面 BlockEditor: ブロックのあいだの「+ 見出し / + テキスト / + 画像」の列 ---- */
+/* 普段は薄く表示し、マウスを乗せたとき・キーボードでボタンを選んだときに濃くする */
+.block-editor-addbar {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  padding: 6px 0;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+.block-editor-addbar:hover,
+.block-editor-addbar:focus-within {
+  opacity: 1;
+}
+
+/* ---- Header: Shop ボタン（枠線の四角いリンク）。ホバー・キーボード選択で色を反転する ---- */
+.header-shop-link {
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  padding: 5px 14px;
+  border: 1px solid var(--c-ink);
+  color: var(--c-ink);
+  background: transparent;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+  text-transform: uppercase;
+}
+.header-shop-link:hover,
+.header-shop-link:focus-visible {
+  background: var(--c-ink);
+  color: var(--c-bg);
+}
+
+/* ---- Header: 言語切り替えボタン（EN / JA）。ホバー・キーボード選択で文字と枠線を濃くする ---- */
+.header-lang-btn {
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  background: none;
+  border: 1px solid var(--c-border);
+  color: var(--c-muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.header-lang-btn:hover,
+.header-lang-btn:focus-visible {
+  color: var(--c-ink);
+  border-color: var(--c-ink);
+}
+
+/* ---- Header: Brand メニューの開閉ボタン。ほかのナビの文字と同じ見た目にそろえる ---- */
+.header-brand-btn {
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  padding: 4px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.2s;
+}
+.header-brand-btn:hover,
+.header-brand-btn[aria-expanded="true"] {
+  color: var(--c-ink);
+}
+
+/* ---- Home: 商品・記事のサムネイル。ホバー・キーボード選択で画像を少し拡大する ---- */
+.home-zoom-img {
+  transition: transform 0.6s cubic-bezier(.22,1,.36,1);
+}
+.home-shop-card:hover .home-zoom-img,
+.home-shop-card:focus-visible .home-zoom-img {
+  transform: scale(1.05);
+}
+.home-journal-card:hover .home-zoom-img,
+.home-journal-card:focus-visible .home-zoom-img {
+  transform: scale(1.03);
+}
+
+/* ---- Home: ヒーローの背景のゆっくり動く光（.home-hero-blob に当てる） ---- */
+@keyframes bgBlob {
+  0%,100% { transform: translate(-50%,-50%) scale(1); }
+  25% { transform: translate(-48%,-53%) scale(1.06); }
+  50% { transform: translate(-53%,-47%) scale(0.94); }
+  75% { transform: translate(-47%,-54%) scale(1.03); }
+}
+.home-hero-blob {
+  animation: bgBlob 16s ease-in-out infinite;
+}
+
+/* ---- Home: ギャラリーのマーキー（写真の列を横へ流す .home-marquee-track に当てる） ---- */
+/* 同じ写真の列を2つ並べ、半分（1周分）流したところで最初に戻すと切れ目なく見える */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - 6px)); }
+}
+.home-marquee-track {
+  display: flex;
+  width: fit-content;
+  gap: 12px;
+  animation: marquee 80s linear infinite;
+}
+
+/* ---- 動きを減らす設定（OS の「視差効果を減らす」など）の利用者向け ---- */
+/* ヒーローの光・マーキー・ブランドページの装飾アニメーションを止める */
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-blob,
+  .home-marquee-track,
+  .scroll-hint-line,
+  .hue-blob {
+    animation: none;
+  }
+  /* マーキーを止めたときは横にスクロールして写真を見られるようにする（.home-marquee-viewport は外枠） */
+  .home-marquee-viewport {
+    overflow-x: auto !important;
+  }
+}
+
+/* ---- 管理画面「設計書」（AdminDocs）のレスポンシブ ----
+   769px 以上: 目次（.admin-docs-toc）を左に固定幅で置き、開閉ボタンは隠して目次は常に表示する。
+   768px 以下: 目次を上・本文（.admin-docs-body）を下に縦に並べ、目次は開閉ボタンで折りたためるようにする。
+   インラインスタイルを上書きするため !important を付けている */
+@media (min-width: 769px) {
+  .admin-docs-toc-toggle {
+    display: none !important;
+  }
+}
+@media (max-width: 768px) {
+  /* 外枠: 縦並びにする */
+  .admin-docs {
+    flex-direction: column !important;
+    min-height: 0 !important;
+  }
+  /* 目次: 横幅いっぱい・下に区切り線。上に固定せず、高さの上限も外す（ページと一緒にスクロールする） */
+  .admin-docs-toc {
+    width: auto !important;
+    max-height: none !important;
+    position: static !important;
+    border-right: none !important;
+    border-bottom: 1px solid #dddde8 !important;
+    padding: 8px 0 !important;
+    overflow-y: visible !important;
+  }
+  /* 目次の開閉ボタン: スマホだけ出す */
+  .admin-docs-toc-toggle {
+    display: inline-block !important;
+  }
+  /* 目次を閉じているときはツリーを隠す */
+  .admin-docs-toc.toc-collapsed .admin-docs-tree {
+    display: none !important;
+  }
+  /* 本文: 左右の余白を詰め、スクロールは管理画面の main に任せる */
+  .admin-docs-body {
+    padding: 16px 0 !important;
+    overflow-y: visible !important;
+    scroll-margin-top: 8px;
+  }
+}
+
+/* ---- StoreHeader（ショップ・ジャーナルのヘッダー）: 狭い画面 ----
+   480px 以下では「Official Site」ボタンを隠す（ロゴもトップページへのリンクなので戻れる）。
+   ロゴ・Shop / Journal・言語切り替え・カートを 1 行に収めるため */
+@media (max-width: 480px) {
+  .store-header-official {
+    display: none !important;
+  }
+}
+
+/* サイト全体: URL・メールアドレスのような区切りの無い長い文字列が、枠からはみ出す（横スクロールになる）ときだけ折り返す */
+body {
+  overflow-wrap: break-word;
+}
+
+/* ---- 管理画面の表（商品管理・収支一覧）の操作の列 ----
+   768px 以下では表が横にスクロールするので、編集・削除の列（.admin-sticky-col）を右端に固定して常に見えるようにする。
+   背景色はセルのインラインスタイルで表と同じ色にし、左に薄い影を付けて固定していることが分かるようにする */
+@media (max-width: 768px) {
+  .admin-sticky-col {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    box-shadow: -8px 0 8px -8px rgba(0, 0, 0, 0.25);
+  }
 }

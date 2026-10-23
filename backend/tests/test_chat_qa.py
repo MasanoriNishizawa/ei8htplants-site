@@ -7,6 +7,7 @@ chat-qa エンドポイントのテスト。
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
+from tests._helpers import as_admin
 
 
 # テスト用 Q&A データ
@@ -28,9 +29,10 @@ class TestListChatQA:
     """Q&A 一覧 GET /api/chat-qa のテスト。"""
 
     def test_QA一覧を取得すると表示順で返る(self):
-        """admin_supabase から Q&A を sort_order 順に返すこと。"""
+        """未ログインの一覧は sort_order 順に並べ、enabled=True で絞った結果を返すこと。"""
         mock_sb = MagicMock()
-        mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = QA_DATA
+        order = mock_sb.table.return_value.select.return_value.order.return_value
+        order.eq.return_value.execute.return_value.data = QA_DATA
 
         with patch('app.routes.chat_qa.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/chat-qa')
@@ -39,11 +41,27 @@ class TestListChatQA:
         data = resp.json()
         assert len(data) == 2
         assert data[0]['question'] == 'ご注文方法は？'
+        mock_sb.table.return_value.select.return_value.order.assert_called_once_with('sort_order')
+
+    def test_未ログインの一覧は有効なQAだけに絞られる(self):
+        """公開の GET /api/chat-qa は enabled=True で絞り、無効な Q&A を返さないこと。"""
+        mock_sb = MagicMock()
+        order = mock_sb.table.return_value.select.return_value.order.return_value
+        order.eq.return_value.execute.return_value.data = QA_DATA
+        # 絞らなかった場合の結果（無効を含む）。使われないことを確かめる
+        order.execute.return_value.data = QA_DATA + [{'id': 'q9', 'question': '無効', 'answer': 'x', 'sort_order': 9, 'enabled': False}]
+
+        with patch('app.routes.chat_qa.admin_supabase', mock_sb):
+            resp = TestClient(app).get('/api/chat-qa')
+
+        assert resp.status_code == 200
+        order.eq.assert_called_once_with('enabled', True)
+        assert all(q['enabled'] for q in resp.json())
 
     def test_QA一覧が空のとき空リストが返る(self):
         """レコードが 0 件のとき空リストが返ること。"""
         mock_sb = MagicMock()
-        mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = []
+        mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.return_value.data = []
 
         with patch('app.routes.chat_qa.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/chat-qa')
@@ -51,26 +69,50 @@ class TestListChatQA:
         assert resp.status_code == 200
         assert resp.json() == []
 
-    def test_DB例外発生時に500が返る(self):
-        """admin_supabase が例外を投げたとき 500 が返ること。"""
+    def test_DB例外発生時に500が返り例外の文字列は返さない(self):
+        """admin_supabase が例外を投げたとき 500 が返り、応答に内部の例外の文字列が含まれないこと。"""
         mock_sb = MagicMock()
-        mock_sb.table.return_value.select.return_value.order.return_value.execute.side_effect = Exception('DB error')
+        mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.side_effect = Exception('DB error')
 
         with patch('app.routes.chat_qa.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/chat-qa')
 
         assert resp.status_code == 500
-        assert 'DB error' in resp.json()['detail']
+        assert 'DB error' not in resp.text
+        assert resp.json()['detail'] == 'サーバーでエラーが発生しました。時間をおいて再度お試しください。'
 
     def test_認証なしでも一覧が取得できる(self):
         """GET /api/chat-qa は認証不要のため Authorization ヘッダーなしでも 200 が返ること。"""
         mock_sb = MagicMock()
-        mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = QA_DATA
+        mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.return_value.data = QA_DATA
 
         with patch('app.routes.chat_qa.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/chat-qa')
 
         assert resp.status_code == 200
+
+    def test_未ログインでall_trueを指定すると401になる(self):
+        """?all=true（無効を含む全件）は管理者専用のため、未ログインでは 401 になりDBを読まないこと。"""
+        mock_sb = MagicMock()
+
+        with patch('app.routes.chat_qa.admin_supabase', mock_sb):
+            resp = TestClient(app).get('/api/chat-qa?all=true')
+
+        assert resp.status_code == 401
+        mock_sb.table.assert_not_called()
+
+    def test_ログイン済みでall_trueを指定すると無効を含む全件が返る(self):
+        """管理者としてログインして ?all=true を指定すると enabled で絞らず全件が返ること。"""
+        mock_sb = MagicMock()
+        order = mock_sb.table.return_value.select.return_value.order.return_value
+        order.execute.return_value.data = QA_DATA + [{'id': 'q9', 'question': '無効', 'answer': 'x', 'sort_order': 9, 'enabled': False}]
+
+        with patch('app.routes.chat_qa.admin_supabase', mock_sb), as_admin():
+            resp = TestClient(app).get('/api/chat-qa?all=true')
+
+        assert resp.status_code == 200
+        assert len(resp.json()) == 3
+        order.eq.assert_not_called()
 
 
 class TestAddChatQA:

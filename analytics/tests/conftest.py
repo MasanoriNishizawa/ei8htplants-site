@@ -4,6 +4,9 @@
    dotenv.load_dotenv を何もしない関数に差し替え、本物の接続情報が環境変数に入らないようにする
 2. 接続に関わる環境変数はテストごとに消し、必要なテストだけが架空の値を入れる
 3. requests.get / requests.post は既定で「呼ばれたら失敗」にしておき、モックし忘れても外へ出ないようにする
+4. Streamlit が secrets.toml を探す場所を空の一時フォルダに向け、手元の本物の secrets.toml
+   （analytics/.streamlit・リポジトリ直下の .streamlit・~/.streamlit）を読まないようにする。
+   万一読もうとしたらテストを失敗させる（本物の接続情報が環境変数に入るのを防ぐ）
 """
 
 from __future__ import annotations
@@ -14,6 +17,9 @@ from pathlib import Path
 import dotenv
 import pytest
 import requests
+import streamlit
+from streamlit import config as st_config
+from streamlit.runtime.secrets import Secrets
 
 # 1. analytics フォルダを import の起点にする（app.py と同じく `lib.xxx` で import できるように）
 ANALYTICS_DIR = Path(__file__).resolve().parents[1]
@@ -38,6 +44,32 @@ ENV_NAMES = (
     "GA_CREDENTIALS",
     "GA_CREDENTIALS_JSON",
 )
+
+
+# 本物の secrets.toml が置かれうる場所（テストでは絶対に読まない）。
+# Streamlit の既定の探す場所（~/.streamlit と、起動したフォルダの .streamlit）に合わせ、
+# analytics から起動した場合とリポジトリ直下から起動した場合の両方を含める
+REAL_SECRETS_FILES = tuple(
+    p.resolve()
+    for p in (
+        ANALYTICS_DIR / ".streamlit" / "secrets.toml",
+        ANALYTICS_DIR.parent / ".streamlit" / "secrets.toml",
+        Path.home() / ".streamlit" / "secrets.toml",
+    )
+)
+
+
+def is_real_secrets_path(path: str) -> bool:
+    """本物の secrets.toml の場所（またはそれを含むフォルダ）かどうか。
+
+    Args:
+        path: Streamlit が読もうとしている場所
+
+    Returns:
+        REAL_SECRETS_FILES のどれか、またはその親フォルダなら True
+    """
+    p = Path(path).expanduser().resolve()
+    return any(p == real or p == real.parent for real in REAL_SECRETS_FILES)
 
 
 def _blocked(*args, **kwargs):
@@ -72,3 +104,52 @@ def fake_env(monkeypatch):
     monkeypatch.setenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", FAKE_ANON_KEY)
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", FAKE_SERVICE_KEY)
     yield
+
+
+@pytest.fixture(autouse=True)
+def isolate_secrets(monkeypatch, tmp_path_factory):
+    """各テストで、Streamlit が本物の secrets.toml を読まないようにする。
+
+    1. secrets.files（探す場所）を、何も置いていない一時フォルダの secrets.toml だけにする
+    2. st.secrets をまだ何も読み込んでいない新しい Secrets にする（前のテストで読んだ値を持ち越さない）
+    3. 本物の secrets.toml を読もうとしたら記録して例外にし、テストの最後に失敗させる
+       （AppTest の中で起きた例外は画面のエラーになるだけなので、記録を見て確実に落とす）
+
+    test_secrets_env.py のように、テストの中で探す場所を一時フォルダの secrets.toml に向け直すテストは
+    そのまま動く（そのテストの差し替えがこの fixture より内側で効く）。
+
+    Args:
+        monkeypatch: pytest の monkeypatch
+        tmp_path_factory: 一時フォルダを作る pytest の fixture
+
+    Yields:
+        本物の secrets.toml を読もうとした場所のリスト（空のはず）
+    """
+    # 1. 探す場所を空の一時フォルダに向ける（ほかの設定はそのまま）
+    empty = tmp_path_factory.mktemp("no_secrets") / ".streamlit" / "secrets.toml"
+    original_get_option = st_config.get_option
+
+    def get_option(key: str):
+        if key == "secrets.files":
+            return [str(empty)]
+        return original_get_option(key)
+
+    monkeypatch.setattr(st_config, "get_option", get_option)
+
+    # 2. 本物の場所を読もうとしたら記録して止める
+    attempts: list[str] = []
+    original_parse_file_path = Secrets._parse_file_path
+
+    def guarded_parse_file_path(self, path: str):
+        if is_real_secrets_path(path):
+            attempts.append(path)
+            raise AssertionError("テスト中に本物の secrets.toml を読もうとしました")
+        return original_parse_file_path(self, path)
+
+    monkeypatch.setattr(Secrets, "_parse_file_path", guarded_parse_file_path)
+
+    # 3. 何も読み込んでいない Secrets を使う。ファイルの監視は始めない
+    monkeypatch.setattr(Secrets, "_maybe_install_file_watchers", lambda self: None)
+    monkeypatch.setattr(streamlit, "secrets", Secrets())
+    yield attempts
+    assert not attempts, f"テスト中に本物の secrets.toml を読もうとしました: {attempts}"

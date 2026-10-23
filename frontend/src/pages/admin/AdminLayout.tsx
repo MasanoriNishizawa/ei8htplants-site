@@ -6,11 +6,16 @@ import PageLoading from '../../components/PageLoading'
 import { UnsavedChangesProvider, useConfirmLeave } from './UnsavedChanges'
 import { preloadAdminPages } from './adminPages'
 
-// ナビゲーション項目の型定義。グループヘッダーかリンクかを判別する
+/** サイドメニューのグループの見出し（group: 見出しの文字） */
 type NavGroup = { group: string }
+/**
+ * 管理画面の中のページへのリンク
+ * to: リンク先のパス / label: 表示名 / end: パスが完全に一致するときだけ選択中にする（ダッシュボード用）/ sub: グループの中の項目として字下げする
+ */
 type NavLink_ = { to: string; label: string; end?: boolean; sub?: boolean }
-/** 管理画面の外（別サービス）を新しいタブで開くリンク */
+/** 管理画面の外（別サービス）を新しいタブで開くリンク（href: 開く URL / label: 表示名） */
 type NavExternal = { href: string; label: string }
+/** サイドメニューの1項目（グループの見出し・管理画面内のリンク・外部リンクのどれか。持っているキーで見分ける） */
 type NavItem = NavGroup | NavLink_ | NavExternal
 
 /**
@@ -19,6 +24,7 @@ type NavItem = NavGroup | NavLink_ | NavExternal
  */
 const ANALYTICS_URL = 'https://ei8htplants-analytics.streamlit.app'
 
+/** サイドメニューに上から並べる項目 */
 const NAV_ITEMS: NavItem[] = [
   { to: '/admin', label: 'ダッシュボード', end: true },
   { href: ANALYTICS_URL, label: '分析' },
@@ -44,6 +50,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/chat-logs', label: 'チャット履歴' },
 ]
 
+/**
+ * サイドメニューのリンクの見た目
+ * @param state.isActive - 今いる画面のリンクか
+ * @param sub - グループの中の項目（字下げして小さくする）か
+ * @returns スタイル
+ */
 const navStyle = ({ isActive }: { isActive: boolean }, sub = false): React.CSSProperties => ({
   display: 'block',
   padding: sub ? '8px 16px 8px 26px' : '10px 16px',
@@ -54,55 +66,107 @@ const navStyle = ({ isActive }: { isActive: boolean }, sub = false): React.CSSPr
   whiteSpace: 'nowrap',
 })
 
-/** 管理画面全体のレイアウト。Supabase 認証を担い、未認証時はログインフォームを表示する */
+/**
+ * 管理画面全体のレイアウト。Supabase 認証を担い、未認証時はログインフォームを表示する
+ * @returns 確認中は何も出さず、未ログインならログインフォーム、ログイン済みなら管理画面の枠
+ */
 export default function AdminLayout() {
+  /** 最初のセッションの確認中か（確認中は何も表示しない） */
   const [checking, setChecking] = useState(true)
+  /** ログインしているか */
   const [authed, setAuthed] = useState(false)
+  /** ログインフォームの ID（メールアドレス） */
   const [email, setEmail] = useState('')
+  /** ログインフォームのパスワード */
   const [password, setPassword] = useState('')
+  /** ログインの失敗の文言 */
   const [error, setError] = useState('')
+  /** ログインを送信中か（ボタンを無効にして二重送信を防ぐ） */
+  const [submitting, setSubmitting] = useState(false)
 
-  // 既存セッションの有無を確認して認証状態を初期化する
+  /*
+   * ログイン状態を初期化し、その後の変化を追いかける
+   * 1. 開発用のログイン省略モードならログイン済みにする
+   * 2. 今のセッションを確認する（失敗したら未ログインとして扱い、ログイン画面を出す）
+   * 3. onAuthStateChange でセッションの変化（期限切れ・別タブでのログアウト・トークンの更新）を受け取り、
+   *    セッションが無くなったらログイン画面に戻す
+   */
   useEffect(() => {
-    // 開発用のログイン省略モード（本番ビルドでは常に false）。判定は lib/devAuth.ts にまとめている
+    // 1. 開発用のログイン省略モード（本番ビルドでは常に false）。判定は lib/devAuth.ts にまとめている
     if (SKIP_ADMIN_AUTH) {
       setAuthed(true)
       setChecking(false)
       return
     }
     if (!supabase) { setChecking(false); return }
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthed(!!data.session)
-      setChecking(false)
+    // 2. 今のセッション
+    supabase.auth.getSession()
+      .then(({ data }) => setAuthed(!!data.session))
+      .catch(() => setAuthed(false))
+      .finally(() => setChecking(false))
+    // 3. 変化の購読（テストのモックなどで onAuthStateChange が無い場合は購読しない）
+    /** 購読の登録結果（画面を閉じるときに購読をやめるため） */
+    const sub = supabase.auth.onAuthStateChange?.((_event, session) => {
+      setAuthed(!!session)
     })
+    return () => sub?.data.subscription.unsubscribe()
   }, [])
 
+  /**
+   * ログインフォームの送信
+   * 1. 送信中にする
+   * 2. ID・パスワードでログインする
+   * 3. 失敗したら文言を出す
+   * 4. 送信中を戻す
+   * @param e - フォームの submit イベント
+   */
   const login = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!supabase) { setError('Supabase not configured'); return }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError(error.message); return }
-    setAuthed(true)
+    if (submitting) return
+    // 1. 送信中にする
+    setSubmitting(true)
+    setError('')
+    try {
+      // 2. ログイン（Supabase の失敗は error で返る）
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) { setError(error.message); return }
+      setAuthed(true)
+    } catch (err) {
+      // 3. 通信の失敗など
+      setError(err instanceof Error ? err.message : 'ログインに失敗しました')
+    } finally {
+      // 4. 送信中を戻す
+      setSubmitting(false)
+    }
   }
 
+  /**
+   * ログアウトしてログイン画面に戻す
+   * @returns ログアウトが終わる Promise
+   */
   const logout = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
     setAuthed(false)
   }
 
+  // 最初のセッションの確認中は何も出さない（ログイン画面が一瞬見えるのを防ぐ）
   if (checking) return null
 
+  // 未ログインならログインフォーム
   if (!authed) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f5f7', padding: '20px' }}>
       <form onSubmit={login} style={{ background: '#ffffff', padding: 40, borderRadius: 4, boxShadow: '0 2px 24px rgba(40,35,20,0.08)', width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <h1 style={{ margin: '0 0 8px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 24, fontWeight: 300 }}>Admin</h1>
-        <input required type="text" placeholder="ID" value={email} onChange={(e) => setEmail(e.target.value)}
+        <input required type="text" aria-label="ID" autoComplete="username" placeholder="ID" value={email} onChange={(e) => setEmail(e.target.value)}
           style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit' }} />
-        <input required type="password" placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
+        <input required type="password" aria-label="パスワード" autoComplete="current-password" placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
           style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit' }} />
-        {error && <p style={{ color: '#c0392b', fontSize: 13, margin: 0 }}>{error}</p>}
-        <button type="submit" style={{ padding: '12px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer' }}>ログイン</button>
+        {error && <p role="alert" style={{ color: '#c0392b', fontSize: 13, margin: 0 }}>{error}</p>}
+        <button type="submit" disabled={submitting} style={{ padding: '12px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.6 : 1 }}>
+          {submitting ? 'ログイン中...' : 'ログイン'}
+        </button>
       </form>
     </div>
   )
@@ -124,6 +188,7 @@ export default function AdminLayout() {
 function AdminShell({ onLogout }: { onLogout: () => void }) {
   /** モバイルでサイドメニュー（ドロワー）を開いているかどうか */
   const [menuOpen, setMenuOpen] = useState(false)
+  /** 今いる画面のパス（同じ画面へのリンクでは確認を出さないため） */
   const { pathname } = useLocation()
   /** 未保存の変更があれば確認ダイアログを出す関数（移動してよければ true） */
   const confirmLeave = useConfirmLeave()
@@ -144,11 +209,14 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
    * @param to - リンク先のパス
    */
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
+    // 1. 新しいタブ・ウィンドウで開く操作はブラウザに任せる
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+    // 2. 3. 別の画面へ移るときだけ確認し、キャンセルなら移動を止める
     if (to !== pathname && !confirmLeave()) {
       e.preventDefault()
       return
     }
+    // 4. モバイルのメニューを閉じる
     setMenuOpen(false)
   }
 
@@ -160,7 +228,7 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* モバイルオーバーレイ */}
+      {/* モバイルオーバーレイ（メニューを開いているあいだ後ろを暗くし、押すと閉じる） */}
       {menuOpen && (
         <div
           onClick={() => setMenuOpen(false)}
@@ -181,11 +249,13 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
           gap: 4,
         }}
       >
+        {/* サイト名と、モバイルでメニューを閉じるボタン（PC では CSS で隠す） */}
         <div style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 18, fontWeight: 300, marginBottom: 12, letterSpacing: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>ei8ht admin</span>
           <button
             onClick={() => setMenuOpen(false)}
             className="admin-menu-close"
+            aria-label="メニューを閉じる"
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--c-muted)', padding: '0 4px', lineHeight: 1 }}
           >
             ×
@@ -213,6 +283,7 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
                 onClick={() => setMenuOpen(false)}
               >
                 {item.label} <span aria-hidden="true" style={{ fontSize: 12 }}>↗</span>
+                {/* 読み上げだけに伝える補足（画面には出さない） */}
                 <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>（新しいタブで開きます）</span>
               </a>
             )
@@ -230,6 +301,7 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
             </NavLink>
           )
         })}
+        {/* ログアウトボタン（メニューの一番下） */}
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <button onClick={handleLogout} style={{ width: '100%', padding: '10px', background: 'none', border: '1px solid #dddde8', borderRadius: 4, fontSize: 13, cursor: 'pointer', color: 'var(--c-muted)' }}>ログアウト</button>
         </div>
@@ -237,10 +309,12 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
 
       {/* メインコンテンツ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* モバイルヘッダー */}
+        {/* モバイルヘッダー（メニューを開くボタンとサイト名。PC では隠し、狭い幅で CSS が表示する） */}
         <div className="admin-mobile-header" style={{ display: 'none', padding: '12px 16px', background: '#fff', borderBottom: '1px solid #dddde8', alignItems: 'center', gap: 12, flexShrink: 0, zIndex: 100 }}>
           <button
             onClick={() => setMenuOpen(true)}
+            aria-label="メニューを開く"
+            aria-expanded={menuOpen}
             style={{ background: 'none', border: '1px solid #dddde8', borderRadius: 4, padding: '6px 10px', cursor: 'pointer', fontSize: 16, lineHeight: 1, color: 'var(--c-body)' }}
           >
             ☰

@@ -1,15 +1,20 @@
 """アクセス解析画面：GA4 のデータで、訪問者数・PV の推移、よく見られているページ、流入元、端末・地域を見る。"""
 
+from collections.abc import Callable
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from lib.charts import SERIES, style
+from lib.analysis import CANCELLED
+from lib.charts import SERIES, TOP_N, bar_chart, bar_height, style
 from lib.context import get_context
-from lib.ga import ga_config, label_paths, run_report
+from lib.ga import DEFAULT_REPORT_LIMIT, ga_config, label_paths, run_report
 
 # 期間の選択肢：表示名 → (GA の開始日の書き方, 日数)
 PERIODS = {"直近7日": ("7daysAgo", 7), "直近28日": ("28daysAgo", 28), "直近90日": ("90daysAgo", 90)}
+# 期間の初期値
+DEFAULT_PERIOD = "直近28日"
 
 # 流入の種類（GA のチャネル名）を日本語にする
 CHANNELS = {
@@ -26,10 +31,49 @@ CHANNELS = {
 # 端末の種類を日本語にする
 DEVICES = {"mobile": "スマホ", "desktop": "パソコン", "tablet": "タブレット"}
 
+# よく見られているページの集計で GA から取るページ数（同じページのクエリ違いをまとめる前の行数）
+PAGE_REPORT_LIMIT = 200
+# 参照元・地域のグラフに出す上位の件数
+TOP_SOURCES = 10
+# 横に2つ並べるグラフの高さ（px）
+HALF_CHART_HEIGHT = 320
+# WS 予約ページのパス（予約率の計算で、このページの PV を分母にする）
+RESERVE_PATH = "/reserve"
+
+# レポートを取る関数の型（ディメンション・指標・並べ替えの指標・行数 → 表）
+Report = Callable[..., pd.DataFrame]
+
+
+def _part_failed(kind: str) -> None:
+    """2本目以降の GA レポートが取れなかったとき、その表の場所に表示できないことを出す。
+
+    Args:
+        kind: 表の種類名（例: "日ごとの訪問者数"）
+    """
+    st.warning(f"この表は表示できません（{kind}）。時間をおいて「データを再読み込み」を押してください。")
+
+
+def _try_report(kind: str, report: Report, *args) -> pd.DataFrame | None:
+    """GA のレポートを1つ取り、失敗したらその表の場所に知らせて None を返す（画面全体は止めない）。
+
+    Args:
+        kind: 表の種類名（失敗したときの表示に使う）
+        report: レポートを取る関数
+        *args: report に渡す引数
+
+    Returns:
+        取得した表。失敗したときは None
+    """
+    try:
+        return report(*args)
+    except Exception:  # 権限・通信・上限などの失敗は表ごとに受け止め、ほかの表は表示を続ける
+        _part_failed(kind)
+        return None
+
 
 def render() -> None:
-    """アクセス解析画面を表示する。"""
-    ctx = get_context()
+    """アクセス解析画面を表示する（会計年度では絞り込まないので、年度の選択欄は出さない）。"""
+    ctx = get_context(use_year_filter=False)
     st.title("アクセス解析")
 
     # 1. 接続設定がまだなら、設定の手順を出して終わる
@@ -38,13 +82,26 @@ def render() -> None:
         _setup_guide(problem)
         return
 
-    period = st.segmented_control("期間", list(PERIODS), default="直近28日", key="ga_period") or "直近28日"
+    period = st.segmented_control("期間", list(PERIODS), default=DEFAULT_PERIOD, key="ga_period") or DEFAULT_PERIOD
     start, days = PERIODS[period]
 
-    def report(dims: tuple[str, ...], metrics: tuple[str, ...], order: str | None = None, limit: int = 1000):
-        """選んだ期間で GA のレポートを取得する（引数は run_report と同じ）。"""
+    def report(
+        dims: tuple[str, ...], metrics: tuple[str, ...], order: str | None = None, limit: int = DEFAULT_REPORT_LIMIT
+    ) -> pd.DataFrame:
+        """選んだ期間で GA のレポートを取得する。
+
+        Args:
+            dims: ディメンション名
+            metrics: 指標名
+            order: 多い順に並べる指標名（None なら並べ替えない）
+            limit: 最大行数
+
+        Returns:
+            run_report の結果
+        """
         return run_report(cfg.property_id, cfg.credentials_ref, dims, metrics, start, "today", order, limit)
 
+    # 2. 1本目（まとめの数字）が取れなければ、設定の問題とみなして画面全体で知らせる
     try:
         totals = report((), ("activeUsers", "sessions", "screenPageViews", "averageSessionDuration"))
     except Exception as e:  # 権限不足・ID 違いなどをまとめて受けて画面で知らせる
@@ -52,7 +109,7 @@ def render() -> None:
         st.caption("プロパティ ID と、サービスアカウントに「閲覧者」の権限を付けたかを確認してください。")
         return
 
-    # 2. まとめの数字
+    # 3. まとめの数字
     t = totals.iloc[0] if len(totals) else pd.Series(0, index=totals.columns)
     if t["screenPageViews"] == 0:
         st.info("この期間のデータはまだありません。タグを入れてから反映まで 1〜2 日かかることがあります。")
@@ -63,8 +120,24 @@ def render() -> None:
     c3.metric("ページビュー", f"{int(t['screenPageViews']):,}PV")
     c4.metric("1回の平均滞在", f"{int(t['averageSessionDuration'] // 60)}分{int(t['averageSessionDuration'] % 60)}秒")
 
-    # 3. 日ごとの訪問者数
-    daily = report(("date",), ("activeUsers", "screenPageViews")).sort_values("date")
+    # 4. 2本目以降の表は、取れなかったものだけ「表示できません」と出して続ける
+    _daily(report)
+    pages = _pages(ctx, report)
+    _sources(report)
+    _devices_and_regions(report)
+    _reservation_rate(ctx, pages, days)
+
+
+def _daily(report: Report) -> None:
+    """日ごとの訪問者数を折れ線で表示する。
+
+    Args:
+        report: レポートを取る関数
+    """
+    daily = _try_report("日ごとの訪問者数", report, ("date",), ("activeUsers", "screenPageViews"))
+    if daily is None:
+        return
+    daily = daily.sort_values("date")
     fig = go.Figure(go.Scatter(
         x=daily["date"], y=daily["activeUsers"], mode="lines+markers", line=dict(color=SERIES[0], width=2),
         marker=dict(size=8), customdata=daily["screenPageViews"],
@@ -75,62 +148,113 @@ def render() -> None:
     fig.update_yaxes(ticksuffix="人", rangemode="tozero")
     st.plotly_chart(style(fig, height=300, yen_axis=None), width="stretch")
 
-    # 4. よく見られているページ（上位15）
+
+def _pages(ctx, report: Report) -> pd.DataFrame | None:
+    """よく見られているページ（上位 TOP_N）を横棒で表示する。
+
+    Args:
+        ctx: get_context の結果（イベント・商品の名前を使う）
+        report: レポートを取る関数
+
+    Returns:
+        ページごとの PV の表（予約率の計算に使う）。取れなかったときは None
+    """
     st.subheader("よく見られているページ")
-    pages = report(("pagePath",), ("screenPageViews", "activeUsers"), "screenPageViews", 200)
+    pages = _try_report("よく見られているページ", report, ("pagePath",), ("screenPageViews", "activeUsers"),
+                        "screenPageViews", PAGE_REPORT_LIMIT)
+    if pages is None:
+        return None
+    # 1. パスを名前に置き換え、同じ名前（クエリ違いなど）はまとめる
     pages["page"] = label_paths(pages["pagePath"], ctx.raw["events"], ctx.raw["products"])
     top = pages.groupby("page", as_index=False)[["screenPageViews", "activeUsers"]].sum()
-    top = top.sort_values("screenPageViews").tail(15)
-    fig = go.Figure(go.Bar(
-        x=top["screenPageViews"], y=top["page"], orientation="h", marker_color=SERIES[0],
-        text=top["screenPageViews"].astype(int).astype(str) + "PV", textposition="outside", cliponaxis=False,
-        customdata=top["activeUsers"], hovertemplate="%{y}<br>%{x}PV（%{customdata}人）<extra></extra>",
-    ))
-    fig.update_xaxes(range=[0, top["screenPageViews"].max() * 1.15])
-    fig.update_layout(showlegend=False)
-    st.plotly_chart(style(fig, height=max(260, 30 * len(top) + 60), yen_axis=None), width="stretch")
+    top = top.sort_values("screenPageViews").tail(TOP_N)
+    # 2. 横棒で表示する
+    fig = bar_chart(
+        top["screenPageViews"], top["page"], "%{y}<br>%{x}PV（%{customdata}人）<extra></extra>",
+        text=top["screenPageViews"].astype(int).astype(str) + "PV", customdata=top["activeUsers"],
+    )
+    st.plotly_chart(style(fig, height=bar_height(len(top), per_bar=30, minimum=260, extra=60), yen_axis=None),
+                    width="stretch")
+    return pages
 
-    # 5. どこから来たか（流入の種類と、具体的な参照元）
+
+def _sources(report: Report) -> None:
+    """どこから来たか（流入の種類と、具体的な参照元）を横に並べて表示する。
+
+    Args:
+        report: レポートを取る関数
+    """
     st.subheader("どこから来たか")
     c1, c2 = st.columns(2)
-    ch = report(("sessionDefaultChannelGroup",), ("sessions",), "sessions")
-    ch["name"] = ch["sessionDefaultChannelGroup"].map(lambda c: CHANNELS.get(c, c))
-    ch = ch.sort_values("sessions")
-    fig = go.Figure(go.Bar(x=ch["sessions"], y=ch["name"], orientation="h", marker_color=SERIES[0],
-                           hovertemplate="%{y}<br>%{x}回<extra></extra>"))
-    fig.update_layout(title="流入の種類（訪問回数）", showlegend=False)
-    c1.plotly_chart(style(fig, height=320, yen_axis=None), width="stretch")
-    src = report(("sessionSource",), ("sessions",), "sessions", 10).sort_values("sessions")
-    fig = go.Figure(go.Bar(x=src["sessions"], y=src["sessionSource"], orientation="h", marker_color=SERIES[0],
-                           hovertemplate="%{y}<br>%{x}回<extra></extra>"))
-    fig.update_layout(title="参照元（上位10）", showlegend=False)
-    c2.plotly_chart(style(fig, height=320, yen_axis=None), width="stretch")
+    # 1. 流入の種類（GA のチャネル名を日本語にする）
+    with c1:
+        ch = _try_report("流入の種類", report, ("sessionDefaultChannelGroup",), ("sessions",), "sessions")
+        if ch is not None:
+            ch["name"] = ch["sessionDefaultChannelGroup"].map(lambda c: CHANNELS.get(c, c))
+            ch = ch.sort_values("sessions")
+            fig = bar_chart(ch["sessions"], ch["name"], "%{y}<br>%{x}回<extra></extra>", title="流入の種類（訪問回数）")
+            st.plotly_chart(style(fig, height=HALF_CHART_HEIGHT, yen_axis=None), width="stretch")
+    # 2. 参照元（上位 TOP_SOURCES）
+    with c2:
+        src = _try_report("参照元", report, ("sessionSource",), ("sessions",), "sessions", TOP_SOURCES)
+        if src is not None:
+            src = src.sort_values("sessions")
+            fig = bar_chart(src["sessions"], src["sessionSource"], "%{y}<br>%{x}回<extra></extra>",
+                            title=f"参照元（上位{TOP_SOURCES}）")
+            st.plotly_chart(style(fig, height=HALF_CHART_HEIGHT, yen_axis=None), width="stretch")
 
-    # 6. 端末と地域
+
+def _devices_and_regions(report: Report) -> None:
+    """端末の割合と、地域（上位 TOP_SOURCES）を横に並べて表示する。
+
+    Args:
+        report: レポートを取る関数
+    """
     c1, c2 = st.columns(2)
-    dev = report(("deviceCategory",), ("activeUsers",), "activeUsers")
-    total_users = dev["activeUsers"].sum()
+    # 1. 端末ごとの訪問者の割合
     with c1:
         st.subheader("端末")
-        for _, r in dev.iterrows():
-            share = r["activeUsers"] / total_users if total_users else 0
-            st.metric(DEVICES.get(r["deviceCategory"], r["deviceCategory"]), f"{share:.0%}", help=f"{int(r['activeUsers'])}人")
-    reg = report(("region",), ("activeUsers",), "activeUsers", 10).sort_values("activeUsers")
-    fig = go.Figure(go.Bar(x=reg["activeUsers"], y=reg["region"], orientation="h", marker_color=SERIES[0],
-                           hovertemplate="%{y}<br>%{x}人<extra></extra>"))
-    fig.update_layout(title="地域（上位10）", showlegend=False)
-    c2.plotly_chart(style(fig, height=320, yen_axis=None), width="stretch")
+        dev = _try_report("端末", report, ("deviceCategory",), ("activeUsers",), "activeUsers")
+        if dev is not None:
+            total_users = dev["activeUsers"].sum()
+            for _, r in dev.iterrows():
+                share = r["activeUsers"] / total_users if total_users else 0
+                st.metric(DEVICES.get(r["deviceCategory"], r["deviceCategory"]), f"{share:.0%}",
+                          help=f"{int(r['activeUsers'])}人")
+    # 2. 地域ごとの訪問者数
+    with c2:
+        reg = _try_report("地域", report, ("region",), ("activeUsers",), "activeUsers", TOP_SOURCES)
+        if reg is not None:
+            reg = reg.sort_values("activeUsers")
+            fig = bar_chart(reg["activeUsers"], reg["region"], "%{y}<br>%{x}人<extra></extra>",
+                            title=f"地域（上位{TOP_SOURCES}）")
+            st.plotly_chart(style(fig, height=HALF_CHART_HEIGHT, yen_axis=None), width="stretch")
 
-    # 7. 予約ページを見た人のうち、実際に予約した割合
+
+def _reservation_rate(ctx, pages: pd.DataFrame | None, days: int) -> None:
+    """WS 予約ページを見た数に対して、同じ期間に実際に予約された割合を表示する。
+
+    Args:
+        ctx: get_context の結果（WS 予約・今日を使う）
+        pages: _pages の結果（取れなかったときは None）
+        days: 選んだ期間の日数
+    """
     st.subheader("WS 予約ページからの予約率")
-    reserve_pv = int(pages.loc[pages["pagePath"].str.split("?").str[0] == "/reserve", "screenPageViews"].sum())
-    res = ctx.raw["workshop_reservations"]
+    if pages is None:
+        _part_failed("WS 予約ページからの予約率")
+        return
+    # 1. 予約ページの PV（クエリ違いもまとめる）
+    reserve_pv = int(pages.loc[pages["pagePath"].str.split("?").str[0] == RESERVE_PATH, "screenPageViews"].sum())
+    # 2. 同じ期間に入った予約のうち、キャンセルされていないものを数える
+    raw = ctx.raw["workshop_reservations"]
+    res = raw[raw["status"] != CANCELLED]
     since = ctx.today - pd.Timedelta(days=days)
     booked = int((res["created_at"].dt.tz_localize(None) >= since).sum()) if not res.empty else 0
     c1, c2, c3 = st.columns(3)
     c1.metric("予約ページの PV", f"{reserve_pv:,}PV")
-    c2.metric("同じ期間の予約件数", f"{booked}件")
-    c3.metric("予約率", f"{booked / reserve_pv:.0%}" if reserve_pv else "—", help="予約件数 ÷ 予約ページの PV")
+    c2.metric("同じ期間の予約件数（キャンセル除く）", f"{booked}件")
+    c3.metric("予約率", f"{booked / reserve_pv:.0%}" if reserve_pv else "—",
+              help="キャンセルされていない予約の件数 ÷ 予約ページの PV")
 
 
 def _setup_guide(problem: str | None) -> None:

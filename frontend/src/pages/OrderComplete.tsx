@@ -2,16 +2,27 @@ import { Link, useLocation } from 'react-router-dom'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 
+/** 見出しに使う明朝体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
+/** 本文に使うゴシック体 */
 const SANS = "'Noto Sans JP', sans-serif"
 
-/** 決済完了後に表示される注文確認ページ。router state から注文番号・顧客名・メールを受け取る */
+/**
+ * 決済完了後に表示される注文確認ページ。router state から注文番号・顧客名・メールを受け取る
+ * （再読み込みや直接開いたときは state が無いので、名前・番号・メールを省いた案内になる）
+ * @returns 注文確認の画面
+ */
 export default function OrderComplete() {
   const t = useT()
+  // Checkout から navigate で渡された値
   const { state } = useLocation()
+  // 注文の id（UUID）
   const orderId: string | undefined = state?.orderId
+  // 注文者の名前
   const customerName: string | undefined = state?.customerName
+  // 確認メールの送り先
   const customerEmail: string | undefined = state?.customerEmail
+  // 画面に出す注文番号（UUID の最初の区切りを大文字にしたもの）
   const orderNo = orderId ? orderId.split('-')[0].toUpperCase() : null
 
   return (
@@ -20,6 +31,7 @@ export default function OrderComplete() {
       <div style={{ background: '#faf9f7', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 24px' }}>
         <div style={{ maxWidth: 520, width: '100%', textAlign: 'center' }}>
 
+          {/* 丸い枠のチェックマーク */}
           <div style={{ width: 64, height: 64, border: '1px solid #c8c0b0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 36px' }}>
             <svg width="24" height="17" viewBox="0 0 24 17" fill="none">
               <path d="M1 8.5L8.5 16L23 1" stroke="#717171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -35,6 +47,7 @@ export default function OrderComplete() {
               : t('ご注文ありがとうございます', 'Thank you for your order')}
           </h1>
 
+          {/* 注文番号と確認メール・発送の案内 */}
           <div style={{ background: '#fff', border: '1px solid #e8e3da', padding: '28px 32px', marginBottom: 36, textAlign: 'left' }}>
             {orderNo && (
               <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #f0ece6' }}>
@@ -63,6 +76,7 @@ export default function OrderComplete() {
             </p>
           </div>
 
+          {/* ショップ・トップへ戻るボタン */}
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
               to="/shop"

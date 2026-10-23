@@ -5,16 +5,40 @@ from __future__ import annotations
 import math
 import re
 import unicodedata
+from collections import Counter
+from itertools import combinations
+from typing import TypedDict
 
 import numpy as np
 import pandas as pd
 
-from .finance import compute_finances, fiscal_year
+from .finance import FinanceResult, compute_finances, finance_row, fiscal_year, fiscal_years
 
 # 分析に必要な最低件数（これ未満なら画面に「データ不足」を出す）
 MIN_ROWS_FOR_ANALYSIS = 5
-# 予約の状態のうち「キャンセル」を表す値
+# 予約・注文の状態のうち「キャンセル」を表す値
 CANCELLED = "cancelled"
+
+# 着地見込みのブートストラップのくり返し回数（画面の説明文にもこの値を出す）
+N_BOOT = 5000
+
+# weighted_median で、累計の重みが「全体の半分」に届いたかを判定するときの許容誤差（全体の重みに対する割合）。
+# 小数の足し算の誤差で、ちょうど半分のはずの累計がわずかに届かないことを防ぐ
+WEIGHTED_MEDIAN_TOLERANCE = 1e-12
+
+# RFM の区分：最近買った人とみなす、最終購入からの日数（これ以下なら「最近」）
+RFM_RECENT_DAYS = 90
+# RFM の区分：優良とみなす購入回数（これ以上で、かつ最近買った人）
+RFM_LOYAL_FREQUENCY = 2
+
+# reservation_table が返す表の列（予約の列に、イベント名・開催日・時間帯・定員・キャンセルか・リードタイムを足したもの）
+RESERVATION_EXTRA_COLUMNS = ("event_name", "start_date", "time_label", "max_participants", "is_cancelled", "lead_days")
+# session_fill_rates が返す表の列
+SESSION_FILL_COLUMNS = ["event_id", "event_name", "start_date", "time_label", "booked", "max_participants", "fill_rate"]
+# rfm_table が返す表の列
+RFM_COLUMNS = ["customer_key", "recency_days", "frequency", "monetary", "segment"]
+# co_purchase_pairs が返す表の列
+CO_PURCHASE_COLUMNS = ["商品A", "商品B", "同時購入回数"]
 
 # 着地見込みで「同じイベントの過去の実績」をどれだけ信じるかを決める定数（縮小推定の K）。
 # 同じイベントの実績が n 回あるとき、その実績から引く確率を n / (n + K) にする
@@ -81,10 +105,19 @@ def reservation_table(reservations: pd.DataFrame, sessions: pd.DataFrame, events
         events: events テーブル
 
     Returns:
-        予約1件1行の表。is_cancelled（キャンセルか）と lead_days（予約から参加希望日までの日数）を含む
+        予約1件1行の表。event_name・start_date（イベント初日）・time_label・max_participants・
+        is_cancelled（キャンセルか）・lead_days（予約から参加希望日までの日数）を含む。
+        予約が0件のときも、これらの列をそろえた空の表を返す
     """
     if reservations.empty:
-        return reservations.assign(is_cancelled=pd.Series(dtype=bool), lead_days=pd.Series(dtype=float))
+        return reservations.assign(
+            event_name=pd.Series(dtype=object),
+            start_date=pd.Series(dtype="datetime64[ns]"),
+            time_label=pd.Series(dtype=object),
+            max_participants=pd.Series(dtype=float),
+            is_cancelled=pd.Series(dtype=bool),
+            lead_days=pd.Series(dtype=float),
+        )
     # 1. イベント名とセッションの時間帯を付ける
     df = reservations.merge(
         events[["id", "name", "start_date"]].rename(columns={"id": "event_id", "name": "event_name"}),
@@ -105,6 +138,18 @@ def reservation_table(reservations: pd.DataFrame, sessions: pd.DataFrame, events
     return df
 
 
+def active_reservations(res: pd.DataFrame) -> pd.DataFrame:
+    """キャンセルを除いた有効な予約だけを返す。
+
+    Args:
+        res: reservation_table の結果（is_cancelled 列を持つ）
+
+    Returns:
+        is_cancelled が False の予約
+    """
+    return res[~res["is_cancelled"].astype(bool)]
+
+
 def session_fill_rates(res: pd.DataFrame, sessions: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
     """セッション（時間枠）ごとの埋まり具合を計算する。キャンセルは数えない。
 
@@ -114,29 +159,47 @@ def session_fill_rates(res: pd.DataFrame, sessions: pd.DataFrame, events: pd.Dat
         events: events テーブル
 
     Returns:
-        セッション1つ1行の表（event_name, time_label, booked, max_participants, fill_rate）
+        セッション1つ1行の表（SESSION_FILL_COLUMNS: event_id, event_name, start_date, time_label, booked,
+        max_participants, fill_rate）。同じ名前のイベントを取り違えないよう、絞り込みは event_id で行う
     """
     # 1. 有効な予約の参加人数をセッションごとに合計する
-    active = res[~res["is_cancelled"]] if not res.empty else res
-    booked = active.groupby("session_id")["participants"].sum() if not active.empty else pd.Series(dtype=float)
+    booked = active_reservations(res).groupby("session_id")["participants"].sum()
     # 2. 全セッションに結合する（予約0件の枠も 0 として残す）
-    df = sessions.merge(events[["id", "name"]].rename(columns={"id": "event_id", "name": "event_name"}), on="event_id")
+    ev = events[["id", "name", "start_date"]].rename(columns={"id": "event_id", "name": "event_name"})
+    df = sessions.merge(ev, on="event_id")
     df["booked"] = df["id"].map(booked).fillna(0).astype(int)
+    # 3. 定員が 0 以下の枠は埋まり率を出せないので空（NaN）にする
     df["fill_rate"] = df["booked"] / df["max_participants"].where(df["max_participants"] > 0)
-    return df[["event_name", "time_label", "booked", "max_participants", "fill_rate"]]
+    return df[SESSION_FILL_COLUMNS]
 
 
-def repeat_summary(df: pd.DataFrame, key: str = "customer_key") -> dict[str, float]:
+class RepeatSummary(TypedDict):
+    """repeat_summary の戻り値。"""
+
+    customers: int  # 利用者数
+    repeaters: int  # リピーター数
+    repeat_rate: float  # リピーター率（利用者が0人なら 0.0）
+
+
+def repeat_summary(df: pd.DataFrame, key: str = "customer_key", unit: str | None = None) -> RepeatSummary:
     """リピーター（2回以上利用した人）の人数と割合を出す。
 
     Args:
         df: customer_key 列を持つ表（予約・注文など）
         key: 顧客を識別する列名
+        unit: 「1回」と数える単位の列名（例: "event_id"）。指定すると、顧客ごとにこの列の異なる値の数を
+            利用回数とする（同じイベントで2枠予約しても1回）。None なら行数をそのまま利用回数とする
 
     Returns:
         customers（利用者数）, repeaters（リピーター数）, repeat_rate（リピーター率）
     """
-    counts = df[key].dropna().value_counts()
+    # 1. 顧客ごとの利用回数を数える（unit を指定したときは異なる値の数）
+    rows = df.dropna(subset=[key])
+    if unit is None:
+        counts = rows[key].value_counts()
+    else:
+        counts = rows.groupby(key)[unit].nunique()
+    # 2. 2回以上の人をリピーターとして数える
     customers = int(len(counts))
     repeaters = int((counts >= 2).sum())
     return {
@@ -165,29 +228,44 @@ def rfm_table(orders: pd.DataFrame, today: pd.Timestamp) -> pd.DataFrame:
     """顧客ごとの RFM（最終購入からの日数・購入回数・購入金額）を計算し、3段階のランクを付ける。
 
     Args:
-        orders: 有効な注文（customer_key, total, created_at を含む）
-        today: 基準日（日本時間）
+        orders: 有効な注文（customer_key, total, created_at を含む。created_at は日本時間）
+        today: 基準日。タイムゾーン付きなら日本時間に直してから、日付（時刻なし）で比べる
 
     Returns:
-        顧客1人1行の表（recency_days, frequency, monetary, segment）
+        顧客1人1行の表（RFM_COLUMNS: customer_key, recency_days, frequency, monetary, segment）。
+        recency_days は最終購入日から基準日までの暦の日数（同じ日なら 0）
     """
     if orders.empty:
-        return pd.DataFrame(columns=["customer_key", "recency_days", "frequency", "monetary", "segment"])
+        return pd.DataFrame(columns=RFM_COLUMNS)
     # 1. 顧客ごとに集計する
     g = orders.groupby("customer_key").agg(
         last=("created_at", "max"), frequency=("id", "count"), monetary=("total", "sum")
     )
-    g["recency_days"] = (today - g["last"]).dt.days
-    # 2. わかりやすい3区分に分ける（件数が少ないので分位ではなく固定のしきい値で区切る）
+    # 2. 最終購入日と基準日を、どちらも日本時間の日付（時刻・タイムゾーンなし）にそろえて日数を出す
+    last = g["last"]
+    if getattr(last.dt, "tz", None) is not None:
+        last = last.dt.tz_convert("Asia/Tokyo").dt.tz_localize(None)
+    base = today.tz_convert("Asia/Tokyo").tz_localize(None) if today.tzinfo is not None else today
+    g["recency_days"] = (base.normalize() - last.dt.normalize()).dt.days
+
+    # 3. わかりやすい3区分に分ける（件数が少ないので分位ではなく固定のしきい値で区切る）
     def segment(r: pd.Series) -> str:
-        if r["frequency"] >= 2 and r["recency_days"] <= 90:
-            return "優良（直近90日・2回以上）"
-        if r["recency_days"] <= 90:
-            return "新規・最近（直近90日）"
-        return "休眠（90日以上購入なし）"
+        """1人分の RFM から区分名を返す。
+
+        Args:
+            r: 顧客1人分の行（frequency, recency_days）
+
+        Returns:
+            区分名
+        """
+        if r["frequency"] >= RFM_LOYAL_FREQUENCY and r["recency_days"] <= RFM_RECENT_DAYS:
+            return f"優良（直近{RFM_RECENT_DAYS}日・{RFM_LOYAL_FREQUENCY}回以上）"
+        if r["recency_days"] <= RFM_RECENT_DAYS:
+            return f"新規・最近（直近{RFM_RECENT_DAYS}日）"
+        return f"休眠（{RFM_RECENT_DAYS}日以上購入なし）"
 
     g["segment"] = g.apply(segment, axis=1)
-    return g.reset_index()[["customer_key", "recency_days", "frequency", "monetary", "segment"]]
+    return g.reset_index()[RFM_COLUMNS]
 
 
 def co_purchase_pairs(items: pd.DataFrame) -> pd.DataFrame:
@@ -197,17 +275,15 @@ def co_purchase_pairs(items: pd.DataFrame) -> pd.DataFrame:
         items: order_items テーブル（有効な注文に絞ったもの）
 
     Returns:
-        商品A・商品B・同時購入回数の表（多い順）
+        商品A・商品B・同時購入回数の表（CO_PURCHASE_COLUMNS。多い順）
     """
-    pairs: dict[tuple[str, str], int] = {}
-    # 1. 注文ごとに商品名の組み合わせを数える
+    # 1. 注文ごとに、同じ商品の重複を除いて名前順に並べ、2つずつの組み合わせを数える
+    pairs: Counter[tuple[str, str]] = Counter()
     for _, names in items.groupby("order_id")["product_name"]:
-        uniq = sorted(set(names))
-        for i in range(len(uniq)):
-            for j in range(i + 1, len(uniq)):
-                pairs[(uniq[i], uniq[j])] = pairs.get((uniq[i], uniq[j]), 0) + 1
+        pairs.update(combinations(sorted(set(names)), 2))
+    # 2. 表にして、同時購入回数の多い順に並べる
     rows = [{"商品A": a, "商品B": b, "同時購入回数": n} for (a, b), n in pairs.items()]
-    return pd.DataFrame(rows, columns=["商品A", "商品B", "同時購入回数"]).sort_values("同時購入回数", ascending=False)
+    return pd.DataFrame(rows, columns=CO_PURCHASE_COLUMNS).sort_values("同時購入回数", ascending=False)
 
 
 # ───────────────────────── 予測・シミュレーション ─────────────────────────
@@ -296,7 +372,7 @@ def weighted_median(values: list[float], weights: list[float]) -> float | None:
     cum = np.cumsum(w)
     half = total / 2
     # 2. 累計が半分に達した最初の値を取る（誤差で届かないことがないよう少し余裕を持たせる）
-    idx = int(np.searchsorted(cum, half - 1e-12 * total))
+    idx = int(np.searchsorted(cum, half - WEIGHTED_MEDIAN_TOLERANCE * total))
     # 3. ちょうど半分で区切れるときは、次の値との平均にする（ふつうの中央値と同じ扱い）
     if math.isclose(cum[idx], half, rel_tol=1e-9) and idx + 1 < len(v):
         return float((v[idx] + v[idx + 1]) / 2)
@@ -418,9 +494,22 @@ def series_references(
     return pd.DataFrame(rows, columns=columns)
 
 
+class Forecast(TypedDict):
+    """forecast_fiscal_year の戻り値。"""
+
+    fiscal_year: int  # 今期の会計年度（西暦）
+    actual: float  # 今期の実績合計（円）
+    remaining: int  # 今期の残りのイベント数（今後の予定＋入力待ち）
+    p10: float  # 控えめな見込み（下位10%）
+    p50: float  # ふつうの見込み（中央値）
+    p90: float  # 良い見込み（上位10%）
+    samples: np.ndarray  # シミュレーションごとの売上合計（n_boot 個）
+    details: pd.DataFrame  # 残りのイベントごとに参考にした実績（series_references の結果）
+
+
 def forecast_fiscal_year(
-    fin: pd.DataFrame, events: pd.DataFrame, today: pd.Timestamp, n_boot: int = 5000, seed: int = 0
-) -> dict | None:
+    fin: pd.DataFrame, events: pd.DataFrame, today: pd.Timestamp, n_boot: int = N_BOOT, seed: int = 0
+) -> Forecast | None:
     """今期（4月始まり）のイベント売上の着地見込みをブートストラップで予測する。
 
     今期の残りのイベント1回ごとに、売上を「くじ」で引いて足す、を何千回もくり返して、
@@ -449,24 +538,23 @@ def forecast_fiscal_year(
     if len(done) < MIN_ROWS_FOR_ANALYSIS:
         return None
     fy = fiscal_year(today)
-    fy_end = pd.Timestamp(year=fy + 1, month=3, day=31)
     # 2. 今期の実績合計と、今期のまだ実績がないイベント（今日以降の予定＋入力待ち）を数える
     actual = float(done.loc[done["fiscal_year"] == fy, "sales"].sum())
     done_ids = set(done["event_id"])
-    in_fy = events[(events["start_date"].map(fiscal_year) == fy) & (events["start_date"] <= fy_end)]
+    in_fy = events[fiscal_years(pd.to_datetime(events["start_date"])) == fy]
     rem_events = in_fy[~in_fy["id"].isin(done_ids)]
     remaining = int(len(rem_events))
-    # 3. 残りのイベントごとに、同じイベントの過去の実績（開催日が今日より前で実績があるもの）と重みを決める。
-    #    全イベントの実績（done）は従来どおり今日以降の回も含めるが、同じイベントの実績は今日より前に限る。
-    #    同じイベントのくじは数回分しかなく1回の影響が大きいので、今日以降の日付の回（日付の入力ミスや、
-    #    先に売上だけ入れた回など）が混ざると見込みがゆがみやすいため。全体の実績は回数が多く影響が小さい上、
-    #    同じイベントが無いデータで従来とまったく同じ結果を保つため、絞り込みを変えない
+    # 3. 残りのイベントごとに、参考にする同じイベントの過去の実績と重みを決める。
+    #    - 全イベントの実績のくじ（done）: 売上の実績がある回すべて（開催日が今日以降の回も含む）
+    #    - 同じイベントの実績のくじ（history）: そのうち開催日が今日より前の回だけ
+    #    同じイベントのくじは数回分しかなく1回の影響が大きいので、開催日が今日以降の回
+    #    （日付の入力ミスや、先に売上だけ入れた回など）を混ぜると見込みがゆがみやすいため、こちらだけ絞る
     if "start_date" in done.columns:
         history = done[done["start_date"] < today]
     else:
         history = done.iloc[0:0]
     details = series_references(rem_events, history)
-    # 4. まず全イベントの実績から残りの回数ぶん引く（同じイベントが無ければ従来とまったく同じ結果になる）
+    # 4. まず全イベントの実績から残りの回数ぶん引く（同じイベントの実績が無いイベントはこの値をそのまま使う）
     rng = np.random.default_rng(seed)
     draws = rng.choice(done["sales"].to_numpy(), size=(n_boot, remaining), replace=True).astype(float)
     # 5. 同じイベントの実績があるイベントは、確率 w で、その実績から時期の重みに比例して引き直した値に置き換える
@@ -478,6 +566,7 @@ def forecast_fiscal_year(
         use_same = rng.random(n_boot) < w
         same_draws = rng.choice(np.asarray(past, dtype=float), size=n_boot, replace=True, p=p / p.sum())
         draws[use_same, j] = same_draws[use_same]
+    # 6. 今期の実績に残りの回の合計を足し、下位10%・中央値・上位10% を見込みとして出す
     samples = actual + draws.sum(axis=1)
     return {
         "fiscal_year": fy,
@@ -491,7 +580,15 @@ def forecast_fiscal_year(
     }
 
 
-def fit_linear(x: pd.Series, y: pd.Series) -> dict | None:
+class LinearFit(TypedDict):
+    """fit_linear の戻り値。"""
+
+    slope: float  # 傾き（x が 1 増えたときの y の増え方）
+    intercept: float  # 切片（x = 0 のときの y）
+    r2: float  # 決定係数（0〜1。1 に近いほど直線でよく説明できる）
+
+
+def fit_linear(x: pd.Series, y: pd.Series) -> LinearFit | None:
     """最小二乗法で y = a × x + b の直線を当てはめる。
 
     Args:
@@ -525,7 +622,7 @@ def simulate_event(
     other_expenses: int,
     ws_participants: int,
     payment_flag: bool,
-) -> dict[str, float]:
+) -> FinanceResult:
     """これから出店を考えているイベントの収支を、管理画面と同じ式で見積もる。
 
     Args:
@@ -542,15 +639,8 @@ def simulate_event(
     Returns:
         compute_finances の結果
     """
-    fin = {
-        "sales": expected_sales,
-        "booth_fee": booth_fee,
-        "distance": distance,
-        "gas_price": gas_price,
-        "expressway_toll": expressway_toll,
-        "accommodation": accommodation,
-        "other_expenses": other_expenses,
-        "ws_participants": ws_participants,
-        "payment_flag": payment_flag,
-    }
+    fin = finance_row(
+        expected_sales, booth_fee, distance, gas_price, expressway_toll, accommodation, other_expenses,
+        ws_participants, payment_flag,
+    )
     return compute_finances(fin, has_workshop=ws_participants > 0)

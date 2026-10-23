@@ -1,54 +1,46 @@
-import { useEffect, useRef, useState } from 'react'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
+import { useSectionSpy } from '../../hooks/useSectionSpy'
+import { BRAND } from '../../lib/brands'
 
+/** 色見本として並べる丸の色（HUE の作品で使う色合い） */
 const SWATCHES = ['#d4a878','#a8c4a0','#e8b4b0','#c4d4c8','#e0c890','#b8a8d4','#f0d4b8']
+/** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
 const SECTIONS = ['concept'] as const
 
-/** HUE by ei8ht plants ブランドページ。カラースウォッチと IntersectionObserver によるサブナビを含む */
+/**
+ * HUE by ei8ht plants ブランドページ。カラースウォッチと、スクロール位置に合わせて選択中が変わるサブナビ（useSectionSpy）を含む
+ * @returns ブランドページの画面
+ */
 export default function Hue() {
   const t = useT()
-  const [active, setActive] = useState('')
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
+  const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)
 
-  // 各セクションの中央付近がビューポートに入ったときにサブナビのアクティブ項目を更新する
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id) })
-      },
-      { rootMargin: '-55% 0px -45% 0px' }
-    )
-    SECTIONS.forEach((id) => {
-      const el = sectionRefs.current[id]
-      if (el) obs.observe(el)
-    })
-    return () => obs.disconnect()
-  }, [])
-
-  const scrollTo = (id: string) => (e: React.MouseEvent) => {
-    e.preventDefault()
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   return (
     <>
       <PageMeta title="HUE by ei8ht plants" description={t('HUE は、色彩と形を楽しむオーナメントプランツのラインです。', 'HUE is a line of ornamental plants celebrating color and form.')} />
+      {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
       <h1 className="sr-only">{t('HUE by ei8ht plants — オーナメントプランツライン', 'HUE by ei8ht plants — Ornamental Plants Line')}</h1>
 
+      {/* ファーストビュー。上にサブナビを重ねる */}
       <div className="hero-wrapper">
+        {/* ページ内のセクションへ移動するサブナビ（表示中のセクションに印を付ける） */}
         <nav className="brand-subnav">
           <div className="brand-subnav-inner">
             <a href="#concept" className={active === 'concept' ? 'subnav-active' : ''} onClick={scrollTo('concept')}>Concept</a>
           </div>
         </nav>
 
+        {/* ぼかした色の円（hue-blob）を重ねたヒーロー */}
         <section className="hue-hero">
           <div className="hue-blob hue-blob-1" />
           <div className="hue-blob hue-blob-2" />
           <div className="hue-blob hue-blob-3" />
           <div className="hue-blob hue-blob-4" />
           <div className="hue-blob hue-blob-5" />
+          {/* 下へのスクロールを促す線と文字 */}
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #b4b4c8, transparent)' }} />
             <span style={{ fontSize: 11, letterSpacing: 3, color: '#b4b4c8', textTransform: 'uppercase' }}>Scroll</span>
@@ -58,11 +50,12 @@ export default function Hue() {
 
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
-      <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
+      {/* コンセプト: ロゴ・見出し・紹介文と色見本 */}
+      <section id="concept" className="brand-section" ref={sectionRef('concept')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
-            <img src="/img/logo-hue.png" alt="HUE by ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
+            <img src={BRAND.hue.logo} alt={BRAND.hue.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
               <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
                 Color &amp; Form<br />as Living Art
@@ -75,6 +68,7 @@ export default function Hue() {
               </p>
             </div>
           </div>
+          {/* 色見本の丸 */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', padding: '40px 0' }}>
             {SWATCHES.map((color) => (
               <div key={color} style={{ width: 60, height: 60, borderRadius: '50%', background: color, border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }} />
@@ -83,16 +77,17 @@ export default function Hue() {
         </div>
       </section>
 
+      {/* Instagram への案内（濃い茶色の帯） */}
       <section style={{ background: '#2a1a08', color: '#f6f6fa', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(24px, 4vw, 48px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Follow Us</h2>
         <p style={{ fontSize: 13, letterSpacing: 2, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 40px' }}>Instagram</p>
         <a
-          href="https://www.instagram.com/hue_by.ei8ht.plants/"
+          href={BRAND.hue.instagramUrl}
           target="_blank"
           rel="noopener noreferrer"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f6f6fa', textDecoration: 'none', border: '1px solid #5a3a18', padding: '16px 36px', borderRadius: 2 }}
         >
-          @hue_by.ei8ht.plants →
+          {BRAND.hue.instagramHandle} →
         </a>
       </section>
     </>

@@ -23,8 +23,16 @@ from dotenv import load_dotenv
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(ENV_PATH)
 
-# 1回のリクエストで取る最大行数（PostgREST の既定上限 1000 に合わせる）
+# 1回のリクエストで頼む最大行数（PostgREST の既定上限 1000 に合わせる）。
+# Supabase 側の上限（max rows）がこれより小さくても、空のページが返るまで続けて取るので途中で切れない
 PAGE_SIZE = 1000
+
+# 1回のリクエストの待ち時間の上限（秒）。これを過ぎたら失敗として画面にエラーを出す
+FETCH_TIMEOUT = 20
+
+# HTTP 416（Range Not Satisfiable）。取得範囲の開始位置が全件数を超えたとき PostgREST が返すことがあり、
+# その場合は「もう行が無い」とみなして取得を終える
+HTTP_RANGE_NOT_SATISFIABLE = 416
 
 # データを再取得するまでのキャッシュ時間（秒）。画面の「再読み込み」ボタンで即時クリアもできる
 CACHE_TTL = 600
@@ -50,6 +58,16 @@ COLUMNS: dict[str, str] = {
     "contacts": "id,is_read,created_at",
     "articles": "id,title,tags,is_published,published_at,created_at",
 }
+
+# テーブルごとのページ送りの並び順（PostgREST の order の書き方）。
+# 順序を決めずにページ送りすると、ページの境目で行が重複したり抜けたりすることがあるため、必ず一意な列で並べる。
+# id の無い event_finances は主キーの event_id で並べる（order_items は id が主キーなので既定の id で並べる。
+# id は取得する列に入れていないが、並び順には使える）
+ORDER: dict[str, str] = {
+    "event_finances": "event_id.asc",
+}
+# ORDER に無いテーブルの並び順
+DEFAULT_ORDER = "id.asc"
 
 
 def _credentials() -> tuple[str, str]:
@@ -101,33 +119,43 @@ def _hash_emails(df: pd.DataFrame, column: str) -> pd.DataFrame:
 
 
 def _fetch_all(table: str) -> list[dict]:
-    """1つのテーブルを GET で全件取得する（1000行ずつページ送り）。
+    """1つのテーブルを GET で全件取得する（一意な列で並べて、PAGE_SIZE 行ずつページ送り）。
+
+    Supabase の最大行数の設定が PAGE_SIZE より小さいと、1ページの行数が PAGE_SIZE に満たなくても
+    続きがあることがある。そのため「空のページが返るまで」続け、次の開始位置は実際に返った行数だけ進める。
 
     Args:
         table: テーブル名（COLUMNS のキー）
 
     Returns:
         行の辞書のリスト
+
+    Raises:
+        requests.HTTPError: 416 以外のエラーの応答が返ったとき
     """
     url, key = _credentials()
     headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+    params = {"select": COLUMNS[table], "order": ORDER.get(table, DEFAULT_ORDER)}
     rows: list[dict] = []
     offset = 0
     while True:
-        # 1. Range ヘッダーで取得範囲を指定して1ページ分を GET する
+        # 1. Range ヘッダーで取得範囲を指定して1ページ分を GET する（並び順は毎回同じ）
         res = requests.get(
             f"{url}/rest/v1/{table}",
-            params={"select": COLUMNS[table]},
+            params=params,
             headers={**headers, "Range": f"{offset}-{offset + PAGE_SIZE - 1}"},
-            timeout=20,
+            timeout=FETCH_TIMEOUT,
         )
+        # 2. 開始位置が全件数を超えた（416）ときは、もう行が無いので終える
+        if res.status_code == HTTP_RANGE_NOT_SATISFIABLE:
+            return rows
         res.raise_for_status()
         page = res.json()
-        rows.extend(page)
-        # 2. 取得件数がページの大きさに満たなければ最後のページ
-        if len(page) < PAGE_SIZE:
+        # 3. 空のページが返ったら最後まで取り終えた
+        if not page:
             return rows
-        offset += PAGE_SIZE
+        rows.extend(page)
+        offset += len(page)
 
 
 @st.cache_data(ttl=CACHE_TTL, show_spinner="本番データを読み込んでいます…")

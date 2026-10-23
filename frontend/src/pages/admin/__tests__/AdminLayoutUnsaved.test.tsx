@@ -208,7 +208,7 @@ describe('AdminLayout の未保存の変更の確認', () => {
       vi.spyOn(window, 'confirm').mockReturnValue(false)
       renderLayout()
       const link = await sideLink('イベント')
-      fireEvent.click(screen.getByRole('button', { name: '☰', hidden: true }))
+      fireEvent.click(screen.getByRole('button', { name: 'メニューを開く', hidden: true }))
       const aside = screen.getByRole('complementary')
       expect(aside.className).toContain('drawer-open')
       fireEvent.click(link, init)
@@ -229,7 +229,7 @@ describe('AdminLayout の未保存の変更の確認', () => {
   it('未保存でなければ左クリックでメニューが閉じて移動する（比較用）', async () => {
     renderLayout()
     const link = await sideLink('イベント')
-    fireEvent.click(screen.getByRole('button', { name: '☰', hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く', hidden: true }))
     const aside = screen.getByRole('complementary')
     expect(aside.className).toContain('drawer-open')
     fireEvent.click(link)

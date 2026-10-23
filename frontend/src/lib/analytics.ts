@@ -27,7 +27,9 @@ const PRODUCTION_HOSTS = ['ei8htplants.com', 'www.ei8htplants.com']
 /** GA の dataLayer と gtag 関数の型（window に生やす） */
 declare global {
   interface Window {
+    /** gtag.js に渡す命令を積んでおく配列（タグの読み込み前に積んだ分も、読み込み後に処理される） */
     dataLayer?: unknown[]
+    /** GA への命令を dataLayer に積む関数（loadGtag で用意する。用意前は undefined） */
     gtag?: (...args: unknown[]) => void
   }
 }
@@ -83,6 +85,7 @@ export function hasAdminSession(storage: Storage): boolean {
  * @param disabled - true で送信を止める、false で再開する
  */
 export function setAnalyticsDisabled(disabled: boolean): void {
+  // gtag.js は window['ga-disable-測定ID'] が true のあいだ送信しない
   ;(window as unknown as Record<string, boolean>)[`ga-disable-${GA_MEASUREMENT_ID}`] = disabled
 }
 
@@ -93,7 +96,9 @@ export function setAnalyticsDisabled(disabled: boolean): void {
  * @returns 残したクエリ（例: "?event_id=1"）。何も残らなければ空文字
  */
 export function sanitizeSearch(search: string): string {
+  // 元のクエリ
   const params = new URLSearchParams(search)
+  // 送ってよいものだけを入れ直すクエリ
   const kept = new URLSearchParams()
   params.forEach((value, key) => {
     if (ALLOWED_QUERY_KEYS.includes(key) || key.startsWith('utm_')) kept.append(key, value)
@@ -104,6 +109,7 @@ export function sanitizeSearch(search: string): string {
 
 /**
  * GA4 のタグ（gtag.js）を読み込み、初期設定をする。2回目以降の呼び出しは何もしない
+ * （ページの <head> に script 要素を 1 つ足す）
  */
 export function loadGtag(): void {
   if (loaded) return
@@ -139,6 +145,7 @@ export function trackPageView(pathname: string, search: string, title: string): 
   if (!window.gtag || isExcludedPath(pathname)) return
   // 1. 秘密の値が入りうるクエリを外す
   const query = sanitizeSearch(search)
+  // GA に送るページの URL（オリジン + パス + 残したクエリ）
   const pageLocation = window.location.origin + pathname + query
   // 2. この後に GA が自動で送るイベント（スクロール・クリックなど）も、この URL で送られるようにする
   window.gtag('set', { page_location: pageLocation })

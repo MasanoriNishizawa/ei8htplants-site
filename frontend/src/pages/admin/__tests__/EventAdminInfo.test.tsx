@@ -833,7 +833,7 @@ describe('EventAdminInfo ページ — 確認画面との行き来', () => {
     // 2. 戻るときの confirm はキャンセル
     confirmSpy.mockReturnValue(false)
     await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
-    expect(confirmSpy).toHaveBeenLastCalledWith('保存していない変更があります。破棄して戻りますか？')
+    expect(confirmSpy).toHaveBeenLastCalledWith('保存していない変更があります。破棄して移動しますか？')
     expect(screen.queryByText('確認画面スタブ')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '保存する' })).toBeInTheDocument()
   })
@@ -1022,13 +1022,13 @@ describe('EventAdminInfo ページ — 未保存の変更の判定', () => {
     expect(fireBeforeUnload()).toBe(false)
   })
 
-  it('文章だけを変えて「← 戻る」を押すと confirm「保存していない変更があります。破棄して戻りますか？」が出て、キャンセルなら留まる', async () => {
+  it('文章だけを変えて「← 戻る」を押すと confirm「保存していない変更があります。破棄して移動しますか？」が出て、キャンセルなら留まる', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     renderAdminInfoPage()
     await userEvent.type(await screen.findByLabelText('要項の文章'), '追記')
     await userEvent.click(screen.getByRole('link', { name: /戻る/ }))
     expect(confirmSpy).toHaveBeenCalledTimes(1)
-    expect(confirmSpy).toHaveBeenCalledWith('保存していない変更があります。破棄して戻りますか？')
+    expect(confirmSpy).toHaveBeenCalledWith('保存していない変更があります。破棄して移動しますか？')
     expect(screen.queryByText('確認画面スタブ')).not.toBeInTheDocument()
     expect(screen.getByLabelText('要項の文章')).toHaveValue('出店要項の本文です\n搬入は9時まで追記')
   })

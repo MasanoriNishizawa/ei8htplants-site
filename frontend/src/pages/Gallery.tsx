@@ -1,35 +1,30 @@
-import { useEffect, useState } from 'react'
-import { api, type GalleryImage } from '../lib/api'
+import { useState } from 'react'
+import { api } from '../lib/api'
 import PageMeta from '../components/PageMeta'
+import ImageLightbox from '../components/ImageLightbox'
+import LoadError from '../components/LoadError'
+import { useApi } from '../hooks/useApi'
 import { useT } from '../lib/lang'
+import { BRANDS } from '../lib/brands'
 
-const BRANDS = ['ei8ht plants', 'Habitat Oides', 'HUE by ei8ht plants']
-
-/** ブランド別フィルターと簡易ライトボックスを備えたギャラリーページ */
+/** ブランド別フィルターとライトボックス（拡大表示）を備えたギャラリーページ */
 export default function Gallery() {
-  const [images, setImages] = useState<GalleryImage[]>([])
-  const [loading, setLoading] = useState(true)
+  // 選んでいるブランドの正式名（タブの表示に使う。null はすべて）
   const [activeBrand, setActiveBrand] = useState<string | null>(null)
-  const [lightbox, setLightbox] = useState<string | null>(null)
+  // 拡大表示している写真の位置（null は閉じている）
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const t = useT()
 
-  useEffect(() => {
-    setLoading(true)
-    api.gallery.list(activeBrand ?? undefined).then(setImages).finally(() => setLoading(false))
-  }, [activeBrand])
+  // サーバーに渡すブランドの値。管理画面のギャラリーは短い表記（HUE）で保存するので、正式名を短い表記に直して絞り込む
+  const activeShortName = BRANDS.find((b) => b.name === activeBrand)?.shortName
 
-  // Esc キーでライトボックスを閉じる
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightbox(null) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
-
-  // ライトボックス表示中はページスクロールを禁止する
-  useEffect(() => {
-    document.body.style.overflow = lightbox ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [lightbox])
+  // ブランドを切り替えるたびに取り直す。切り替え前の古い応答が後から届いても捨てる（useApi）
+  const { data, loading, error, reload } = useApi(
+    () => api.gallery.list(activeShortName),
+    [activeShortName],
+  )
+  // 表示する写真（取得前・失敗時は空）
+  const images = data ?? []
 
   return (
     <>
@@ -38,11 +33,14 @@ export default function Gallery() {
         <h1 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 40, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', margin: 0 }}>Gallery</h1>
       </div>
 
+      {/* ブランドの切り替えタブ */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 0, borderBottom: '1px solid #dddde8', background: '#f5f5f7' }}>
-        {[null, ...BRANDS].map((b) => (
+        {[null, ...BRANDS.map((brand) => brand.name)].map((b) => (
           <button
             key={b ?? 'all'}
-            onClick={() => setActiveBrand(b)}
+            type="button"
+            aria-pressed={activeBrand === b}
+            onClick={() => { setActiveBrand(b); setLightboxIdx(null) }}
             style={{
               padding: '12px 20px', border: 'none', background: 'none',
               fontSize: 12, letterSpacing: '1.5px', textTransform: 'uppercase',
@@ -59,27 +57,36 @@ export default function Gallery() {
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto 100px', padding: '40px 20px 0' }}>
-        {loading && <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>{t('読み込み中...', 'Loading...')}</p>}
-        {!loading && images.length === 0 && (
+        {loading && <p role="status" style={{ textAlign: 'center', padding: '60px 0', color: 'var(--c-muted)' }}>{t('読み込み中...', 'Loading...')}</p>}
+        {/* 通信の失敗は「まだありません」と分けて案内する */}
+        {!loading && error && <LoadError onRetry={reload} />}
+        {!loading && !error && images.length === 0 && (
           <p style={{ textAlign: 'center', padding: '100px 0', color: 'var(--c-muted)', fontSize: 13 }}>{t('まだ写真が追加されていません。', 'No photos yet.')}</p>
         )}
+        {/* 写真の一覧。キーボードでも選べるよう、各写真を button で包む */}
         <div className="gallery-grid">
-          {images.map((img) => (
-            <div key={img.id} className="gallery-item" onClick={() => setLightbox(img.url)}>
+          {images.map((img, i) => (
+            <button
+              key={img.id}
+              type="button"
+              className="gallery-item"
+              aria-label={img.alt ? t(`${img.alt} を拡大表示`, `Enlarge: ${img.alt}`) : t(`写真 ${i + 1} を拡大表示`, `Enlarge photo ${i + 1}`)}
+              onClick={() => setLightboxIdx(i)}
+            >
               <img src={img.url} alt={img.alt ?? ''} loading="lazy" />
-            </div>
+            </button>
           ))}
         </div>
       </div>
 
-      {lightbox && (
-        <div
-          style={{ display: 'flex', position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 2000, alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}
-          onClick={() => setLightbox(null)}
-        >
-          <span style={{ position: 'absolute', top: 20, right: 30, color: '#fff', fontSize: 35, fontWeight: 200, cursor: 'pointer', lineHeight: 1 }}>×</span>
-          <img src={lightbox} alt="" style={{ maxWidth: '90%', maxHeight: '85%', objectFit: 'contain' }} onClick={(e) => e.stopPropagation()} />
-        </div>
+      {lightboxIdx !== null && images[lightboxIdx] && (
+        <ImageLightbox
+          images={images.map((img) => img.url)}
+          index={lightboxIdx}
+          alt={images[lightboxIdx].alt ?? ''}
+          onClose={() => setLightboxIdx(null)}
+          onChange={setLightboxIdx}
+        />
       )}
     </>
   )

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import math
+from typing import TypedDict
 
 import pandas as pd
 
@@ -19,9 +20,82 @@ WS_COST_PER_PERSON = 700
 HELPER_SALES_RATE = 0.2
 # 手伝い支払い：WS 売上に掛ける割合
 HELPER_WS_RATE = 0.7
+# 損益分岐点を求めるときに比べる2つの売上の差（円）。差を大きく取るほど手伝い支払いの丸め誤差の影響が小さくなる
+BREAK_EVEN_STEP = 100_000
+# 会計年度の始まりの月（4月始まり）
+FISCAL_YEAR_START_MONTH = 4
+
+# compute_finances が返す列（build_event_finance_table で1行ずつ足す）
+FINANCE_RESULT_COLUMNS = ("transport", "total_expense", "ws_sales", "ws_cost", "payment", "net")
+# build_event_finance_table が足す補助の列（損益分岐・開催日数・開催月・会計年度・ブランド数・実績の有無・
+# 1日あたり売上・収支率）
+FINANCE_DERIVED_COLUMNS = (
+    "break_even", "days", "month", "fiscal_year", "brand_count", "has_result", "sales_per_day", "margin",
+)
+# 空の表を作るときに、型をそろえておく列（真偽値・日付）。ここに無い列は object 型にする
+_EMPTY_DTYPES = {
+    "has_result": bool,
+    "has_workshop": bool,
+    "payment_flag": bool,
+    "is_past": bool,
+    "start_date": "datetime64[ns]",
+    "end_date": "datetime64[ns]",
+    "month": "datetime64[ns]",
+}
 
 
-def compute_finances(fin: dict, has_workshop: bool) -> dict[str, float]:
+class FinanceResult(TypedDict):
+    """compute_finances の戻り値（金額はすべて円）。"""
+
+    transport: float  # 移動費
+    total_expense: float  # 支出合計（出店料・移動費・高速代・宿泊費・その他）
+    ws_sales: float  # WS 売上
+    ws_cost: float  # WS 資材費
+    payment: float  # 手伝い支払い額（物販が赤字のときはマイナスになることがある）
+    net: float  # 収支
+
+
+def finance_row(
+    sales: float,
+    booth_fee: float,
+    distance: float,
+    gas_price: float,
+    expressway_toll: float,
+    accommodation: float,
+    other_expenses: float,
+    ws_participants: int,
+    payment_flag: bool,
+) -> dict:
+    """compute_finances・break_even_sales に渡す「event_finances の1行」の形の辞書を作る。
+
+    Args:
+        sales: 売上（円）
+        booth_fee: 出店料
+        distance: 片道距離（km）
+        gas_price: ガソリン単価（円/L）
+        expressway_toll: 高速代
+        accommodation: 宿泊費
+        other_expenses: その他支出
+        ws_participants: WS 参加人数
+        payment_flag: 手伝い支払いがあるか
+
+    Returns:
+        event_finances の1行と同じキーを持つ辞書
+    """
+    return {
+        "sales": sales,
+        "booth_fee": booth_fee,
+        "distance": distance,
+        "gas_price": gas_price,
+        "expressway_toll": expressway_toll,
+        "accommodation": accommodation,
+        "other_expenses": other_expenses,
+        "ws_participants": ws_participants,
+        "payment_flag": payment_flag,
+    }
+
+
+def compute_finances(fin: dict, has_workshop: bool) -> FinanceResult:
     """1イベント分の収支を計算する。
 
     Args:
@@ -77,8 +151,8 @@ def _js_round(x: float) -> int:
 def break_even_sales(fin: dict, has_workshop: bool) -> float:
     """収支がちょうど 0 円になる売上（損益分岐点）を求める。
 
-    収支は売上に対して一次式なので、売上 0 円と 1 円のときの収支から直線を引いて 0 になる点を求める。
-    （手伝い支払いの丸めによる1円未満の誤差は無視する）
+    収支は売上に対して一次式なので、売上 0 円と BREAK_EVEN_STEP 円（10万円）のときの収支から
+    直線を引いて 0 になる点を求める。（手伝い支払いの丸めによる1円未満の誤差は無視する）
 
     Args:
         fin: event_finances の1行
@@ -88,11 +162,10 @@ def break_even_sales(fin: dict, has_workshop: bool) -> float:
         損益分岐となる売上（円）
     """
     # 1. 売上を 0 円・10万円にしたときの収支を計算する（丸め誤差を小さくするため差を大きく取る）
-    step = 100_000
     net0 = compute_finances({**fin, "sales": 0}, has_workshop)["net"]
-    net1 = compute_finances({**fin, "sales": step}, has_workshop)["net"]
+    net1 = compute_finances({**fin, "sales": BREAK_EVEN_STEP}, has_workshop)["net"]
     # 2. 売上1円あたりの収支の増え方（傾き）から 0 になる売上を出す
-    slope = (net1 - net0) / step
+    slope = (net1 - net0) / BREAK_EVEN_STEP
     return -net0 / slope
 
 
@@ -105,7 +178,48 @@ def fiscal_year(ts: pd.Timestamp) -> int:
     Returns:
         会計年度（西暦）
     """
-    return ts.year if ts.month >= 4 else ts.year - 1
+    return ts.year if ts.month >= FISCAL_YEAR_START_MONTH else ts.year - 1
+
+
+def fiscal_years(dates: pd.Series) -> pd.Series:
+    """日付の列から会計年度（4月始まり）の列をまとめて求める（fiscal_year を1行ずつ呼ぶのと同じ結果）。
+
+    Args:
+        dates: 日付の列（日付型）
+
+    Returns:
+        会計年度（西暦）の列。日付が無い行は NaN
+    """
+    return dates.dt.year - (dates.dt.month < FISCAL_YEAR_START_MONTH).astype(int)
+
+
+def _row_results(row: pd.Series) -> pd.Series:
+    """build_event_finance_table の1行から、収支の計算結果と損益分岐の売上を求める。
+
+    Args:
+        row: event_finances と events を結合した表の1行
+
+    Returns:
+        FINANCE_RESULT_COLUMNS と break_even を持つ Series
+    """
+    fin = row.to_dict()
+    has_workshop = bool(fin["has_workshop"])
+    return pd.Series({**compute_finances(fin, has_workshop), "break_even": break_even_sales(fin, has_workshop)})
+
+
+def _empty_finance_table(events: pd.DataFrame, finances: pd.DataFrame) -> pd.DataFrame:
+    """収支のあるイベントが無いときに返す、列名だけをそろえた空の表を作る。
+
+    Args:
+        events: events テーブル
+        finances: event_finances テーブル
+
+    Returns:
+        build_event_finance_table と同じ列を持つ0行の表（真偽値・日付の列は型もそろえる）
+    """
+    base = list(dict.fromkeys([*finances.columns, *events.columns]))
+    columns = base + [c for c in (*FINANCE_RESULT_COLUMNS, *FINANCE_DERIVED_COLUMNS) if c not in base]
+    return pd.DataFrame({c: pd.Series(dtype=_EMPTY_DTYPES.get(c, object)) for c in columns})
 
 
 def build_event_finance_table(events: pd.DataFrame, finances: pd.DataFrame) -> pd.DataFrame:
@@ -117,28 +231,20 @@ def build_event_finance_table(events: pd.DataFrame, finances: pd.DataFrame) -> p
 
     Returns:
         1イベント1行の表。収支を入力していないイベントは含まない。
-        has_result 列は売上が入っている（＝実績がある）かどうか
+        has_result 列は売上が入っている（＝実績がある）かどうか。
+        収支のあるイベントが無いときも、列名だけはそろえた空の表を返す
     """
-    if finances.empty:
-        return pd.DataFrame()
-    # 1. 収支のあるイベントだけを結合する
-    df = finances.merge(events, left_on="event_id", right_on="id", how="inner")
+    # 1. 収支のあるイベントだけを結合する（1件も無ければ列だけの表を返す）
+    df = finances.merge(events, left_on="event_id", right_on="id", how="inner") if not finances.empty else finances
+    if df.empty:
+        return _empty_finance_table(events, finances)
     # 2. 1行ずつ管理画面と同じ式で計算する
-    computed = df.apply(
-        lambda r: pd.Series(
-            {
-                **compute_finances(r.to_dict(), bool(r["has_workshop"])),
-                "break_even": break_even_sales(r.to_dict(), bool(r["has_workshop"])),
-            }
-        ),
-        axis=1,
-    )
-    df = pd.concat([df, computed], axis=1)
+    df = pd.concat([df, df.apply(_row_results, axis=1)], axis=1)
     # 3. 分析で使う補助列を足す
     end = df["end_date"].fillna(df["start_date"])
     df["days"] = (end - df["start_date"]).dt.days + 1  # 開催日数
     df["month"] = df["start_date"].dt.to_period("M").dt.to_timestamp()  # 開催月
-    df["fiscal_year"] = df["start_date"].map(fiscal_year)
+    df["fiscal_year"] = fiscal_years(df["start_date"])
     df["brand_count"] = df["brands"].map(lambda b: len(b) if isinstance(b, list) else 0)
     df["has_result"] = df["sales"] > 0  # 売上 0 円は未開催（入力前）とみなす
     df["sales_per_day"] = df["sales"] / df["days"]

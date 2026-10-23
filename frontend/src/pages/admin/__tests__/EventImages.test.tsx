@@ -10,7 +10,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import AdminEventImages, { collectEventImages, buildImageFileName } from '../EventImages'
+import AdminEventImages from '../EventImages'
+// 画像の一覧作り・ファイル名作りは eventImageFiles.ts に移ったので、移動先から直接読み込む
+import { collectEventImages, buildImageFileName } from '../eventImageFiles'
 import { api } from '../../../lib/api'
 import type { Event, EventAdminInfo } from '../../../lib/api'
 

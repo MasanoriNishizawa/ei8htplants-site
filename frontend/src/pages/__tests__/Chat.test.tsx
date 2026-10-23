@@ -1,10 +1,11 @@
 // 公開 AI チャット画面（pages/Chat.tsx）のテスト
 // POST /api/chat は MSW（src/mocks/node.ts の server）でテストごとにモックする。本物の API・Gemini には接続しない
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { http, HttpResponse, type JsonBodyType } from 'msw'
 import { server } from '../../mocks/node'
 import Chat from '../Chat'
+import { api } from '../../lib/api'
 
 /** 422 のときに出る案内（日本語） */
 const MSG_422 = 'メッセージを送れませんでした。内容を短くするか、ページを開き直してください。'
@@ -152,5 +153,66 @@ describe('Chat 画面のページ情報', () => {
     expect(document.title.split('ei8ht plants')).toHaveLength(2)
     const og = document.head.querySelector('meta[property="og:title"]')
     expect(og).toHaveAttribute('content', 'AI コンシェルジュ | ei8ht plants')
+  })
+})
+
+describe('Chat 画面の送信（api.chat.send を通す）', () => {
+  /** 通信の失敗・サーバーのエラーのときの案内（日本語） */
+  const MSG_ERROR = '申し訳ありません、エラーが発生しました。しばらく経ってからもう一度お試しください。'
+  /** 429 のときの案内（日本語） */
+  const MSG_429 = 'メッセージの送信回数が上限に達しました。しばらく経ってからもう一度お試しください。'
+
+  afterEach(() => {
+    // spyOn で差し替えた api.chat.send を元に戻す
+    vi.restoreAllMocks()
+  })
+
+  it('送信すると api.chat.send に「挨拶 → 質問」の履歴が渡される', async () => {
+    mockChatApi([{ status: 200, body: { reply: '返事' } }])
+    const spy = vi.spyOn(api.chat, 'send')
+    render(<Chat />)
+    await typeAndSend('こんにちは')
+    await screen.findByText('返事')
+    expect(spy).toHaveBeenCalledTimes(1)
+    const history = spy.mock.calls[0][0]
+    expect(history.map((m) => m.role)).toEqual(['model', 'user'])
+    expect(history[1].content).toBe('こんにちは')
+  })
+
+  it('429 のときは送信回数の上限の案内が全文で出て、「エラーが発生しました」は出ない', async () => {
+    mockChatApi([{ status: 429, body: { detail: 'rate limit' } }])
+    render(<Chat />)
+    await typeAndSend('質問')
+    expect(await screen.findByText(MSG_429)).toBeInTheDocument()
+    expect(screen.queryByText(MSG_ERROR)).toBeNull()
+  })
+
+  it('500 のときは「エラーが発生しました」の案内が出て、送信ボタンはまた押せるようになる', async () => {
+    mockChatApi([{ status: 500, body: { detail: 'error' } }])
+    render(<Chat />)
+    await typeAndSend('質問')
+    expect(await screen.findByText(MSG_ERROR)).toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText('メッセージを入力（Enterで送信）'), { target: { value: '次' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: '送信' })).toBeEnabled())
+  })
+
+  it('通信そのものが失敗したとき（api.chat.send が例外）も「エラーが発生しました」の案内が出る', async () => {
+    vi.spyOn(api.chat, 'send').mockRejectedValue(new TypeError('Failed to fetch'))
+    render(<Chat />)
+    await typeAndSend('質問')
+    expect(await screen.findByText(MSG_ERROR)).toBeInTheDocument()
+  })
+
+  it('エラーの案内は次に送る履歴に含まれない', async () => {
+    const sent = mockChatApi([
+      { status: 500, body: {} },
+      { status: 200, body: { reply: 'OK' } },
+    ])
+    render(<Chat />)
+    await typeAndSend('質問1')
+    await screen.findByText(MSG_ERROR)
+    await typeAndSend('質問2')
+    await screen.findByText('OK')
+    expect(sent[1].messages.some((m) => m.content === MSG_ERROR)).toBe(false)
   })
 })

@@ -1,8 +1,14 @@
+// アプリの入口。CSS を読み込み、#root に App を描画する
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+/**
+ * 描画の前の準備。開発中に VITE_MSW=true（`npm run mock`）のときだけ、API を MSW のモックで受けるようにする。
+ * モックに無い通信（画像・フォントなど）はそのまま外へ通す
+ * @returns 準備が終わったら解決する Promise
+ */
 async function prepare() {
   if (import.meta.env.DEV && import.meta.env.VITE_MSW === 'true') {
     const { worker } = await import('./mocks/browser')
@@ -21,6 +27,7 @@ const PRELOAD_RELOAD_KEY = 'preload-error-reloaded-at'
  * そのときはエラーがそのまま投げられ、App.tsx の LoadErrorBoundary が「ページを読み込めませんでした」と再読み込みボタンを出す
  */
 window.addEventListener('vite:preloadError', (event) => {
+  // 前回この理由で再読み込みした時刻（無ければ 0）
   const last = Number(sessionStorage.getItem(PRELOAD_RELOAD_KEY) ?? '0')
   if (Date.now() - last < 10_000) return
   sessionStorage.setItem(PRELOAD_RELOAD_KEY, String(Date.now()))
@@ -29,6 +36,7 @@ window.addEventListener('vite:preloadError', (event) => {
   window.location.reload()
 })
 
+// モックの準備が済んでから描画する（先に描画すると最初の API 呼び出しがモックに届かない）
 prepare().then(() => {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

@@ -13,11 +13,12 @@ import streamlit as st
 st.set_option("client.showErrorDetails", "none")
 
 from lib.auth import render_sidebar, require_login  # noqa: E402
+from lib.data import CACHE_TTL  # noqa: E402
 from lib.secrets_env import load_secrets_into_env  # noqa: E402
 from views import advanced, events, inbox, overview, shop, traffic, workshop  # noqa: E402
 
-# 1. ページ全体の設定（タブのタイトル・横幅いっぱいに使う）
-st.set_page_config(page_title="ei8ht plants 分析", page_icon="🌵", layout="wide")
+# 1. ページ全体の設定（タブのタイトル・タブのアイコン（Material の植物のアイコン）・横幅いっぱいに使う）
+st.set_page_config(page_title="ei8ht plants 分析", page_icon=":material/eco:", layout="wide")
 
 # 2. Community Cloud の Secrets（secrets.toml）を環境変数に反映させる。
 #    接続情報は各モジュールが os.getenv で読むため、ログインの判定より前に済ませる。
@@ -50,7 +51,10 @@ with st.sidebar:
     if st.button("データを再読み込み", icon=":material/refresh:", width="stretch"):
         st.cache_data.clear()
         st.rerun()
-    st.caption("本番データを読み取り専用で表示しています（10分ごとに自動更新）。")
+    # キャッシュは時間で自動的に取り直すのではなく、期限（CACHE_TTL）を過ぎてから操作したときに取り直す
+    st.caption(
+        f"本番データを読み取り専用で表示しています。最大{CACHE_TTL // 60}分前のデータです（操作したときに取り直します）。"
+    )
 
 # 6. 選ばれた画面を表示する
 pages.run()

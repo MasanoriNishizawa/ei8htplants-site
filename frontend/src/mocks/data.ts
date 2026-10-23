@@ -1,7 +1,10 @@
+// MSW のモック（handlers.ts）が返す固定のデータ。Vitest と E2E（`npm run mock:e2e`）で、本物のバックエンドの代わりに使う
 import type { Event, EventFinances, EventAdminInfo, AdminInfoDashboardItem, GalleryImage, Stockist, Product } from '../lib/api'
 
+/** 設計書の目次（GET /api/docs/tree）の 1 項目（type: ファイルかフォルダか、name: 表示名、path: doc/ からのパス、children: フォルダの中身） */
 type DocTreeNode = { type: 'file' | 'dir'; name: string; path: string; children?: DocTreeNode[] }
 
+/** 管理画面「設計書」の目次のモック */
 export const MOCK_DOC_TREE: DocTreeNode[] = [
   {
     type: 'dir', name: '03_PM', path: '03_PM',
@@ -18,6 +21,7 @@ export const MOCK_DOC_TREE: DocTreeNode[] = [
   },
 ]
 
+/** 設計書の本文のモック（パス → Markdown の本文）。ここに無いパスは 404 を返す */
 export const MOCK_DOC_CONTENTS: Record<string, string> = {
   '03_PM/05_エージェント設計書.md': `# PM-05 — エージェント設計書 (Agent Architecture)
 
@@ -71,6 +75,12 @@ cd frontend && npx playwright test
 `,
 }
 
+/**
+ * 開催前のイベント（GET /api/events）のモック
+ * - mock-upcoming-1: 写真 2 枚・WS あり（予約制）・イベントページの文章あり
+ * - mock-upcoming-2: HUE のみ・WS なし・写真なし
+ * - mock-no-time: 時間・ブランドが未設定のイベント（未設定の表示を確かめる用）
+ */
 export const MOCK_EVENTS: Event[] = [
   {
     id: 'mock-upcoming-1',
@@ -142,6 +152,7 @@ export const MOCK_EVENTS: Event[] = [
   },
 ]
 
+/** 終了したイベント（GET /api/events?past=true）のモック。アーカイブの文章を持つ */
 export const MOCK_PAST_EVENTS: Event[] = [
   {
     id: 'mock-past-1',
@@ -169,6 +180,7 @@ export const MOCK_PAST_EVENTS: Event[] = [
   },
 ]
 
+/** イベントの収支のモック（mock-past-1 の分だけ。ほかのイベントは 404） */
 export const MOCK_FINANCES: EventFinances[] = [
   {
     id: 'fin-1',
@@ -271,17 +283,20 @@ export const MOCK_ADMIN_DASHBOARD: AdminInfoDashboardItem[] = [
   },
 ]
 
+/** 公開ギャラリーの写真のモック（ブランドごとに 1 枚） */
 export const MOCK_GALLERY: GalleryImage[] = [
   { id: 'g-1', url: 'https://placehold.co/400x500/c8d8c4/ffffff?text=Gallery+1', alt: '植物 1', brand: 'ei8ht plants', display_order: 1 },
   { id: 'g-2', url: 'https://placehold.co/400x500/d4c8b8/ffffff?text=Gallery+2', alt: '植物 2', brand: 'Habitat Oides', display_order: 2 },
-  { id: 'g-3', url: 'https://placehold.co/400x500/b8ccd4/ffffff?text=Gallery+3', alt: '植物 3', brand: 'HUE by ei8ht plants', display_order: 3 },
+  { id: 'g-3', url: 'https://placehold.co/400x500/b8ccd4/ffffff?text=Gallery+3', alt: '植物 3', brand: 'HUE', display_order: 3 },
 ]
 
+/** 取扱店のモック（エリアの違う 2 店） */
 export const MOCK_STOCKISTS: Stockist[] = [
   { id: 's-1', name: 'Botany Tokyo', area: '東京', address: '東京都目黒区中目黒1-2-3', url: 'https://example.com', brands: ['ei8ht plants'] },
   { id: 's-2', name: 'Green Shop Osaka', area: '大阪', address: '大阪府大阪市中央区1-1-1', url: null, brands: ['Habitat Oides', 'ei8ht plants'] },
 ]
 
+/** 商品のモック（在庫ありの 2 点と品切れの 1 点） */
 export const MOCK_PRODUCTS: Product[] = [
   {
     id: 'p-1',

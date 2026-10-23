@@ -100,6 +100,7 @@ function resolveFee(
 
 /**
  * 未入力のときに表示する薄い文字
+ * @returns 「未入力」の薄い文字
  */
 function Empty() {
   return <span style={{ color: 'var(--c-muted)', fontSize: 14 }}>未入力</span>
@@ -109,6 +110,7 @@ function Empty() {
  * 「ラベル」と「値」を横に並べる1行。幅が狭い（スマホ）ときは折り返してラベルの下に値が来る
  * @param label - 項目名
  * @param children - 値の表示
+ * @returns 項目名と値の1行
  */
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -128,6 +130,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 /**
  * 文字列の値を表示する。未入力なら「未入力」を薄く出す
  * @param value - 表示する値（null・undefined・空文字は未入力）
+ * @returns 値の文字、または「未入力」
  */
 function TextValue({ value }: { value: string | null | undefined }) {
   return hasText(value) ? <>{value}</> : <Empty />
@@ -136,8 +139,10 @@ function TextValue({ value }: { value: string | null | undefined }) {
 /**
  * 金額を表示する。収支から補った値には小さく「（収支から）」を添える
  * @param fee - resolveFee で決めた金額と、収支から補ったかどうか
+ * @returns 「14,000円」の形の金額（と補足）、または「未入力」
  */
 function FeeValue({ fee }: { fee: { value: number | null; fromFinance: boolean } }) {
+  /** 表示する金額の文字（金額が無ければ null） */
   const text = formatYen(fee.value)
   if (!text) return <Empty />
   return (
@@ -152,10 +157,14 @@ function FeeValue({ fee }: { fee: { value: number | null; fromFinance: boolean }
  * イベント管理情報（搬入・搬出・宿泊・出店料・出店要項・メモ）を見やすく確認するページ
  * URL: /admin/events/:id/admin-info
  * 「編集」ボタンで編集画面（/admin/events/:id/admin-info/edit）へ進み、保存するとこの画面に戻る
+ * @returns 管理情報の確認画面（と出店要項の画像の拡大表示）
  */
 export default function AdminEventAdminInfoView() {
+  /** URL の :id（対象のイベントの id） */
   const { id } = useParams<{ id: string }>()
+  /** 今の画面の場所（state の from・saved を読むため） */
   const location = useLocation()
+  /** 履歴から saved を消すための画面移動の関数 */
   const navigate = useNavigate()
   /** 遷移元から受け取った state（from・saved） */
   const locState = location.state as ViewLocationState | null
@@ -206,6 +215,7 @@ export default function AdminEventAdminInfoView() {
   // 2. 「保存しました」を3秒後に消す
   useEffect(() => {
     if (!savedVisible) return
+    /** 「保存しました」を消すタイマー（画面を閉じたら止める） */
     const timer = setTimeout(() => setSavedVisible(false), 3000)
     return () => clearTimeout(timer)
   }, [savedVisible])
@@ -280,6 +290,7 @@ export default function AdminEventAdminInfoView() {
         </p>
       )}
 
+      {/* 管理情報の本体（読み込めたときだけ） */}
       {!loading && info && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* 管理情報がまだ1つも登録されていないときの案内 */}
@@ -337,7 +348,7 @@ export default function AdminEventAdminInfoView() {
                 {guidelineImages.length === 0 ? (
                   <Empty />
                 ) : (
-                  // サムネイル。編集画面と同じく最小 120px で折り返し、狭い幅でも横スクロールしない
+                  /* サムネイル。編集画面と同じく最小 120px で折り返し、狭い幅でも横スクロールしない。押すと拡大表示 */
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(120px, 100%), 1fr))', gap: 10 }}>
                     {guidelineImages.map((url, i) => (
                       <button

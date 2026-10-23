@@ -9,7 +9,7 @@ const SANS = "'Noto Sans JP', sans-serif"
 const BG = '#faf9f7'
 
 /** 制定日（改定したら更新する） */
-export const PRIVACY_POLICY_DATE = { ja: '2026年10月16日 制定', en: 'Established October 16, 2026' }
+const PRIVACY_POLICY_DATE = { ja: '2026年10月16日 制定', en: 'Established October 16, 2026' }
 
 /** Google アナリティクスのオプトアウト（計測を止める）アドオンの URL */
 export const GA_OPTOUT_URL = 'https://tools.google.com/dlpage/gaoptout'
@@ -21,9 +21,13 @@ type Line = string | { text: string; href: string }
 
 /** 1つの節（見出しと本文。本文は ja / en それぞれの行の配列） */
 interface Section {
+  /** 見出し（日本語） */
   title: string
+  /** 見出し（英語） */
   titleEn: string
+  /** 本文の行（日本語） */
   body: Line[]
+  /** 本文の行（英語） */
   bodyEn: Line[]
 }
 
@@ -192,6 +196,7 @@ function renderLine(line: Line, key: number) {
   // 段落の共通スタイル（行間を広めにして読みやすくする）
   const p: React.CSSProperties = { margin: '0 0 10px', lineHeight: 2, fontSize: 14, color: '#444' }
   if (typeof line === 'string') return <p key={key} style={p}>{line}</p>
+  // http で始まる外部のリンクか（サイト内のリンクは同じタブで開く）
   const external = line.href.startsWith('http')
   return (
     <p key={key} style={p}>
@@ -206,7 +211,10 @@ function renderLine(line: Line, key: number) {
   )
 }
 
-/** プライバシーポリシーのページ（/privacy）。取得する情報・利用目的・外部サービス・アクセス解析などを掲載する */
+/**
+ * プライバシーポリシーのページ（/privacy）。取得する情報・利用目的・外部サービス・アクセス解析などを掲載する
+ * @returns プライバシーポリシーの画面
+ */
 export default function PrivacyPolicy() {
   const t = useT()
   return (

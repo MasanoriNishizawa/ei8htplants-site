@@ -9,7 +9,8 @@ import { test, expect, type Page } from '@playwright/test'
 //   - /events      … イベント一覧の通常のカード（EventPreview。写真は aspectRatio 3/4）
 //   - /            … ホームの Next Event の大きいカード（EventPreview horizontal。PC では横並び）
 //   - /events/:id  … 公開のイベントサイト（EventSite。写真は height: auto）
-// ※ EventCard.tsx は現在どの画面からも使われていない（Vitest の EventCard.test.tsx でのみ使用）ため、画面テストの対象外
+// ※ 以前の部品 EventCard.tsx は削除した（どの画面からも使われていなかった）ため対象外
+// 前へ・次へのボタンは記号（❮ / ❯）ではなく読み上げ用の名前「前の写真」「次の写真」（aria-label）で探す
 
 /** 対象イベントの ID */
 const EVENT_ID = 'mock-upcoming-1'
@@ -47,8 +48,11 @@ async function findPhoto(page: Page) {
   await img.scrollIntoViewIfNeeded()
   // 2. 画像の読み込みが終わる（naturalWidth > 0）まで待つ。EventSite は height: auto なので読み込み前は高さが 0 になる
   await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true)
-  // 3. 入れ物 = img の親（前へ・次へのボタンが position: absolute で乗っている要素）
-  return { img, container: img.locator('..') }
+  // 3. 入れ物 = 前へ・次へのボタンが position: absolute で乗っている要素。
+  //    写真は拡大表示のボタン（button）で包まれているので、img の親ではなく
+  //    「次の写真」ボタンを含むいちばん近い祖先の div を入れ物とする
+  const container = img.locator('xpath=ancestor::div[.//button[@aria-label="次の写真"]][1]')
+  return { img, container }
 }
 
 /**
@@ -64,8 +68,8 @@ async function expectArrowsCentered(page: Page) {
   expect(imgBox!.height, '写真の高さが 0').toBeGreaterThan(0)
   const imgCenterY = imgBox!.y + imgBox!.height / 2
 
-  // 2. 前へ・次へのボタン（文字 ❮ / ❯）を入れ物の中から探し、それぞれの縦の中心を比べる
-  for (const [name, label] of [['❮', '前へ'], ['❯', '次へ']] as const) {
+  // 2. 前へ・次へのボタン（名前「前の写真」「次の写真」）を入れ物の中から探し、それぞれの縦の中心を比べる
+  for (const [name, label] of [['前の写真', '前へ'], ['次の写真', '次へ']] as const) {
     const btn = container.getByRole('button', { name, exact: true })
     await expect(btn, `${label}ボタンが表示されていない`).toBeVisible()
     const box = await btn.boundingBox()
@@ -98,7 +102,7 @@ for (const vp of VIEWPORTS) {
       const { img, container } = await findPhoto(page)
       await expect(img).toHaveAttribute('src', /habitat_oides_hero/)
       // 2. 「次へ」を押すと 2 枚目に切り替わる
-      await container.getByRole('button', { name: '❯', exact: true }).click()
+      await container.getByRole('button', { name: '次の写真', exact: true }).click()
       await expect(img).toHaveAttribute('src', /habitat_oides_workshop_main/)
       // 3. 2 枚目でも矢印が真ん中にある
       await expectArrowsCentered(page)

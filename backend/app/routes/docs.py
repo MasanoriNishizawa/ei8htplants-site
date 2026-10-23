@@ -1,14 +1,18 @@
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import PlainTextResponse
-import os
+"""設計書（doc/ の Markdown）を管理画面で読むための API（管理者のみ）。"""
 import pathlib
 
-router = APIRouter()
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 
+from ..auth import require_auth
+
+# 設計書の API は管理画面からだけ使うので、ルーター全体でログインを必須にする
+router = APIRouter(dependencies=[Depends(require_auth)])
+
+# 設計書のフォルダ（プロジェクトルートの doc/）
 DOC_ROOT = pathlib.Path(__file__).parent.parent.parent.parent / 'doc'
 
 
-# ドキュメントディレクトリを再帰的に走査し、.mdファイルのみのツリー構造を返す
 def _build_tree(directory: pathlib.Path, base: pathlib.Path) -> list[dict]:
     """ディレクトリを再帰的に走査し、.md ファイルのみを含むツリー構造を返す。
 
@@ -22,7 +26,7 @@ def _build_tree(directory: pathlib.Path, base: pathlib.Path) -> list[dict]:
     Returns:
         各エントリが type/name/path（およびディレクトリは children）を持つ辞書のリスト
     """
-    items = []
+    items: list[dict] = []
     try:
         entries = sorted(directory.iterdir(), key=lambda p: (p.is_file(), p.name))
     except PermissionError:
@@ -47,12 +51,15 @@ def _build_tree(directory: pathlib.Path, base: pathlib.Path) -> list[dict]:
     return items
 
 
-# docディレクトリのファイルツリーを返す
 @router.get('/docs/tree')
-def get_tree():
-    """doc ディレクトリのファイルツリーを返す。
+def get_tree() -> list[dict]:
+    """doc ディレクトリのファイルツリーを返す（管理者のみ）。
+
+    Returns:
+        _build_tree の結果
 
     Raises:
+        HTTPException(401): ログインしていない場合
         HTTPException(404): doc ディレクトリが存在しない場合
     """
     if not DOC_ROOT.exists():
@@ -60,10 +67,9 @@ def get_tree():
     return _build_tree(DOC_ROOT, DOC_ROOT)
 
 
-# 指定パスの.mdファイルの内容をプレーンテキストで返す。ディレクトリトラバーサル対策を含む
 @router.get('/docs/content', response_class=PlainTextResponse)
-def get_content(path: str = Query(...)):
-    """指定パスの .md ファイルの内容をプレーンテキストで返す。
+def get_content(path: str = Query(...)) -> str:
+    """指定パスの .md ファイルの内容をプレーンテキストで返す（管理者のみ）。
 
     ディレクトリトラバーサル攻撃を防ぐため、DOC_ROOT の外へのアクセスは拒否する。
 
@@ -74,15 +80,17 @@ def get_content(path: str = Query(...)):
         ファイルの内容（UTF-8 プレーンテキスト）
 
     Raises:
+        HTTPException(401): ログインしていない場合
         HTTPException(400): パスが不正またはディレクトリトラバーサルが検出された場合
         HTTPException(404): ファイルが存在しないまたは .md でない場合
     """
-    # Prevent directory traversal
+    # 1. 実際の場所に直し、DOC_ROOT の中にあるか確かめる（「../」などで外に出させない）
     try:
         target = (DOC_ROOT / path).resolve()
         target.relative_to(DOC_ROOT.resolve())
-    except (ValueError, Exception):
+    except (ValueError, OSError):
         raise HTTPException(status_code=400, detail='invalid path')
+    # 2. .md のファイルだけ返す
     if not target.exists() or not target.is_file() or target.suffix != '.md':
         raise HTTPException(status_code=404, detail='file not found')
     return target.read_text(encoding='utf-8')

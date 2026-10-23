@@ -2,7 +2,7 @@
 GET /api/events/admin-info/dashboard（管理画面ダッシュボード用の管理情報一覧）のテスト。
 
 - admin_supabase は app.routes.events をパッチして差し替える
-- 今日の日付は app.routes.events._today_jst をパッチして固定する
+- 今日の日付は app.routes.events.today_jst をパッチして固定する
 - require_auth は dependency_overrides でバイパスし、テスト後に必ず戻す
 """
 from unittest.mock import MagicMock, patch
@@ -64,7 +64,7 @@ class TestAdminInfoDashboard:
         """モックを差し替えて API を呼び、レスポンスを返す。"""
         sb = _make_sb(events, infos)
         with patch('app.routes.events.admin_supabase', sb), \
-             patch('app.routes.events._today_jst', return_value=today):
+             patch('app.routes.events.today_jst', return_value=today):
             return TestClient(app).get('/api/events/admin-info/dashboard')
 
     def test_認証なしで呼ぶと401になる(self):
@@ -179,7 +179,7 @@ class TestAdminInfoDashboard:
         """管理情報が CDN・ブラウザに残らないよう、Authorization 付きの GET は no-store になる。"""
         sb = _make_sb([_ev('e1', '2026-11-01')], [])
         with patch('app.routes.events.admin_supabase', sb), \
-             patch('app.routes.events._today_jst', return_value=TODAY):
+             patch('app.routes.events.today_jst', return_value=TODAY):
             resp = TestClient(app).get('/api/events/admin-info/dashboard', headers={'Authorization': 'Bearer x'})
         assert resp.status_code == 200
         assert resp.headers['cache-control'] == 'no-store'

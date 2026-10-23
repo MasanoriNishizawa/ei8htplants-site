@@ -40,7 +40,7 @@ describe('Contact フォーム ステートマシン', () => {
   })
 
   it('送信成功後は done: フォームが非表示になり完了メッセージが表示される', async () => {
-    vi.mocked(api.contact.send).mockResolvedValue(undefined as any)
+    vi.mocked(api.contact.send).mockResolvedValue(undefined)
     render(<Contact />)
     fillForm()
     fireEvent.submit(screen.getByRole('button', { name: '送信する' }).closest('form')!)
@@ -59,5 +59,42 @@ describe('Contact フォーム ステートマシン', () => {
       expect(screen.getByText(/送信に失敗しました/)).toBeDefined()
     })
     expect(screen.getByRole('button', { name: '送信する' })).not.toBeDisabled()
+  })
+})
+
+describe('Contact フォームの文字数の上限と回数制限', () => {
+  beforeEach(() => {
+    vi.mocked(api.contact.send).mockReset()
+  })
+
+  it('お名前の欄に maxLength（100 文字）が付いている', () => {
+    render(<Contact />)
+    expect(screen.getByPlaceholderText('例: 山田 花子')).toHaveAttribute('maxLength', '100')
+  })
+
+  it('内容の欄に maxLength（5,000 文字）が付いている', () => {
+    render(<Contact />)
+    expect(screen.getByPlaceholderText('お問い合わせ内容をご記入ください')).toHaveAttribute('maxLength', '5000')
+  })
+
+  it('サーバーが 429 を返すと送信回数の上限の文言が出て、「送信に失敗しました」は出ない', async () => {
+    // api の request は失敗時に「429 詳細」の形の Error を投げる
+    vi.mocked(api.contact.send).mockRejectedValue(new Error('429 too many requests'))
+    render(<Contact />)
+    fillForm()
+    fireEvent.submit(screen.getByRole('button', { name: '送信する' }).closest('form')!)
+    expect(await screen.findByText('送信回数の上限に達しました。しばらく待ってからもう一度お試しください。')).toBeInTheDocument()
+    expect(screen.queryByText('送信に失敗しました。再度お試しください。')).toBeNull()
+    // ボタンはまた押せる
+    expect(screen.getByRole('button', { name: '送信する' })).toBeEnabled()
+  })
+
+  it('429 以外の失敗（500）は「送信に失敗しました」の文言になる', async () => {
+    vi.mocked(api.contact.send).mockRejectedValue(new Error('500 Internal Server Error'))
+    render(<Contact />)
+    fillForm()
+    fireEvent.submit(screen.getByRole('button', { name: '送信する' }).closest('form')!)
+    expect(await screen.findByText('送信に失敗しました。再度お試しください。')).toBeInTheDocument()
+    expect(screen.queryByText(/送信回数の上限/)).toBeNull()
   })
 })

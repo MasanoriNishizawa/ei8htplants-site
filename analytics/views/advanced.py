@@ -7,17 +7,19 @@ import streamlit as st
 
 from lib.analysis import (
     MIN_ROWS_FOR_ANALYSIS,
+    N_BOOT,
     SERIES_PRIOR_K,
+    Forecast,
     displayed_median,
     fit_linear,
     forecast_fiscal_year,
     season_weight,
     series_weight,
-    simulate_event,
 )
 from lib.charts import INK_SECONDARY, SERIES, style, yen
-from lib.context import get_context, not_enough
-from lib.finance import break_even_sales
+from lib.context import FRAME_HASH_FUNCS, get_context, not_enough
+from lib.data import CACHE_TTL
+from lib.finance import break_even_sales, compute_finances, finance_row
 
 # 要因分析で選べる項目：表示名 → (列名, 単位)
 FACTORS = {
@@ -28,68 +30,99 @@ FACTORS = {
     "WS 参加人数": ("ws_participants", "人"),
 }
 
+# 決定係数 R² の目安：これ以上なら「強い関係」
+R2_STRONG = 0.5
+# 決定係数 R² の目安：これ以上なら「ある程度の関係」（未満は「ほとんど関係がない」）
+R2_MODERATE = 0.2
+# 散布図に引く傾向の直線を描くときの点の数（x の最小〜最大を等間隔に区切る）
+TREND_LINE_POINTS = 50
+# 着地見込みの分布のヒストグラムの棒の数（目安）
+FORECAST_BINS = 40
+# 出店判断シミュレーターのガソリン単価の初期値（円/L）。実績にガソリン単価が1件も無いときに使う
+DEFAULT_GAS_PRICE = 170
+
+
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False, hash_funcs=FRAME_HASH_FUNCS)
+def _cached_forecast(fin: pd.DataFrame, events: pd.DataFrame, today: pd.Timestamp) -> Forecast | None:
+    """forecast_fiscal_year の結果をキャッシュする（画面を操作するたびに 5,000 回の計算をし直さないため）。
+
+    Args:
+        fin: イベント収支の表（全期間）
+        events: events テーブル
+        today: 基準日
+
+    Returns:
+        forecast_fiscal_year の結果
+    """
+    return forecast_fiscal_year(fin, events, today)
+
 
 def render() -> None:
-    """予測・シミュレーション画面を表示する。"""
-    ctx = get_context()
+    """予測・シミュレーション画面を表示する（会計年度では絞り込まないので、年度の選択欄は出さない）。"""
+    ctx = get_context(use_year_filter=False)
     st.title("予測・シミュレーション")
     st.caption("イベントの実績をもとにした統計的な見込みです。実績の回数が少ないうちは幅を持って見てください。")
 
-    # 予測には会計年度の絞り込みを使わず、すべての実績を使う
-    fin = ctx.fin_all
-    done = fin[fin["has_result"]] if not fin.empty else fin
+    # 1. 予測には会計年度の絞り込みを使わず、すべての実績を使う
+    done = ctx.done_all
     if len(done) < MIN_ROWS_FOR_ANALYSIS:
         not_enough("売上の入力されたイベント", len(done), MIN_ROWS_FOR_ANALYSIS)
         return
 
-    _forecast(ctx, fin)
+    # 2. 着地見込み・要因・シミュレーターを順に表示する
+    _forecast(ctx, ctx.fin_all)
     _factors(done)
     _simulator(done)
 
 
-def _forecast(ctx, fin) -> None:
+def _forecast(ctx, fin: pd.DataFrame) -> None:
     """今期のイベント売上の着地見込みを表示する。
 
     Args:
-        ctx: get_context の結果
+        ctx: get_context の結果（raw の events と today を使う）
         fin: イベント収支の表（全期間）
     """
     st.header("今期のイベント売上の着地見込み")
-    fc = forecast_fiscal_year(fin, ctx.raw["events"], ctx.today)
+    fc = _cached_forecast(fin, ctx.raw["events"], ctx.today)
     if fc is None:
         return
-    st.caption(
-        f"{fc['fiscal_year']}年度の実績に、まだ売上が入っていない {fc['remaining']} 回（今後の予定と入力待ち）の売上を"
-        "無作為に引いて足す計算を 5,000 回くり返しました（ブートストラップ法）。"
-        "1回分の売上は、次の2つのどちらかから引きます。"
-        "(1) 同じイベント（「vol.5」「第3回」「2026」などの回の番号を除いた名前が同じもの）の過去の売上。"
-        "年に複数回あるイベントは時期によって売上が違うため、この中では開催月が近い回ほど引かれやすくします"
-        f"（同じ月を 1 として、1か月差 {season_weight(1):.2f}、2か月差 {season_weight(2):.2f}、"
-        f"3か月差 {season_weight(3):.2f}、半年差はほぼ 0）。"
-        "(2) 全イベントの1回あたり売上（時期は考慮しません）。"
-        "(1) の重みの合計を「時期を考慮した実質の回数」n とし、(1) から引く割合を "
-        f"n ÷ (n + {SERIES_PRIOR_K})、残りを (2) から引きます"
-        f"（1回で{series_weight(1):.0%}、2回で{series_weight(2):.0%}、4回で{series_weight(4):.0%}）。"
-        "回数が少ないうちに、たまたまの1回に引っぱられないためです。"
-        "同じイベントの実績が無いときは全イベントの実績だけで、"
-        "時期の離れた回しか無いときは主に全イベントの実績で見込みます。"
+    # 1. 要点を1行で示し、計算方法の詳しい説明は開いて読めるようにする
+    st.markdown(
+        f"{fc['fiscal_year']}年度の実績に、残り {fc['remaining']} 回の売上を過去の実績から見込んで足した結果です。"
     )
-    # 1. 実績と見込みを数字で並べる
+    with st.expander("計算方法"):
+        st.caption(
+            f"{fc['fiscal_year']}年度の実績に、まだ売上が入っていない {fc['remaining']} 回（今後の予定と入力待ち）の売上を"
+            f"無作為に引いて足す計算を {N_BOOT:,} 回くり返しました（ブートストラップ法）。"
+            "1回分の売上は、次の2つのどちらかから引きます。"
+            "(1) 同じイベント（「vol.5」「第3回」「2026」などの回の番号を除いた名前が同じもの）の過去の売上。"
+            "年に複数回あるイベントは時期によって売上が違うため、この中では開催月が近い回ほど引かれやすくします"
+            f"（同じ月を 1 として、1か月差 {season_weight(1):.2f}、2か月差 {season_weight(2):.2f}、"
+            f"3か月差 {season_weight(3):.2f}、半年差はほぼ 0）。"
+            "(2) 全イベントの1回あたり売上（時期は考慮しません）。"
+            "(1) の重みの合計を「時期を考慮した実質の回数」n とし、(1) から引く割合を "
+            f"n ÷ (n + {SERIES_PRIOR_K})、残りを (2) から引きます"
+            f"（1回で{series_weight(1):.0%}、2回で{series_weight(2):.0%}、4回で{series_weight(4):.0%}）。"
+            "回数が少ないうちに、たまたまの1回に引っぱられないためです。"
+            "同じイベントの実績が無いときは全イベントの実績だけで、"
+            "時期の離れた回しか無いときは主に全イベントの実績で見込みます。"
+        )
+    # 2. 実績と見込みを数字で並べる
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("ここまでの実績", yen(fc["actual"]))
     c2.metric("控えめな見込み（下位10%）", yen(fc["p10"]))
     c3.metric("ふつうの見込み（中央値）", yen(fc["p50"]))
     c4.metric("良い見込み（上位10%）", yen(fc["p90"]))
-    # 2. シミュレーション結果の分布
-    fig = go.Figure(go.Histogram(x=fc["samples"], nbinsx=40, marker_color=SERIES[0],
+    # 3. シミュレーション結果の分布
+    fig = go.Figure(go.Histogram(x=fc["samples"], nbinsx=FORECAST_BINS, marker_color=SERIES[0],
                                  hovertemplate="%{x:,.0f}円前後<br>%{y}回<extra></extra>"))
     for key, label in (("p10", "下位10%"), ("p50", "中央値"), ("p90", "上位10%")):
         fig.add_vline(x=fc[key], line=dict(color=INK_SECONDARY, width=1, dash="dot"),
                       annotation_text=label, annotation_position="top")
-    fig.update_layout(title="今期の売上合計の分布（5,000回のシミュレーション）", showlegend=False)
+    fig.update_layout(title=f"今期の売上合計の分布（{N_BOOT:,}回のシミュレーション）", showlegend=False)
     fig.update_yaxes(title_text="回数")
     st.plotly_chart(style(fig, height=300, yen_axis="x"), width="stretch")
-    # 3. 残りのイベントごとに、参考にした同じイベントの過去の実績を表で見せる
+    # 4. 残りのイベントごとに、参考にした同じイベントの過去の実績を表で見せる
     _forecast_details(fc["details"])
 
 
@@ -151,7 +184,7 @@ def _past_label(names: list, dates: list, weights: list) -> str:
     return " / ".join(parts)
 
 
-def _factors(done) -> None:
+def _factors(done: pd.DataFrame) -> None:
     """売上と、距離・日数などの関係を散布図と回帰直線で表示する。
 
     Args:
@@ -168,7 +201,7 @@ def _factors(done) -> None:
         customdata=done[["name"]], hovertemplate=f"%{{customdata[0]}}<br>{label} %{{x:,}}{unit}<br>売上 %{{y:,.0f}}円<extra></extra>",
     ))
     if fit:
-        xs = np.linspace(done[col].min(), done[col].max(), 50)
+        xs = np.linspace(done[col].min(), done[col].max(), TREND_LINE_POINTS)
         fig.add_scatter(x=xs, y=fit["slope"] * xs + fit["intercept"], mode="lines", name="傾向の直線",
                         line=dict(color=SERIES[1], width=2), hoverinfo="skip")
     fig.update_layout(title=f"{label} と 売上")
@@ -178,7 +211,7 @@ def _factors(done) -> None:
     if not fit:
         st.caption("この項目は値がほぼ同じなので、関係を調べられません。")
         return
-    strength = "強い" if fit["r2"] >= 0.5 else "ある程度の" if fit["r2"] >= 0.2 else "ほとんど"
+    strength = "強い" if fit["r2"] >= R2_STRONG else "ある程度の" if fit["r2"] >= R2_MODERATE else "ほとんど"
     st.caption(
         f"{label}が 1{unit} 増えると、売上は平均で {yen(fit['slope'])} 変わる傾向です。"
         f"決定係数 R² = {fit['r2']:.2f}（{strength}関係{'がありません' if strength == 'ほとんど' else 'があります'}）。"
@@ -186,7 +219,7 @@ def _factors(done) -> None:
     )
 
 
-def _simulator(done) -> None:
+def _simulator(done: pd.DataFrame) -> None:
     """出店を考えているイベントの条件を入れると、収支の見込みと黒字になる確率を出す。
 
     Args:
@@ -199,7 +232,7 @@ def _simulator(done) -> None:
     sales = c1.number_input("見込み売上（円）", 0, step=5000, value=int(done["sales"].median()))
     booth = c1.number_input("出店料（円）", 0, step=1000, value=int(done["booth_fee"].median()))
     distance = c2.number_input("片道の距離（km）", 0, step=10, value=int(done["distance"].median()))
-    gas = c2.number_input("ガソリン単価（円/L）", 0, step=5, value=170)
+    gas = c2.number_input("ガソリン単価（円/L）", 0, step=5, value=_default_gas_price(done))
     toll = c2.number_input("高速代（円）", 0, step=500, value=0)
     hotel = c3.number_input("宿泊費（円）", 0, step=1000, value=0)
     other = c3.number_input("その他支出（円）", 0, step=1000, value=0)
@@ -207,13 +240,13 @@ def _simulator(done) -> None:
     helper = st.toggle("手伝い支払いあり", value=True)
 
     # 2. 収支と損益分岐点を計算する
-    result = simulate_event(sales, booth, distance, gas, toll, hotel, other, ws, helper)
-    fin = {"sales": sales, "booth_fee": booth, "distance": distance, "gas_price": gas, "expressway_toll": toll,
-           "accommodation": hotel, "other_expenses": other, "ws_participants": ws, "payment_flag": helper}
+    fin = finance_row(sales, booth, distance, gas, toll, hotel, other, ws, helper)
+    result = compute_finances(fin, has_workshop=ws > 0)
     be = break_even_sales(fin, has_workshop=ws > 0)
     # 3. 過去の売上のうち、損益分岐を超えていた回の割合 ＝ 同じ条件なら黒字になった確率の目安
     p_win = float((done["sales"] >= be).mean())
 
+    # 4. 結果を数字で並べ、支出の内訳を添える
     c1, c2, c3 = st.columns(3)
     c1.metric("収支の見込み", yen(result["net"]), help="見込み売上を入れたときの収支")
     c2.metric("損益分岐の売上", yen(be), help="これを超えれば黒字")
@@ -222,3 +255,17 @@ def _simulator(done) -> None:
         f"支出 {yen(result['total_expense'])}（うち移動費 {yen(result['transport'])}）・WS資材費 {yen(result['ws_cost'])}"
         f"・手伝い支払い {yen(result['payment'])}"
     )
+
+
+def _default_gas_price(done: pd.DataFrame) -> int:
+    """シミュレーターのガソリン単価の初期値を、実績のガソリン単価の中央値にする。
+
+    Args:
+        done: 売上の実績がある回の表（gas_price 列）
+
+    Returns:
+        ガソリン単価（円/L）。実績に 0 より大きい単価が無ければ DEFAULT_GAS_PRICE
+    """
+    prices = pd.to_numeric(done["gas_price"], errors="coerce")
+    prices = prices[prices > 0]
+    return int(round(prices.median())) if not prices.empty else DEFAULT_GAS_PRICE

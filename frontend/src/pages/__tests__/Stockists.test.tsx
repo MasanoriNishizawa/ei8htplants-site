@@ -138,3 +138,37 @@ describe('Stockists ページ', () => {
     })
   })
 })
+
+// ---- ブランドのラベルの色（HUE は短い表記・正式名のどちらでも同じ色） ----
+describe('Stockists のブランドのラベルの色', () => {
+  /** HUE のラベルの色（背景・文字） */
+  const HUE_STYLE = { backgroundColor: '#f5ead8', color: '#6b3c1a' }
+
+  beforeEach(() => {
+    vi.mocked(api.stockists.list).mockReset()
+  })
+
+  it('brand が「HUE」（短い表記）のときラベルに HUE の色が付く', async () => {
+    vi.mocked(api.stockists.list).mockResolvedValue([makeStockist({ id: 'a', name: '短い表記の店', brands: ['HUE'] })])
+    render(<Stockists />)
+    const label = await screen.findByText('HUE')
+    expect(label).toHaveStyle(HUE_STYLE)
+  })
+
+  it('brand が「HUE by ei8ht plants」（正式名）のときも同じ HUE の色が付く', async () => {
+    vi.mocked(api.stockists.list).mockResolvedValue([makeStockist({ id: 'b', name: '正式名の店', brands: ['HUE by ei8ht plants'] })])
+    render(<Stockists />)
+    const label = await screen.findByText('HUE by ei8ht plants')
+    expect(label).toHaveStyle(HUE_STYLE)
+  })
+
+  it('ei8ht plants・Habitat Oides もそれぞれの色が付き、知らないブランドは灰色の既定の色になる', async () => {
+    vi.mocked(api.stockists.list).mockResolvedValue([
+      makeStockist({ id: 'c', name: '店C', brands: ['ei8ht plants', 'Habitat Oides', 'その他ブランド'] }),
+    ])
+    render(<Stockists />)
+    expect(await screen.findByText('ei8ht plants')).toHaveStyle({ backgroundColor: '#e8f0e8', color: '#2d4a2d' })
+    expect(screen.getByText('Habitat Oides')).toHaveStyle({ backgroundColor: '#dde4f5', color: '#1e3272' })
+    expect(screen.getByText('その他ブランド')).toHaveStyle({ backgroundColor: '#f0f0f5' })
+  })
+})

@@ -1,0 +1,1 @@
+function n(t,e){return{role:"button",tabIndex:0,onClick:()=>t(),onKeyDown:r=>{r.target===r.currentTarget&&(r.key==="Enter"||r.key===" ")&&(r.preventDefault(),t())},...e===void 0?{}:{"aria-expanded":e}}}export{n as c};

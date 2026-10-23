@@ -17,7 +17,9 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import EventFinance from '../EventFinance'
-import { api, computeFinances } from '../../../lib/api'
+import { api } from '../../../lib/api'
+// 収支の計算は lib/finance.ts に移ったので、移動先から直接読み込む
+import { computeFinances } from '../../../lib/finance'
 import type { Event, EventFinances, EventAdminInfo } from '../../../lib/api'
 
 // api モジュールの関数をモックしつつ、computeFinances などの実装は保持する
@@ -273,7 +275,7 @@ describe('EventFinance ページ', () => {
     vi.mocked(api.events.getFinances).mockResolvedValue(MOCK_FINANCES)
     vi.mocked(api.reserve.list).mockResolvedValue([])
     // 管理情報は未入力の空オブジェクトを返す
-    vi.mocked(api.events.getAdminInfo).mockResolvedValue({} as any)
+    vi.mocked(api.events.getAdminInfo).mockResolvedValue({} as unknown as EventAdminInfo)
     vi.mocked(api.events.saveAdminInfo).mockResolvedValue({ ok: true })
   })
 
@@ -497,5 +499,42 @@ describe('EventFinance ページ — 保存時の管理情報との同期', () =
     expect(api.events.saveAdminInfo).not.toHaveBeenCalled()
     // 4. 保存ボタンはもう一度押せる
     expect(screen.getByRole('button', { name: '保存' })).toBeEnabled()
+  })
+})
+
+// ---- 書きかけ保護: 読み込みが null の項目（null と '' を同じに扱う） ----
+describe('EventFinance ページ — null の項目を入力して消しても書きかけにならない', () => {
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset().mockResolvedValue(MOCK_EVENT)
+    vi.mocked(api.events.getFinances).mockReset().mockResolvedValue(MOCK_FINANCES)
+    vi.mocked(api.reserve.list).mockReset().mockResolvedValue([])
+    vi.mocked(api.events.getAdminInfo).mockReset().mockResolvedValue({} as unknown as EventAdminInfo)
+  })
+
+  it('その他支出の内容・メモ（読み込みは null）を入力して消すと、「← イベント管理」で確認なしに移れる', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderFinancePageWithBack()
+    const note = await screen.findByPlaceholderText('内容（任意）')
+    const memo = screen.getByPlaceholderText('備考・メモ（任意）')
+    // 1. 入力して消す
+    fireEvent.change(note, { target: { value: '駐車場代' } })
+    fireEvent.change(note, { target: { value: '' } })
+    fireEvent.change(memo, { target: { value: 'メモ' } })
+    fireEvent.change(memo, { target: { value: '' } })
+    // 2. 戻るリンクで確認が出ずに移る
+    fireEvent.click(screen.getByRole('link', { name: /イベント管理/ }))
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(await screen.findByText('イベント一覧ページ')).toBeInTheDocument()
+    confirmSpy.mockRestore()
+  })
+
+  it('入力を残したまま「← イベント管理」を押すと確認が出て、キャンセルなら留まる', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderFinancePageWithBack()
+    fireEvent.change(await screen.findByPlaceholderText('内容（任意）'), { target: { value: '駐車場代' } })
+    fireEvent.click(screen.getByRole('link', { name: /イベント管理/ }))
+    expect(confirmSpy).toHaveBeenCalledWith('保存していない変更があります。破棄して移動しますか？')
+    expect(screen.queryByText('イベント一覧ページ')).toBeNull()
+    confirmSpy.mockRestore()
   })
 })

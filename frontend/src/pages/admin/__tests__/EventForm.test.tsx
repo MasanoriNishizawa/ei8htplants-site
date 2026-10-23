@@ -15,7 +15,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { parseTimeRange, TimeRangeSelect } from '../EventForm'
+import { TimeRangeSelect } from '../EventForm'
+// 時間帯の文字列の分解は eventTime.ts に移ったので、移動先から直接読み込む
+import { parseTimeRange } from '../eventTime'
 import AdminEventForm from '../EventForm'
 import { api } from '../../../lib/api'
 import type { Event, WsSession } from '../../../lib/api'
@@ -192,7 +194,6 @@ describe('イベントフォーム 新規作成', () => {
     fireEvent.change(nameInput, { target: { value: '新規テストイベント' } })
 
     // 開始日を入力する（date input は type="date" なので fireEvent で値を設定する）
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dateInputs = document.querySelectorAll('input[type="date"]')
     fireEvent.change(dateInputs[0], { target: { value: '2099-06-01' } })
 
@@ -222,9 +223,6 @@ describe('イベントフォーム 新規作成', () => {
 
   it('保存後に管理画面イベント一覧ページに遷移する（navigate が呼ばれる）', async () => {
     // フォーム送信後に /admin/events へ遷移することを確認する
-    // MemoryRouter 内の Location を取得するために state を使う
-    let navigatedPath = ''
-
     // カスタムルートで遷移先を確認する
     render(
       <MemoryRouter initialEntries={['/admin/events/new']}>
@@ -256,7 +254,6 @@ describe('イベントフォーム 新規作成', () => {
       expect(screen.getByTestId('events-list-page')).toBeDefined()
     })
 
-    void navigatedPath // 未使用変数の警告を抑制する
   })
 
   it('保存中は「保存中...」ボタンが表示される', async () => {
@@ -351,5 +348,102 @@ describe('イベントフォーム 編集', () => {
     expect(screen.queryByRole('button', { name: /削除/ })).toBeNull()
     // 3. 表示しただけで削除 API が呼ばれていないことを確認する
     expect(vi.mocked(api.events.delete)).not.toHaveBeenCalled()
+  })
+})
+
+// ---- URL スラッグの自動生成 ----
+describe('イベントフォーム URL スラッグの自動生成', () => {
+  /** イベント名の入力欄 */
+  const nameInput = () => screen.getByLabelText('イベント名') as HTMLInputElement
+  /** スラッグの入力欄 */
+  const slugInput = () => screen.getByPlaceholderText('plant-market-2026') as HTMLInputElement
+
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset()
+    vi.mocked(api.events.getSessions).mockReset().mockResolvedValue(MOCK_SESSIONS)
+  })
+
+  it('新規作成では、イベント名を入れるたびにスラッグが名前から作られる（英小文字・ハイフン、記号と日本語は除く）', () => {
+    renderNewForm()
+    fireEvent.change(nameInput(), { target: { value: 'Plant Market 2026' } })
+    expect(slugInput().value).toBe('plant-market-2026')
+    fireEvent.change(nameInput(), { target: { value: 'Green  Fes! 秋' } })
+    expect(slugInput().value).toBe('green-fes')
+  })
+
+  it('新規作成でスラッグ欄を手で編集すると、そのあと名前を変えてもスラッグは変わらない', () => {
+    renderNewForm()
+    fireEvent.change(nameInput(), { target: { value: 'Plant Market' } })
+    // 手で編集（大文字・記号は入力時に取り除かれる）
+    fireEvent.change(slugInput(), { target: { value: 'My-Slug!' } })
+    expect(slugInput().value).toBe('my-slug')
+    fireEvent.change(nameInput(), { target: { value: 'Another Name' } })
+    expect(slugInput().value).toBe('my-slug')
+  })
+
+  it('「自動生成」を押すと名前から作り直し、そのあとはまた名前に追従する', () => {
+    renderNewForm()
+    fireEvent.change(nameInput(), { target: { value: 'Plant Market' } })
+    fireEvent.change(slugInput(), { target: { value: 'manual' } })
+    // 1. 自動生成で作り直す
+    fireEvent.click(screen.getByRole('button', { name: '自動生成' }))
+    expect(slugInput().value).toBe('plant-market')
+    // 2. 以後は名前に追従する
+    fireEvent.change(nameInput(), { target: { value: 'Plant Market Autumn' } })
+    expect(slugInput().value).toBe('plant-market-autumn')
+  })
+
+  it('イベント名が空のときは「自動生成」ボタンは出ない', () => {
+    renderNewForm()
+    expect(screen.queryByRole('button', { name: '自動生成' })).toBeNull()
+  })
+
+  it('編集画面では、既存のスラッグはイベント名を変えても変わらない', async () => {
+    vi.mocked(api.events.get).mockResolvedValue(MOCK_EVENT)
+    renderEditForm()
+    await waitFor(() => expect(slugInput().value).toBe('test-event'))
+    fireEvent.change(nameInput(), { target: { value: 'Renamed Event' } })
+    expect(slugInput().value).toBe('test-event')
+  })
+
+  it('編集画面でスラッグが空のイベントは、イベント名を変えるとスラッグが作られる', async () => {
+    vi.mocked(api.events.get).mockResolvedValue({ ...MOCK_EVENT, slug: null } as unknown as Event)
+    renderEditForm()
+    await waitFor(() => expect(nameInput().value).toBe('テストイベント'))
+    expect(slugInput().value).toBe('')
+    fireEvent.change(nameInput(), { target: { value: 'Spring Fair' } })
+    expect(slugInput().value).toBe('spring-fair')
+  })
+})
+
+// ---- 書きかけ保護: ブランドの並び順 ----
+describe('イベントフォーム ブランドを外して付け直しても書きかけにならない', () => {
+  beforeEach(() => {
+    vi.mocked(api.events.get).mockReset().mockResolvedValue({ ...MOCK_EVENT, brands: ['ei8ht plants', 'Habitat Oides'] })
+    vi.mocked(api.events.getSessions).mockReset().mockResolvedValue(MOCK_SESSIONS)
+  })
+
+  it('ei8ht plants を外して付け直す（並び順が変わる）だけなら、「キャンセル」で確認が出ない', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderEditForm()
+    const box = await screen.findByRole('checkbox', { name: 'ei8ht plants' })
+    await waitFor(() => expect(box).toBeChecked())
+    fireEvent.click(box)
+    fireEvent.click(box)
+    expect(box).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(confirmSpy).not.toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
+
+  it('ブランドを外したままなら「キャンセル」で確認が出る', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderEditForm()
+    const box = await screen.findByRole('checkbox', { name: 'ei8ht plants' })
+    await waitFor(() => expect(box).toBeChecked())
+    fireEvent.click(box)
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(confirmSpy).toHaveBeenCalledWith('保存していない変更があります。破棄して移動しますか？')
+    confirmSpy.mockRestore()
   })
 })

@@ -2,52 +2,114 @@ import { test, expect } from '@playwright/test'
 
 // 予約フォームページ（/reserve）の E2E テスト
 // MSW モックモードで実行（本番 DB には接続しない）
-// POST /api/reserve は handlers.ts で { ok: true } を返す設定済み
+// - POST /api/reserve は handlers.ts で { ok: true } を返す
+// - 予約は event_id が必須。event_id が無い・イベントが見つからないときはフォームを出さず「イベントが見つかりません」を出す
+// - 参加人数の上限は 10 名（lib/constants.ts の RESERVE_MAX_PARTICIPANTS）
+// - 409（満席）・429（回数制限）・422（入力の誤り）の文言は Vitest（src/pages/__tests__/Reserve.test.tsx）で確かめる
+//   （ブラウザの MSW の応答を E2E から差し替える仕組みが無いため）
+// 使うモックのイベント（src/mocks/data.ts）
+// - mock-no-time: 1 日だけ・WS の時間枠なし → 日付・時間枠を選ばずに送信できる（人数は数値の入力欄）
+// - mock-upcoming-1: Green Market 2027（WS あり）
+// - mock-past-1: 終了済み → 受付終了の案内
+
+/** 日付・時間枠を選ばずに予約できるモックのイベント */
+const SIMPLE_EVENT_ID = 'mock-no-time'
 
 test.describe('Reserve', () => {
   // ページが正常にロードされることを確認
-  test('/reserve が正常に表示される', async ({ page }) => {
+  test('/reserve を開くと共通ヘッダーとサイト名入りのタイトルが表示される', async ({ page }) => {
     await page.goto('/reserve')
-    // ナビゲーションが存在すること（共通 Layout のヘッダー）
-    await expect(page.getByRole('navigation').first()).toBeVisible()
+    // ヘッダー（共通 Layout）が存在すること
+    await expect(page.getByRole('banner').first()).toBeVisible()
     // タイトルにサイト名が含まれること
     await expect(page).toHaveTitle(/ei8ht plants/)
   })
 
   // 予約フォームの見出しが表示されることを確認
-  test('Workshop 予約の見出しが表示される', async ({ page }) => {
+  test('/reserve を開くと「Workshop 予約」の見出しが表示される', async ({ page }) => {
     await page.goto('/reserve')
-    // h1 に「Workshop 予約」が表示される
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Workshop 予約' })).toBeVisible()
   })
 
-  // フォームに名前・メールアドレスの入力フィールドが存在することを確認
-  // event_id なしでアクセスすると、イベント情報なしでフォームが表示される
-  test('お名前・メールアドレスの入力フィールドが存在する', async ({ page }) => {
+  // event_id が無いときはフォームを出さず、イベント一覧へ案内する
+  test('event_id なしで開くと「イベントが見つかりません」が出て予約フォームは出ない', async ({ page }) => {
     await page.goto('/reserve')
-    // テキスト入力フィールド（お名前）が表示されること
-    await expect(page.getByRole('textbox').first()).toBeVisible()
+    // 1. 案内とイベント一覧へのリンク
+    await expect(page.getByRole('alert')).toContainText('イベントが見つかりません')
+    await expect(page.getByText('予約するイベントをイベント一覧からお選びください。')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'イベント一覧へ' })).toHaveAttribute('href', '/events')
+    // 2. 入力欄・予約ボタンは出ない
+    await expect(page.getByRole('textbox')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
   })
 
-  // 送信ボタンが表示されることを確認
-  test('予約するボタンが存在する', async ({ page }) => {
-    await page.goto('/reserve')
-    // 送信ボタンが表示されること
-    await expect(page.getByRole('button', { name: /予約する/ })).toBeVisible()
+  // 存在しない event_id でもフォームを出さない（モックの GET /api/events/:id は 404）
+  test('存在しない event_id で開くと「イベントが見つかりません」が出て予約フォームは出ない', async ({ page }) => {
+    await page.goto('/reserve?event_id=no-such-event')
+    await expect(page.getByRole('alert')).toContainText('イベントが見つかりません')
+    await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
   })
 
   // イベント ID を指定してアクセスするとイベント情報が表示されることを確認
-  // MOCK_EVENTS の mock-upcoming-1（Green Market 2027）を使用
   test('event_id を指定するとイベント名が表示される', async ({ page }) => {
     await page.goto('/reserve?event_id=mock-upcoming-1')
-    // イベント名「Green Market 2027」が表示されること
-    await expect(page.getByText('Green Market 2027')).toBeVisible()
+    await expect(page.getByText('Green Market 2027').first()).toBeVisible()
   })
 
-  // 電話番号フィールドが任意項目として存在することを確認
-  test('電話番号フィールド（任意）が存在する', async ({ page }) => {
-    await page.goto('/reserve')
-    // placeholder に「090-0000-0000」が指定された電話番号フィールドがある
+  // 終了したイベントは受付終了の案内を出す
+  test('終了したイベントの event_id で開くと「受付を終了しました」が出て予約ボタンは出ない', async ({ page }) => {
+    await page.goto('/reserve?event_id=mock-past-1')
+    await expect(page.getByText('受付を終了しました')).toBeVisible()
+    await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
+  })
+
+  // フォームの入力欄がそろっていることを確認
+  test('event_id を指定するとお名前・メールアドレス・電話番号の入力欄と予約ボタンが表示される', async ({ page }) => {
+    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    await expect(page.getByLabel('お名前')).toBeVisible()
+    await expect(page.getByLabel('メールアドレス')).toBeVisible()
+    // 電話番号は任意（placeholder「090-0000-0000」）
     await expect(page.getByPlaceholder('090-0000-0000')).toBeVisible()
+    await expect(page.getByRole('button', { name: /予約する/ })).toBeVisible()
+  })
+
+  // 参加人数の上限（10 名）を確認
+  test('時間枠の無いイベントでは参加人数の入力欄の範囲が 1〜10 になる', async ({ page }) => {
+    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    const participants = page.getByLabel('参加人数')
+    await expect(participants).toHaveAttribute('min', '1')
+    await expect(participants).toHaveAttribute('max', '10')
+  })
+
+  test('参加人数に 11 を入れて送信してもブラウザの入力チェックで止まり、完了の表示にならない', async ({ page }) => {
+    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    // 1. 必須項目を埋め、人数だけ上限を超える値にする
+    await page.getByLabel('お名前').fill('山田 花子')
+    await page.getByLabel('メールアドレス').fill('hanako@example.com')
+    const participants = page.getByLabel('参加人数')
+    await participants.fill('11')
+    // 2. 送信しようとする
+    await page.getByRole('button', { name: /予約する/ }).click()
+    // 3. 入力欄が範囲外（rangeOverflow）として無効になり、完了の表示は出ない
+    expect(await participants.evaluate((el: HTMLInputElement) => el.validity.rangeOverflow)).toBe(true)
+    await expect(page.getByText('予約を受け付けました')).toHaveCount(0)
+  })
+
+  test('必要な項目を入れて予約すると「予約を受け付けました」と予約内容が表示される', async ({ page }) => {
+    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    // 1. 入力（人数は上限ちょうどの 10 名）
+    await page.getByLabel('お名前').fill('山田 花子')
+    await page.getByLabel('メールアドレス').fill('hanako@example.com')
+    await page.getByLabel('参加人数').fill('10')
+    // 2. 送信時に event_id がサーバーへ送られることを確かめる
+    const reqPromise = page.waitForRequest((r) => r.url().endsWith('/api/reserve') && r.method() === 'POST')
+    await page.getByRole('button', { name: /予約する/ }).click()
+    const body = (await reqPromise).postDataJSON() as { event_id: string; participants: number }
+    expect(body.event_id).toBe(SIMPLE_EVENT_ID)
+    expect(body.participants).toBe(10)
+    // 3. 完了の表示と予約内容
+    await expect(page.getByText('予約を受け付けました')).toBeVisible()
+    await expect(page.getByText('hanako@example.com').first()).toBeVisible()
+    await expect(page.getByText('10 名')).toBeVisible()
   })
 })

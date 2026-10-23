@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import require_auth
+from tests._helpers import as_admin, not_found_error
 
 # --- テスト用サンプルデータ ---
 
@@ -68,19 +69,29 @@ class TestListProducts:
         assert len(data) == 1
         assert data[0]['id'] == 'p1'
 
-    def test_all_true_で全件返す(self):
-        """?all=true のとき非公開を含む全件が返ること。"""
+    def test_ログイン済みでall_trueを指定すると非公開も含む全件が返る(self):
+        """管理者としてログインして ?all=true を指定すると、非公開を含む全件が返り is_published で絞らないこと。"""
         mock_sb = _make_sb_mock()
         chain = mock_sb.table.return_value.select.return_value.order.return_value
         # all=true では eq を呼ばずそのまま execute する
         chain.execute.return_value.data = [PUBLISHED_PRODUCT, DRAFT_PRODUCT]
 
-        with patch('app.routes.products.admin_supabase', mock_sb):
+        with patch('app.routes.products.admin_supabase', mock_sb), as_admin():
             resp = TestClient(app).get('/api/products?all=true')
 
         assert resp.status_code == 200
-        data = resp.json()
-        assert len(data) == 2
+        assert len(resp.json()) == 2
+        chain.eq.assert_not_called()
+
+    def test_未ログインでall_trueを指定すると401になりDBを読まない(self):
+        """Authorization ヘッダーなしで ?all=true を指定すると 401 になり、非公開の商品が漏れないこと。"""
+        mock_sb = _make_sb_mock()
+
+        with patch('app.routes.products.admin_supabase', mock_sb):
+            resp = TestClient(app).get('/api/products?all=true')
+
+        assert resp.status_code == 401
+        mock_sb.table.assert_not_called()
 
     def test_商品が0件のとき空配列(self):
         """DBが空のとき空配列が返ること。"""
@@ -99,9 +110,10 @@ class TestGetProduct:
     """商品単件取得 GET /api/products/:id のテスト。"""
 
     def test_存在するIDで商品を取得できる(self):
-        """存在するIDを指定したとき商品オブジェクトが返ること。"""
+        """未ログインで公開中の商品の ID を指定すると、is_published=True で絞った上で商品が返ること。"""
         mock_sb = _make_sb_mock()
-        mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = PUBLISHED_PRODUCT
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        eq_id.eq.return_value.single.return_value.execute.return_value.data = PUBLISHED_PRODUCT
 
         with patch('app.routes.products.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/products/p1')
@@ -109,16 +121,44 @@ class TestGetProduct:
         assert resp.status_code == 200
         assert resp.json()['id'] == 'p1'
         assert resp.json()['name'] == '公開商品'
+        eq_id.eq.assert_called_once_with('is_published', True)
 
     def test_存在しないIDで404(self):
-        """存在しないIDを指定したとき404が返ること。"""
+        """存在しない ID（single() が PGRST116 を投げる）を指定すると 404 が返ること。"""
         mock_sb = _make_sb_mock()
-        mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        eq_id.eq.return_value.single.return_value.execute.side_effect = not_found_error()
 
         with patch('app.routes.products.admin_supabase', mock_sb):
             resp = TestClient(app).get('/api/products/nonexistent')
 
         assert resp.status_code == 404
+
+    def test_未ログインで非公開の商品を指定すると404になる(self):
+        """非公開の商品は公開で絞ると 0 件になるため、未ログインでは 404 が返り商品名が漏れないこと。"""
+        mock_sb = _make_sb_mock()
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        eq_id.eq.return_value.single.return_value.execute.side_effect = not_found_error()
+        eq_id.single.return_value.execute.return_value.data = DRAFT_PRODUCT
+
+        with patch('app.routes.products.admin_supabase', mock_sb):
+            resp = TestClient(app).get('/api/products/p2')
+
+        assert resp.status_code == 404
+        assert '非公開商品' not in resp.text
+
+    def test_ログイン済みなら非公開の商品も取得できる(self):
+        """管理者としてログインしていれば is_published で絞らず、非公開の商品も返ること。"""
+        mock_sb = _make_sb_mock()
+        eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
+        eq_id.single.return_value.execute.return_value.data = DRAFT_PRODUCT
+
+        with patch('app.routes.products.admin_supabase', mock_sb), as_admin():
+            resp = TestClient(app).get('/api/products/p2')
+
+        assert resp.status_code == 200
+        assert resp.json()['id'] == 'p2'
+        eq_id.eq.assert_not_called()
 
 
 class TestCreateProduct:

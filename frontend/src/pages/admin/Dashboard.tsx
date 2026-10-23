@@ -27,8 +27,11 @@ const ITEMS = [
 
 /** 統計カードに出す件数 */
 interface Stats {
+  /** 未読のお問い合わせの件数 */
   unreadContacts: number
+  /** 公開中のイベントの件数 */
   activeEvents: number
+  /** 未発送の注文の件数 */
   pendingOrders: number
 }
 
@@ -89,7 +92,9 @@ function ListNotice({ children, error = false }: { children: React.ReactNode; er
  * @returns 1行の表示
  */
 function PaymentRow({ item, today }: { item: AdminInfoDashboardItem; today: string }) {
+  /** 支払い期限の状態（期限切れ・期限間近など） */
   const status = dueStatus(item.booth_fee_due, today)
+  /** 状態に応じた色とラベル */
   const st = DUE_STYLES[status]
   /** 支払い期限の表示（例: 2026年10月24日（土）（あと3日））。未設定なら null */
   const dueText = item.booth_fee_due
@@ -103,6 +108,7 @@ function PaymentRow({ item, today }: { item: AdminInfoDashboardItem; today: stri
       data-due-status={status}
       style={{ ...rowStyle, background: st.background, border: `1px solid ${st.border}` }}
     >
+      {/* イベント名と期限の状態のラベル */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 10px', marginBottom: 6 }}>
         <span style={{ fontWeight: 500 }}>{item.name}</span>
         {st.label && (
@@ -147,16 +153,19 @@ function CarryInRow({ item }: { item: AdminInfoDashboardItem }) {
 /**
  * 管理画面のトップ。ステータス統計カード・出店料の支払い・今後の搬入予定・各管理メニューへのナビゲーションを表示するページ
  * 支払い・搬入の一覧は統計とは別に読み込み、失敗してもほかの部分は表示し続ける
+ * @returns ダッシュボードの画面
  */
 export default function Dashboard() {
+  /** 統計カードに出す件数。読み込み前・失敗時は null（カードには「-」を出す） */
   const [stats, setStats] = useState<Stats | null>(null)
   /** ダッシュボード用の管理情報の一覧。読み込み前は null */
   const [infoItems, setInfoItems] = useState<AdminInfoDashboardItem[] | null>(null)
   /** 管理情報の一覧の読み込みに失敗したかどうか */
   const [infoError, setInfoError] = useState(false)
+  /** 今の画面の場所（location.key が変わったら読み直す） */
   const location = useLocation()
 
-  // location.key を依存にすることで、ページ遷移のたびに統計を再取得する
+  // location.key を依存にすることで、ページ遷移のたびに統計を再取得する（失敗したらカードは「-」のまま）
   useEffect(() => {
     api.stats().then(setStats).catch(() => {})
   }, [location.key])
@@ -196,6 +205,7 @@ export default function Dashboard() {
     return <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>{rows}</div>
   }
 
+  /** 統計カードの内容（件数があって対応が必要なものは urgent にして色を変える） */
   const statCards = [
     { label: '未読お問い合わせ', value: stats?.unreadContacts ?? '-', to: '/admin/contacts', urgent: (stats?.unreadContacts ?? 0) > 0 },
     { label: '未発送の注文', value: stats?.pendingOrders ?? '-', to: '/admin/orders', urgent: (stats?.pendingOrders ?? 0) > 0 },
@@ -206,6 +216,7 @@ export default function Dashboard() {
     <div>
       <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, marginBottom: 24 }}>ダッシュボード</h2>
 
+      {/* 統計カード（押すとそれぞれの管理画面へ） */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 40 }}>
         {statCards.map(({ label, value, to, urgent }) => (
           <Link key={to} to={to} style={{ textDecoration: 'none', display: 'block', padding: '20px 24px', background: urgent ? '#fff8f0' : '#ffffff', border: `1px solid ${urgent ? '#e8c870' : '#dddde8'}`, borderRadius: 4 }}>
@@ -235,6 +246,7 @@ export default function Dashboard() {
         )}
       </section>
 
+      {/* 管理メニューのカード */}
       <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 16px' }}>管理メニュー</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
         {ITEMS.map(({ to, label, desc }) => (

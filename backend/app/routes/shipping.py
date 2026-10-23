@@ -1,3 +1,4 @@
+"""送料（都道府県ごとの固定額）の API。注文の作成（routes/orders.py）でも RATES を使う。"""
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix='/shipping', tags=['shipping'])
@@ -18,19 +19,34 @@ RATES: dict[str, int] = {
     '沖縄県': 1800,
 }
 
+# 都道府県名の一覧（RATES の並び順＝北から順）
 PREFECTURES = list(RATES.keys())
 
 
-# 都道府県名から送料を返す。未対応の都道府県は400エラー
 @router.get('/rate')
-def get_rate(prefecture: str):
+def get_rate(prefecture: str) -> dict:
+    """都道府県の送料を返す。
+
+    Args:
+        prefecture: 都道府県名（例 '東京都'）
+
+    Returns:
+        {"fee": 送料（円）}
+
+    Raises:
+        HTTPException(400): 送料の表に無い都道府県の場合
+    """
     fee = RATES.get(prefecture)
     if fee is None:
         raise HTTPException(400, f'未対応の都道府県です: {prefecture}')
     return {'fee': fee}
 
 
-# 送料テーブルに登録されている都道府県の一覧を返す（フォームのセレクト用）
 @router.get('/prefectures')
-def list_prefectures():
+def list_prefectures() -> list[str]:
+    """送料の表にある都道府県の一覧を返す（注文フォームの選択肢用）。
+
+    Returns:
+        都道府県名のリスト（北から順）
+    """
     return PREFECTURES

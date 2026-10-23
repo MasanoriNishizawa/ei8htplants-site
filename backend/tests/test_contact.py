@@ -37,7 +37,7 @@ class TestSendContact:
         mock_resend = MagicMock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb), \
-             patch('app.routes.contact.resend', mock_resend), \
+             patch('app.mail.resend', mock_resend), \
              patch('app.routes.contact.RESEND_API_KEY', ''):
             resp = TestClient(app).post('/api/contact', json=VALID_PAYLOAD)
 
@@ -50,7 +50,7 @@ class TestSendContact:
         mock_resend = MagicMock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb), \
-             patch('app.routes.contact.resend', mock_resend), \
+             patch('app.mail.resend', mock_resend), \
              patch('app.routes.contact.RESEND_API_KEY', ''):
             resp = TestClient(app).post('/api/contact', json=VALID_PAYLOAD)
 
@@ -64,7 +64,7 @@ class TestSendContact:
         mock_resend = MagicMock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb), \
-             patch('app.routes.contact.resend', mock_resend), \
+             patch('app.mail.resend', mock_resend), \
              patch('app.routes.contact.RESEND_API_KEY', 'dummy-key'), \
              patch('app.routes.contact.CONTACT_TO_EMAIL', 'admin@example.com'):
             resp = TestClient(app).post('/api/contact', json=VALID_PAYLOAD)
@@ -134,7 +134,7 @@ class TestSendContact:
         mock_resend.Emails.send.side_effect = Exception('SMTP error')
 
         with patch('app.routes.contact.admin_supabase', mock_sb), \
-             patch('app.routes.contact.resend', mock_resend), \
+             patch('app.mail.resend', mock_resend), \
              patch('app.routes.contact.RESEND_API_KEY', 'dummy-key'), \
              patch('app.routes.contact.CONTACT_TO_EMAIL', 'admin@example.com'):
             resp = TestClient(app).post('/api/contact', json=VALID_PAYLOAD)
@@ -156,7 +156,7 @@ class TestSendContact:
 
         # CONTACT_TO_EMAIL を空にして管理者通知はスキップ、自動返信だけ試みる
         with patch('app.routes.contact.admin_supabase', mock_sb), \
-             patch('app.routes.contact.resend', mock_resend), \
+             patch('app.mail.resend', mock_resend), \
              patch('app.routes.contact.RESEND_API_KEY', 'dummy-key'), \
              patch('app.routes.contact.CONTACT_TO_EMAIL', ''):
             resp = TestClient(app).post('/api/contact', json=VALID_PAYLOAD)
@@ -289,7 +289,7 @@ class TestReplyContact:
         app.dependency_overrides[require_auth] = lambda: None
         try:
             with patch('app.routes.contact.admin_supabase', mock_sb), \
-                 patch('app.routes.contact.resend', mock_resend), \
+                 patch('app.mail.resend', mock_resend), \
                  patch('app.routes.contact.RESEND_API_KEY', 'dummy-key'):
                 resp = TestClient(app).post(
                     '/api/contacts/c1/reply',
@@ -317,7 +317,7 @@ class TestReplyContact:
         app.dependency_overrides[require_auth] = lambda: None
         try:
             with patch('app.routes.contact.admin_supabase', mock_sb), \
-                 patch('app.routes.contact.resend', mock_resend), \
+                 patch('app.mail.resend', mock_resend), \
                  patch('app.routes.contact.RESEND_API_KEY', 'dummy-key'):
                 resp = TestClient(app).post(
                     '/api/contacts/c1/reply',

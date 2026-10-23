@@ -224,31 +224,35 @@ class TestEventFinances:
         assert data['payment_flag'] is False
         assert data['event_id'] == 'evt-new'
 
-    def test_収支保存_新規insert(self):
-        """PUT /api/events/:id/finances で既存レコードがない場合は insert される。"""
+    def test_収支保存はevent_idを競合キーにしたupsertで保存される(self):
+        """PUT /api/events/:id/finances は event_id を on_conflict にした upsert 1 回で保存し、保存した行を返す。"""
         saved = {'id': 'fin-new', 'event_id': 'evt-1', 'sales': 100000}
         mock_admin_sb = MagicMock()
-        # 既存レコード検索で空を返す
-        mock_admin_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
-        # insert の戻り値
-        mock_admin_sb.table.return_value.insert.return_value.execute.return_value.data = [saved]
+        # upsert の戻り値
+        mock_admin_sb.table.return_value.upsert.return_value.execute.return_value.data = [saved]
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             client = TestClient(app)
             resp = client.put('/api/events/evt-1/finances', json={'sales': 100000})
 
+        # 1. 応答は保存した行
         assert resp.status_code == 200
         assert resp.json()['sales'] == 100000
+        # 2. upsert に event_id と on_conflict='event_id' が渡る
+        args, kwargs = mock_admin_sb.table.return_value.upsert.call_args
+        assert args[0]['event_id'] == 'evt-1'
+        assert args[0]['sales'] == 100000
+        assert 'updated_at' in args[0]
+        assert kwargs.get('on_conflict') == 'event_id'
+        # 3. 読んでから insert / update する古い流れは使わない
+        mock_admin_sb.table.return_value.insert.assert_not_called()
+        mock_admin_sb.table.return_value.update.assert_not_called()
 
-    def test_収支保存_既存update(self):
-        """PUT /api/events/:id/finances で既存レコードがある場合は update される。"""
-        existing = [{'id': 'fin-1'}]
+    def test_収支保存は既存の行があっても同じupsertで上書きされる(self):
+        """PUT /api/events/:id/finances は既存の行があっても upsert で上書きし、更新後の行を返す。"""
         updated = {'id': 'fin-1', 'event_id': 'evt-1', 'sales': 120000}
         mock_admin_sb = MagicMock()
-        # 既存レコード検索でデータを返す
-        mock_admin_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = existing
-        # update の戻り値
-        mock_admin_sb.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [updated]
+        mock_admin_sb.table.return_value.upsert.return_value.execute.return_value.data = [updated]
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             client = TestClient(app)
@@ -256,6 +260,7 @@ class TestEventFinances:
 
         assert resp.status_code == 200
         assert resp.json()['sales'] == 120000
+        assert mock_admin_sb.table.return_value.upsert.call_count == 1
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +301,7 @@ class TestEventSessions:
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             client = TestClient(app)
-            resp = client.get('/api/events/evt-1/sessions')
+            resp = client.get('/api/events/11111111-1111-1111-1111-111111111111/sessions')
 
         assert resp.status_code == 200
         data = resp.json()
@@ -311,7 +316,7 @@ class TestEventSessions:
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             client = TestClient(app)
-            resp = client.get('/api/events/evt-1/sessions')
+            resp = client.get('/api/events/11111111-1111-1111-1111-111111111111/sessions')
 
         assert resp.status_code == 200
         assert resp.json() == []
@@ -349,7 +354,7 @@ class TestEventSessions:
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
             client = TestClient(app)
-            resp = client.put('/api/events/evt-1/sessions', json={
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
                 'sessions': [{'time_label': '11:00', 'max_participants': 8}]
             })
 

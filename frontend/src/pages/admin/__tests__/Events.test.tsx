@@ -159,3 +159,53 @@ describe('AdminEvents ページ — 管理情報リンク', () => {
     })
   })
 })
+
+describe('AdminEvents ページ — 予約管理（印刷・CSV）ボタン', () => {
+  /** ワークショップのあるイベント（予約管理のボタンが出る） */
+  const WS_EVENT: Event = { ...MOCK_EVENT, id: 'event-ws-1', name: 'WSありのイベント', has_workshop: true }
+  /** ワークショップの無いイベント（ボタンが出ない） */
+  const NO_WS_EVENT: Event = { ...MOCK_EVENT, id: 'event-nows-1', name: 'WSなしのイベント', has_workshop: false }
+
+  beforeEach(() => {
+    // 今後のイベントに WS あり・なしを 1 件ずつ並べる。過去は空
+    vi.mocked(api.events.list).mockReset()
+    vi.mocked(api.reserve.list).mockReset()
+    vi.mocked(api.events.list).mockImplementation((past = false) =>
+      Promise.resolve(past ? [] : [WS_EVENT, NO_WS_EVENT])
+    )
+    vi.mocked(api.reserve.list).mockResolvedValue([] as Reservation[])
+  })
+
+  it('ワークショップのあるイベントの行にだけ「予約管理（印刷・CSV）」が出る（WS なしの行には出ない）', async () => {
+    renderAdminEventsPage()
+    await waitFor(() => expect(screen.getByText('WSなしのイベント')).toBeInTheDocument())
+    expect(screen.getAllByRole('link', { name: '予約管理（印刷・CSV）' })).toHaveLength(1)
+  })
+
+  it('「予約管理（印刷・CSV）」のリンク先がそのイベントの予約画面（/admin/events/:id/reservations）になる', async () => {
+    renderAdminEventsPage()
+    const link = await screen.findByRole('link', { name: '予約管理（印刷・CSV）' })
+    expect(link).toHaveAttribute('href', `/admin/events/${WS_EVENT.id}/reservations`)
+  })
+
+  it('「予約管理（印刷・CSV）」を押すとイベント別の予約画面へ移動する', async () => {
+    render(
+      <MemoryRouter initialEntries={['/admin/events']}>
+        <Routes>
+          <Route path="/admin/events" element={<AdminEvents />} />
+          {/* 移動先のダミー */}
+          <Route path="/admin/events/:id/reservations" element={<div>イベント別の予約画面</div>} />
+        </Routes>
+      </MemoryRouter>
+    )
+    const link = await screen.findByRole('link', { name: '予約管理（印刷・CSV）' })
+    link.click()
+    expect(await screen.findByText('イベント別の予約画面')).toBeInTheDocument()
+  })
+
+  it('WS ありのイベントには一覧の絞り込みの「予約」リンク（/admin/reservations?event_id=）も並んで出る', async () => {
+    renderAdminEventsPage()
+    const link = await screen.findByRole('link', { name: /^予約( \d+件)?$/ })
+    expect(link).toHaveAttribute('href', `/admin/reservations?event_id=${WS_EVENT.id}`)
+  })
+})

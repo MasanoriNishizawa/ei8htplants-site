@@ -1,42 +1,31 @@
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
+import { useSectionSpy } from '../../hooks/useSectionSpy'
+import { BRAND, TEXT_LOGO } from '../../lib/brands'
 
+/** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
 const SECTIONS = ['concept', 'store'] as const
 
-/** ei8ht plants ブランドページ。IntersectionObserver でスクロール位置に応じたサブナビを更新する */
+/**
+ * ei8ht plants ブランドページ。スクロール位置に合わせてサブナビの選択中を変える（useSectionSpy）
+ * @returns ブランドページの画面
+ */
 export default function Ei8htPlants() {
   const t = useT()
-  const [active, setActive] = useState('')
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
+  const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)
 
-  // 各セクションの中央付近がビューポートに入ったときにサブナビのアクティブ項目を更新する
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id) })
-      },
-      { rootMargin: '-55% 0px -45% 0px' }
-    )
-    SECTIONS.forEach((id) => {
-      const el = sectionRefs.current[id]
-      if (el) obs.observe(el)
-    })
-    return () => obs.disconnect()
-  }, [])
-
-  const scrollTo = (id: string) => (e: React.MouseEvent) => {
-    e.preventDefault()
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   return (
     <>
       <PageMeta description={t('アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'A line specializing in bizarre plants — agaves, caudiciform plants, shrubs and more.')} />
+      {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
       <h1 className="sr-only">{t('ei8ht plants — ビザールプランツ専門ライン', 'ei8ht plants — Bizarre Plants Line')}</h1>
 
+      {/* ファーストビュー。上にサブナビを重ねる */}
       <div className="hero-wrapper">
+        {/* ページ内のセクションへ移動するサブナビ（表示中のセクションに印を付ける） */}
         <nav className="brand-subnav">
           <div className="brand-subnav-inner">
             {SECTIONS.map((id) => (
@@ -47,6 +36,7 @@ export default function Ei8htPlants() {
           </div>
         </nav>
 
+        {/* 背景写真の上に文字ロゴを重ねたヒーロー（写真は飾りなので読み上げない） */}
         <section className="ep-hero">
           <img className="ep-hero-bg-img" src="https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0" alt="" aria-hidden />
           <div className="ep-hero-content">
@@ -54,9 +44,10 @@ export default function Ei8htPlants() {
               Bizarre Plants
             </p>
             <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-              <img src="/img/text-logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9 }} />
+              <img src={TEXT_LOGO} alt={BRAND.ei8htPlants.name} style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9 }} />
             </div>
           </div>
+          {/* 下へのスクロールを促す線と文字 */}
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #999, transparent)' }} />
             <span style={{ fontSize: 11, letterSpacing: 3, color: '#999', textTransform: 'uppercase' }}>Scroll</span>
@@ -66,11 +57,12 @@ export default function Ei8htPlants() {
 
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
-      <section id="concept" className="brand-section" ref={(el) => { sectionRefs.current.concept = el }}>
+      {/* コンセプト: ロゴ・見出し・紹介文 */}
+      <section id="concept" className="brand-section" ref={sectionRef('concept')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
-            <img src="/img/logo-ei8htplants.png" alt="ei8ht plants" style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
+            <img src={BRAND.ei8htPlants.logo} alt={BRAND.ei8htPlants.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
               <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
                 Bizarre<br />Plants
@@ -88,7 +80,8 @@ export default function Ei8htPlants() {
 
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
-      <section id="store" className="brand-section" ref={(el) => { sectionRefs.current.store = el }}
+      {/* オンラインストアへの案内（黒い帯） */}
+      <section id="store" className="brand-section" ref={sectionRef('store')}
         style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
         <p style={{ fontSize: 13, letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>

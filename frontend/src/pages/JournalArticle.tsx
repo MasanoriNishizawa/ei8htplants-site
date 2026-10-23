@@ -1,59 +1,75 @@
-import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, type Article, type Product } from '../lib/api'
-import { parseBlocks, blocksToText } from '../components/BlockEditor'
+import { parseBlocks, blocksToText } from '../lib/blocks'
 import { useCart } from '../lib/cart'
 import { useT } from '../lib/lang'
+import { parseLocalDate } from '../lib/localDate'
 import PageMeta from '../components/PageMeta'
 import ShareButtons from '../components/ShareButtons'
+import LoadError from '../components/LoadError'
+import { useApi } from '../hooks/useApi'
+import { formatYen } from '../lib/format'
 
+/** 見出し用（明朝体）の書体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
+/** 本文用（ゴシック体）の書体 */
 const SANS = "'Noto Sans JP', sans-serif"
 
-const fmt = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 
 /**
- * ISO 日付文字列を英語形式の日付ラベルに変換する
- * @param s - ISO 形式の日付文字列
+ * 日付の文字列を英語形式の日付ラベルに変換する（日付だけの文字列は現地の日付として読む）
+ * @param s - 日付の文字列（YYYY-MM-DD または ISO 形式）
+ * @returns 「May 1, 2026」の形（日付が無ければ空文字）
  */
 function fmtDate(s: string | null): string {
   if (!s) return ''
-  return new Date(s).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  return parseLocalDate(s).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-/** 記事詳細ページ。ブロックコンテンツのレンダリング・関連商品表示・シェアボタンを提供する */
+/**
+ * 記事詳細ページ。ブロックコンテンツのレンダリング・関連商品表示・シェアボタンを提供する
+ * @returns 記事詳細の画面（読み込み中・失敗・見つからないときはそれぞれの案内）
+ */
 export default function JournalArticle() {
   const t = useT()
+  // URL の記事 id（/journal/:id）
   const { id } = useParams<{ id: string }>()
-  const [article, setArticle] = useState<Article | null>(null)
-  const [linkedProducts, setLinkedProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  // カートへの追加と、カートの中身（右下のカートボタン用）
   const { add, items } = useCart()
 
-  // 記事を取得し、関連商品 ID があれば全商品リストから絞り込んで併せてセットする
-  useEffect(() => {
-    if (!id) return
-    api.articles.get(id)
-      .then(async (a) => {
-        setArticle(a)
-        if (a.product_ids && a.product_ids.length > 0) {
-          const all = await api.products.list()
-          setLinkedProducts(all.filter((p) => a.product_ids.includes(p.id)))
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-    window.scrollTo(0, 0)
-  }, [id])
+  // 記事を取得し、関連商品 ID があれば全商品リストから絞り込んで併せて返す。
+  // 別の記事へ移ったら読み込み中に戻り、前の記事の応答が後から届いても捨てる（useApi）。
+  // ページの先頭へのスクロールは App.tsx の ScrollToTop が行う
+  const { data, loading, error, reload } = useApi(
+    async (): Promise<{ article: Article; linkedProducts: Product[] }> => {
+      // 1. 記事を取る
+      const a = await api.articles.get(id ?? '')
+      // 2. 関連商品が無ければそのまま返す
+      if (!a.product_ids || a.product_ids.length === 0) return { article: a, linkedProducts: [] }
+      // 3. 全商品から関連商品を絞り込む。関連商品が取れなくても記事は表示する
+      const all = await api.products.list().catch(() => [] as Product[])
+      return { article: a, linkedProducts: all.filter((p) => a.product_ids.includes(p.id)) }
+    },
+    [id],
+    { enabled: !!id },
+  )
+  // 表示する記事（見つからなければ null）と、記事で紹介した商品
+  const article = data?.article ?? null
+  const linkedProducts = data?.linkedProducts ?? []
 
+  // 読み込み中
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontFamily: SANS, color: '#b4ada4', fontSize: 11, letterSpacing: 3 }}>Loading...</p>
+      <div role="status" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ fontFamily: SANS, color: '#b4ada4', fontSize: 11, letterSpacing: 3 }}>{t('読み込み中...', 'Loading...')}</p>
       </div>
     )
   }
 
+  // 404 以外の失敗（通信の失敗など）は「見つかりません」ではなく再読み込みを案内する
+  if (error && !error.message.startsWith('404')) return <LoadError onRetry={reload} />
+
+  // 記事が無い（404・URL に id が無い）ときは「見つかりません」と一覧へのリンク
   if (!article) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
@@ -63,9 +79,13 @@ export default function JournalArticle() {
     )
   }
 
+  // 本文のブロック
   const allBlocks = parseBlocks(article.content)
-  const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!(b as any).url)
-  const heroUrl = heroImgIdx >= 0 ? (allBlocks[heroImgIdx] as any).url : (article.image_urls[0] ?? null)
+  // 最初の画像ブロックを見出しの大きな写真に使う（無ければ記事の 1 枚目の画像）
+  const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!b.url)
+  const heroBlock = allBlocks[heroImgIdx]
+  const heroUrl: string | null = heroBlock?.type === 'image' ? heroBlock.url : (article.image_urls[0] ?? null)
+  // カートに入っている数量の合計（右下のカートボタン用）
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)
 
   return (
@@ -74,6 +94,7 @@ export default function JournalArticle() {
 
       {/* ヘッダービジュアル — フルブリード */}
       <div style={{ background: '#1a1a18', position: 'relative', overflow: 'hidden' }}>
+        {/* 大きな写真（無ければ高さだけの暗い帯） */}
         {heroUrl && (
           <img
             src={heroUrl}
@@ -83,7 +104,7 @@ export default function JournalArticle() {
         )}
         {!heroUrl && <div style={{ height: 'clamp(200px, 30vw, 320px)' }} />}
 
-        {/* オーバーレイテキスト */}
+        {/* オーバーレイテキスト（タグ・タイトル・公開日）。写真があるときは写真の下端に重ね、下から暗くして読みやすくする */}
         <div style={{
           position: heroUrl ? 'absolute' : 'relative',
           bottom: 0, left: 0, right: 0,
@@ -128,10 +149,11 @@ export default function JournalArticle() {
         <div>
           {allBlocks.map((block, i) => {
             if (block.type === 'image') {
+              // 大きな写真に使った画像は本文では繰り返さない。URL の無い画像ブロックも出さない
               if (i === heroImgIdx) return null
-              return (block as any).url ? (
+              return block.url ? (
                 <figure key={i} style={{ margin: '44px -24px', background: '#e8e3da', overflow: 'hidden' }}>
-                  <img src={(block as any).url} alt="" style={{ width: '100%', display: 'block', maxHeight: 520, objectFit: 'cover' }} />
+                  <img src={block.url} alt="" style={{ width: '100%', display: 'block', maxHeight: 520, objectFit: 'cover' }} />
                 </figure>
               ) : null
             }
@@ -148,6 +170,7 @@ export default function JournalArticle() {
             return null
           })}
 
+          {/* 本文が空の古い記事は、2 枚目以降の画像を 2 列で並べる（1 枚目は上の大きな写真に使っている） */}
           {allBlocks.length === 0 && article.image_urls.length > 1 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 32 }}>
               {article.image_urls.slice(1).map((url, i) => (
@@ -185,9 +208,10 @@ export default function JournalArticle() {
                     <p style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px', lineHeight: 1.5 }}>{p.name}</p>
                   </Link>
                   <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-muted)', margin: '0 0 12px' }}>
-                    {fmt(p.price)}
+                    {formatYen(p.price)}
                     <span style={{ fontSize: 10, color: 'var(--c-faint)', marginLeft: 5 }}>{t('税込・送料別', 'Tax incl. · Shipping extra')}</span>
                   </p>
+                  {/* 在庫があればカートに入れるボタン、無ければ「売り切れ」 */}
                   {p.stock > 0 ? (
                     <button
                       onClick={() => add(p)}
@@ -204,7 +228,7 @@ export default function JournalArticle() {
           </div>
         )}
 
-        {/* 戻るリンク */}
+        {/* シェアボタンと一覧へ戻るリンク */}
         <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 36, marginTop: linkedProducts.length > 0 ? 56 : 24 }}>
           <div style={{ marginBottom: 24 }}>
             <ShareButtons url={`${window.location.origin}/journal/${id}`} text={article.title} />
@@ -215,7 +239,7 @@ export default function JournalArticle() {
         </div>
       </article>
 
-      {/* フローティングカートボタン */}
+      {/* フローティングカートボタン（カートに商品があるときだけ右下に固定して出す） */}
       {cartCount > 0 && (
         <div style={{ position: 'fixed', bottom: 32, right: 32, zIndex: 100 }}>
           <Link

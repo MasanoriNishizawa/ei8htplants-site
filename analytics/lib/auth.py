@@ -20,8 +20,13 @@ import time
 
 import requests
 import streamlit as st
+from dotenv import load_dotenv
 
-from .data import ENV_PATH  # noqa: F401  （.env の読み込みを先に済ませるため import する）
+from .data import ENV_PATH
+
+# ログインの設定（Supabase の URL・anon キーなど）を os.getenv で読む前に、リポジトリ直下の .env を読み込んでおく。
+# すでに環境変数にある値（Community Cloud の Secrets など）は上書きしない。.env が無ければ何もしない
+load_dotenv(ENV_PATH)
 
 logger = logging.getLogger(__name__)
 
