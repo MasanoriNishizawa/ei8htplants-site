@@ -25,13 +25,13 @@ ei8ht plants / Habitat Oides / HUE by ei8ht plants の公式サイト・管理�
 
 1. **PM**: 依頼を仕様に落とす。決められないことだけユーザーに聞く
 2. **実装**: `frontend` / `backend` に仕様を渡す（両方必要なら API の形を先に決めてから並行して進める）
-3. **テスト**: `test-engineer` に、変更した動作を確かめるテストの追加と全テスト実行を依頼する。失敗があれば実装担当に戻す
+3. **テスト**: `test-engineer` に、変更した動作を確かめるテストの追加と、関連するテストの実行（下の「どのテストを流すか」の表で選ぶ）を依頼する。失敗があれば実装担当に戻す
 4. **レビュー**: `qa` にコードレビューとデグレ確認を依頼する。問題があれば実装担当に戻す
 5. **記録**: `docs` に設計書・テストケース一覧の更新を依頼する（**機能を変えたら毎回必ず**）
 6. **設計書の確認（プッシュ前に毎回）**: `docs-reviewer` に、更新した設計書の管理画面での表示と文章を確認してもらう。問題があれば `docs` に戻して直し、もう一度確認する
-7. **仕上げ（PM）**: `python scripts/run_tests.py --note "何を変えたか"` で全テスト → `frontend/dist/` と `doc/` を含めてコミット → `main` にプッシュ
+7. **仕上げ（PM）**: 関連するテストの最後の実行が ✅ であることを確かめる（全体に関わる変更なら全部を流す） → `frontend/dist/` と `doc/` を含めてコミット → `main` にプッシュ
 
-**プッシュしてよい条件**：設計書が更新済み・`docs-reviewer` の確認で問題なし・`scripts/run_tests.py` が ✅。どれかが欠けていたらプッシュしない。
+**プッシュしてよい条件**：設計書が更新済み・`docs-reviewer` の確認で問題なし・最後の変更のあとに流した `scripts/run_tests.py`（関連するテスト。全体に関わる変更なら全部）が ✅。どれかが欠けていたらプッシュしない。
 
 担当は同時に同じ作業フォルダで作業することがある。**`git stash`・`git reset`・`git checkout -- ファイル`・`git clean` など、コミットしていない変更を退避・取り消す操作は担当は行わない**。変更前と比べたいときは `git diff` や `git show HEAD:ファイル` を使う。コミット・プッシュは PM だけが行う。
 
@@ -66,9 +66,29 @@ ei8ht plants / Habitat Oides / HUE by ei8ht plants の公式サイト・管理�
   - フロントのロジック（Vitest）: `cd frontend && npx vitest run`
   - 画面テスト（Playwright）: `cd frontend && npx playwright test`
   - バックエンド（pytest）: `cd backend && python -m pytest`
-- **全テストは `python scripts/run_tests.py --note "何を変えたか"` でまとめて実行する**
-  - 結果は `doc/04_TEST/08_テスト実行ログ.md` に自動追加される
+- **テストは `python scripts/run_tests.py` で実行する。流すのは、変えたものに関連するテストだけ**（すべては流さない）
+  - 結果は `doc/04_TEST/08_テスト実行ログ.md` に自動追加される（絞った実行は「関連する部分だけ実行」と残る）
   - 1つでも失敗があれば終了コード 1（コミットしてはいけない合図）
+  - 型チェックと本番ビルドは、絞った実行でも必ず流れる
+
+#### どのテストを流すか
+
+| 変えたもの | 流すテスト |
+|---|---|
+| 1つの画面・機能の中だけ（例: 販売価格計算の計算式） | その機能のテスト＋その画面の E2E ＋型チェック・ビルド |
+| 共通の部品（`api.ts`・MSW のモック・共通コンポーネントなど） | その部品を使う画面のテストまで広げる |
+| バックエンドの API | その API の pytest ＋それを呼ぶ画面のテスト |
+| 認証・ルーティング・ビルドの設定など、全体に関わるもの | 全部 |
+
+- 関連するテストを流す例（パスは `--vitest`・`--e2e` が `frontend/` から、`--pytest` が `backend/` から見たもの）:
+  ```bash
+  python scripts/run_tests.py --note "何を変えたか" \
+    --vitest src/lib/__tests__/priceCalc.test.ts src/pages/admin/__tests__/PriceCalc.test.tsx \
+    --e2e e2e/admin-unsaved-pages.spec.ts \
+    --pytest tests/test_price_calc_entries.py
+  ```
+- 全部を流す（全体に関わる変更のとき）: `python scripts/run_tests.py --note "何を変えたか"`（何も絞らない）
+- 何を流したかは報告に書く。迷ったら広めに選ぶ
 - 機能を追加・変更したら、その動作のテストも追加する
 - テストを追加・変更・削除したら `doc/04_TEST/07_テストケース一覧.md` を更新する
 - フロントは `npm run build` が通ること

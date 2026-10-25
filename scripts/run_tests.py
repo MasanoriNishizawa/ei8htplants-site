@@ -1,9 +1,20 @@
-"""すべての自動テストを実行し、結果をテスト実行ログ（doc/04_TEST/08_テスト実行ログ.md）に追加するスクリプト。
+"""自動テストを実行し、結果をテスト実行ログ（doc/04_TEST/08_テスト実行ログ.md）に追加するスクリプト。
 
 使い方:
     python scripts/run_tests.py --note "何を変えたか（例: イベントフォームに時間プルダウン追加）"
     python scripts/run_tests.py --note "..." --no-e2e    # 画面テストを省く（急ぐとき。ログに「省略」と残る）
     python scripts/run_tests.py --no-log                 # ログに残さず結果を見るだけ
+
+関連するテストだけを流す（CLAUDE.md の「どのテストを流すか」の表に従って選ぶ）:
+    python scripts/run_tests.py --note "..." \
+        --vitest src/lib/__tests__/priceCalc.test.ts src/pages/admin/__tests__/PriceCalc.test.tsx \
+        --e2e e2e/admin-unsaved-pages.spec.ts \
+        --pytest tests/test_price_calc_entries.py
+    - --vitest・--e2e は frontend/ から見たパス（Vitest・Playwright のファイル名の絞り込み）
+    - --pytest は backend/ から見たパス、--analytics は分析ダッシュボードのテストも流す
+    - どれか 1 つでも指定すると「絞った実行」になり、指定しなかったテストは流さない（ログに「省略（関連なし）」と残る）
+    - 型チェックと本番ビルドは、絞った実行でも必ず流す（全体の食い違いを拾うため）
+    - 何も指定しなければ、これまでどおりすべてのテストを流す
 
 実行するテスト:
     1. TypeScript チェック（型エラーがないか）  cd frontend && npx tsc --noEmit -p tsconfig.app.json
@@ -42,7 +53,7 @@ HEADER = f"""# テスト実行ログ
 
 - **判定**：✅ 全部成功 ／ ❌ 失敗あり（失敗したらコミットしない）
 - **コミット**：テストしたときのソースの版（`git` のコミット番号）。「＋未コミット」は、まだコミットしていない変更を含めてテストしたもの
-- **省略**：急ぐときなどに、そのテストを実行しなかったもの
+- **省略**：急ぐときなどに、そのテストを実行しなかったもの。「省略（関連なし）」は、関連するテストだけを流した実行で、変えたものと関係が無いため流さなかったもの（見出しは「対象のテストは成功（関連する部分だけ実行）」になり、流したファイルが「流したテスト」に残る）
 
 {MARKER}
 """
@@ -136,9 +147,13 @@ def run_build() -> dict:
     }
 
 
-def run_vitest() -> dict:
-    """フロントのロジックテスト（Vitest）を実行して結果をまとめる。"""
-    code, out, sec = run(["npx", "vitest", "run"], ROOT / "frontend")
+def run_vitest(targets: list[str] | None = None) -> dict:
+    """フロントのロジックテスト（Vitest）を実行して結果をまとめる。
+
+    Args:
+        targets: 流すテストファイル（frontend/ から見たパス）。None ならすべて
+    """
+    code, out, sec = run(["npx", "vitest", "run", *(targets or [])], ROOT / "frontend")
     tests_line = next((l for l in out.splitlines() if l.strip().startswith("Tests")), "")
     failed_names = re.findall(r"^\s*FAIL\s+(.+)$", out, flags=re.M)
     return {
@@ -167,11 +182,15 @@ def _free_port(port: int) -> None:
         pass
 
 
-def run_playwright() -> dict:
-    """画面テスト（Playwright。MSW モック）を実行して結果をまとめる。"""
+def run_playwright(targets: list[str] | None = None) -> dict:
+    """画面テスト（Playwright。MSW モック）を実行して結果をまとめる。
+
+    Args:
+        targets: 流すテストファイル（frontend/ から見たパス）。None ならすべて
+    """
     # 前回の実行でサーバーが残っているとポート競合エラーになるため解放する
     _free_port(5173)
-    code, out, sec = run(["npx", "playwright", "test", "--reporter=line"], ROOT / "frontend")
+    code, out, sec = run(["npx", "playwright", "test", "--reporter=line", *(targets or [])], ROOT / "frontend")
     failed_names = [
         f"[{p}] {n.strip()}"
         for p, n in re.findall(r"^\s*\d+\) \[(\w+)\] › (.+?) ─*$", out, flags=re.M)
@@ -185,8 +204,12 @@ def run_playwright() -> dict:
     }
 
 
-def run_pytest() -> dict:
-    """バックエンドテスト（pytest）を実行して結果をまとめる。"""
+def run_pytest(targets: list[str] | None = None) -> dict:
+    """バックエンドテスト（pytest）を実行して結果をまとめる。
+
+    Args:
+        targets: 流すテストファイル（backend/ から見たパス）。None ならすべて
+    """
     backend = ROOT / "backend"
     if not backend.exists():
         return {
@@ -196,7 +219,7 @@ def run_pytest() -> dict:
         }
     venv_python = backend / ".venv" / "bin" / "python"
     python_cmd = str(venv_python) if venv_python.exists() else sys.executable
-    code, out, sec = run([python_cmd, "-m", "pytest", "-rfE"], backend)
+    code, out, sec = run([python_cmd, "-m", "pytest", "-rfE", *(targets or [])], backend)
     failed_names = re.findall(r"^(?:FAILED|ERROR) (\S+)", out, flags=re.M)
     return {
         "name": "バックエンド（pytest）", "code": code, "sec": sec,
@@ -250,17 +273,37 @@ def git_info() -> str:
     return f"`{head}`" + ("＋未コミット" if dirty else "")
 
 
-def make_entry(results: list[dict], note: str, skipped_suites: list[str]) -> str:
-    """ログ 1 件分の Markdown を作る。"""
+def make_entry(results: list[dict], note: str, skipped_suites: list[str], targets: list[str] | None = None) -> str:
+    """ログ 1 件分の Markdown を作る。
+
+    Args:
+        results: 流したテストの結果
+        note: 何を変えたか
+        skipped_suites: 流さなかったテストの名前（「省略」の行を出す）
+        targets: 絞った実行で流したテストファイル（「テスト名: パス」の形）。None ならすべてを流した実行
+
+    Returns:
+        ログ 1 件分の Markdown
+    """
     ok = all(r["code"] == 0 and r["failed"] == 0 for r in results)
     now = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
     total = sum(r["sec"] for r in results)
+    # 1. 見出し（絞った実行なら「対象のテストは成功」とし、すべて流した実行と見分けられるようにする）
+    if targets is None:
+        verdict = '✅ 全部成功' if ok else '❌ 失敗あり'
+    else:
+        verdict = '✅ 対象のテストは成功（関連する部分だけ実行）' if ok else '❌ 失敗あり（関連する部分だけ実行）'
     lines = [
-        f"### {now}　{'✅ 全部成功' if ok else '❌ 失敗あり'}",
+        f"### {now}　{verdict}",
         "",
         f"- **変更内容**：{note or '（記載なし）'}",
         f"- **コミット**：{git_info()}",
         f"- **かかった時間**：{total:.0f} 秒",
+    ]
+    # 2. 絞った実行なら、流したテストファイルを残す
+    if targets is not None:
+        lines.append(f"- **流したテスト**：{'、'.join(f'`{t}`' for t in targets) or '（型チェックと本番ビルドだけ）'}")
+    lines += [
         "",
         "| テスト | 判定 | 成功 | 失敗 | スキップ | 既知の問題 | 時間 |",
         "|---|---|---|---|---|---|---|",
@@ -271,7 +314,7 @@ def make_entry(results: list[dict], note: str, skipped_suites: list[str]) -> str
             f"| {r['name']} | {'✅' if good else '❌'} | {r['passed']} | {r['failed']} | {r['skipped']} | {r['xfail']} | {r['sec']:.0f} 秒 |"
         )
     for name in skipped_suites:
-        lines.append(f"| {name} | 省略 | - | - | - | - | - |")
+        lines.append(f"| {name} | {'省略（関連なし）' if targets is not None else '省略'} | - | - | - | - | - |")
     failed = [(r["name"], n) for r in results for n in r["failed_names"]]
     if failed:
         lines += ["", "**失敗したテスト**", ""] + [f"- {suite}：`{n}`" for suite, n in failed]
@@ -293,14 +336,29 @@ def append_log(text: str) -> None:
 
 def main() -> int:
     """テストを実行してログに残す。"""
-    ap = argparse.ArgumentParser(description="すべての自動テストを実行し、テスト実行ログに追加する")
+    ap = argparse.ArgumentParser(description="自動テストを実行し、テスト実行ログに追加する（何も絞らなければすべて）")
     ap.add_argument("--note", default="", help="何を変えたか（ログに残す）")
     ap.add_argument("--no-e2e", action="store_true", help="Playwright の画面テストを省く")
     ap.add_argument("--no-log", action="store_true", help="ログに残さない")
+    ap.add_argument("--vitest", nargs="+", default=None, metavar="PATH", help="流す Vitest のファイル（frontend/ から見たパス）")
+    ap.add_argument("--e2e", nargs="+", default=None, metavar="PATH", help="流す Playwright のファイル（frontend/ から見たパス）")
+    ap.add_argument("--pytest", nargs="+", default=None, metavar="PATH", help="流す pytest のファイル（backend/ から見たパス）")
+    ap.add_argument("--analytics", action="store_true", help="絞った実行で、分析ダッシュボードのテストも流す")
     args = ap.parse_args()
 
     results: list[dict] = []
     skipped: list[str] = []
+    # どれか 1 つでも指定したら「絞った実行」。指定しなかったテストは流さない
+    narrowed = any(x is not None for x in (args.vitest, args.e2e, args.pytest)) or args.analytics
+    # 絞った実行で流したテストファイルの一覧（ログに残す）。すべて流すときは None
+    targets: list[str] | None = None
+    if narrowed:
+        targets = (
+            [f"Vitest: {t}" for t in args.vitest or []]
+            + [f"Playwright: {t}" for t in args.e2e or []]
+            + [f"pytest: {t}" for t in args.pytest or []]
+            + (["分析ダッシュボード: tests"] if args.analytics else [])
+        )
 
     # 1. TypeScript チェック
     print("TypeScript チェック中…", flush=True)
@@ -310,26 +368,35 @@ def main() -> int:
     print("本番ビルドを確認中…", flush=True)
     results.append(run_build())
 
-    # 2. Vitest（フロントロジック）
-    print("Vitest（フロントロジック）を実行中…", flush=True)
-    results.append(run_vitest())
+    # 2. Vitest（フロントロジック。絞った実行で指定が無ければ流さない）
+    if narrowed and args.vitest is None:
+        skipped.append("フロントのロジック（Vitest）")
+    else:
+        print("Vitest（フロントロジック）を実行中…", flush=True)
+        results.append(run_vitest(args.vitest))
 
     # 3. Playwright（画面テスト）
-    if args.no_e2e:
+    if args.no_e2e or (narrowed and args.e2e is None):
         skipped.append("画面テスト（Playwright）")
     else:
         print("Playwright（画面テスト）を実行中…", flush=True)
-        results.append(run_playwright())
+        results.append(run_playwright(args.e2e))
 
     # 4. pytest（バックエンド）
-    print("pytest（バックエンド）を実行中…", flush=True)
-    results.append(run_pytest())
+    if narrowed and args.pytest is None:
+        skipped.append("バックエンド（pytest）")
+    else:
+        print("pytest（バックエンド）を実行中…", flush=True)
+        results.append(run_pytest(args.pytest))
 
     # 5. pytest（分析ダッシュボード）
-    print("pytest（分析ダッシュボード）を実行中…", flush=True)
-    results.append(run_analytics())
+    if narrowed and not args.analytics:
+        skipped.append("分析ダッシュボード（pytest）")
+    else:
+        print("pytest（分析ダッシュボード）を実行中…", flush=True)
+        results.append(run_analytics())
 
-    text = make_entry(results, args.note, skipped)
+    text = make_entry(results, args.note, skipped, targets)
     print("\n" + text)
 
     if not args.no_log:

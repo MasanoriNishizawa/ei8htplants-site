@@ -629,7 +629,8 @@ export const handlers = [
   // 価格計算の記録の追加（追加した行を返す）
   http.post('/api/price-calc-entries', async ({ request }) => {
     const body = (await request.json()) as PriceCalcEntryBody
-    const created: PriceCalcEntry = { ...body, id: newMockId('price'), created_at: nowIso() }
+    // mode は省略できる（本番の API と同じく、省略時は null で保存する）
+    const created: PriceCalcEntry = { ...body, mode: body.mode ?? null, id: newMockId('price'), created_at: nowIso() }
     store.priceCalc.unshift(created)
     return HttpResponse.json(created)
   }),

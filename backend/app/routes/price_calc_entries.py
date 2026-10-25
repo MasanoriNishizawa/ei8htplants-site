@@ -2,7 +2,7 @@
 
 予期しない例外は main.py のミドルウェアが一般的な文言の 500 にする。
 """
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -27,6 +27,8 @@ class EntryBody(BaseModel):
     cost: float
     # 売値（円）
     selling_price: float
+    # 種類（production = 生産、purchase = 仕入れ。021 マイグレーションで足した列。省略時は NULL）
+    mode: Optional[Literal['production', 'purchase']] = None
 
 
 @router.get('')
@@ -49,7 +51,11 @@ def add_entry(body: EntryBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
-    return admin_supabase.table('price_calc_entries').insert(body.model_dump()).execute().data[0]
+    # 1. 値の無い項目（None）は送らない。DB の既定（NULL）で入るので結果は同じで、
+    #    mode の列を足す 021 マイグレーションを実行していない DB でも、mode を省いた登録が通る
+    row = body.model_dump(exclude_none=True)
+    # 2. 追加して、作成した行を返す
+    return admin_supabase.table('price_calc_entries').insert(row).execute().data[0]
 
 
 @router.delete('/{entry_id}')

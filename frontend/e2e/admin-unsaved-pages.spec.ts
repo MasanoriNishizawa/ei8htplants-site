@@ -7,7 +7,7 @@ import { test, expect, type Page } from '@playwright/test'
 //   2. 画面の中の「キャンセル」「戻る」でも確認が出る（ある画面だけ）
 //   3. 保存に成功したあとは確認が出ずに移れる
 // 対象: EventForm・EventFinance・AdminEventSite・Collaborations・AdminPotArtists・AdminMedia・AdminChatQA・
-//       Stockists（追加欄と編集のダイアログ）・PriceCalc（タブの切り替えも。HUE のフォームと登録も）
+//       Stockists（追加欄と編集のダイアログ）・PriceCalc（ブランドと生産・仕入れのタブの切り替えも。HUE のフォームと登録も）
 
 /** 移るときの確認の文言（UnsavedChanges.ts の UNSAVED_LEAVE_MESSAGE） */
 const LEAVE_MESSAGE = '保存していない変更があります。破棄して移動しますか？'
@@ -76,6 +76,17 @@ async function expectSidebarFree(page: Page) {
   await expect(page).toHaveURL(/\/admin$/)
   page.off('dialog', onDialog)
   expect(dialogs).toBe(0)
+}
+
+/**
+ * 販売価格計算の、計算フォームのブランドのタブを返す
+ * （登録リストの絞り込み（role="group"）にも同じ文言のボタンがあるので、group の直下ではないボタンを選ぶ）
+ * @param page - 対象ページ
+ * @param name - ブランドの表示名
+ * @returns 計算フォームのタブのボタン
+ */
+function brandTab(page: Page, name: string) {
+  return page.locator(':not([role="group"]) > button').filter({ hasText: new RegExp(`^${name}$`) })
 }
 
 test.beforeEach(async ({ page }) => {
@@ -266,7 +277,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await plant.fill('アガベ')
     await expectSidebarBlocked(page)
     const dialog = dismissNextDialog(page)
-    await page.getByRole('button', { name: 'Habitat Oides' }).click()
+    await brandTab(page, 'Habitat Oides').click()
     expect(await dialog).toBe(LEAVE_MESSAGE)
     // タブは切り替わらず、入力も残る
     await expect(plant).toHaveValue('アガベ')
@@ -276,14 +287,16 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await page.goto('/admin/price-calc')
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
-    await page.getByRole('button', { name: 'Habitat Oides' }).click()
+    await brandTab(page, 'Habitat Oides').click()
     await expect(page.getByPlaceholder('例: アガベ ポタトルム')).toBeVisible()
     expect(dialogs).toBe(0)
   })
 
   test('HUE のタブで植物仕入れ値を入れると、移るときもタブを切り替えるときも確認が出る（キャンセルで HUE のまま残る）', async ({ page }) => {
     await page.goto('/admin/price-calc')
-    await page.getByRole('button', { name: 'HUE' }).click()
+    await brandTab(page, 'HUE').click()
+    // 初期は「生産」なので、2 段目の「仕入れ」に切り替える
+    await page.getByRole('button', { name: '仕入れ' }).click()
     // HUE のフォームには鉢作家の選択が無い
     await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toBeVisible()
     await expect(page.getByRole('combobox')).toHaveCount(0)
@@ -291,7 +304,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await plantPrice.fill('1000')
     await expectSidebarBlocked(page)
     const dialog = dismissNextDialog(page)
-    await page.getByRole('button', { name: 'ei8ht plants' }).click()
+    await brandTab(page, 'ei8ht plants').click()
     expect(await dialog).toBe(LEAVE_MESSAGE)
     // タブは切り替わらず、入力も残る
     await expect(plantPrice).toHaveValue('1000')
@@ -300,7 +313,9 @@ test.describe('販売価格計算（PriceCalc）', () => {
 
   test('HUE で登録すると登録リストに HUE の行が出て（植物名の下の 2 行目は無い）、そのあとは確認なしで移れる', async ({ page }) => {
     await page.goto('/admin/price-calc')
-    await page.getByRole('button', { name: 'HUE' }).click()
+    await brandTab(page, 'HUE').click()
+    // 初期は「生産」なので、2 段目の「仕入れ」に切り替える
+    await page.getByRole('button', { name: '仕入れ' }).click()
     await page.getByPlaceholder('例: ユーフォルビア オベサ').fill('オベサ E2E')
     await page.getByPlaceholder('例: 3000').fill('1000')
     await page.getByPlaceholder('例: 5000').fill('500')
@@ -310,7 +325,8 @@ test.describe('販売価格計算（PriceCalc）', () => {
     // 登録リストの行（ブランドは HUE、元値 ¥1,500、販売価格 ¥3,800、2 行目の「量産鉢」は無い）
     const row = page.getByRole('row').filter({ hasText: 'オベサ E2E' })
     await expect(row).toBeVisible()
-    await expect(row.getByRole('cell').nth(1)).toHaveText('HUE')
+    // ブランドの列は 1 行目がブランド名、2 行目が種類（仕入れ）
+    await expect(row.getByRole('cell').nth(1).locator('div')).toHaveText(['HUE', '仕入れ'])
     await expect(row.getByRole('cell').nth(2)).toHaveText('¥1,500')
     await expect(row.getByRole('cell').nth(3)).toHaveText('¥3,800')
     await expect(row.getByRole('cell').first()).toHaveText('オベサ E2E')
@@ -320,6 +336,8 @@ test.describe('販売価格計算（PriceCalc）', () => {
   })
   test('目標原価率を 35 に変えても書きかけ扱いにならず、タブを切り替えても再読み込みしても 35 のまま', async ({ page }) => {
     await page.goto('/admin/price-calc')
+    // 目標原価率の欄は仕入れのときだけ出る
+    await page.getByRole('button', { name: '仕入れ' }).click()
     const rate = page.getByRole('textbox', { name: '目標原価率（%）' })
     await expect(rate).toHaveValue('40')
     await rate.fill('35')
@@ -328,7 +346,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     let dialogs = 0
     const onDialog = async (d: { dismiss: () => Promise<void> }) => { dialogs += 1; await d.dismiss() }
     page.on('dialog', onDialog)
-    await page.getByRole('button', { name: 'HUE' }).click()
+    await brandTab(page, 'HUE').click()
     await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toBeVisible()
     await expect(rate).toHaveValue('35')
     // 原価 1,500 円 → ¥4,300（1,500 ÷ 0.35 = 4,285.7… を 100 円単位で切り上げ）
@@ -339,11 +357,71 @@ test.describe('販売価格計算（PriceCalc）', () => {
     expect(dialogs).toBe(0)
     // 2. 再読み込みしても localStorage から 35 が戻る
     await page.reload()
+    // 再読み込みすると種類は初期の「生産」に戻るので、仕入れに切り替える
+    await page.getByRole('button', { name: '仕入れ' }).click()
     await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('35')
     // 3. 「40% に戻す」で 40 に戻り、ボタンは消える
     await page.getByRole('button', { name: '40% に戻す' }).click()
     await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('40')
     await expect(page.getByRole('button', { name: '40% に戻す' })).toHaveCount(0)
     await expectSidebarFree(page)
+  })
+
+  test('生産（初期）で卸価格を入れて「仕入れ」を押すと確認が出て、キャンセルすると生産のまま入力が残る', async ({ page }) => {
+    await page.goto('/admin/price-calc')
+    await expect(page.getByText('販売価格（卸価格の 2 倍）')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveCount(0)
+    const wholesale = page.getByPlaceholder('例: 1500')
+    await wholesale.fill('1500')
+    await expect(page.getByText('¥3,000', { exact: true })).toBeVisible()
+    await expectSidebarBlocked(page)
+    const dialog = dismissNextDialog(page)
+    await page.getByRole('button', { name: '仕入れ' }).click()
+    expect(await dialog).toBe(LEAVE_MESSAGE)
+    await expect(wholesale).toHaveValue('1500')
+    await expect(page.getByText('販売価格（卸価格の 2 倍）')).toBeVisible()
+  })
+
+  test('登録リストの絞り込みで HUE を選ぶと HUE の行だけになり、書きかけがあっても確認は出ない', async ({ page }) => {
+    await page.goto('/admin/price-calc')
+    // 1. ei8ht plants の生産で 1 件登録する
+    await page.getByPlaceholder('例: アガベ チタノタ').fill('エイト E2E')
+    await page.getByPlaceholder('例: 1500').fill('1000')
+    await page.getByRole('button', { name: /^登録\s+¥2,000$/ }).click()
+    await expect(page.getByRole('row').filter({ hasText: 'エイト E2E' })).toBeVisible()
+    // 2. 書きかけを作ってから、絞り込みで HUE を選ぶ（確認は出ない）
+    await page.getByPlaceholder('例: アガベ チタノタ').fill('書きかけ')
+    let dialogs = 0
+    page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
+    const filter = page.getByRole('group', { name: '登録リストの絞り込み' })
+    await filter.getByRole('button', { name: 'HUE', exact: true }).click()
+    await expect(page.getByText('このブランドの登録はありません。')).toBeVisible()
+    await expect(page.getByRole('row').filter({ hasText: 'エイト E2E' })).toHaveCount(0)
+    // 3. 「すべて」に戻すと出る。計算フォームの入力は残っている
+    await filter.getByRole('button', { name: 'すべて' }).click()
+    await expect(page.getByRole('row').filter({ hasText: 'エイト E2E' })).toBeVisible()
+    await expect(page.getByPlaceholder('例: アガベ チタノタ')).toHaveValue('書きかけ')
+    expect(dialogs).toBe(0)
+  })
+
+  test('HUE の生産で登録すると登録リストに卸価格と 2 倍の販売価格の行が出て、そのあとは確認なしで仕入れに切り替えられる', async ({ page }) => {
+    await page.goto('/admin/price-calc')
+    await brandTab(page, 'HUE').click()
+    await expect(page.getByRole('combobox')).toHaveCount(0)
+    await page.getByPlaceholder('例: ユーフォルビア オベサ').fill('オベサ 生産 E2E')
+    await page.getByPlaceholder('例: 1500').fill('735')
+    await page.getByRole('button', { name: /^登録\s+¥1,470$/ }).click()
+    const row = page.getByRole('row').filter({ hasText: 'オベサ 生産 E2E' })
+    await expect(row).toBeVisible()
+    // ブランドの列は 1 行目がブランド名、2 行目が種類（生産）
+    await expect(row.getByRole('cell').nth(1).locator('div')).toHaveText(['HUE', '生産'])
+    await expect(row.getByRole('cell').nth(2)).toHaveText('¥735')
+    await expect(row.getByRole('cell').nth(3)).toHaveText('¥1,470')
+    await expect(row.getByRole('cell').first()).toHaveText('オベサ 生産 E2E')
+    let dialogs = 0
+    page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
+    await page.getByRole('button', { name: '仕入れ' }).click()
+    await expect(page.getByPlaceholder('例: 3000')).toBeVisible()
+    expect(dialogs).toBe(0)
   })
 })

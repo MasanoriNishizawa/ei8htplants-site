@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS price_calc_entries (
     plant_name      TEXT        NOT NULL,
     -- 鉢作家の名前（Habitat Oides で量産鉢のときと、ei8ht plants・HUE の記録は NULL）
     pot_artist_name TEXT,
-    -- 元値（円。実生の 1 粒の金額など小数もある）
+    -- 元値（円。仕入れなら仕入れ値、生産なら卸価格。小数も入れられる）
     cost            NUMERIC     NOT NULL,
     -- 販売価格（円）
     selling_price   NUMERIC     NOT NULL,
