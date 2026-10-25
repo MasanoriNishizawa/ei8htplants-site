@@ -5,14 +5,43 @@
  * 目安 = 原価 ÷ 目標原価率 を、100 円単位（PRICE_UNIT）で切り上げる。
  * 切り上げなので、推奨価格の原価率は必ず目標原価率以下になる。
  * 全ブランド（ei8ht plants・Habitat Oides・HUE）で同じ計算を使う。
- * 目標原価率は画面で変えられ、このブラウザの localStorage に覚えておく（読み書きの関数もここに置く）
+ * 目標原価率はブランドごとに持ち（既定値は DEFAULT_COST_RATES）、画面で変えられ、
+ * このブラウザの localStorage にブランドごとに覚えておく（読み書きの関数もここに置く）
  */
 
-/** 目標原価率の既定値（0.4 = 40%）。画面で率を変えていないとき・引数を省略したときに使う */
+/** 目標原価率の既定値（0.4 = 40%）。関数の引数を省略したときに使う。ブランドごとの既定値は DEFAULT_COST_RATES */
 export const MAX_COST_RATE = 0.4
 
-/** 目標原価率の入力（% の数値の文字列）を覚えておく localStorage のキー */
+/** 目標原価率をブランドごとに持つときのブランドのキー（price_calc_entries.brand の値と同じ） */
+export type CostRateBrand = 'ei8htplants' | 'habitatoides' | 'hue'
+
+/**
+ * ブランドごとの目標原価率の既定値
+ * - ei8ht plants: 33.4%（原価のほぼ 3 倍で売れるように。例: 原価 1,500 円 → ¥4,500、1,000 円 → ¥3,000）
+ * - Habitat Oides・HUE: 40%（MAX_COST_RATE と同じ）
+ */
+export const DEFAULT_COST_RATES: Readonly<Record<CostRateBrand, number>> = {
+  ei8htplants: 0.334,
+  habitatoides: MAX_COST_RATE,
+  hue: MAX_COST_RATE,
+}
+
+/**
+ * 目標原価率の入力を覚えておく localStorage のキーの頭の部分。実際のキーは costRateStorageKey で「頭:ブランド」にする
+ * 以前はこのキーそのものに 3 ブランド共通の値を保存していたが、ブランドごとに既定値が違う（ei8ht plants は 33.4%）ため、
+ * 古い共通のキーは読まない（読むと ei8ht plants が 40% から始まってしまう）
+ */
 export const COST_RATE_STORAGE_KEY = 'price-calc-cost-rate'
+
+/**
+ * ブランドの目標原価率を覚えておく localStorage のキーを返す
+ * 例: costRateStorageKey('ei8htplants') → 'price-calc-cost-rate:ei8htplants'
+ * @param brand - ブランド
+ * @returns localStorage のキー
+ */
+export function costRateStorageKey(brand: CostRateBrand): string {
+  return `${COST_RATE_STORAGE_KEY}:${brand}`
+}
 
 /**
  * 浮動小数の誤差を消すときの小数の桁数。
@@ -132,15 +161,27 @@ export function parseCostRateInput(input: string): number | null {
 }
 
 /**
- * このブラウザに覚えさせた目標原価率の入力を読む
- * 保存が無い・読めない（localStorage が使えない環境など）・受け付けない値のときは既定の 40 を返す
+ * ブランドの目標原価率の既定値を、入力欄の文字列（% の数値）にする
+ * 例: defaultCostRateInput('ei8htplants') → '33.4'、defaultCostRateInput('hue') → '40'
+ * @param brand - ブランド
+ * @returns 既定値の入力（「33.4% に戻す」ボタンで入れる値）
+ */
+export function defaultCostRateInput(brand: CostRateBrand): string {
+  return String(roundFloat(DEFAULT_COST_RATES[brand] * 100))
+}
+
+/**
+ * このブラウザに覚えさせたブランドの目標原価率の入力を読む
+ * 保存が無い・読めない（localStorage が使えない環境など）・受け付けない値のときは、そのブランドの既定値を返す
+ * 古い共通のキー（COST_RATE_STORAGE_KEY そのもの）は読まない
+ * @param brand - ブランド
  * @returns 目標原価率の入力欄の初期値（% の数値の文字列）
  */
-export function loadCostRateInput(): string {
-  /** 既定の入力（MAX_COST_RATE を % にしたもの = '40'） */
-  const fallback = String(roundFloat(MAX_COST_RATE * 100))
+export function loadCostRateInput(brand: CostRateBrand): string {
+  /** そのブランドの既定の入力（ei8ht plants は '33.4'、ほかは '40'） */
+  const fallback = defaultCostRateInput(brand)
   try {
-    const saved = localStorage.getItem(COST_RATE_STORAGE_KEY)
+    const saved = localStorage.getItem(costRateStorageKey(brand))
     return saved !== null && parseCostRateInput(saved) !== null ? saved : fallback
   } catch {
     return fallback
@@ -148,11 +189,12 @@ export function loadCostRateInput(): string {
 }
 
 /**
- * 目標原価率の入力をこのブラウザに覚えさせる。保存できなくても（localStorage が使えないなど）画面の動作は続ける
+ * ブランドの目標原価率の入力をこのブラウザに覚えさせる。保存できなくても（localStorage が使えないなど）画面の動作は続ける
  * 受け付けない値（空・範囲外）は保存せず、前に覚えた値を残す（次に開いたとき正しい率から始まるように）
+ * @param brand - ブランド
  * @param input - 目標原価率の入力欄の文字列（% の数値）
  */
-export function saveCostRateInput(input: string): void {
+export function saveCostRateInput(brand: CostRateBrand, input: string): void {
   if (parseCostRateInput(input) === null) return
-  try { localStorage.setItem(COST_RATE_STORAGE_KEY, input.trim()) } catch { /* 保存できなくても動作は続ける */ }
+  try { localStorage.setItem(costRateStorageKey(brand), input.trim()) } catch { /* 保存できなくても動作は続ける */ }
 }

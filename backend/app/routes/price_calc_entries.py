@@ -27,8 +27,8 @@ class EntryBody(BaseModel):
     cost: float
     # 売値（円）
     selling_price: float
-    # 種類（production = 生産、purchase = 仕入れ。021 マイグレーションで足した列。省略時は NULL）
-    mode: Optional[Literal['production', 'purchase']] = None
+    # 種類（production = 生産、purchase = 仕入れ、seedling = 実生。021 で足した列で、seedling は 022 で許した。省略時は NULL）
+    mode: Optional[Literal['production', 'purchase', 'seedling']] = None
 
 
 @router.get('')

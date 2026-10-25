@@ -1005,8 +1005,13 @@ export interface PotArtist {
   created_at: string
 }
 
-/** 価格計算の種類（production: 生産で卸価格の 2 倍、purchase: 仕入れで目標原価率から計算） */
-export type PriceCalcMode = 'production' | 'purchase'
+/**
+ * 価格計算の種類
+ * - production: 生産。販売価格 = 卸価格の 2 倍
+ * - purchase: 仕入れ。目標原価率から推奨価格を計算
+ * - seedling: 実生（ei8ht plants・Habitat Oides だけ）。上代 = 種子 20 粒の値段（Habitat Oides は + 鉢）
+ */
+export type PriceCalcMode = 'production' | 'purchase' | 'seedling'
 
 /** 価格計算で登録した記録 1 件 */
 export interface PriceCalcEntry {

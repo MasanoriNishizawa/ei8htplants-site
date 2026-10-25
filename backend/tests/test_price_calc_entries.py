@@ -268,18 +268,26 @@ class TestAddEntryMode:
         assert _inserted_row(mock_sb) == payload
 
     def test_modeに不正な値を送ると422でinsertしない(self):
-        """mode が production・purchase 以外（seedling・大文字・空文字・数値）なら 422 で、insert は呼ばれないこと。"""
-        for bad in ['seedling', 'Production', 'PURCHASE', '', 1, ['production']]:
+        """mode が production・purchase・seedling 以外なら 422 で、insert は呼ばれないこと。"""
+        for bad in ['Production', 'PURCHASE', '', 1, ['production']]:
             resp, mock_sb = _post_entry({**BASE_PAYLOAD, 'mode': bad})
             assert resp.status_code == 422, bad
             mock_sb.table.return_value.insert.assert_not_called()
 
+    def test_modeがseedlingならinsertに渡される(self):
+        """実生の mode を受け付け、insert の dict に渡すこと。"""
+        payload = {**BASE_PAYLOAD, 'mode': 'seedling'}
+        resp, mock_sb = _post_entry(payload)
+        assert resp.status_code == 200
+        assert _inserted_row(mock_sb) == payload
+
     def test_一覧はmodeを含む行をそのまま返す(self):
-        """GET の一覧は DB の行（mode が production・purchase・null）をそのまま返すこと。"""
+        """GET の一覧は DB の行（mode が production・purchase・seedling・null）をそのまま返すこと。"""
         rows = [
             {**ENTRY_1, 'mode': 'production'},
             {**ENTRY_2, 'mode': 'purchase'},
-            {**ENTRY_2, 'id': 'e3', 'mode': None},
+            {**ENTRY_2, 'id': 'e3', 'mode': 'seedling'},
+            {**ENTRY_2, 'id': 'e4', 'mode': None},
         ]
         mock_sb = _make_sb_mock()
         mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = rows
@@ -290,7 +298,7 @@ class TestAddEntryMode:
         finally:
             app.dependency_overrides.pop(require_auth, None)
         assert resp.status_code == 200
-        assert [r['mode'] for r in resp.json()] == ['production', 'purchase', None]
+        assert [r['mode'] for r in resp.json()] == ['production', 'purchase', 'seedling', None]
 
     def test_認証なしでmodeを送ると401でinsertしない(self):
         """認証なしでは mode を付けても 401 で、insert は呼ばれないこと。"""
