@@ -233,6 +233,8 @@ export default function Home() {
             <a
               key={card.to}
               href={card.to}
+              target="_blank"
+              rel="noopener noreferrer"
               className="brand-strip-item"
               onMouseEnter={() => !isMobile && setActiveCard(i)}
               // キーボードで選んだときもマウスを乗せたときと同じように広げる

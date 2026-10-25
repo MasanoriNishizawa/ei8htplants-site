@@ -1,95 +1,96 @@
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
-import { useSectionSpy } from '../../hooks/useSectionSpy'
 import { BRAND } from '../../lib/brands'
 
-/** 色見本として並べる丸の色（HUE の作品で使う色合い） */
-const SWATCHES = ['#d4a878','#a8c4a0','#e8b4b0','#c4d4c8','#e0c890','#b8a8d4','#f0d4b8']
-/** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
-const SECTIONS = ['concept'] as const
+const PALETTE = [
+  { color: '#d9a76f', name: 'AMBER' },
+  { color: '#9eae8c', name: 'MOSS' },
+  { color: '#d6a5a5', name: 'ROSE' },
+  { color: '#91b6ad', name: 'MIST' },
+  { color: '#e4ca7d', name: 'CITRUS' },
+  { color: '#a69bc4', name: 'IRIS' },
+]
 
-/**
- * HUE by ei8ht plants ブランドページ。カラースウォッチと、スクロール位置に合わせて選択中が変わるサブナビ（useSectionSpy）を含む
- * @returns ブランドページの画面
- */
+/** HUE 専用サイト。色とフォルムから植物を楽しむ、編集的なブランド体験をつくる。 */
 export default function Hue() {
   const t = useT()
-  // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
-  const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)
-
 
   return (
-    <>
-      <PageMeta title="HUE by ei8ht plants" description={t('HUE は、色彩と形を楽しむオーナメントプランツのラインです。', 'HUE is a line of ornamental plants celebrating color and form.')} ogImage="/img/logo-hue.png" />
-      {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
-      <h1 className="sr-only">{t('HUE by ei8ht plants — オーナメントプランツライン', 'HUE by ei8ht plants — Ornamental Plants Line')}</h1>
+    <div className="hue-home">
+      <PageMeta
+        title="HUE by ei8ht plants"
+        description={t('葉の色彩とフォルムを楽しむ、インテリアのためのオーナメントプランツ。', 'An ornamental plant line celebrating foliage color and sculptural form.')}
+        ogImage="/img/logo-hue.png"
+      />
 
-      {/* ファーストビュー。上にサブナビを重ねる */}
-      <div className="hero-wrapper">
-        {/* ページ内のセクションへ移動するサブナビ（表示中のセクションに印を付ける） */}
-        <nav className="brand-subnav">
-          <div className="brand-subnav-inner">
-            <a href="#concept" className={active === 'concept' ? 'subnav-active' : ''} onClick={scrollTo('concept')}>Concept</a>
-          </div>
-        </nav>
+      <section className="hue-editorial-hero" aria-labelledby="hue-title">
+        <div className="hue-hero-copy">
+          <p className="hue-overline">A BOTANICAL COLOR STUDY <span>NO. 01</span></p>
+          <h1 id="hue-title">A living<br /><em>hue.</em></h1>
+          <p className="hue-hero-jp">色と形で、植物を飾る。</p>
+          <p className="hue-hero-description">{t(
+            '葉の色彩とフォルムを楽しむ、オーナメントプランツのセレクション。空間に似合う一鉢との出会いをお届けします。',
+            'An ornamental plant selection for those drawn to the color and form of foliage. Find a living accent that feels at home in your space.',
+          )}</p>
+          <a className="hue-discover-link" href="#point-of-view">Discover HUE <span>↓</span></a>
+        </div>
+        <div className="hue-hero-art" aria-hidden="true">
+          <div className="hue-art-orbit hue-art-orbit--one" />
+          <div className="hue-art-orbit hue-art-orbit--two" />
+          <div className="hue-art-disc hue-art-disc--amber" />
+          <div className="hue-art-disc hue-art-disc--green" />
+          <div className="hue-art-disc hue-art-disc--rose" />
+          <div className="hue-art-leaf hue-art-leaf--one" />
+          <div className="hue-art-leaf hue-art-leaf--two" />
+          <div className="hue-art-mark">HUE</div>
+          <span className="hue-art-caption">COLOR / FORM / LIFE</span>
+        </div>
+        <span className="hue-hero-side-note">ORNAMENTAL PLANTS — EI8HT PLANTS</span>
+      </section>
 
-        {/* ぼかした色の円（hue-blob）を重ねたヒーロー */}
-        <section className="hue-hero">
-          <div className="hue-blob hue-blob-1" />
-          <div className="hue-blob hue-blob-2" />
-          <div className="hue-blob hue-blob-3" />
-          <div className="hue-blob hue-blob-4" />
-          <div className="hue-blob hue-blob-5" />
-          {/* 下へのスクロールを促す線と文字 */}
-          <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
-            <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #b4b4c8, transparent)' }} />
-            <span style={{ fontSize: 11, letterSpacing: 3, color: '#b4b4c8', textTransform: 'uppercase' }}>Scroll</span>
-          </div>
-        </section>
-      </div>
-
-      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
-
-      {/* コンセプト: ロゴ・見出し・紹介文と色見本 */}
-      <section id="concept" className="brand-section" ref={sectionRef('concept')}>
-        <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
-          <div className="brand-concept-grid">
-            <img src={BRAND.hue.logo} alt={BRAND.hue.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
-            <div>
-              <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
-                Color &amp; Form<br />as Living Art
-              </h2>
-              <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
-                {t(
-                  <>色と形が語る、植物の美学。<br />鮮やかな色彩と独特のフォルムを持つ観葉植物から、<br />インテリアに溶け込む一鉢を厳選してご提案します。<br /><br />植物を「育てる」だけでなく、「飾る」という視点で—<br />空間に彩りと生命感を。<br />日々のお手入れから、植物に合った鉢選びまで、<br />一緒に考えます。</>,
-                  <>The aesthetics of plants, told through color and form.<br />We carefully select foliage plants with vivid colors and distinctive shapes<br />that blend seamlessly into any interior.<br /><br />Not just "growing" plants — but "displaying" them.<br />Bringing color and life to your space.<br />From daily care to choosing the perfect pot,<br />we think it through together.</>
-                )}
-              </p>
-            </div>
-          </div>
-          {/* 色見本の丸 */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', padding: '40px 0' }}>
-            {SWATCHES.map((color) => (
-              <div key={color} style={{ width: 60, height: 60, borderRadius: '50%', background: color, border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }} />
-            ))}
+      <section id="point-of-view" className="hue-point-of-view">
+        <div className="hue-section-label"><span>01</span><span>OUR POINT OF VIEW</span></div>
+        <div className="hue-point-grid">
+          <h2>Not just a plant.<br /><em>A point of color.</em></h2>
+          <div>
+            <p>{t(
+              '植物は、葉の一枚や枝の曲線だけで、部屋の印象を変えることがあります。HUE は色彩と造形に目を向け、暮らしの中で楽しめる植物をご紹介します。',
+              'A single leaf or the curve of a branch can change how a room feels. HUE looks closely at color and shape, bringing plants into the way we live.',
+            )}</p>
+            <p>{t(
+              '育てる楽しさと、飾る楽しさ。その両方を、自分らしい一鉢から。',
+              'The joy of growing, and the joy of living with a plant. Begin with a piece that feels like you.',
+            )}</p>
           </div>
         </div>
       </section>
 
-      {/* Instagram への案内（濃い茶色の帯） */}
-      <section style={{ background: '#2a1a08', color: '#f6f6fa', textAlign: 'center', padding: '88px 20px' }}>
-        <h2 style={{ fontSize: 'clamp(24px, 4vw, 48px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Follow Us</h2>
-        <p style={{ fontSize: 13, letterSpacing: 2, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 40px' }}>Instagram</p>
-        <a
-          href={BRAND.hue.instagramUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f6f6fa', textDecoration: 'none', border: '1px solid #5a3a18', padding: '16px 36px', borderRadius: 2 }}
-        >
-          {BRAND.hue.instagramHandle} →
-        </a>
+      <section className="hue-color-study" aria-labelledby="hue-color-title">
+        <div className="hue-section-label"><span>02</span><span>COLOR / FORM / SPACE</span></div>
+        <h2 id="hue-color-title">Choose by feeling.</h2>
+        <p className="hue-color-intro">{t('色を選ぶ。フォルムを楽しむ。暮らしの空間に、植物のある景色を。', 'Choose a color. Follow a form. Make room for a living detail.')}</p>
+        <div className="hue-palette" aria-label="HUE color palette">
+          {PALETTE.map(({ color, name }, index) => (
+            <div className="hue-palette-item" key={name}>
+              <span className="hue-palette-swatch" style={{ '--swatch-color': color, '--swatch-index': index } as React.CSSProperties} />
+              <span>{name}</span>
+            </div>
+          ))}
+        </div>
+        <div className="hue-color-notes">
+          <article><span>01 / COLOR</span><h3>Notice the tone.</h3><p>{t('新芽の明るさや葉色の深み。小さな色の違いを楽しむ。', 'From fresh new growth to deep foliage tones, notice the subtle shifts in color.')}</p></article>
+          <article><span>02 / FORM</span><h3>Follow the shape.</h3><p>{t('葉の重なりや枝の線。植物が描くかたちに目を向ける。', 'Look closely at a plant’s lines, leaves, and the shapes they create.')}</p></article>
+          <article><span>03 / SPACE</span><h3>Make it your own.</h3><p>{t('お気に入りの鉢や家具と合わせて、自分らしい場所に飾る。', 'Pair a plant with your favorite pot and give it a place of its own.')}</p></article>
+        </div>
       </section>
-    </>
+
+      <section className="hue-follow">
+        <img src={BRAND.hue.logo} alt="HUE by ei8ht plants" />
+        <p className="hue-overline">A LITTLE MORE COLOR</p>
+        <h2>Bring your space to life.</h2>
+        <p>{t('HUE の植物や日々の風景は Instagram でご覧いただけます。', 'Find HUE plants and everyday scenes on Instagram.')}</p>
+        <a href={BRAND.hue.instagramUrl} target="_blank" rel="noreferrer">{BRAND.hue.instagramHandle} <span>↗</span></a>
+      </section>
+    </div>
   )
 }

@@ -250,6 +250,24 @@ class TestServeSpaMeta:
         assert lds[0]['url'] == 'https://ei8htplants.com/'
         assert lds[0]['logo'] == seo.LOGO_URL
 
+    @pytest.mark.parametrize('host,path,title,canonical,site_name', [
+        ('habitatoides.com', '/', 'Habitat Oides', 'https://habitatoides.com/', 'Habitat Oides'),
+        ('habitatoides.com', '/workshop', 'Habitat Style Workshop | Habitat Oides', 'https://habitatoides.com/workshop', 'Habitat Oides'),
+        ('habitatoides.com', '/collaborations', 'Collaborations | Habitat Oides', 'https://habitatoides.com/collaborations', 'Habitat Oides'),
+        ('huebyei8htplants.com', '/', 'HUE by ei8ht plants', 'https://huebyei8htplants.com/', 'HUE by ei8ht plants'),
+    ])
+    def test_ブランド専用ドメインのトップと公開ページに専用SEO情報が入る(
+        self, db, host, path, title, canonical, site_name,
+    ):
+        resp = TestClient(app).get(path, headers={'host': host})
+        assert resp.status_code == 200
+        head = _head(resp.text)
+        assert _title(head) == title
+        assert _canonical(head) == canonical
+        assert _meta(head, 'property', 'og:url') == canonical
+        assert _meta(head, 'property', 'og:site_name') == site_name
+        assert _meta(head, 'name', 'robots') is None
+
     @pytest.mark.parametrize('path,title,desc', [
         ('/events', 'Events | ei8ht plants', 'ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。'),
         ('/gallery', 'Gallery | ei8ht plants', 'ei8ht plants、Habitat Oides、HUE の植物ギャラリー。'),
@@ -716,6 +734,17 @@ class TestRobotsTxt:
         text = TestClient(app).get('/robots.txt').text
         assert '<html' not in text.lower()
 
+    @pytest.mark.parametrize('host,origin', [
+        ('habitatoides.com', 'https://habitatoides.com'),
+        ('www.habitatoides.com', 'https://habitatoides.com'),
+        ('huebyei8htplants.com', 'https://huebyei8htplants.com'),
+        ('www.huebyei8htplants.com', 'https://huebyei8htplants.com'),
+    ])
+    def test_ブランドドメインのrobotsは同じブランドのsitemapを案内する(self, host, origin):
+        resp = TestClient(app).get('/robots.txt', headers={'host': host})
+        assert resp.status_code == 200
+        assert f'Sitemap: {origin}/sitemap.xml' in resp.text.splitlines()
+
 
 # ---------------------------------------------------------------------------
 # sitemap.xml
@@ -796,6 +825,81 @@ class TestSitemapXml:
             resp = TestClient(app).get('/sitemap.xml')
         assert resp.status_code == 200
         assert len(_locs(resp.text)) == len(seo.SITEMAP_STATIC_PATHS)
+
+    @pytest.mark.parametrize('host,origin,paths', [
+        ('habitatoides.com', 'https://habitatoides.com', ('/', '/workshop', '/collaborations')),
+        ('huebyei8htplants.com', 'https://huebyei8htplants.com', ('/',)),
+    ])
+    def test_ブランド専用サイトのsitemapは自ブランドの公開URLだけを含む(self, host, origin, paths):
+        resp = TestClient(app).get('/sitemap.xml', headers={'host': host})
+        assert resp.status_code == 200
+        locs = _locs(resp.text)
+        assert locs == [f'{origin}{path}' for path in paths]
+        assert all(not loc.startswith('https://ei8htplants.com/') for loc in locs)
+
+
+@needs_dist
+class TestLegacyBrandRedirects:
+    """既存ドメインのブランド旧URLを正規ドメインへ転送する。"""
+
+    @pytest.mark.parametrize('path,destination', [
+        ('/habitatoides', 'https://habitatoides.com/'),
+        ('/habitatoides/workshop', 'https://habitatoides.com/workshop'),
+        ('/collaborations', 'https://habitatoides.com/collaborations'),
+        ('/hue', 'https://huebyei8htplants.com/'),
+    ])
+    def test_旧ブランドURLは専用ドメインへ301転送する(self, path, destination):
+        resp = TestClient(app).get(path, headers={'host': 'ei8htplants.com'}, follow_redirects=False)
+        assert resp.status_code == 301
+        assert resp.headers['location'] == destination
+
+    def test_旧ブランドURLのクエリ文字列を転送先へ引き継ぐ(self):
+        resp = TestClient(app).get(
+            '/habitatoides/workshop?source=legacy&lang=en',
+            headers={'host': 'www.ei8htplants.com'}, follow_redirects=False,
+        )
+        assert resp.status_code == 301
+        assert resp.headers['location'] == 'https://habitatoides.com/workshop?source=legacy&lang=en'
+
+    def test_独立ブランド以外の既存URLは転送しない(self):
+        resp = TestClient(app).get('/events', headers={'host': 'ei8htplants.com'}, follow_redirects=False)
+        assert resp.status_code == 200
+
+    @pytest.mark.parametrize('host', ['habitatoides.com', 'www.habitatoides.com'])
+    def test_HabitatドメインのhueパスはHUE専用ドメインへ301転送する(self, host):
+        resp = TestClient(app).get('/hue?from=habitat', headers={'host': host}, follow_redirects=False)
+        assert resp.status_code == 301
+        assert resp.headers['location'] == 'https://huebyei8htplants.com/?from=habitat'
+
+    @pytest.mark.parametrize('host', ['habitatoides.com', 'huebyei8htplants.com'])
+    def test_ブランドドメインの旧PWA登録スクリプトは解除用に差し替わりキャッシュしない(self, host):
+        resp = TestClient(app).get('/registerSW.js', headers={'host': host})
+        assert resp.status_code == 200
+        assert resp.headers['content-type'].startswith('application/javascript')
+        assert 'serviceWorker.register(\'/sw.js\'' in resp.text
+        assert 'no-store' in resp.headers.get('cache-control', '')
+
+    @pytest.mark.parametrize('host', ['habitatoides.com', 'huebyei8htplants.com'])
+    def test_ブランドドメインの旧ServiceWorkerはキャッシュ削除と自身の登録解除を行う(self, host):
+        resp = TestClient(app).get('/sw.js', headers={'host': host})
+        assert resp.status_code == 200
+        assert resp.headers['content-type'].startswith('application/javascript')
+        assert 'caches.keys()' in resp.text
+        assert 'caches.delete(key)' in resp.text
+        assert 'registration.unregister()' in resp.text
+        assert 'client.navigate(client.url)' in resp.text
+        assert 'no-store' in resp.headers.get('cache-control', '')
+
+    @pytest.mark.parametrize('host', ['habitatoides.com', 'huebyei8htplants.com'])
+    def test_ブランドトップHTMLはPWAを登録せず既存登録とキャッシュを解除する(self, db, host):
+        resp = TestClient(app).get('/', headers={'host': host})
+        assert resp.status_code == 200
+        assert 'no-store' in resp.headers.get('cache-control', '')
+        assert not re.search(r'<link\s+rel="manifest"', resp.text, flags=re.I)
+        assert 'vite-plugin-pwa:register-sw' not in resp.text
+        assert 'getRegistrations()' in resp.text
+        assert 'items.map(function(item){return item.unregister()})' in resp.text
+        assert 'caches.delete(key)' in resp.text
 
 
 # ---------------------------------------------------------------------------

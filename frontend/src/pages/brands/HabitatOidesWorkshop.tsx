@@ -37,7 +37,7 @@ export default function HabitatOidesWorkshop() {
     <>
       <PageMeta title="Habitat Style Workshop" description={t('ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', 'A habitat-style workshop where you can create your own layout inspired by the natural environments of plants.')} ogImage="/img/habitatOides/habitat_oides_workshop_main.jpg" />
       {/* ページ内のセクションへ移動するサブナビ。左端は Habitat Oides のページへ戻るリンク */}
-      <nav className="brand-subnav" style={{ top: 72 }}>
+      <nav className="brand-subnav">
         <div className="brand-subnav-inner">
           <Link to={siteForHost(window.location.hostname).key === 'habitat-oides' ? '/' : '/habitatoides'} style={{ borderRight: '1px solid #dddde8', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--c-muted)', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
             ← Habitat Oides

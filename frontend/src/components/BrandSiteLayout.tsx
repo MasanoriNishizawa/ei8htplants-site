@@ -3,7 +3,8 @@ import { useLang } from '../lib/lang'
 import Analytics from './Analytics'
 import PageLoading from './PageLoading'
 import { Suspense, useEffect } from 'react'
-import type { SiteKey } from '../lib/siteHost'
+import { BRAND } from '../lib/brands'
+import { BRAND_SITE_URLS, type SiteKey } from '../lib/siteHost'
 
 export interface BrandSiteConfig {
   key: Exclude<SiteKey, 'ei8htplants'>
@@ -20,6 +21,11 @@ export interface BrandSiteConfig {
 /** 独立ドメインのブランド用レイアウト。各サイトの設定に応じたヘッダー・フッターを表示する。 */
 export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
   const { lang, toggle: toggleLang } = useLang()
+  const brandLinks = [
+    { key: 'ei8htplants', label: BRAND.ei8htPlants.name, href: BRAND_SITE_URLS.ei8htplants },
+    { key: 'habitat-oides', label: BRAND.habitatOides.name, href: BRAND_SITE_URLS['habitat-oides'] },
+    { key: 'hue', label: 'HUE', href: BRAND_SITE_URLS.hue },
+  ] as const
 
   useEffect(() => {
     const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
@@ -33,29 +39,34 @@ export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
   return (
     <div className={`brand-site brand-site-${site.key}`} style={{ '--brand-accent': site.accent } as React.CSSProperties}>
       <Analytics />
-      <header className="brand-site-header" style={{ position: 'fixed', zIndex: 1000, inset: '0 0 auto', height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '0 clamp(18px, 5vw, 64px)', background: 'rgba(255,255,255,.96)', borderBottom: '2px solid var(--brand-accent)', backdropFilter: 'blur(12px)' }}>
-        <Link to="/" aria-label={`${site.name} home`} style={{ display: 'flex', alignItems: 'center', gap: 13, textDecoration: 'none', color: 'var(--c-ink)', minWidth: 0 }}>
-          <img src={site.logo} alt="" style={{ width: 42, height: 42, objectFit: 'contain' }} />
-          <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
-            <strong style={{ fontSize: 14, fontWeight: 500, letterSpacing: '.12em', whiteSpace: 'nowrap' }}>{site.name}</strong>
-            <small style={{ marginTop: 4, fontSize: 9, letterSpacing: '.16em', color: 'var(--c-muted)', textTransform: 'uppercase' }}>{site.descriptor}</small>
-          </span>
-        </Link>
-        <nav aria-label="Main navigation" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'clamp(12px, 3vw, 32px)' }}>
-          {site.sections.map((section) => <a key={section.href} href={section.href} style={{ color: 'var(--c-ink)', fontSize: 11, letterSpacing: '.12em', textDecoration: 'none', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{section.label}</a>)}
-          <button type="button" className="header-lang-btn" onClick={toggleLang} aria-label={lang === 'ja' ? 'Switch to English' : '日本語に切り替える'}>{lang === 'ja' ? 'EN' : 'JA'}</button>
+      <header className={`brand-site-header brand-site-header--${site.key}`}>
+        <a className="brand-site-wordmark" href={site.origin} aria-label={`${site.name} home`}>
+          <img src={site.logo} alt="" />
+          <span><strong>{site.key === 'hue' ? 'HUE' : 'HABITAT OIDES'}</strong><small>{site.descriptor}</small></span>
+        </a>
+        <nav className="brand-site-nav" aria-label={`${site.name} navigation`}>
+          {site.sections.map((section) => <a key={section.href} href={section.href}>{section.label}</a>)}
         </nav>
+        <nav className="brand-site-switcher" aria-label="Other brand sites">
+          {brandLinks.filter((brand) => brand.key !== site.key).map((brand) => (
+            <a key={brand.key} href={brand.href} target="_blank" rel="noopener noreferrer">{brand.label}</a>
+          ))}
+        </nav>
+        <button type="button" className="brand-site-lang" onClick={toggleLang} aria-label={lang === 'ja' ? 'Switch to English' : '日本語に切り替える'}>{lang === 'ja' ? 'EN' : 'JA'}</button>
       </header>
-      <main style={{ paddingTop: 72, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className="brand-site-main">
         <Suspense fallback={<PageLoading />}><Outlet /></Suspense>
       </main>
-      <footer style={{ marginTop: 'auto', padding: '44px clamp(20px, 5vw, 64px)', background: '#fff', borderTop: '1px solid var(--c-border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 18, maxWidth: 1280, margin: '0 auto' }}>
-          <Link to="/" style={{ color: 'var(--c-ink)', textDecoration: 'none', fontSize: 12, letterSpacing: '.12em' }}>{site.name}</Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-            <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--c-muted)', textDecoration: 'none', fontSize: 11 }}>{site.instagramHandle} ↗</a>
-            <a href="https://ei8htplants.com/privacy" style={{ color: 'var(--c-muted)', textDecoration: 'none', fontSize: 11 }}>Privacy</a>
-            <span style={{ color: 'var(--c-faint)', fontSize: 10 }}>© {new Date().getFullYear()} {site.name}</span>
+      <footer className={`brand-site-footer brand-site-footer--${site.key}`}>
+        <div className="brand-site-footer-inner">
+          <Link to="/" className="brand-site-footer-title">{site.name}</Link>
+          <nav aria-label="Brand websites">
+            {brandLinks.map((brand) => <a key={brand.key} href={brand.href} target="_blank" rel="noopener noreferrer">{brand.label}</a>)}
+          </nav>
+          <div className="brand-site-footer-meta">
+            <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer">{site.instagramHandle} ↗</a>
+            <a href="https://ei8htplants.com/privacy">Privacy</a>
+            <span>© {new Date().getFullYear()} {site.name}</span>
           </div>
         </div>
       </footer>

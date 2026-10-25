@@ -911,9 +911,17 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None, h
     host = hostname.lower().split(':', 1)[0]
     page = inject_head(_read_index(index_path), build_page_meta(path, query, host))
     if host in BRAND_DOMAINS:
-        # 管理画面用のPWAは既存 ei8ht plants ドメインだけに登録し、ブランドサイトには管理用アプリを表示しない。
+        # 独立前に登録されたPWAのService Workerが、古いei8ht plants画面を表示し続けないよう解除する。
         page = re.sub(r'<link\s+rel="manifest"[^>]*>', '', page, flags=re.I)
         page = re.sub(r'<script\s+id="vite-plugin-pwa:register-sw"[^>]*>\s*</script>', '', page, flags=re.I)
+        cleanup_old_pwa = (
+            '<script>(function(){'
+            "if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations()"
+            '.then(function(items){return Promise.all(items.map(function(item){return item.unregister()}))})}'
+            "if('caches' in window){caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key)}))})}"
+            '})();</script>'
+        )
+        page = page.replace('</head>', cleanup_old_pwa + '</head>')
         site_name = BRAND_DOMAINS[host][0]
         page = re.sub(
             r'(<meta\s+name="apple-mobile-web-app-title"\s+content=")[^"]*("\s*/?>)',

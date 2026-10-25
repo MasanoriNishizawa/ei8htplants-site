@@ -10,7 +10,7 @@ export const hueSite: BrandSiteConfig = {
   key: 'hue', name: BRAND.hue.name, descriptor: 'Ornamental Plants',
   origin: 'https://huebyei8htplants.com', logo: BRAND.hue.logo,
   instagramUrl: BRAND.hue.instagramUrl, instagramHandle: BRAND.hue.instagramHandle,
-  accent: '#947454', sections: [{ href: '/#concept', label: 'Concept' }],
+  accent: '#947454', sections: [{ href: '/#point-of-view', label: 'Concept' }],
 }
 
 /** HUE 専用ドメインのページ構成。ブランドページを独立したトップとして提供する。 */

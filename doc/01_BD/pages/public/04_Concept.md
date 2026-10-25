@@ -41,11 +41,11 @@
 
 | ブランド | リンク先 | サブタイトル |
 |---|---|---|
-| ei8ht plants | `/ei8htplants` | Agave Specialist |
-| Habitat Oides | `/habitatoides` | Habitat Style Materials & Plants |
-| HUE by ei8ht plants | `/hue` | Color Plants Selection |
+| ei8ht plants | `https://ei8htplants.com/ei8htplants` | Agave Specialist |
+| Habitat Oides | `https://habitatoides.com/` | Habitat Style Materials & Plants |
+| HUE by ei8ht plants | `https://huebyei8htplants.com/` | Color Plants Selection |
 
-- カードは `<Link>` コンポーネントで囲みブランドページへ遷移
+- カードはリンクで囲み、各ブランドのドメインへ移動する（ei8ht plants のカードは既存ドメイン内）
 - hover時に `translateY(-5px)` で浮き上がるアニメーション
 - 「詳しく見る →」テキスト表示
 
@@ -53,4 +53,4 @@
 
 - `.brand-line-grid`：3カラムグリッド（`index.css`）
 
-*最終更新: 2026-10-23（画面図の罫線をそろえた）*
+*最終更新: 2026-10-26（ブランドカードのドメイン別リンク先を反映）／2026-10-23（画面図の罫線をそろえた）*

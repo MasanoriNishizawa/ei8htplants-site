@@ -90,7 +90,7 @@ export default function Footer() {
               <p style={{ fontSize: 9, letterSpacing: '2.5px', color: 'var(--c-faint)', textTransform: 'uppercase', margin: '0 0 16px' }}>Brand</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {BRAND_LINKS.map(({ href, label }) => (
-                  <a key={href} href={href} style={linkStyle}
+                  <a key={href} href={href} target="_blank" rel="noopener noreferrer" style={linkStyle}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-muted)' }}
                   >

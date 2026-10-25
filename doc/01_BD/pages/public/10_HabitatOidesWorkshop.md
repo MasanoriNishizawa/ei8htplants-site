@@ -6,7 +6,7 @@ Habitat Oides ワークショップの詳細ページ。概要・コンテンツ
 
 ## URL / ルート
 
-`/habitatoides/workshop`
+`https://habitatoides.com/workshop`（以前の `https://ei8htplants.com/habitatoides/workshop` は301転送）
 
 ## 実装ファイル
 
@@ -83,11 +83,11 @@ Habitat Oides ワークショップの詳細ページ。概要・コンテンツ
 
 | 操作 | 遷移先 |
 |---|---|
-| 「← Habitat Oides」（ヒーロー左上・サブナビ） | `/habitatoides` |
-| 「View all events →」 | `/events` |
+| 「← Habitat Oides」（ヒーロー左上・サブナビ） | `/`（habitatoides.com） |
+| 「View all events →」 | ei8ht plants のイベント一覧（既存サイト） |
 
 ## 参加費の表示（2026-10-23 変更）
 
 参加費は `lib/constants.ts` の `WS_FEE_YEN`（1,000）から作る。日本語表示では「1,000円」、英語表示では「¥1,000」と出す（それまでは英語表示でも「1,000円」だった）。予約画面（[PG-12](12_Reserve.md)）の料金も同じ。
 
-*最終更新: 2026-10-23（英語表示の参加費を ¥1,000 にした）／2026-10-22（サブナビに Fee を追加し、Fee & Info のセクションを追記）*
+*最終更新: 2026-10-26（Habitat Oides 独立ドメインと既存イベント一覧へのリンクを反映）／2026-10-23（英語表示の参加費を ¥1,000 にした）／2026-10-22（サブナビに Fee を追加し、Fee & Info のセクションを追記）*

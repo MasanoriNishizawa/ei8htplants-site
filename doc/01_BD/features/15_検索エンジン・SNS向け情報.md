@@ -1,4 +1,4 @@
-# FT-26 — 検索エンジン・SNS 向けの情報（2026-10-21 追加）
+# FT-26 — 検索エンジン・SNS 向けの情報（2026-10-21 追加、2026-10-26 更新）
 
 ## 概要
 
@@ -7,6 +7,8 @@
 公開サイトは、ブラウザで JavaScript が動いてから画面を作る仕組み（SPA）になっている。各ページのタイトル・説明は画面ができてから JavaScript（`frontend/src/components/PageMeta.tsx`）で入れているが、SNS がプレビューを作るときは JavaScript を動かさないため、これまではどのページを共有してもサイト共通の情報しか出なかった。
 
 2026-10-21 から、サーバーがページの入口（`index.html`）を返す時点で、開かれた URL に合わせた情報を入れて返す。あわせて、検索エンジン向けの `robots.txt` と `sitemap.xml` を返す。
+
+2026-10-26 から、Habitat Oides と HUE の独立ドメインでは、許可されたホスト名に応じてブランド名・正式URL・OGP画像を切り替える。無関係なHostヘッダーを正式URLに使わない。各ブランドの未知のパスは noindex にし、ei8ht plants のサイト情報を混ぜない。
 
 ## 言葉の説明
 
@@ -105,19 +107,23 @@ Sitemap: https://ei8htplants.com/sitemap.xml
 ```
 
 - `/api` は読まないようにはしない。Google はページを表示するときに JavaScript を動かして `/api/...` からイベントや記事の中身を読むため、ここを止めるとページの中身が読めず、検索結果に載らなくなる
+- `Sitemap:` のURLはアクセスしたドメインに合わせる。ei8ht plants は `https://ei8htplants.com/sitemap.xml`、Habitat Oides は `https://habitatoides.com/sitemap.xml`、HUE は `https://huebyei8htplants.com/sitemap.xml`
 
 ## sitemap.xml（`GET /sitemap.xml`）
 
-検索エンジンに知らせるページの一覧。
+検索エンジンに知らせるページの一覧。Hostヘッダーが登録済みの独立ブランドドメインなら、そのブランド専用の一覧を返す。
 
 | 載せるもの | URL | 更新日 |
 |---|---|---|
-| 固定ページ | `/`・`/events`・`/gallery`・`/shop`・`/journal`・`/concept`・`/contact`・`/stockists`・`/collaborations`・`/media`・`/ei8htplants`・`/habitatoides`・`/habitatoides/workshop`・`/hue`・`/chat`・`/legal`・`/privacy` | 入れない |
+| ei8ht plants の固定ページ | `/`・`/events`・`/gallery`・`/shop`・`/journal`・`/concept`・`/contact`・`/stockists`・`/media`・`/ei8htplants`・`/chat`・`/legal`・`/privacy` | 入れない |
+| Habitat Oides の固定ページ | `/`・`/workshop`・`/collaborations`（`habitatoides.com` 上） | 入れない |
+| HUE の固定ページ | `/`（`huebyei8htplants.com` 上） | 入れない |
 | イベント（全件） | slug があれば `/events/{slug}`、無ければ `/events/{ID}` | 入れない |
 | 公開中の記事 | `/journal/{ID}` | 公開日（無ければ作成日） |
 | 公開中の商品 | `/shop/{ID}` | 作成日 |
 
 - `/reserve`（予約フォーム）はイベントの指定が必要なので載せない。noindex のページも載せない
+- ei8ht plants の一覧に、独立ドメインへ移した Habitat Oides・HUE・コラボレーションの旧ページは載せない
 - 作った一覧は 60 秒覚えておく。イベント・記事・商品のどれかの読み取りに失敗したときは、読めた分だけで返し、覚えておかない（次に来たときに作り直す）
 
 ## 関係するページ
@@ -126,4 +132,5 @@ Sitemap: https://ei8htplants.com/sitemap.xml
 - [BD-02 画面遷移図](../02_画面遷移図.md) の「画面ではない URL」
 - [DD-04 バックエンドロジック](../../02_DD/04_バックエンドロジック.md) の「SPA フォールバック」「検索エンジン・SNS 向けの情報」
 - [DD-06 API仕様](../../02_DD/06_API仕様.md) の「SEO（robots.txt・sitemap.xml）」
+- [FT-27 ブランド別ドメインとサイト表示](16_ブランド別ドメインとサイト表示.md)
 - 公開後の確かめ方は [OP-02 運用・保守マニュアル](../../05_OP/02_運用・保守マニュアル.md) の「SNS のプレビューと検索エンジン向けの確認」

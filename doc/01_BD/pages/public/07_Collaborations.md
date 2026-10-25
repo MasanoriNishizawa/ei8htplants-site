@@ -6,7 +6,7 @@ Habitat Oides のコラボレーション記事を一覧表示する公開ペー
 
 ## URL / ルート
 
-`/collaborations`
+`https://habitatoides.com/collaborations`（以前の `https://ei8htplants.com/collaborations` は301転送）
 
 ## 実装ファイル
 
@@ -22,6 +22,7 @@ Habitat Oides のコラボレーション記事を一覧表示する公開ペー
 |---|---|---|
 | [FT-02](../../features/02_APIクライアント.md) | APIクライアント | `api.collaborations.list()` 呼び出し |
 | [FT-08](../../features/08_コラボレーションCRUD.md) | コラボレーションCRUD | 一覧取得・表示 |
+| [FT-27](../../features/16_ブランド別ドメインとサイト表示.md) | ブランド別ドメインとサイト表示 | Habitat Oides 専用ドメインで表示 |
 
 ## 画面レイアウト
 
@@ -48,4 +49,4 @@ Habitat Oides のコラボレーション記事を一覧表示する公開ペー
 
 ## 詳細は [FT-08 コラボレーションCRUD](../../features/08_コラボレーションCRUD.md) を参照
 
-*最終更新: 2026-10-23（画面図の罫線をそろえた）*
+*最終更新: 2026-10-26（Habitat Oides 独立ドメインのURLを反映）／2026-10-23（画面図の罫線をそろえた）*

@@ -224,6 +224,8 @@ export default function Header() {
               <a
                 key={href}
                 href={href}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setBrandOpen(false)}
                 style={{
                   display: 'block', padding: '10px 20px',
@@ -404,6 +406,8 @@ export default function Header() {
           <a
             key={href}
             href={href}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={closeMenuAndReturnFocus}
             style={{
               fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',

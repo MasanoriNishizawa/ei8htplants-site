@@ -152,6 +152,10 @@ async def cache_control(request: Request, call_next) -> Response:
     """
     response = await call_next(request)
     path = request.url.path
+    # ルート側が明示した no-store は、汎用のHTML/静的キャッシュ設定で上書きしない。
+    # ブランド専用HTMLとService Workerの旧キャッシュ解除応答で必要。
+    if 'no-store' in response.headers.get('Cache-Control', '').lower():
+        return response
     if path.startswith('/api/'):
         # 1. API
         is_public_get = (
@@ -225,20 +229,60 @@ if os.path.isdir(DIST):
         Returns:
             静的ファイル、またはメタ情報入りの index.html
         """
-        # 1. ブランドページを専用ドメインへ移したため、既存 URL は旧ドメインから新しい正規 URL へ転送する。
         host = request.headers.get('host', '').lower().split(':', 1)[0]
-        if host in {'ei8htplants.com', 'www.ei8htplants.com'}:
-            moved_pages = {
+        path = full_path.strip('/')
+
+        # ブランドページの古い URL や別ブランドの URL を、それぞれの正規ドメインへ転送する。
+        moved_pages = {
+            'ei8htplants.com': {
                 'habitatoides': 'https://habitatoides.com/',
                 'habitatoides/workshop': 'https://habitatoides.com/workshop',
                 'hue': 'https://huebyei8htplants.com/',
                 'collaborations': 'https://habitatoides.com/collaborations',
-            }
-            destination = moved_pages.get(full_path.strip('/'))
-            if destination:
-                if request.url.query:
-                    destination += '?' + request.url.query
-                return RedirectResponse(url=destination, status_code=301)
+            },
+            'www.ei8htplants.com': {
+                'habitatoides': 'https://habitatoides.com/',
+                'habitatoides/workshop': 'https://habitatoides.com/workshop',
+                'hue': 'https://huebyei8htplants.com/',
+                'collaborations': 'https://habitatoides.com/collaborations',
+            },
+            'habitatoides.com': {'hue': 'https://huebyei8htplants.com/'},
+            'www.habitatoides.com': {'hue': 'https://huebyei8htplants.com/'},
+            'huebyei8htplants.com': {'habitatoides': 'https://habitatoides.com/'},
+            'www.huebyei8htplants.com': {'habitatoides': 'https://habitatoides.com/'},
+        }
+        destination = moved_pages.get(host, {}).get(path)
+        if destination:
+            if request.url.query:
+                destination += '?' + request.url.query
+            return RedirectResponse(
+                url=destination,
+                status_code=301,
+                headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
+            )
+
+        # 独立ブランドドメインに残っている旧PWAのService Workerとキャッシュを一度だけ解除する。
+        if host in seo.BRAND_DOMAINS and path == 'sw.js':
+            cleanup_worker = """self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate', event => event.waitUntil((async () => {
+  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  await Promise.all((await caches.keys()).map(key => caches.delete(key)));
+  await self.registration.unregister();
+  await self.clients.claim();
+  await Promise.all(windows.map(client => client.navigate(client.url).catch(() => undefined)));
+})()));"""
+            return Response(
+                content=cleanup_worker,
+                media_type='application/javascript',
+                headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
+            )
+        if host in seo.BRAND_DOMAINS and path == 'registerSW.js':
+            register_cleanup_worker = "if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {})); }"
+            return Response(
+                content=register_cleanup_worker,
+                media_type='application/javascript',
+                headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
+            )
 
         # 2. 静的ファイル（dist 直下の manifest・sw.js など）があればそのまま返す。
         #    「..%2F」や「%2Fetc%2F…」のようなパスで dist の外（.env やソースなど）を読まれないよう、
@@ -253,7 +297,8 @@ if os.path.isdir(DIST):
                 page_html = seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params), host)
             else:
                 page_html = seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params))
-            return HTMLResponse(page_html)
+            headers = {'Cache-Control': 'no-store, no-cache, must-revalidate'} if host in seo.BRAND_DOMAINS else None
+            return HTMLResponse(page_html, headers=headers)
         except Exception as e:
             # 4. 失敗しても SPA は表示できるよう、元の index.html を返す
             # 例外の文字列には利用者の入力（パス）が入りうるので、型名とコードだけを出す

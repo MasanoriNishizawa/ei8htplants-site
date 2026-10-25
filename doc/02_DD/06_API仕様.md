@@ -1568,6 +1568,14 @@ Markdown のファイルの中身をそのまま（`text/plain`）返す。
 
 **レスポンス `200`**（`text/plain`）
 
+Host名に応じて `Sitemap:` のURLを返す。
+
+| Host | `Sitemap:` |
+|---|---|
+| ei8ht plants（通常・未登録Host） | `https://ei8htplants.com/sitemap.xml` |
+| Habitat Oides | `https://habitatoides.com/sitemap.xml` |
+| HUE | `https://huebyei8htplants.com/sitemap.xml` |
+
 ```
 User-agent: *
 Allow: /
@@ -1583,7 +1591,15 @@ Sitemap: https://ei8htplants.com/sitemap.xml
 
 ### GET /sitemap.xml
 
-**レスポンス `200`**（`application/xml`）
+**レスポンス `200`**（`application/xml`）。Host名により `<loc>` のドメインとページ一覧を切り替える。
+
+| Host | 固定ページ |
+|---|---|
+| ei8ht plants（通常・未登録Host） | `/`・`/events`・`/gallery`・`/shop`・`/journal`・`/concept`・`/contact`・`/stockists`・`/media`・`/ei8htplants`・`/chat`・`/legal`・`/privacy` |
+| Habitat Oides | `/`・`/workshop`・`/collaborations` |
+| HUE | `/` |
+
+独立ブランドの一覧はブランド内のページだけを含み、ei8ht plants のイベント・記事・商品は含めない。ei8ht plants の一覧には移転済みのブランドページを含めない。
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1595,7 +1611,7 @@ Sitemap: https://ei8htplants.com/sitemap.xml
 </urlset>
 ```
 
-- 載せるもの: 固定ページ 17 件・イベント全件（slug、無ければ ID）・公開中の記事（lastmod は公開日、無ければ作成日）・公開中の商品（lastmod は作成日）
+- ei8ht plants で載せるもの: 固定ページ・イベント全件（slug、無ければ ID）・公開中の記事（lastmod は公開日、無ければ作成日）・公開中の商品（lastmod は作成日）。ブランド専用Hostでは上表にある固定ページだけ
 - 60 秒キャッシュする。イベント・記事・商品のどれかの読み取りに失敗したときは、読めた分だけ返し、キャッシュしない（エラーのステータスにはしない）
 
 ### ページを返すときのメタ情報（API ではない）
@@ -1696,4 +1712,4 @@ api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  �
 
 2026-10-21 から、`getAccessToken()` は Supabase のプログラム（`lib/supabase.ts`）を呼ばれたときに初めて読み込む（`await import('./supabase')`）。公開ページだけを見る人が読み込まないようにして、最初の表示を速くするため。
 
-*最終更新: 2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*
+*最終更新: 2026-10-26（Host別robots.txt・sitemap.xmlの返却を追加）／2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*

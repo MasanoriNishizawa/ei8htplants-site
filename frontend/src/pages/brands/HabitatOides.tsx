@@ -1,182 +1,102 @@
-import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
-import { useSectionSpy } from '../../hooks/useSectionSpy'
 import { BRAND } from '../../lib/brands'
-import { siteForHost } from '../../lib/siteHost'
 
-/** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
-const SECTIONS = ['concept', 'workshop', 'collaboration'] as const
-
-/**
- * Habitat Oides ブランドページ。コラボ動画の音量スライダーと、スクロール位置に合わせて選択中が変わるサブナビ（useSectionSpy）を含む
- * @returns ブランドページの画面
- */
+/** Habitat Oides の独立サイト。自生地の景色を鉢に表現するブランド体験を紹介する。 */
 export default function HabitatOides() {
   const t = useT()
-  // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
-  const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)
-  // コラボ動画の音量（0〜100。0 は消音。自動再生のため最初は消音）
-  const [volume, setVolume] = useState(0)
-  // コラボ動画の要素（音量を直接変える）
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  /**
-   * 音量のスライダーを動かしたとき、動画の音量と消音を合わせる
-   * @param val - 音量（0〜100）
-   */
-  const handleVolume = (val: number) => {
-    setVolume(val)
-    if (videoRef.current) {
-      videoRef.current.volume = val / 100
-      videoRef.current.muted = val === 0
-    }
-  }
 
   return (
-    <>
-      <PageMeta title="Habitat Oides" description={t('植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', 'A line dedicated to habitat-style arrangements that recreate the natural environments of plants. Workshops available.')} ogImage="/img/habitatOides/habitat_oides_hero.jpg" />
-      {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
-      <h1 className="sr-only">{t('Habitat Oides — ハビタットスタイルライン', 'Habitat Oides — Habitat Style Line')}</h1>
+    <div className="habitat-home">
+      <PageMeta
+        title="Habitat Oides"
+        description={t('植物の自生地に宿る景色の美しさを、鉢の中に再現する。植物・石・砂を組み合わせたハビタットスタイルを提案します。', 'Habitat Oides brings the landscapes plants call home into a single pot, combining plants, stone, and sand.')}
+        ogImage="/img/habitatOides/habitat_oides_hero.jpg"
+      />
 
-      {/* ファーストビュー。上にサブナビを重ねる */}
-      <div className="hero-wrapper">
-        {/* ページ内のセクションへ移動するサブナビ（表示中のセクションに印を付ける） */}
-        <nav className="brand-subnav">
-          <div className="brand-subnav-inner">
-            {SECTIONS.map((id) => (
-              <a key={id} href={`#${id}`} className={active === id ? 'subnav-active' : ''} onClick={scrollTo(id)}>
-                {id === 'concept' ? 'Concept' : id === 'workshop' ? 'Workshop' : 'Collaboration'}
-              </a>
-            ))}
+      <section className="habitat-hero" aria-labelledby="habitat-title">
+        <img className="habitat-hero-image" src="/img/habitatOides/habitat_oides_hero.jpg" alt="" />
+        <div className="habitat-hero-overlay" />
+        <div className="habitat-hero-copy">
+          <p className="habitat-eyebrow">HABITAT OIDES <span>—</span> PLANTS &amp; LANDSCAPE</p>
+          <h1 id="habitat-title">A landscape,<br />held in your hands.</h1>
+          <p className="habitat-hero-jp">植物の自生地に宿る景色の美しさを、ひと鉢の中に。</p>
+          <div className="habitat-hero-actions">
+            <a className="habitat-button habitat-button--light" href="#world">Explore our world <span>↓</span></a>
+            <Link className="habitat-button habitat-button--outline" to="/workshop">Workshop <span>↗</span></Link>
           </div>
-        </nav>
+        </div>
+        <span className="habitat-hero-index">01 / 03</span>
+        <span className="habitat-hero-side-label">PLANT · STONE · SOIL</span>
+      </section>
 
-        {/* 背景写真のヒーロー（写真は飾りなので読み上げない） */}
-        <section className="ho-hero">
-          <img className="ho-hero-bg-img" src="/img/habitatOides/habitat_oides_hero.jpg" alt="" aria-hidden />
-          {/* 下へのスクロールを促す線と文字 */}
-          <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
-            <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, rgba(220,200,175,0.5), transparent)' }} />
-            <span style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(200,168,210,0.65)', textTransform: 'uppercase' }}>Scroll</span>
+      <section id="world" className="habitat-world">
+        <div className="habitat-section-kicker"><span>01</span><span>OUR POINT OF VIEW</span></div>
+        <div className="habitat-world-grid">
+          <div className="habitat-world-heading">
+            <p className="habitat-small-label">HABITAT STYLE</p>
+            <h2>Nature is the<br /><em>original artist.</em></h2>
+            <p className="habitat-world-jp">自然の景色を、<br />手のひらの中へ。</p>
           </div>
-        </section>
-      </div>
-
-      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
-
-      {/* コンセプト: ロゴ・見出し・紹介文 */}
-      <section id="concept" className="brand-section" ref={sectionRef('concept')}>
-        <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
-          <div className="brand-concept-grid">
-            <img src={BRAND.habitatOides.logo} alt={BRAND.habitatOides.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto', borderRadius: '20%' }} />
-            <div>
-              <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
-                Habitat Style<br />Materials &amp; Plants
-              </h2>
-              <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
-                {t(
-                  <>植物の自生地に宿る景色の美しさを、鉢の中に再現する。<br /><br />石・砂・土と植物が織りなすハビタットスタイルの作品を制作・展示・販売。希少資材から陶芸作家の一点ものまで、その世界観を構築するすべてをご提案します。</>,
-                  <>Recreating the beauty of plants' natural habitats inside a single pot.<br /><br />We create, exhibit, and sell habitat-style works composed of rock, sand, soil and plants. From rare materials to one-of-a-kind pieces by ceramic artists — we offer everything to build that world.</>
-                )}
-              </p>
-            </div>
+          <div className="habitat-world-copy">
+            <p>{t(
+              '植物の美しさは、その植物が生きてきた環境とともにあります。石、砂、土、そして植物。それぞれの質感や形を重ね、自生地の風景を思わせるハビタットスタイルの作品をつくります。',
+              'A plant’s beauty is connected to the place it comes from. We bring together stone, sand, soil, and plants, composing habitat-style works that echo their natural landscapes.',
+            )}</p>
+            <p>{t(
+              '作品だけでなく、世界観をつくる資材や鉢もご紹介します。ひとつの景色を選ぶように、植物との出会いをお楽しみください。',
+              'We share the materials and pots that shape this world, too. Discover plants as you would discover a landscape.',
+            )}</p>
+            <a className="habitat-text-link" href={BRAND.habitatOides.instagramUrl} target="_blank" rel="noreferrer">Follow the landscape <span>↗</span></a>
           </div>
+        </div>
+        <figure className="habitat-world-image">
+          <img src="/img/habitatOides/habitat_oides_workshop_main.jpg" alt={t('ハビタットスタイルの制作風景', 'A habitat-style arrangement in progress')} />
+          <figcaption><span>COMPOSITION STUDY</span><span>PLANTS / MATERIALS / PLACE</span></figcaption>
+        </figure>
+      </section>
+
+      <section className="habitat-elements" aria-labelledby="habitat-elements-title">
+        <div className="habitat-section-kicker habitat-section-kicker--light"><span>02</span><span>THE ELEMENTS</span></div>
+        <h2 id="habitat-elements-title">A world in layers.</h2>
+        <div className="habitat-elements-grid">
+          <article><span>01</span><h3>PLANTS</h3><p>{t('個性ある姿と育つ環境に目を向け、景色をつくる植物を選びます。', 'Plants are chosen for their distinctive forms and the environments they come from.')}</p></article>
+          <article><span>02</span><h3>STONE &amp; SAND</h3><p>{t('石や砂の形・色・手触りを重ね、風景の輪郭を描きます。', 'Stone and sand bring texture, color, and a sense of place to each composition.')}</p></article>
+          <article><span>03</span><h3>VESSEL</h3><p>{t('植物と素材を受け止める鉢まで含めて、ひとつの景色として仕立てます。', 'The vessel completes the composition, holding every element as one landscape.')}</p></article>
         </div>
       </section>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
+      <section id="workshop" className="habitat-workshop">
+        <div className="habitat-workshop-image"><img src="/img/habitatOides/habitat_oides_workshop_main.jpg" alt="" /></div>
+        <div className="habitat-workshop-copy">
+          <p className="habitat-small-label">MAKE YOUR OWN LANDSCAPE</p>
+          <h2>Learn by<br />making.</h2>
+          <p className="habitat-workshop-jp">自分の手で、ハビタットスタイルを。</p>
+          <p>{t('植物と素材に触れながら、自分だけのレイアウトをつくるワークショップを開催しています。内容や参加費、開催情報はこちらからご覧ください。', 'Create your own layout with plants and materials in a hands-on workshop. Find details, fees, and upcoming sessions here.')}</p>
+          <Link className="habitat-button habitat-button--navy" to="/workshop">Discover the workshop <span>↗</span></Link>
+        </div>
+        <span className="habitat-workshop-index">A PLACE TO BEGIN</span>
+      </section>
 
-      {/* ワークショップの紹介と詳細ページへのリンク */}
-      <section id="workshop" className="brand-section" ref={sectionRef('workshop')}>
-        <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Workshop</h2>
-          <div className="ho-workshop-feature">
-            <div style={{ background: '#2e4898', minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 32px', gap: 24 }}>
-              <div style={{ width: 80, height: 80, border: '1px solid #5572cc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, color: '#d8b8ca' }}>✦</div>
-              <div style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 200, letterSpacing: '0.12em', color: '#f0f2ff', textTransform: 'uppercase', lineHeight: 1.3, textAlign: 'center' }}>
-                Learn &amp;<br />Create
-              </div>
-            </div>
-            <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20 }}>
-              <h3 style={{ fontSize: 16, letterSpacing: 2, textTransform: 'uppercase', color: '#d8b8ca', margin: 0 }}>Workshop</h3>
-              <p style={{ fontSize: 16, color: '#f0f2ff', lineHeight: 2, margin: 0, opacity: 0.75 }}>
-                {t(
-                  <>ハビタットスタイルに向いた植物・資材を使い、<br />実際に手を動かして学べるワークショップ。<br />初心者からマニアまで楽しめる内容です。</>,
-                  <>A hands-on workshop using plants and materials suited for the habitat style.<br />Enjoyable for beginners and enthusiasts alike.</>
-                )}
-              </p>
-              <Link
-                to={siteForHost(window.location.hostname).key === 'habitat-oides' ? '/workshop' : '/habitatoides/workshop'}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f0f2ff', textDecoration: 'none', border: '1px solid #5572cc', padding: '14px 24px', borderRadius: 2, width: 'fit-content' }}
-              >
-                {t('Workshop について →', 'About Workshop →')}
-              </Link>
-            </div>
+      <section id="collaboration" className="habitat-collaboration">
+        <div className="habitat-section-kicker habitat-section-kicker--light"><span>03</span><span>COLLABORATIONS</span></div>
+        <div className="habitat-collaboration-grid">
+          <div>
+            <p className="habitat-small-label">MADE TOGETHER</p>
+            <h2>Different hands.<br /><em>One landscape.</em></h2>
+            <p>{t('作り手や素材との出会いから生まれる、Habitat Oides のコラボレーションをご紹介します。', 'Discover collaborations shaped by the people, makers, and materials we meet along the way.')}</p>
+            <Link className="habitat-text-link habitat-text-link--light" to="/collaborations">View collaborations <span>↗</span></Link>
           </div>
+          <video src="/collab.mp4" autoPlay loop muted playsInline aria-label="Habitat Oides collaboration film" />
         </div>
       </section>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
-
-      {/* コラボレーション: 縦長の動画と音量スライダー、一覧ページへのリンク */}
-      <section id="collaboration" className="brand-section" ref={sectionRef('collaboration')}
-        style={{ background: '#1e3272', padding: '72px 0', textAlign: 'center' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#9aaedd', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #3a58b8' }}>Collaboration</h2>
-          <div style={{ margin: '40px auto 0', width: 'min(420px, 100%)' }}>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', maxHeight: '68vh', overflow: 'hidden', borderRadius: 4, background: '#000' }}>
-              <video
-                ref={videoRef}
-                src="/collab.mp4"
-                autoPlay
-                loop
-                muted
-                playsInline
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-            {/* 音量スライダー（0 にすると消音） */}
-            <div style={{ textAlign: 'center', marginTop: 20, padding: 10 }}>
-              <span style={{ display: 'block', fontSize: 11, color: '#9aaedd', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
-                Volume: {volume}%
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={volume}
-                onChange={(e) => handleVolume(Number(e.target.value))}
-                style={{ width: 180, height: 2, cursor: 'pointer', accentColor: '#d8b8ca' }}
-              />
-            </div>
-          </div>
-          <div style={{ marginTop: 48 }}>
-            <Link
-              to="/collaborations"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 14, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#9aaedd', textDecoration: 'none', borderBottom: '1px solid #3a58b8', paddingBottom: 4 }}
-            >
-              View all collaborations →
-            </Link>
-          </div>
-        </div>
+      <section className="habitat-follow">
+        <p className="habitat-small-label">FOLLOW THE LANDSCAPE</p>
+        <h2>Find us in the field.</h2>
+        <a href={BRAND.habitatOides.instagramUrl} target="_blank" rel="noreferrer">{BRAND.habitatOides.instagramHandle} <span>↗</span></a>
       </section>
-
-      {/* Instagram への案内（紺色の帯） */}
-      <section style={{ background: '#1e3272', color: '#f0f2ff', textAlign: 'center', padding: '88px 20px', borderTop: '1px solid #2e4898' }}>
-        <h2 style={{ fontSize: 'clamp(24px, 4vw, 48px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Follow Us</h2>
-        <p style={{ fontSize: 13, letterSpacing: 2, color: '#9aaedd', textTransform: 'uppercase', margin: '0 0 40px' }}>Instagram</p>
-        <a
-          href={BRAND.habitatOides.instagramUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f0f2ff', textDecoration: 'none', border: '1px solid #5572cc', padding: '16px 36px', borderRadius: 2 }}
-        >
-          {BRAND.habitatOides.instagramHandle} →
-        </a>
-      </section>
-    </>
+    </div>
   )
 }

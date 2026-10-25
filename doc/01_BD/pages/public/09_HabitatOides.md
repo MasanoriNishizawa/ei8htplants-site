@@ -2,11 +2,11 @@
 
 ## 概要
 
-Habitat Oides ブランドページ。ハビタットスタイルのコンセプト、ワークショップ案内、コラボレーション動画を提供する。
+Habitat Oides 専用ドメインの独立ホームページ。ei8ht plants の共通テーマは使わず、風景・素材・植物をテーマにした独自の文章、写真、配色、レイアウトでブランドを紹介する。
 
 ## URL / ルート
 
-`/habitatoides`
+`https://habitatoides.com/`（以前の `https://ei8htplants.com/habitatoides` は301転送）
 
 ## 実装ファイル
 
@@ -16,72 +16,55 @@ Habitat Oides ブランドページ。ハビタットスタイルのコンセプ
 
 | 機能ID | 機能名 | 用途 |
 |---|---|---|
-| [FT-07](../../features/07_ブランドサブナビゲーション.md) | ブランドサブナビゲーション | concept / workshop / collaboration セクション連動ナビ |
+| [FT-27](../../features/16_ブランド別ドメインとサイト表示.md) | ブランド別ドメインとサイト表示 | 独立ホーム、専用ヘッダー・フッター、ブランド切替 |
+
+専用ヘッダーはロゴ、Concept / Workshop / Collaboration のリンク、他ブランドへの切替リンク、言語切替を表示する。フッターにもブランド切替リンクがあり、他ブランドへは新しいタブで移動する。
+
+| ヘッダー項目 | 実際のリンク先 | 動作 |
+|---|---|---|
+| Concept | `/#world` | トップページの `id="world"`（Our Point of View）へ移動 |
+| Workshop | `/#workshop` | トップページの Workshop セクションへ移動 |
+| Collaboration | `/collaborations` | Habitat Oides のコラボレーション一覧へ移動 |
 
 ## セクション構成
 
 | セクションID | ラベル | 内容 |
 |---|---|---|
-| `concept` | Concept | ハビタットスタイルの説明文・ロゴ画像 |
-| `workshop` | Workshop | ワークショップ紹介カード・詳細ページリンク |
-| `collaboration` | Collaboration | コラボ動画・音量スライダー・全件表示リンク |
+| `world` | Our Point of View | ハビタットスタイルの考え方・写真 |
+| （IDなし） | The Elements | 植物・石と砂・鉢を紹介する3つのカード |
+| `workshop` | Make Your Own Landscape | 制作写真とワークショップ詳細ページへのリンク |
+| `collaboration` | Collaborations | コラボレーションの紹介文・動画・一覧リンク |
+| （IDなし） | Follow the Landscape | Instagram へのリンク |
 
 ## 画面レイアウト
 
 ```
 ┌─────────────────────────────────────┐
-│ ヒーロー（.ho-hero、ダークブルー）  │
-│  ・サブナビ（concept/workshop/      │
-│    collaboration）                  │
-│  ・スクロールヒントライン           │
+│ 専用ヘッダー（濃紺、ロゴ・サイト内リンク・ブランド切替）│
+│ ヒーロー（風景写真、コピー、Workshop CTA）            │
 ├─────────────────────────────────────┤
-│ Concept セクション                  │
-│  ┌──────────┬─────────────────┐     │
-│  │ロゴ画像  │ "Habitat Style  │     │
-│  │          │  Materials &    │     │
-│  │          │  Plants"        │     │
-│  └──────────┴─────────────────┘     │
+│ Our Point of View（説明・写真）     │
 ├─────────────────────────────────────┤
-│ Workshop セクション                 │
-│  ┌───────────────────────────────┐  │
-│  │ ダークブルー装飾エリア        │  │
-│  │ + テキスト + リンクボタン     │  │
-│  └───────────────────────────────┘  │
+│ The Elements（植物・石と砂・鉢）   │
 ├─────────────────────────────────────┤
-│ Collaboration セクション（紺）      │
-│  ・縦動画（9:16）                   │
-│  ・音量スライダー（0〜100%）        │
-│  ・「View all collaborations →」    │
+│ Workshop CTA（写真・説明・詳細リンク）│
 ├─────────────────────────────────────┤
-│ Follow Us セクション（紺）          │
-│  ・@habitatoides Instagram リンク   │
+│ Collaborations（紹介・動画・一覧リンク）│
+├─────────────────────────────────────┤
+│ Follow the Landscape（Instagram）   │
+├─────────────────────────────────────┤
+│ 専用フッター（ブランド切替は新しいタブ）│
 └─────────────────────────────────────┘
 ```
 
-## 状態管理
-
-| state | 型 | 説明 |
-|---|---|---|
-| `active` | string | アクティブセクションID（サブナビ用） |
-| `volume` | number | 動画音量（0-100） |
-
-## 動画音量スライダー
-
-```
-<input type="range" min=0 max=100>
-    → videoRef.current.volume = val / 100
-    → videoRef.current.muted = val === 0
-```
-
-- 初期状態はミュート（volume=0）
-- スライダーを動かすと音量変更
+このホームのスタイルは `frontend/src/index.css` の `.habitat-home` 系クラスで定義する。旧版にあった音量スライダー付きの縦動画ページとは構成が異なる。
 
 ## 画面遷移
 
 | 操作 | 遷移先 |
 |---|---|
-| 「Workshop について →」 | `/habitatoides/workshop` |
-| 「View all collaborations →」 | `/collaborations` |
+| 「Workshop について →」 | `/workshop`（habitatoides.com 内） |
+| 「View all collaborations →」 | `/collaborations`（habitatoides.com 内） |
 | 「@habitatoides →」 | Instagram（外部リンク） |
 
-*最終更新: 2026-10-23（画面図の罫線をそろえた）*
+*最終更新: 2026-10-26（独立ホームの内容・ビジュアル、専用ヘッダー／フッターを反映）／2026-10-26（Habitat Oides 独立ドメインのURLとページ内リンクを反映）／2026-10-23（画面図の罫線をそろえた）*

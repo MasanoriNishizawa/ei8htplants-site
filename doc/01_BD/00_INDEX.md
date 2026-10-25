@@ -26,11 +26,11 @@
 | PG-04 | [Concept](pages/public/04_Concept.md) | `/concept` | — |
 | PG-05 | [Contact](pages/public/05_Contact.md) | `/contact` | FT-05 |
 | PG-06 | [Stockists](pages/public/06_Stockists.md) | `/stockists` | FT-10 (read) |
-| PG-07 | [Collaborations](pages/public/07_Collaborations.md) | `/collaborations` | FT-08 (read) |
+| PG-07 | [Collaborations](pages/public/07_Collaborations.md) | `habitatoides.com/collaborations`（ei8htplants.com の旧 `/collaborations` は転送） | FT-08, FT-27 (read) |
 | PG-08 | [ei8ht plants](pages/public/08_Ei8htPlants.md) | `/ei8htplants` | FT-07 |
-| PG-09 | [Habitat Oides](pages/public/09_HabitatOides.md) | `/habitatoides` | FT-07 |
-| PG-10 | [HabitatOides Workshop](pages/public/10_HabitatOidesWorkshop.md) | `/habitatoides/workshop` | FT-07 |
-| PG-11 | [HUE](pages/public/11_Hue.md) | `/hue` | FT-07 |
+| PG-09 | [Habitat Oides](pages/public/09_HabitatOides.md) | `habitatoides.com/`（旧 `/habitatoides` は転送） | FT-07, FT-27 |
+| PG-10 | [HabitatOides Workshop](pages/public/10_HabitatOidesWorkshop.md) | `habitatoides.com/workshop`（旧 `/habitatoides/workshop` は転送） | FT-07, FT-27 |
+| PG-11 | [HUE](pages/public/11_Hue.md) | `huebyei8htplants.com/`（旧 `/hue` は転送） | FT-07, FT-27 |
 | PG-12 | [Reserve](pages/public/12_Reserve.md) | `/reserve` | FT-06 |
 | PG-13 | [予約キャンセル](pages/public/13_CancelReservation.md) | `/cancel` | FT-06 |
 | PG-14 | [Shop](pages/public/14_Shop.md) | `/shop` | FT-13 |
@@ -45,7 +45,7 @@
 | PG-23 | [Media（出演情報）](pages/public/23_Media.md) | `/media` | — |
 | PG-24 | [PrivacyPolicy（プライバシーポリシー）](pages/public/24_PrivacyPolicy.md) | `/privacy` | — |
 
-PG-01〜PG-13・PG-20〜PG-24 はヘッダーとフッターの付いた共通の枠（`Layout`）の中に、PG-14〜PG-19 はストア用の枠（`StoreLayout`）の中に表示する。予約（PG-12）と予約キャンセル（PG-13）は `Layout` の中にある。
+PG-01〜PG-08・PG-12・PG-13・PG-20〜PG-24 はヘッダーとフッターの付いた共通の枠（`Layout`）の中に、PG-09〜PG-11 は各ブランド専用の枠（`BrandSiteLayout`）の中に表示する。PG-14〜PG-19 はストア用の枠（`StoreLayout`）の中に表示する。予約（PG-12）と予約キャンセル（PG-13）は `Layout` の中にある。
 
 どのページにも当たらない URL を開いたときは、`Layout` の中に「ページが見つかりません」のページ（`pages/NotFound.tsx`。ID は付けていない。2026-10-22 追加）を出す。内容は [画面遷移図](02_画面遷移図.md) の「ルーティング定義」を参照。
 
@@ -107,6 +107,7 @@ PG-01〜PG-13・PG-20〜PG-24 はヘッダーとフッターの付いた共通�
 | FT-24 | [AIチャット](features/13_AIチャット.md) | Gemini による植物相談・ワークショップ案内のチャット。管理画面での Q&A 登録・会話履歴の確認 | PG-22, PG-A21, PG-A22 |
 | FT-25 | [分析ダッシュボード](features/14_分析ダッシュボード.md) | 収支・予約・注文・問い合わせ・アクセス数のグラフ（Streamlit Community Cloud で公開。管理画面と同じアカウントでログイン。2026-10-17 追加） | PG-A01（サイドメニュー「分析 ↗」から新しいタブで開く） |
 | FT-26 | [検索エンジン・SNS 向けの情報](features/15_検索エンジン・SNS向け情報.md) | ページを返すときにタイトル・説明・SNS のプレビュー用の情報（OGP）・正式な URL・構造化データを入れる。`robots.txt`・`sitemap.xml`（2026-10-21 追加） | 公開ページ全部（管理画面などには noindex） |
+| FT-27 | [ブランド別ドメインとサイト表示](features/16_ブランド別ドメインとサイト表示.md) | 3ブランドのドメイン判定、専用レイアウト、管理画面への転送、旧URLの転送（2026-10-26 追加） | PG-01, PG-09, PG-10, PG-11, PG-A01〜PG-A22 |
 
 FT-16〜FT-22 は使っていない（欠番）。
 
@@ -146,4 +147,4 @@ FT-16〜FT-22 は使っていない（欠番）。
 | PG-A09 | PG-A12 |
 | PG-13（`/chat`） | PG-22 |
 
-*最終更新: 2026-10-22（存在しない URL のページ（公開サイト・管理画面）を追記）／2026-10-22（PG-15〜PG-17・PG-19〜PG-24、PG-A15〜PG-A22 のページ設計書を追加。FT-23・FT-24 を索引に追加。旧 ID の対照表を追加）*
+*最終更新: 2026-10-26（3ブランドのドメイン別ページURLとFT-27を追加）／2026-10-22（存在しない URL のページ（公開サイト・管理画面）を追記）／2026-10-22（PG-15〜PG-17・PG-19〜PG-24、PG-A15〜PG-A22 のページ設計書を追加。FT-23・FT-24 を索引に追加。旧 ID の対照表を追加）*
