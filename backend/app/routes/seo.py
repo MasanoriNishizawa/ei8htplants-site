@@ -26,7 +26,7 @@ from datetime import date
 from typing import Any, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse, Response
 
 from ..config import SITE_ORIGIN
@@ -128,9 +128,16 @@ STATIC_PAGES: dict[str, StaticPage] = {
 # sitemap.xml に載せる固定ページ（検索結果に出してよい公開ページだけ。/reserve はイベントの指定が要るので外す）
 SITEMAP_STATIC_PATHS = (
     '/', '/events', '/gallery', '/shop', '/journal', '/concept', '/contact', '/stockists',
-    '/collaborations', '/media', '/ei8htplants', '/habitatoides', '/habitatoides/workshop',
-    '/hue', '/chat', '/legal', '/privacy',
+    '/media', '/ei8htplants', '/chat', '/legal', '/privacy',
 )
+
+# ブランド専用ドメイン。未知の Host ヘッダーを canonical URL に使わないよう、許可リストで解決する。
+BRAND_DOMAINS = {
+    'habitatoides.com': ('Habitat Oides', 'https://habitatoides.com'),
+    'www.habitatoides.com': ('Habitat Oides', 'https://habitatoides.com'),
+    'huebyei8htplants.com': ('HUE by ei8ht plants', 'https://huebyei8htplants.com'),
+    'www.huebyei8htplants.com': ('HUE by ei8ht plants', 'https://huebyei8htplants.com'),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -522,6 +529,8 @@ class PageMeta:
     has_own_image: bool = False
     # <script type="application/ld+json"> に入れる構造化データ（dict）のリスト
     json_ld: list[dict] = field(default_factory=list)
+    # og:site_name（独立ブランドサイトでは各ブランド名にする）
+    site_name: str = SITE_NAME
 
 
 def _full_title(title: Optional[str]) -> str:
@@ -682,7 +691,38 @@ def _organization_json_ld() -> dict:
     }
 
 
-def build_page_meta(path: str, query: Optional[dict] = None) -> PageMeta:
+def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
+    """ブランド独立ドメイン用の canonical / OGP を作る。未公開パスは noindex にする。"""
+    norm = '/' + path.strip('/')
+    pages = {
+        'Habitat Oides': {
+            '/': ('Habitat Oides', '植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', '/img/habitatOides/habitat_oides_hero.jpg'),
+            '/workshop': ('Habitat Style Workshop', 'ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', '/img/habitatOides/habitat_oides_workshop_main.jpg'),
+            '/collaborations': ('Collaborations', 'Habitat Oides のコラボレーション作品・活動記録。', '/img/habitatOides/habitat_oides_hero.jpg'),
+            '/habitatoides': ('Habitat Oides', '植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', '/img/habitatOides/habitat_oides_hero.jpg'),
+            '/habitatoides/workshop': ('Habitat Style Workshop', 'ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', '/img/habitatOides/habitat_oides_workshop_main.jpg'),
+        },
+        'HUE by ei8ht plants': {
+            '/': ('HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png'),
+            '/hue': ('HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png'),
+        },
+    }
+    page = pages[site_name].get(norm)
+    if page is None:
+        logo = 'hue' if site_name == 'HUE by ei8ht plants' else 'habitatoides'
+        return PageMeta(
+            title=site_name, description=DEFAULT_DESCRIPTION, image=f'{origin}/img/logo-{logo}.png',
+            url=f'{origin}{quote(norm, safe="/")}', noindex=True, canonical=False, site_name=site_name,
+        )
+    title, description, image_path = page
+    canonical_path = '/' if norm in ('/habitatoides', '/hue') else '/workshop' if norm == '/habitatoides/workshop' else norm
+    return PageMeta(
+        title=site_name if title == site_name else f'{title} | {site_name}', description=description, image=f'{origin}{image_path}',
+        url=f'{origin}{quote(canonical_path, safe="/")}', has_own_image=True, site_name=site_name,
+    )
+
+
+def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '') -> PageMeta:
     """パスに応じた <head> のメタ情報を決める。
 
     1. /events/{slug または id}: イベント名・説明・画像・構造化データ
@@ -699,6 +739,10 @@ def build_page_meta(path: str, query: Optional[dict] = None) -> PageMeta:
     Returns:
         PageMeta
     """
+    host = hostname.lower().split(':', 1)[0]
+    if host in BRAND_DOMAINS:
+        return _brand_domain_meta(path, *BRAND_DOMAINS[host])
+
     # パスを "/a/b" の形にそろえる（末尾のスラッシュは外す）
     norm = '/' + path.strip('/')
     segments = [s for s in norm.split('/') if s]
@@ -792,7 +836,7 @@ def render_head_tags(meta: PageMeta) -> str:
         f'<meta property="og:description" content="{e(meta.description)}" />',
         f'<meta property="og:image" content="{e(meta.image)}" />',
         f'<meta property="og:url" content="{e(meta.url)}" />',
-        f'<meta property="og:site_name" content="{e(SITE_NAME)}" />',
+        f'<meta property="og:site_name" content="{e(meta.site_name)}" />',
         f'<meta property="og:locale" content="{OG_LOCALE}" />',
         f'<meta name="twitter:card" content="{card}" />',
         f'<meta name="twitter:title" content="{e(meta.title)}" />',
@@ -853,7 +897,7 @@ def _read_index(index_path: str) -> str:
     return content
 
 
-def render_spa_index(index_path: str, path: str, query: Optional[dict] = None) -> str:
+def render_spa_index(index_path: str, path: str, query: Optional[dict] = None, hostname: str = '') -> str:
     """SPA の index.html に、パスに応じたメタ情報を入れた HTML を返す。
 
     Args:
@@ -864,7 +908,19 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None) -
     Returns:
         メタ情報入りの HTML 文字列
     """
-    return inject_head(_read_index(index_path), build_page_meta(path, query))
+    host = hostname.lower().split(':', 1)[0]
+    page = inject_head(_read_index(index_path), build_page_meta(path, query, host))
+    if host in BRAND_DOMAINS:
+        # 管理画面用のPWAは既存 ei8ht plants ドメインだけに登録し、ブランドサイトには管理用アプリを表示しない。
+        page = re.sub(r'<link\s+rel="manifest"[^>]*>', '', page, flags=re.I)
+        page = re.sub(r'<script\s+id="vite-plugin-pwa:register-sw"[^>]*>\s*</script>', '', page, flags=re.I)
+        site_name = BRAND_DOMAINS[host][0]
+        page = re.sub(
+            r'(<meta\s+name="apple-mobile-web-app-title"\s+content=")[^"]*("\s*/?>)',
+            lambda match: f'{match.group(1)}{html.escape(site_name, quote=True)}{match.group(2)}',
+            page, flags=re.I,
+        )
+    return page
 
 
 # ---------------------------------------------------------------------------
@@ -872,7 +928,7 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None) -
 # ---------------------------------------------------------------------------
 
 @router.get('/robots.txt', response_class=PlainTextResponse)
-def robots_txt() -> PlainTextResponse:
+def robots_txt(request: Request) -> PlainTextResponse:
     """クローラー向けの robots.txt を返す。管理画面・予約キャンセル・購入手続きは除外する（/api は除外しない）。
 
     Returns:
@@ -880,11 +936,13 @@ def robots_txt() -> PlainTextResponse:
     """
     lines = ['User-agent: *', 'Allow: /']
     lines += [f'Disallow: {p}' for p in ROBOTS_DISALLOW]
-    lines += ['', f'Sitemap: {SITE_ORIGIN}/sitemap.xml', '']
+    host = request.headers.get('host', '').lower().split(':', 1)[0]
+    origin = BRAND_DOMAINS.get(host, ('', SITE_ORIGIN))[1]
+    lines += ['', f'Sitemap: {origin}/sitemap.xml', '']
     return PlainTextResponse('\n'.join(lines))
 
 
-def _sitemap_url(path: str, lastmod: Any = None) -> str:
+def _sitemap_url(path: str, lastmod: Any = None, origin: str = SITE_ORIGIN) -> str:
     """sitemap の <url> 要素を1つ作る。lastmod は日付として読めるときだけ入れる。
 
     Args:
@@ -894,14 +952,14 @@ def _sitemap_url(path: str, lastmod: Any = None) -> str:
     Returns:
         <url> 要素の文字列
     """
-    loc = html.escape(SITE_ORIGIN + quote(path, safe='/'), quote=True)
+    loc = html.escape(origin + quote(path, safe='/'), quote=True)
     d = _parse_date(lastmod)
     if d:
         return f'  <url><loc>{loc}</loc><lastmod>{d.isoformat()}</lastmod></url>'
     return f'  <url><loc>{loc}</loc></url>'
 
 
-def _build_sitemap() -> tuple[str, bool]:
+def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -> tuple[str, bool]:
     """sitemap.xml の中身を作る。
 
     1. 固定ページ（SITEMAP_STATIC_PATHS）
@@ -913,14 +971,21 @@ def _build_sitemap() -> tuple[str, bool]:
     Returns:
         (XML の文字列, 全部読めたか)
     """
-    entries = [_sitemap_url(p) for p in SITEMAP_STATIC_PATHS]
+    if site_name:
+        paths = ('/', '/workshop', '/collaborations') if site_name == 'Habitat Oides' else ('/',)
+        entries = [_sitemap_url(p, origin=origin) for p in paths]
+        return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                + '\n'.join(entries) + '\n</urlset>\n'), True
+
+    entries = [_sitemap_url(p, origin=origin) for p in SITEMAP_STATIC_PATHS]
     ok = True
     try:
         events = _rows(supabase.table('events').select('id, slug, start_date').order('start_date', desc=True).execute())
         for ev in events:
             key = _str(ev.get('slug')) or _str(ev.get('id'))
             if key:
-                entries.append(_sitemap_url(f'/events/{key}'))
+                entries.append(_sitemap_url(f'/events/{key}', origin=origin))
     except Exception as e:
         ok = False
         logger.error('sitemap イベント取得エラー: %s', error_summary(e))
@@ -930,7 +995,7 @@ def _build_sitemap() -> tuple[str, bool]:
         )
         for a in articles:
             if _str(a.get('id')):
-                entries.append(_sitemap_url(f"/journal/{a['id']}", a.get('published_at') or a.get('created_at')))
+                entries.append(_sitemap_url(f"/journal/{a['id']}", a.get('published_at') or a.get('created_at'), origin))
     except Exception as e:
         ok = False
         logger.error('sitemap 記事取得エラー: %s', error_summary(e))
@@ -940,7 +1005,7 @@ def _build_sitemap() -> tuple[str, bool]:
         )
         for p in products:
             if _str(p.get('id')):
-                entries.append(_sitemap_url(f"/shop/{p['id']}", p.get('created_at')))
+                entries.append(_sitemap_url(f"/shop/{p['id']}", p.get('created_at'), origin))
     except Exception as e:
         ok = False
         logger.error('sitemap 商品取得エラー: %s', error_summary(e))
@@ -954,7 +1019,7 @@ def _build_sitemap() -> tuple[str, bool]:
 
 
 @router.get('/sitemap.xml')
-def sitemap_xml() -> Response:
+def sitemap_xml(request: Request) -> Response:
     """公開ページ・イベント・公開済みの記事・公開中の商品の URL 一覧（sitemap.xml）を返す。
 
     作った XML は CACHE_TTL_SECONDS 秒メモリに残す。読み取りに失敗した部分があるときは
@@ -963,9 +1028,13 @@ def sitemap_xml() -> Response:
     Returns:
         sitemap.xml の本文（application/xml）
     """
-    found, xml = _cache.get(('sitemap',))
+    host = request.headers.get('host', '').lower().split(':', 1)[0]
+    site = BRAND_DOMAINS.get(host)
+    site_name, origin = site if site else (None, SITE_ORIGIN)
+    cache_key = ('sitemap', site_name or 'ei8htplants')
+    found, xml = _cache.get(cache_key)
     if not found:
-        xml, ok = _build_sitemap()
+        xml, ok = _build_sitemap(site_name, origin)
         if ok:
-            _cache.set(('sitemap',), xml)
+            _cache.set(cache_key, xml)
     return Response(content=xml, media_type='application/xml')

@@ -4,6 +4,7 @@ import { useT } from '../../lib/lang'
 import { useSectionSpy } from '../../hooks/useSectionSpy'
 import { formatYen } from '../../lib/format'
 import { WS_FEE_YEN } from '../../lib/constants'
+import { siteForHost } from '../../lib/siteHost'
 
 /** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
 const SECTIONS = ['about', 'contents', 'flow', 'fee'] as const
@@ -34,11 +35,11 @@ export default function HabitatOidesWorkshop() {
 
   return (
     <>
-      <PageMeta title="Habitat Style Workshop" description={t('ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', 'A habitat-style workshop where you can create your own layout inspired by the natural environments of plants.')} ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_workshop_main.jpg" />
+      <PageMeta title="Habitat Style Workshop" description={t('ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', 'A habitat-style workshop where you can create your own layout inspired by the natural environments of plants.')} ogImage="/img/habitatOides/habitat_oides_workshop_main.jpg" />
       {/* ページ内のセクションへ移動するサブナビ。左端は Habitat Oides のページへ戻るリンク */}
-      <nav className="brand-subnav" style={{ top: 60 }}>
+      <nav className="brand-subnav" style={{ top: 72 }}>
         <div className="brand-subnav-inner">
-          <Link to="/habitatoides" style={{ borderRight: '1px solid #dddde8', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--c-muted)', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
+          <Link to={siteForHost(window.location.hostname).key === 'habitat-oides' ? '/' : '/habitatoides'} style={{ borderRight: '1px solid #dddde8', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--c-muted)', textDecoration: 'none', padding: '15px 24px 15px 18px', display: 'block', whiteSpace: 'nowrap' }}>
             ← Habitat Oides
           </Link>
           {SECTIONS.map((id) => (
@@ -51,7 +52,7 @@ export default function HabitatOidesWorkshop() {
 
       {/* ファーストビュー（左上に Habitat Oides へ戻るリンク） */}
       <section className="wspage-hero">
-        <Link to="/habitatoides" style={{ position: 'absolute', top: 28, left: 28, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#9aaedd', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, zIndex: 1 }}>
+        <Link to={siteForHost(window.location.hostname).key === 'habitat-oides' ? '/' : '/habitatoides'} style={{ position: 'absolute', top: 28, left: 28, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase', color: '#9aaedd', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, zIndex: 1 }}>
           ← Habitat Oides
         </Link>
         <p style={{ fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#d8b8ca', marginBottom: 24, position: 'relative' }}>Habitat Oides</p>
@@ -165,7 +166,7 @@ export default function HabitatOidesWorkshop() {
           {t(<>ワークショップへのご参加は<br />各イベントページよりお申し込みいただけます。</>, <>To join a workshop,<br />please sign up on the individual event page.</>)}
         </p>
         <Link
-          to="/events"
+          to={siteForHost(window.location.hostname).key === 'habitat-oides' ? 'https://ei8htplants.com/events' : '/events'}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f0f2ff', textDecoration: 'none', border: '1px solid #5572cc', padding: '16px 36px', borderRadius: 2 }}
         >
           View all events →

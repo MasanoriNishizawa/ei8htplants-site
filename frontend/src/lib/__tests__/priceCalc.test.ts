@@ -286,38 +286,38 @@ describe('loadCostRateInput・saveCostRateInput（目標原価率の保存と復
   })
 
   it('何も保存していなければ既定の「40」を返す', () => {
-    expect(loadCostRateInput()).toBe('40')
+    expect(loadCostRateInput('habitatoides')).toBe('40')
   })
 
   it('保存した「35」はそのまま「35」で復元される', () => {
-    saveCostRateInput('35')
-    expect(localStorage.getItem(COST_RATE_STORAGE_KEY)).toBe('35')
-    expect(loadCostRateInput()).toBe('35')
+    saveCostRateInput('habitatoides', '35')
+    expect(localStorage.getItem(`${COST_RATE_STORAGE_KEY}:habitatoides`)).toBe('35')
+    expect(loadCostRateInput('habitatoides')).toBe('35')
   })
 
   it('前後の空白は除いて保存する', () => {
-    saveCostRateInput(' 37.5 ')
-    expect(localStorage.getItem(COST_RATE_STORAGE_KEY)).toBe('37.5')
+    saveCostRateInput('habitatoides', ' 37.5 ')
+    expect(localStorage.getItem(`${COST_RATE_STORAGE_KEY}:habitatoides`)).toBe('37.5')
   })
 
   it.each([['0'], ['150'], ['abc'], ['']])('localStorage に受け付けない値「%s」が入っていれば「40」を返す', (saved) => {
-    localStorage.setItem(COST_RATE_STORAGE_KEY, saved)
-    expect(loadCostRateInput()).toBe('40')
+    localStorage.setItem(`${COST_RATE_STORAGE_KEY}:habitatoides`, saved)
+    expect(loadCostRateInput('habitatoides')).toBe('40')
   })
 
   it.each([[''], ['0'], ['150'], ['abc']])('受け付けない値「%s」は保存せず、前に保存した値が残る', (input) => {
-    saveCostRateInput('35')
-    saveCostRateInput(input)
-    expect(localStorage.getItem(COST_RATE_STORAGE_KEY)).toBe('35')
+    saveCostRateInput('habitatoides', '35')
+    saveCostRateInput('habitatoides', input)
+    expect(localStorage.getItem(`${COST_RATE_STORAGE_KEY}:habitatoides`)).toBe('35')
   })
 
   it('localStorage が読めない（getItem が例外）ときも例外を出さず「40」を返す', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied') })
-    expect(loadCostRateInput()).toBe('40')
+    expect(loadCostRateInput('habitatoides')).toBe('40')
   })
 
   it('localStorage に書けない（setItem が例外）ときも例外を出さない', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota') })
-    expect(() => saveCostRateInput('35')).not.toThrow()
+    expect(() => saveCostRateInput('habitatoides', '35')).not.toThrow()
   })
 })

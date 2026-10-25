@@ -225,18 +225,37 @@ if os.path.isdir(DIST):
         Returns:
             静的ファイル、またはメタ情報入りの index.html
         """
-        # 1. 静的ファイル（dist 直下の manifest・sw.js など）があればそのまま返す。
+        # 1. ブランドページを専用ドメインへ移したため、既存 URL は旧ドメインから新しい正規 URL へ転送する。
+        host = request.headers.get('host', '').lower().split(':', 1)[0]
+        if host in {'ei8htplants.com', 'www.ei8htplants.com'}:
+            moved_pages = {
+                'habitatoides': 'https://habitatoides.com/',
+                'habitatoides/workshop': 'https://habitatoides.com/workshop',
+                'hue': 'https://huebyei8htplants.com/',
+                'collaborations': 'https://habitatoides.com/collaborations',
+            }
+            destination = moved_pages.get(full_path.strip('/'))
+            if destination:
+                if request.url.query:
+                    destination += '?' + request.url.query
+                return RedirectResponse(url=destination, status_code=301)
+
+        # 2. 静的ファイル（dist 直下の manifest・sw.js など）があればそのまま返す。
         #    「..%2F」や「%2Fetc%2F…」のようなパスで dist の外（.env やソースなど）を読まれないよう、
         #    実際の場所に直してから dist の中にあるときだけ返す（外を指すときは SPA の index.html を返す）
         dist_real = os.path.realpath(DIST)
         file_path = os.path.realpath(os.path.join(dist_real, full_path))
         if file_path.startswith(dist_real + os.sep) and os.path.isfile(file_path):
             return FileResponse(file_path)
-        # 2. パスに応じたメタ情報を index.html に入れて返す
+        # 3. パスに応じたメタ情報を index.html に入れて返す
         try:
-            return HTMLResponse(seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params)))
+            if host in seo.BRAND_DOMAINS:
+                page_html = seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params), host)
+            else:
+                page_html = seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params))
+            return HTMLResponse(page_html)
         except Exception as e:
-            # 3. 失敗しても SPA は表示できるよう、元の index.html を返す
+            # 4. 失敗しても SPA は表示できるよう、元の index.html を返す
             # 例外の文字列には利用者の入力（パス）が入りうるので、型名とコードだけを出す
             logger.error('serve_spa メタ情報の埋め込みエラー（%r）: %s', full_path, error_summary(e))
             return FileResponse(INDEX_HTML)

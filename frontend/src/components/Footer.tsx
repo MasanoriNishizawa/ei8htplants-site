@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useT } from '../lib/lang'
-import { BRANDS, TEXT_LOGO } from '../lib/brands'
+import { BRAND, BRANDS, TEXT_LOGO } from '../lib/brands'
+import { BRAND_SITE_URLS } from '../lib/siteHost'
 
 /** 特定商取引法のリンクを出すページのパス（ショップ・チェックアウト・注文完了とその下の階層） */
 const SHOP_PATHS = ['/shop', '/checkout', '/order']
@@ -16,7 +17,11 @@ const NAV_LINKS = [
 ]
 
 /** 「Brand」の列に並べるブランドページへのリンク */
-const BRAND_LINKS = BRANDS.map((b) => ({ to: b.path, label: b.name }))
+const BRAND_LINKS = [
+  { href: BRAND_SITE_URLS.ei8htplants, label: BRAND.ei8htPlants.name },
+  { href: BRAND_SITE_URLS['habitat-oides'], label: BRAND.habitatOides.name },
+  { href: BRAND_SITE_URLS.hue, label: BRAND.hue.name },
+]
 
 /** ロゴの下に並べる、3 ブランドの Instagram のアカウントへのリンク */
 const IG_LINKS = BRANDS.map((b) => ({ href: b.instagramUrl, label: b.instagramHandle }))
@@ -84,13 +89,13 @@ export default function Footer() {
             <div>
               <p style={{ fontSize: 9, letterSpacing: '2.5px', color: 'var(--c-faint)', textTransform: 'uppercase', margin: '0 0 16px' }}>Brand</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {BRAND_LINKS.map(({ to, label }) => (
-                  <Link key={to} to={to} style={linkStyle}
+                {BRAND_LINKS.map(({ href, label }) => (
+                  <a key={href} href={href} style={linkStyle}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-muted)' }}
                   >
                     {label}
-                  </Link>
+                  </a>
                 ))}
               </div>
             </div>

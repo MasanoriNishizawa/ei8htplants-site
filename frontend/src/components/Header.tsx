@@ -2,10 +2,15 @@ import { useState, useEffect, useId, useRef } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { useLang } from '../lib/lang'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
-import { BRANDS, TEXT_LOGO } from '../lib/brands'
+import { BRAND, TEXT_LOGO } from '../lib/brands'
+import { BRAND_SITE_URLS } from '../lib/siteHost'
 
 /** Brand メニューに並べるブランドページ */
-const BRAND_ITEMS = BRANDS.map((b) => ({ to: b.path, label: b.name }))
+const BRAND_ITEMS = [
+  { href: BRAND_SITE_URLS.ei8htplants, label: BRAND.ei8htPlants.name },
+  { href: BRAND_SITE_URLS['habitat-oides'], label: BRAND.habitatOides.name },
+  { href: BRAND_SITE_URLS.hue, label: BRAND.hue.name },
+]
 
 /** ナビに並べるページ（end: true はそのパスちょうどのときだけ選択中にする） */
 const NAV_ITEMS = [
@@ -215,21 +220,21 @@ export default function Header() {
               minWidth: 190, zIndex: 200, padding: '6px 0',
             }}
           >
-            {BRAND_ITEMS.map(({ to, label }) => (
-              <NavLink
-                key={to}
-                to={to}
+            {BRAND_ITEMS.map(({ href, label }) => (
+              <a
+                key={href}
+                href={href}
                 onClick={() => setBrandOpen(false)}
-                style={({ isActive }) => ({
+                style={{
                   display: 'block', padding: '10px 20px',
                   fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase',
                   textDecoration: 'none', fontWeight: 300,
-                  color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+                  color: 'var(--c-muted)',
                   transition: 'color 0.2s',
-                })}
+                }}
               >
                 {label}
-              </NavLink>
+              </a>
             ))}
           </div>
         )}
@@ -395,20 +400,20 @@ export default function Header() {
         ))}
         {/* 区切り線とブランドページのリンク */}
         <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
-        {BRAND_ITEMS.map(({ to, label }) => (
-          <NavLink
-            key={to}
-            to={to}
+        {BRAND_ITEMS.map(({ href, label }) => (
+          <a
+            key={href}
+            href={href}
             onClick={closeMenuAndReturnFocus}
-            style={({ isActive }) => ({
+            style={{
               fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
               textDecoration: 'none', textTransform: 'uppercase',
-              color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
+              color: 'var(--c-muted)',
               transition: 'color 0.2s',
-            })}
+            }}
           >
             {label}
-          </NavLink>
+          </a>
         ))}
         {/* 区切り線とショップへのリンク */}
         <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />

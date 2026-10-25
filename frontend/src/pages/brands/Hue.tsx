@@ -20,7 +20,7 @@ export default function Hue() {
 
   return (
     <>
-      <PageMeta title="HUE by ei8ht plants" description={t('HUE は、色彩と形を楽しむオーナメントプランツのラインです。', 'HUE is a line of ornamental plants celebrating color and form.')} />
+      <PageMeta title="HUE by ei8ht plants" description={t('HUE は、色彩と形を楽しむオーナメントプランツのラインです。', 'HUE is a line of ornamental plants celebrating color and form.')} ogImage="/img/logo-hue.png" />
       {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
       <h1 className="sr-only">{t('HUE by ei8ht plants — オーナメントプランツライン', 'HUE by ei8ht plants — Ornamental Plants Line')}</h1>
 

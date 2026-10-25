@@ -4,6 +4,16 @@
 
 **サイト URL**: https://ei8htplants.com/
 
+**ブランド別ドメイン**:
+
+| ブランド | 公開ドメイン | サイト設定 |
+|---|---|---|
+| ei8ht plants | https://ei8htplants.com/ | `frontend/src/sites/ei8htplants/`（既存サイト・管理画面） |
+| Habitat Oides | https://habitatoides.com/ | `frontend/src/sites/habitat-oides/` |
+| HUE by ei8ht plants | https://huebyei8htplants.com/ | `frontend/src/sites/hue/` |
+
+同じ Render Web Service で公開し、リクエストのホスト名に応じてサイトのルートとレイアウトを切り替えます。新しいドメインを公開する前に、Render の既存 Web Service に `habitatoides.com` と `huebyei8htplants.com` を Custom Domains として追加し、Render に表示される DNS レコードをドメイン管理会社側で設定してください。Render は追加したルートドメインに対応する `www` も登録します。旧 ei8htplants.com の Habitat Oides・HUE ページ URL は、それぞれの新しいドメインへ転送されます。
+
 ---
 
 ## Brand Lines
@@ -37,6 +47,10 @@
 ei8htplants-site/
 ├── frontend/              # React SPA
 │   ├── src/
+│   │   ├── sites/                    # ホスト名ごとのサイト設定とルート
+│   │   │   ├── ei8htplants/          # 既存ドメイン。管理画面もここに残す
+│   │   │   ├── habitat-oides/        # habitatoides.com
+│   │   │   └── hue/                  # huebyei8htplants.com
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # API クライアント（request / authRequest / api.*）
 │   │   │   ├── cart.tsx                 # カートコンテキスト（CartProvider / useCart）

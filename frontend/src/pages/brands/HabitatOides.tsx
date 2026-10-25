@@ -4,6 +4,7 @@ import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { useSectionSpy } from '../../hooks/useSectionSpy'
 import { BRAND } from '../../lib/brands'
+import { siteForHost } from '../../lib/siteHost'
 
 /** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
 const SECTIONS = ['concept', 'workshop', 'collaboration'] as const
@@ -35,7 +36,7 @@ export default function HabitatOides() {
 
   return (
     <>
-      <PageMeta title="Habitat Oides" description={t('植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', 'A line dedicated to habitat-style arrangements that recreate the natural environments of plants. Workshops available.')} ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg" />
+      <PageMeta title="Habitat Oides" description={t('植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', 'A line dedicated to habitat-style arrangements that recreate the natural environments of plants. Workshops available.')} ogImage="/img/habitatOides/habitat_oides_hero.jpg" />
       {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
       <h1 className="sr-only">{t('Habitat Oides — ハビタットスタイルライン', 'Habitat Oides — Habitat Style Line')}</h1>
 
@@ -108,7 +109,7 @@ export default function HabitatOides() {
                 )}
               </p>
               <Link
-                to="/habitatoides/workshop"
+                to={siteForHost(window.location.hostname).key === 'habitat-oides' ? '/workshop' : '/habitatoides/workshop'}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f0f2ff', textDecoration: 'none', border: '1px solid #5572cc', padding: '14px 24px', borderRadius: 2, width: 'fit-content' }}
               >
                 {t('Workshop について →', 'About Workshop →')}

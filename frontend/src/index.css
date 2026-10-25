@@ -191,6 +191,7 @@ body {
   border-bottom: 1px solid var(--c-border);
   flex-shrink: 0;
 }
+.brand-site .brand-subnav { top: 72px; }
 /* サブナビの中身: リンクを中央に横並び。はみ出したら横にスクロールする（スクロールバーは隠す） */
 .brand-subnav-inner {
   display: flex;
@@ -542,6 +543,15 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
   transition: flex 0.85s cubic-bezier(.22,1,.36,1);
   text-decoration: none;
   display: block;
+}
+.brand-site-header nav { flex-shrink: 0; }
+@media (max-width: 620px) {
+  .brand-site-header { gap: 8px !important; padding-inline: 12px !important; }
+  .brand-site-header > a { gap: 7px !important; }
+  .brand-site-header > a img { width: 34px !important; height: 34px !important; }
+  .brand-site-header > a small { display: none; }
+  .brand-site-header > nav { gap: 10px !important; }
+  .brand-site-header > nav a { font-size: 9px !important; letter-spacing: .04em !important; }
 }
 @media (max-width: 767px) {
   .brand-strip {

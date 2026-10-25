@@ -22,7 +22,11 @@ const ALLOWED_QUERY_KEYS = [
 ]
 
 /** 計測を有効にするホスト名（本番サイトのドメイン） */
-const PRODUCTION_HOSTS = ['ei8htplants.com', 'www.ei8htplants.com']
+const PRODUCTION_HOSTS = [
+  'ei8htplants.com', 'www.ei8htplants.com',
+  'habitatoides.com', 'www.habitatoides.com',
+  'huebyei8htplants.com', 'www.huebyei8htplants.com',
+]
 
 /** GA の dataLayer と gtag 関数の型（window に生やす） */
 declare global {

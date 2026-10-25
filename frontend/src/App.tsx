@@ -8,6 +8,7 @@ import PageLoading from './components/PageLoading'
 import LoadErrorBoundary from './components/LoadErrorBoundary'
 import Home from './pages/Home'
 import { adminPageLoaders } from './pages/admin/adminPages'
+import { siteForHost } from './lib/siteHost'
 
 /**
  * ページ遷移時にスクロール位置をトップに戻すユーティリティコンポーネント（画面には何も出さない）
@@ -86,12 +87,24 @@ const LegalPage = lazy(() => import('./pages/LegalPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 // 存在しない URL 用のページ
 const NotFound = lazy(() => import('./pages/NotFound'))
+const HabitatOidesSite = lazy(() => import('./sites/habitat-oides/site'))
+const HueSite = lazy(() => import('./sites/hue/site'))
+
+/** 独立ブランドドメインで管理画面を開いた場合、管理画面のある既存ドメインへ移す。 */
+function AdminDomainRedirect() {
+  const { pathname, search, hash } = useLocation()
+  useEffect(() => {
+    window.location.replace(`https://ei8htplants.com${pathname}${search}${hash}`)
+  }, [pathname, search, hash])
+  return <PageLoading />
+}
 
 /**
  * アプリ全体のルーティング定義。言語・カートの Context を最上位で提供する
  * @returns アプリ全体
  */
 export default function App() {
+  const site = siteForHost(window.location.hostname)
   return (
     <LangProvider>
     {/* 分けたファイルの読み込み失敗などで画面全体が真っ白にならないよう、案内と再読み込みボタンに切り替える境界。
@@ -104,6 +117,15 @@ export default function App() {
             管理画面のレイアウト（AdminLayout）自体を最初に読み込むあいだだけ */}
         <Suspense fallback={<PageLoading />}>
         <Routes>
+          {site.key === 'habitat-oides' ? <>
+            <Route path="/admin" element={<AdminDomainRedirect />} />
+            <Route path="/admin/*" element={<AdminDomainRedirect />} />
+            <Route path="/*" element={<HabitatOidesSite />} />
+          </> : site.key === 'hue' ? <>
+            <Route path="/admin" element={<AdminDomainRedirect />} />
+            <Route path="/admin/*" element={<AdminDomainRedirect />} />
+            <Route path="/*" element={<HueSite />} />
+          </> : <>
           {/* ブランドサイト側のページ（大きいヘッダー・フッター・チャットボタン付き） */}
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
@@ -169,6 +191,7 @@ export default function App() {
             {/* 管理画面の中で当たらない URL は、公開サイトの 404 ではなく管理画面のレイアウトの中で案内する */}
             <Route path="*" element={<AdminNotFound />} />
           </Route>
+          </>}
         </Routes>
         </Suspense>
       </BrowserRouter>

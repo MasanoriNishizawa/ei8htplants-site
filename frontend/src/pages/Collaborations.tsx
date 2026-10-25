@@ -22,7 +22,7 @@ export default function Collaborations() {
 
   return (
     <>
-      <PageMeta title="Collaborations" description="Habitat Oides のコラボレーション作品・活動記録。" ogImage="https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg" />
+      <PageMeta title="Collaborations" description="Habitat Oides のコラボレーション作品・活動記録。" ogImage="/img/habitatOides/habitat_oides_hero.jpg" />
       {/* ページの見出し */}
       <div style={{ textAlign: 'center', padding: '72px 20px 48px', background: '#f5f5f7' }}>
         <p style={{ fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 14px' }}>Habitat Oides</p>

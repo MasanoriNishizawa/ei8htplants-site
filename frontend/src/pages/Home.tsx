@@ -8,12 +8,13 @@ import ShareButtons from '../components/ShareButtons'
 import { useT } from '../lib/lang'
 import { parseLocalDate } from '../lib/localDate'
 import { BRAND, TEXT_LOGO } from '../lib/brands'
+import { BRAND_SITE_URLS } from '../lib/siteHost'
 import { formatYen } from '../lib/format'
 
 /** ブランドストリップに並べる 3 ブランドのカード（リンク先・説明・背景・画像・ロゴ） */
 const BRAND_CARDS = [
   {
-    to: BRAND.ei8htPlants.path,
+    to: BRAND_SITE_URLS.ei8htplants,
     name: BRAND.ei8htPlants.name,
     descJa: 'アガベ・塊根植物など、個性的なフォルムを持つビザールプランツ専門ライン',
     descEn: 'Bizarre Plants — agaves, succulents & rare specimens',
@@ -22,7 +23,7 @@ const BRAND_CARDS = [
     logo: BRAND.ei8htPlants.logo,
   },
   {
-    to: BRAND.habitatOides.path,
+    to: BRAND_SITE_URLS['habitat-oides'],
     name: BRAND.habitatOides.name,
     descJa: '自生地の景色を鉢の中に再現する、ハビタットスタイルの作品とワークショップ',
     descEn: 'Habitat-style compositions & workshops — nature in a pot',
@@ -31,7 +32,7 @@ const BRAND_CARDS = [
     logo: BRAND.habitatOides.logo,
   },
   {
-    to: BRAND.hue.path,
+    to: BRAND_SITE_URLS.hue,
     // カードには短い表記（HUE）を出す
     name: BRAND.hue.shortName,
     descJa: '色彩と形を楽しむ、インテリアのためのオーナメントプランツ',
@@ -229,9 +230,9 @@ export default function Home() {
           // このカードを広げて表示するか
           const isActive = isMobile || activeCard === i
           return (
-            <Link
+            <a
               key={card.to}
-              to={card.to}
+              href={card.to}
               className="brand-strip-item"
               onMouseEnter={() => !isMobile && setActiveCard(i)}
               // キーボードで選んだときもマウスを乗せたときと同じように広げる
@@ -335,7 +336,7 @@ export default function Home() {
                   View Brand
                 </span>
               </div>
-            </Link>
+            </a>
           )
         })}
       </section>
