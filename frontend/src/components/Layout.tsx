@@ -87,12 +87,12 @@ function ChatFab() {
  */
 export default function Layout() {
   const { pathname } = useLocation()
-  const isEi8htPlantsBrandHome = pathname === '/'
+  const isEi8htPlantsBrandPage = pathname === '/' || pathname === '/about' || pathname === '/plants'
   return (
     <>
       {/* 本番サイトでだけ GA4 にページビューを送る（画面には何も出ない） */}
       <Analytics />
-      {isEi8htPlantsBrandHome ? <Ei8htPlantsHeader /> : <Header />}
+      {isEi8htPlantsBrandPage ? <Ei8htPlantsHeader /> : <Header />}
       {/* paddingTop: 64 は固定ヘッダーの高さ分。縦並びの flex にして、短いページでもフッターが画面下に来るようにする */}
       <main className="site-main" style={{ paddingTop: 64, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* ページは画面ごとに別ファイルで読み込む（App.tsx の lazy）。読み込み中は中身の部分にだけ控えめな表示を出す。

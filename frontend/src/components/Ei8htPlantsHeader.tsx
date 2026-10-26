@@ -14,9 +14,10 @@ export default function Ei8htPlantsHeader() {
       </Link>
       <nav className="ep-brand-header-nav" aria-label="ei8ht plants">
         <Link to="/">Home</Link>
-        <a href="#concept">Concept</a>
-        <a href="#store">Store</a>
+        <Link to="/about">Our Story</Link>
+        <Link to="/plants">Plants</Link>
         <Link to="/brands">Our Brands</Link>
+        <Link to="/official/shop">Shop</Link>
         <Link to="/official" className="ep-brand-header-official">Official Site <span aria-hidden="true">↗</span></Link>
         <button type="button" className="ep-brand-header-language" onClick={toggle} aria-label={languageAccessibleLabel}>{languageLabel}</button>
       </nav>
@@ -24,9 +25,10 @@ export default function Ei8htPlantsHeader() {
         <summary aria-label="ブランドメニューを開く">Menu</summary>
         <nav aria-label="ei8ht plants">
           <Link to="/" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Home</Link>
-          <a href="#concept" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Concept</a>
-          <a href="#store" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Store</a>
+          <Link to="/about" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Our Story</Link>
+          <Link to="/plants" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Plants</Link>
           <Link to="/brands" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Our Brands</Link>
+          <Link to="/official/shop" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Shop</Link>
           <Link to="/official" className="ep-brand-header-official">Official Site ↗</Link>
           <button type="button" className="ep-brand-header-language" onClick={toggle} aria-label={languageAccessibleLabel}>{languageLabel}</button>
         </nav>

@@ -37,6 +37,8 @@ const Contact = lazy(() => import('./pages/Contact'))
 const Stockists = lazy(() => import('./pages/Stockists'))
 const Collaborations = lazy(() => import('./pages/Collaborations'))
 const Ei8htPlants = lazy(() => import('./pages/brands/Ei8htPlants'))
+const Ei8htPlantsAbout = lazy(() => import('./pages/brands/Ei8htPlantsAbout'))
+const Ei8htPlantsPlants = lazy(() => import('./pages/brands/Ei8htPlantsPlants'))
 const HabitatOides = lazy(() => import('./pages/brands/HabitatOides'))
 const OurBrands = lazy(() => import('./pages/OurBrands'))
 const HabitatOidesWorkshop = lazy(() => import('./pages/brands/HabitatOidesWorkshop'))
@@ -138,6 +140,8 @@ export default function App() {
           <Route element={<Layout />}>
             {/* ブランド関連ページはドメイン直下に配置 */}
             <Route path="/" element={<Ei8htPlants />} />
+            <Route path="/about" element={<Ei8htPlantsAbout />} />
+            <Route path="/plants" element={<Ei8htPlantsPlants />} />
             <Route path="/brands" element={<OurBrands />} />
             <Route path="/habitatoides" element={<HabitatOides />} />
             <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
