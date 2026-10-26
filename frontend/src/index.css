@@ -30,6 +30,12 @@
   --c-green:     #2d4a27;
   /* Habitat Oides の紺（Workshop の印など） */
   --c-blue:      #1e3272;
+  /* 公開ブランドページで共通利用する文字サイズ階層 */
+  --brand-type-meta: 12px;
+  --brand-type-caption: 13px;
+  --brand-type-label: 14px;
+  --brand-type-navigation: 13px;
+  --brand-type-body: 16px;
 }
 
 /* すべての要素: 幅・高さに余白と枠線を含める */
@@ -552,7 +558,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
   .brand-site-header > a img { width: 34px !important; height: 34px !important; }
   .brand-site-header > a small { display: none; }
   .brand-site-header > nav { gap: 10px !important; }
-  .brand-site-header > nav a { font-size: 11px !important; letter-spacing: .06em !important; }
+  .brand-site-header > nav a { font-size: var(--brand-type-navigation) !important; letter-spacing: .06em !important; }
 }
 @media (max-width: 767px) {
   .brand-strip {
@@ -940,22 +946,22 @@ textarea,
 .brand-site-wordmark img { width: 46px; height: 46px; object-fit: contain; }
 .brand-site-wordmark span { display: flex; flex-direction: column; gap: 4px; }
 .brand-site-wordmark strong { font-size: 14px; font-weight: 500; letter-spacing: .18em; white-space: nowrap; }
-.brand-site-wordmark small { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+.brand-site-wordmark small { font-size: var(--brand-type-meta); letter-spacing: .16em; text-transform: uppercase; }
 .brand-site-nav, .brand-site-switcher { display: flex; align-items: center; gap: clamp(12px, 2vw, 26px); }
 .brand-site-nav { margin-left: auto; }
 .brand-site-nav a, .brand-site-switcher a { text-decoration: none; white-space: nowrap; transition: opacity .2s, color .2s, background .2s; }
-.brand-site-nav a { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; }
+.brand-site-nav a { font-size: var(--brand-type-navigation); letter-spacing: .13em; text-transform: uppercase; }
 .brand-site-switcher { border-left: 1px solid currentColor; padding-left: 22px; }
-.brand-site-switcher a { font-size: 11px; letter-spacing: .08em; }
-.brand-site-lang { border: 0; background: transparent; color: inherit; font-size: 12px; letter-spacing: .12em; cursor: pointer; padding: 8px; }
+.brand-site-switcher a { font-size: var(--brand-type-navigation); letter-spacing: .08em; }
+.brand-site-lang { border: 0; background: transparent; color: inherit; font-size: var(--brand-type-navigation); letter-spacing: .12em; cursor: pointer; padding: 8px; }
 .brand-site-header a:hover, .brand-site-footer a:hover { opacity: .64; }
 .brand-site-footer { padding: 40px clamp(20px, 6vw, 84px); }
 .brand-site-footer-inner { max-width: 1360px; margin: 0 auto; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 24px; }
 .brand-site-footer-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; letter-spacing: .1em; text-decoration: none; }
 .brand-site-footer nav, .brand-site-footer-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 22px; }
-.brand-site-footer nav a, .brand-site-footer-meta a { color: inherit; text-decoration: none; font-size: 12px; letter-spacing: .08em; }
+.brand-site-footer nav a, .brand-site-footer-meta a { color: inherit; text-decoration: none; font-size: var(--brand-type-navigation); letter-spacing: .08em; }
 .brand-site-footer-meta { grid-column: 1 / -1; justify-content: space-between; border-top: 1px solid currentColor; padding-top: 18px; opacity: .78; }
-.brand-site-footer-meta span { font-size: 11px; letter-spacing: .08em; }
+.brand-site-footer-meta span { font-size: var(--brand-type-meta); letter-spacing: .08em; }
 
 /* Habitat Oides: 深い藍色と土の色を使った、風景・素材を見せるエディトリアルデザイン */
 .brand-site-habitat-oides { background: #f3f0e8; color: #202a31; --habitat-ink: #172532; --habitat-rust: #b8784d; }
@@ -969,18 +975,18 @@ textarea,
 .habitat-hero-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 54%; }
 .habitat-hero-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(12, 26, 38, .82), rgba(16, 29, 38, .42) 54%, rgba(16, 29, 38, .08)), linear-gradient(0deg, rgba(12, 26, 38, .28), transparent 40%); }
 .habitat-hero-copy { z-index: 1; position: relative; width: min(780px, 78vw); margin: 0 auto 0 10vw; padding: 100px 0 120px; }
-.habitat-eyebrow, .habitat-small-label, .habitat-section-kicker { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+.habitat-eyebrow, .habitat-small-label, .habitat-section-kicker { font-size: var(--brand-type-label); letter-spacing: .2em; text-transform: uppercase; }
 .habitat-eyebrow { color: #dfc7a1; margin: 0 0 32px; }
 .habitat-eyebrow span { padding: 0 10px; color: #a87952; }
 .habitat-hero h1 { max-width: 780px; margin: 0; font-family: 'Cormorant Garamond', 'Noto Serif JP', serif; font-size: clamp(42px, 6vw, 84px); font-weight: 300; line-height: 1.12; letter-spacing: -.035em; }
 .habitat-hero-jp { margin: 28px 0 0; color: #eee4d5; font-size: clamp(13px, 1.7vw, 17px); letter-spacing: .13em; }
 .habitat-hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 38px; }
-.habitat-button { display: inline-flex; align-items: center; justify-content: space-between; gap: 32px; min-width: 188px; padding: 14px 18px; text-decoration: none; text-transform: uppercase; font-size: 12px; letter-spacing: .13em; transition: transform .2s, background .2s; }
+.habitat-button { display: inline-flex; align-items: center; justify-content: space-between; gap: 32px; min-width: 188px; padding: 14px 18px; text-decoration: none; text-transform: uppercase; font-size: var(--brand-type-navigation); letter-spacing: .13em; transition: transform .2s, background .2s; }
 .habitat-button:hover { transform: translateY(-2px); }
 .habitat-button--light { color: #172532; background: #f3e8d5; }
 .habitat-button--outline { color: #fffaf1; border: 1px solid rgba(255,255,255,.65); }
 .habitat-button--navy { color: #fffaf1; background: #172532; margin-top: 20px; }
-.habitat-hero-index, .habitat-hero-side-label { position: absolute; z-index: 1; bottom: 28px; color: #e6d7bd; font-size: 11px; letter-spacing: .15em; }
+.habitat-hero-index, .habitat-hero-side-label { position: absolute; z-index: 1; bottom: 28px; color: #e6d7bd; font-size: var(--brand-type-caption); letter-spacing: .15em; }
 .habitat-hero-index { left: 5vw; }
 .habitat-hero-side-label { right: 5vw; writing-mode: vertical-rl; }
 .habitat-world { max-width: 1320px; margin: 0 auto; padding: 116px 6vw 110px; }
@@ -992,27 +998,27 @@ textarea,
 .habitat-world-heading h2 em, .habitat-collaboration h2 em { color: #9a6847; font-weight: 300; }
 .habitat-world-jp, .habitat-workshop-jp { font-size: 14px; letter-spacing: .2em; line-height: 2; }
 .habitat-world-copy { padding-top: 18px; max-width: 520px; }
-.habitat-world-copy p, .habitat-workshop-copy > p:not(.habitat-small-label):not(.habitat-workshop-jp), .habitat-collaboration-grid > div > p:not(.habitat-small-label) { color: #58615f; font-size: 16px; line-height: 2; }
+.habitat-world-copy p, .habitat-workshop-copy > p:not(.habitat-small-label):not(.habitat-workshop-jp), .habitat-collaboration-grid > div > p:not(.habitat-small-label) { color: #58615f; font-size: var(--brand-type-body); line-height: 2; }
 .habitat-world-image { margin: 0; position: relative; }
 .habitat-world-image img { display: block; width: 100%; max-height: 640px; object-fit: cover; }
-.habitat-world-image figcaption { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; color: #866c55; font-size: 11px; letter-spacing: .12em; }
-.habitat-text-link { display: inline-flex; gap: 24px; color: #172532; border-bottom: 1px solid #a99a86; padding: 7px 0; margin-top: 16px; text-decoration: none; font-size: 12px; letter-spacing: .13em; text-transform: uppercase; }
+.habitat-world-image figcaption { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; color: #866c55; font-size: var(--brand-type-caption); letter-spacing: .12em; }
+.habitat-text-link { display: inline-flex; gap: 24px; color: #172532; border-bottom: 1px solid #a99a86; padding: 7px 0; margin-top: 16px; text-decoration: none; font-size: var(--brand-type-navigation); letter-spacing: .13em; text-transform: uppercase; }
 .habitat-elements { padding: 90px 8vw 106px; color: #f3f0e8; background: #172532; }
 .habitat-section-kicker--light { color: #c9b89c; border-color: rgba(230, 215, 189, .28); }
 .habitat-section-kicker--light span:first-child { color: #d09a6e; }
 .habitat-elements > h2 { max-width: 1280px; margin: 58px auto 54px; font: 300 clamp(42px, 6vw, 78px)/1 'Cormorant Garamond', serif; }
 .habitat-elements-grid { max-width: 1280px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3vw; margin: 0 auto; }
 .habitat-elements-grid article { border-top: 1px solid rgba(230, 215, 189, .42); padding-top: 20px; }
-.habitat-elements-grid article > span { color: #c78c60; font-size: 11px; letter-spacing: .16em; }
+.habitat-elements-grid article > span { color: #c78c60; font-size: var(--brand-type-caption); letter-spacing: .16em; }
 .habitat-elements-grid h3 { margin: 34px 0 16px; font-size: 14px; font-weight: 400; letter-spacing: .2em; }
-.habitat-elements-grid p { max-width: 320px; color: #c8c5bc; font-size: 15px; line-height: 2; }
+.habitat-elements-grid p { max-width: 320px; color: #c8c5bc; font-size: var(--brand-type-body); line-height: 2; }
 .habitat-workshop { position: relative; min-height: 560px; display: grid; grid-template-columns: 1fr 1fr; background: #e3d9c7; }
 .habitat-workshop-image { min-height: 560px; overflow: hidden; }
 .habitat-workshop-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .habitat-workshop-copy { align-self: center; max-width: 620px; padding: 80px 9vw 90px 7vw; }
 .habitat-workshop-copy h2 { margin: 0; color: #172532; font: 300 clamp(48px, 6vw, 78px)/.94 'Cormorant Garamond', serif; }
 .habitat-workshop-copy > p:not(.habitat-small-label):not(.habitat-workshop-jp) { max-width: 470px; }
-.habitat-workshop-index { position: absolute; right: 5vw; bottom: 22px; color: #745f49; font-size: 11px; letter-spacing: .17em; }
+.habitat-workshop-index { position: absolute; right: 5vw; bottom: 22px; color: #745f49; font-size: var(--brand-type-caption); letter-spacing: .17em; }
 .habitat-collaboration { color: #f3f0e8; background: #263d4a; padding: 86px 8vw 100px; }
 .habitat-collaboration-grid { max-width: 1280px; margin: 60px auto 0; display: grid; grid-template-columns: 1fr minmax(240px, .65fr); align-items: center; gap: 8vw; }
 .habitat-collaboration h2 em { color: #d09a6e; }
@@ -1021,7 +1027,7 @@ textarea,
 .habitat-collaboration-grid video { width: 100%; max-height: 570px; object-fit: cover; background: #101b21; }
 .habitat-follow { text-align: center; padding: 92px 20px; color: #172532; background: #e9e2d5; }
 .habitat-follow h2 { margin: 0 0 24px; font: 300 clamp(38px, 5vw, 64px)/1 'Cormorant Garamond', serif; }
-.habitat-follow > a { display: inline-block; color: #172532; border-bottom: 1px solid #9a6847; padding: 10px; text-decoration: none; font-size: 12px; letter-spacing: .14em; }
+.habitat-follow > a { display: inline-block; color: #172532; border-bottom: 1px solid #9a6847; padding: 10px; text-decoration: none; font-size: var(--brand-type-navigation); letter-spacing: .14em; }
 
 /* HUE: 余白と色面を主役にした、軽やかなカラースタディのデザイン */
 .brand-site-hue { background: #f8f5ef; color: #28241f; --hue-ink: #28241f; --hue-pink: #d9a6a7; }
@@ -1035,13 +1041,14 @@ textarea,
 .hue-home { overflow: hidden; }
 .hue-editorial-hero { min-height: min(720px, calc(100svh - 78px)); display: grid; grid-template-columns: 1fr 1fr; align-items: center; position: relative; padding: 60px 8vw 76px; background: #f8f5ef; }
 .hue-hero-copy { position: relative; z-index: 1; max-width: 560px; }
-.hue-overline, .hue-section-label { color: #8e776e; font-size: 11px; letter-spacing: .2em; }
+.hue-overline { color: #8e776e; font-size: var(--brand-type-label); letter-spacing: .2em; }
+.hue-section-label { color: #8e776e; font-size: var(--brand-type-label); letter-spacing: .16em; }
 .hue-overline span { margin-left: 18px; color: #be8d81; }
 .hue-hero-copy h1 { margin: 35px 0 0; color: #302c29; font: 300 clamp(68px, 10vw, 136px)/1 'Cormorant Garamond', 'Noto Serif JP', serif; letter-spacing: -.07em; }
 .hue-hero-copy h1 em { color: #b9897e; font-weight: 300; }
 .hue-hero-jp { margin: 40px 0 0; color: #554943; font-size: 15px; letter-spacing: .2em; }
-.hue-hero-description { max-width: 420px; color: #77706a; font-size: 16px; line-height: 2; }
-.hue-discover-link { display: inline-flex; gap: 36px; margin-top: 20px; color: #302c29; border-bottom: 1px solid #b9a69a; padding: 12px 0; text-decoration: none; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+.hue-hero-description { max-width: 420px; color: #77706a; font-size: var(--brand-type-body); line-height: 2; }
+.hue-discover-link { display: inline-flex; gap: 36px; margin-top: 20px; color: #302c29; border-bottom: 1px solid #b9a69a; padding: 12px 0; text-decoration: none; font-size: var(--brand-type-navigation); letter-spacing: .16em; text-transform: uppercase; }
 .hue-hero-art { position: relative; width: min(42vw, 540px); aspect-ratio: 1; justify-self: center; border-radius: 50%; background: radial-gradient(circle at 53% 46%, #fffdf7 0 28%, #f1e9df 29% 45%, #f8f5ef 46%); }
 .hue-art-orbit { position: absolute; inset: 8%; border: 1px solid rgba(113, 93, 83, .16); border-radius: 50%; }
 .hue-art-orbit--two { inset: 18%; border-style: dashed; }
@@ -1052,37 +1059,37 @@ textarea,
 .hue-art-leaf { position: absolute; z-index: 1; width: 15%; height: 38%; left: 45%; top: 29%; border-radius: 100% 0 100% 0; transform: rotate(34deg); background: linear-gradient(130deg, #5e7661, #a1b493 70%, #d5d8b5); box-shadow: inset 1px 0 0 rgba(255,255,255,.55); }
 .hue-art-leaf--two { width: 12%; height: 30%; left: 53%; top: 35%; transform: rotate(80deg); background: linear-gradient(130deg, #7d8d6d, #c0c49b); }
 .hue-art-mark { position: absolute; z-index: 2; inset: 0; display: grid; place-items: center; color: #fffaf3; font: 300 34px 'Cormorant Garamond', serif; letter-spacing: .35em; text-shadow: 0 1px 14px rgba(39, 32, 25, .55); }
-.hue-art-caption { position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%); color: #817269; font-size: 10px; letter-spacing: .14em; white-space: nowrap; }
-.hue-hero-side-note { position: absolute; right: 2vw; top: 50%; writing-mode: vertical-rl; color: #a89b90; font-size: 11px; letter-spacing: .14em; }
+.hue-art-caption { position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%); color: #817269; font-size: var(--brand-type-meta); letter-spacing: .14em; white-space: nowrap; }
+.hue-hero-side-note { position: absolute; right: 2vw; top: 50%; writing-mode: vertical-rl; color: #a89b90; font-size: var(--brand-type-caption); letter-spacing: .14em; }
 .hue-point-of-view { padding: 98px 9vw 110px; background: #e9e5dc; }
 .hue-section-label { display: flex; gap: 18px; border-bottom: 1px solid #d1c9bc; padding-bottom: 16px; }
 .hue-section-label span:first-child { color: #b9897e; }
 .hue-point-grid { display: grid; grid-template-columns: 1fr .75fr; gap: 8vw; align-items: center; max-width: 1280px; margin: 68px auto 0; }
 .hue-point-grid h2 { margin: 0; font: 300 clamp(42px, 6.2vw, 82px)/.98 'Cormorant Garamond', serif; letter-spacing: -.04em; }
 .hue-point-grid h2 em { color: #a67b73; font-weight: 300; }
-.hue-point-grid p { color: #665d56; font-size: 16px; line-height: 2; }
+.hue-point-grid p { color: #665d56; font-size: var(--brand-type-body); line-height: 2; }
 .hue-color-study { padding: 94px 9vw 110px; background: #fbfaf6; }
 .hue-color-study > h2 { max-width: 1280px; margin: 56px auto 8px; font: 300 clamp(42px, 6vw, 76px)/1 'Cormorant Garamond', serif; }
-.hue-color-intro { max-width: 1280px; margin: 14px auto 38px; color: #746b64; font-size: 16px; }
+.hue-color-intro { max-width: 1280px; margin: 14px auto 38px; color: #746b64; font-size: var(--brand-type-body); }
 .hue-palette { max-width: 1280px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; margin: 0 auto 76px; }
-.hue-palette-item { color: #82746c; font-size: 12px; letter-spacing: .08em; }
+.hue-palette-item { color: #82746c; font-size: var(--brand-type-caption); letter-spacing: .08em; }
 .hue-palette-swatch { display: block; width: 100%; aspect-ratio: 1 / .76; margin-bottom: 11px; background: var(--swatch-color); border-radius: 48% 52% 44% 56% / 48% 42% 58% 52%; transform: rotate(calc(var(--swatch-index) * 4deg)); }
 .hue-color-notes { max-width: 1280px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4vw; margin: 0 auto; }
 .hue-color-notes article { border-top: 1px solid #d7d0c4; padding-top: 18px; }
-.hue-color-notes article > span { color: #b9897e; font-size: 11px; letter-spacing: .17em; }
+.hue-color-notes article > span { color: #b9897e; font-size: var(--brand-type-caption); letter-spacing: .17em; }
 .hue-color-notes h3 { margin: 26px 0 8px; font: 400 24px 'Cormorant Garamond', serif; }
-.hue-color-notes p { max-width: 300px; color: #77706a; font-size: 15px; line-height: 2; }
+.hue-color-notes p { max-width: 300px; color: #77706a; font-size: var(--brand-type-body); line-height: 2; }
 .hue-follow { padding: 90px 20px 102px; text-align: center; color: #403636; background: #eee6e1; }
 .hue-follow img { width: 96px; height: 96px; object-fit: contain; margin-bottom: 20px; }
 .hue-follow .hue-overline { margin: 0 0 20px; }
 .hue-follow h2 { margin: 0; font: 300 clamp(40px, 6vw, 68px)/1 'Cormorant Garamond', serif; }
-.hue-follow > p:not(.hue-overline) { color: #776962; font-size: 15px; }
-.hue-follow > a { display: inline-block; margin-top: 18px; padding: 13px 22px; border: 1px solid #b99688; border-radius: 999px; color: #403636; text-decoration: none; font-size: 12px; letter-spacing: .12em; }
+.hue-follow > p:not(.hue-overline) { color: #776962; font-size: var(--brand-type-body); }
+.hue-follow > a { display: inline-block; margin-top: 18px; padding: 13px 22px; border: 1px solid #b99688; border-radius: 999px; color: #403636; text-decoration: none; font-size: var(--brand-type-navigation); letter-spacing: .12em; }
 
 @media (max-width: 900px) {
   .brand-site-header { gap: 14px; padding-inline: 20px; }
   .brand-site-switcher { gap: 12px; padding-left: 14px; }
-  .brand-site-switcher a { font-size: 11px; }
+  .brand-site-switcher a { font-size: var(--brand-type-meta); }
   .habitat-hero-copy { margin-left: 7vw; }
   .hue-editorial-hero { padding-inline: 6vw; }
 }
@@ -1092,11 +1099,11 @@ textarea,
   .brand-site-header { min-height: 72px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 8px 16px; }
   .brand-site-wordmark img { width: 38px; height: 38px; }
   .brand-site-wordmark strong { font-size: 12px; }
-  .brand-site-wordmark small { font-size: 10px; }
+  .brand-site-wordmark small { font-size: var(--brand-type-meta); }
   .brand-site-nav { grid-column: 1 / -1; grid-row: 3; order: 3; justify-content: flex-start; margin: 1px 0 0; overflow-x: auto; gap: 20px; padding: 6px 0 2px; }
-  .brand-site-nav a { font-size: 11px; }
+  .brand-site-nav a { font-size: var(--brand-type-navigation); }
   .brand-site-switcher { grid-column: 1 / -1; grid-row: 2; border: 0; padding: 3px 0 0; gap: 14px; justify-content: flex-start; overflow-x: auto; }
-  .brand-site-switcher a { font-size: 10px; }
+  .brand-site-switcher a { font-size: var(--brand-type-meta); }
   .brand-site-header--hue .brand-site-switcher a { padding: 6px 8px; }
   .brand-site-lang { grid-column: 2; grid-row: 1; justify-self: end; padding: 4px 0 2px 8px; }
   .brand-site-footer-inner { grid-template-columns: 1fr; }
@@ -1107,7 +1114,7 @@ textarea,
   .habitat-hero-overlay { background: linear-gradient(0deg, rgba(12,26,38,.9), rgba(12,26,38,.15) 85%); }
   .habitat-hero-copy { width: auto; margin: 0; padding: 80px 24px 80px; }
   .habitat-hero h1 { font-size: clamp(34px, 8.8vw, 58px); line-height: 1.25; }
-  .habitat-hero-jp { font-size: 15px; line-height: 1.9; }
+  .habitat-hero-jp { font-size: var(--brand-type-body); line-height: 1.9; }
   .habitat-hero-side-label { display: none; }
   .habitat-world { padding: 74px 24px; }
   .habitat-world-grid, .habitat-collaboration-grid { grid-template-columns: 1fr; gap: 20px; padding: 50px 0; }

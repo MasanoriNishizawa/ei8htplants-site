@@ -50,7 +50,7 @@ export default function Ei8htPlants() {
           {/* 下へのスクロールを促す線と文字 */}
           <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #999, transparent)' }} />
-            <span style={{ fontSize: 11, letterSpacing: 3, color: '#999', textTransform: 'uppercase' }}>Scroll</span>
+            <span style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 3, color: '#999', textTransform: 'uppercase' }}>Scroll</span>
           </div>
         </section>
       </div>
@@ -60,7 +60,7 @@ export default function Ei8htPlants() {
       {/* コンセプト: ロゴ・見出し・紹介文 */}
       <section id="concept" className="brand-section" ref={sectionRef('concept')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'var(--brand-type-label)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
             <img src={BRAND.ei8htPlants.logo} alt={BRAND.ei8htPlants.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
@@ -84,7 +84,7 @@ export default function Ei8htPlants() {
       <section id="store" className="brand-section" ref={sectionRef('store')}
         style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
-        <p style={{ fontSize: 13, letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
+        <p style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
         <Link
           to="/shop"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#fff', textDecoration: 'none', border: '1px solid #444', padding: '16px 36px', borderRadius: 2, transition: 'background 0.2s' }}

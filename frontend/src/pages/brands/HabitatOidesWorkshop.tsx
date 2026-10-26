@@ -59,7 +59,7 @@ export default function HabitatOidesWorkshop() {
         <h1 style={{ fontSize: 'clamp(40px, 8vw, 96px)', fontWeight: 200, letterSpacing: '0.15em', color: '#f0f2ff', lineHeight: 1, textTransform: 'uppercase', margin: 0, position: 'relative' }}>
           {t('ワークショップ', 'WORKSHOP')}
         </h1>
-        <p style={{ fontSize: 'clamp(12px, 2vw, 16px)', fontWeight: 300, letterSpacing: '0.4em', color: '#9aaedd', marginTop: 14, textTransform: 'uppercase', position: 'relative' }}>
+        <p style={{ fontSize: 'clamp(14px, 2vw, 16px)', fontWeight: 300, letterSpacing: '0.4em', color: '#9aaedd', marginTop: 14, textTransform: 'uppercase', position: 'relative' }}>
           {t('植物の景色を仕立てる', 'Habitat Style')}
         </p>
       </section>
@@ -138,20 +138,20 @@ export default function HabitatOidesWorkshop() {
       {/* Fee & Info: 参加費・持ち込み・お子様連れの案内 */}
       <section id="fee" className="brand-section" ref={sectionRef('fee')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>{t('参加費とご案内', 'Fee & Info')}</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'var(--brand-type-label)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>{t('参加費とご案内', 'Fee & Info')}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
-              <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('参加費', 'Fee')}</p>
+              <p style={{ fontSize: 'var(--brand-type-label)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('参加費', 'Fee')}</p>
               <p style={{ fontSize: 28, fontWeight: 300, color: 'var(--c-ink)', margin: '0 0 6px', letterSpacing: '0.04em' }}>{t(formatYen(WS_FEE_YEN, 'suffix'), formatYen(WS_FEE_YEN))}</p>
               <p style={{ fontSize: 14, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>{t(<>鉢・資材含む<br />植物は別途</>, <>Pot & materials included<br />Plants priced separately</>)}</p>
             </div>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
-              <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('持ち込み', 'Bring Your Own')}</p>
+              <p style={{ fontSize: 'var(--brand-type-label)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('持ち込み', 'Bring Your Own')}</p>
               <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>{t('植物・鉢とも持込可', 'Plants & pots welcome')}</p>
               <p style={{ fontSize: 14, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>{t('当店以外でご購入の植物・お手持ちの鉢でもご参加いただけます。', 'You are welcome to bring plants purchased elsewhere or pots you already own.')}</p>
             </div>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
-              <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('お子様連れ', 'With Children')}</p>
+              <p style={{ fontSize: 'var(--brand-type-label)', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('お子様連れ', 'With Children')}</p>
               <p style={{ fontSize: 17, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px' }}>{t('お子様も大歓迎', 'Children are very welcome')}</p>
               <p style={{ fontSize: 14, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>{t('親子でお楽しみいただけます。植物や資材の扱いが初めての方でも、スタッフがしっかりサポートします。', 'Families with children are welcome. Staff will fully support anyone new to plants or materials.')}</p>
             </div>
