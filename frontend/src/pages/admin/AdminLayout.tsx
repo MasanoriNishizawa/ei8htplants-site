@@ -160,10 +160,10 @@ export default function AdminLayout() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f5f7', padding: '20px' }}>
       <form onSubmit={login} style={{ background: '#ffffff', padding: 40, borderRadius: 4, boxShadow: '0 2px 24px rgba(40,35,20,0.08)', width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <h1 style={{ margin: '0 0 8px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 24, fontWeight: 300 }}>Admin</h1>
-        <input required type="text" aria-label="ID" autoComplete="username" placeholder="ID" value={email} onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit' }} />
+        <input required type="email" inputMode="email" aria-label="ID" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="ID" value={email} onChange={(e) => setEmail(e.target.value)}
+          style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 16, fontFamily: 'inherit' }} />
         <input required type="password" aria-label="パスワード" autoComplete="current-password" placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit' }} />
+          style={{ padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 16, fontFamily: 'inherit' }} />
         {error && <p role="alert" style={{ color: '#c0392b', fontSize: 13, margin: 0 }}>{error}</p>}
         <button type="submit" disabled={submitting} style={{ padding: '12px', background: 'var(--c-ink)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.6 : 1 }}>
           {submitting ? 'ログイン中...' : 'ログイン'}

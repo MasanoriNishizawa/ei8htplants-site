@@ -13,6 +13,19 @@ test.describe('管理画面スモークテスト', () => {
     await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
   })
 
+  test('/admin — スマートフォン幅でも開けてメニューから移動できる', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'メニューを開く' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'メニューを開く' }).click()
+    await expect(page.locator('.admin-sidebar')).toBeVisible()
+    await page.locator('.admin-sidebar').getByRole('link', { name: 'ギャラリー', exact: true }).click()
+    await expect(page).toHaveURL(/\/admin\/gallery$/)
+    await expect(page.getByRole('heading').first()).toBeVisible()
+  })
+
   // イベント一覧: ページに何らかのコンテンツが表示されること
   test('/admin/events — イベント一覧ページが表示される', async ({ page }) => {
     await page.goto('/admin/events')
