@@ -9,6 +9,7 @@ import HabitatOides from '../../pages/brands/HabitatOides'
 import Hue from '../../pages/brands/Hue'
 
 function renderBrand(site: typeof habitatOidesSite | typeof hueSite, page: React.ReactNode) {
+  localStorage.setItem('site-lang', 'ja')
   return render(
     <LangProvider>
       <MemoryRouter initialEntries={['/']}>
@@ -29,9 +30,9 @@ describe('独立ブランドサイトのレイアウトとページ', () => {
     expect(container.querySelector('.brand-site-habitat-oides')).toBeInTheDocument()
     expect(container.querySelector('.brand-site-header--habitat-oides')).toBeInTheDocument()
     expect(container.querySelector('.habitat-home')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /A landscape,/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /自然の景色を、.*一鉢に仕立てる。/ })).toBeInTheDocument()
     const navigation = screen.getByRole('navigation', { name: `${habitatOidesSite.name} navigation` })
-    expect(within(navigation).getByRole('link', { name: 'Concept' })).toHaveAttribute('href', '/#world')
+    expect(within(navigation).getByRole('link', { name: '世界観' })).toHaveAttribute('href', '/#world')
     expect(container.querySelector('#world')).toBeInTheDocument()
   })
 
@@ -41,9 +42,9 @@ describe('独立ブランドサイトのレイアウトとページ', () => {
     expect(container.querySelector('.brand-site-hue')).toBeInTheDocument()
     expect(container.querySelector('.brand-site-header--hue')).toBeInTheDocument()
     expect(container.querySelector('.hue-home')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /A living/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /植物と、.*暮らす。/ })).toBeInTheDocument()
     const navigation = screen.getByRole('navigation', { name: `${hueSite.name} navigation` })
-    expect(within(navigation).getByRole('link', { name: 'Concept' })).toHaveAttribute('href', '/#point-of-view')
+    expect(within(navigation).getByRole('link', { name: 'HUEの考え方' })).toHaveAttribute('href', '/#point-of-view')
     expect(container.querySelector('#point-of-view')).toBeInTheDocument()
   })
 

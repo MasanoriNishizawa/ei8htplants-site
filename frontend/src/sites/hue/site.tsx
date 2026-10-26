@@ -7,10 +7,10 @@ import { BRAND } from '../../lib/brands'
 const Hue = lazy(() => import('../../pages/brands/Hue'))
 
 export const hueSite: BrandSiteConfig = {
-  key: 'hue', name: BRAND.hue.name, descriptor: 'Ornamental Plants',
+  key: 'hue', name: BRAND.hue.name, descriptor: '植物と暮らす', descriptorEn: 'Live with plants',
   origin: 'https://huebyei8htplants.com', logo: BRAND.hue.logo,
   instagramUrl: BRAND.hue.instagramUrl, instagramHandle: BRAND.hue.instagramHandle,
-  accent: '#947454', sections: [{ href: '/#point-of-view', label: 'Concept' }],
+  accent: '#947454', sections: [{ href: '/#point-of-view', label: 'Concept', labelJa: 'HUEの考え方' }],
 }
 
 /** HUE 専用ドメインのページ構成。ブランドページを独立したトップとして提供する。 */

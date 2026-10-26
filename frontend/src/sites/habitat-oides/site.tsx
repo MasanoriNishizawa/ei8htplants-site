@@ -16,10 +16,14 @@ function HueDomainRedirect() {
 }
 
 export const habitatOidesSite: BrandSiteConfig = {
-  key: 'habitat-oides', name: BRAND.habitatOides.name, descriptor: 'Habitat Style Materials & Plants',
+  key: 'habitat-oides', name: BRAND.habitatOides.name, descriptor: '植物の景色を仕立てる', descriptorEn: 'Shape a living landscape',
   origin: 'https://habitatoides.com', logo: BRAND.habitatOides.logo,
   instagramUrl: BRAND.habitatOides.instagramUrl, instagramHandle: BRAND.habitatOides.instagramHandle,
-  accent: '#304c9b', sections: [{ href: '/#world', label: 'Concept' }, { href: '/#workshop', label: 'Workshop' }, { href: '/collaborations', label: 'Collaboration' }],
+  accent: '#304c9b', sections: [
+    { href: '/#world', label: 'Concept', labelJa: '世界観' },
+    { href: '/#workshop', label: 'Workshop', labelJa: 'ワークショップ' },
+    { href: '/collaborations', label: 'Collaboration', labelJa: 'コラボレーション' },
+  ],
 }
 
 /** Habitat Oides 専用ドメインのページ構成。既存 URL から来た訪問者も新しい URL に案内する。 */

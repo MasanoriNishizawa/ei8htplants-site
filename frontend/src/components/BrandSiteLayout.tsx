@@ -10,12 +10,13 @@ export interface BrandSiteConfig {
   key: Exclude<SiteKey, 'ei8htplants'>
   name: string
   descriptor: string
+  descriptorEn?: string
   origin: string
   logo: string
   instagramUrl: string
   instagramHandle: string
   accent: string
-  sections: { href: string; label: string }[]
+  sections: { href: string; label: string; labelJa?: string }[]
 }
 
 /** 独立ドメインのブランド用レイアウト。各サイトの設定に応じたヘッダー・フッターを表示する。 */
@@ -42,10 +43,10 @@ export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
       <header className={`brand-site-header brand-site-header--${site.key}`}>
         <a className="brand-site-wordmark" href={site.origin} aria-label={`${site.name} home`}>
           <img src={site.logo} alt="" />
-          <span><strong>{site.key === 'hue' ? 'HUE' : 'HABITAT OIDES'}</strong><small>{site.descriptor}</small></span>
+          <span><strong>{site.key === 'hue' ? 'HUE' : 'HABITAT OIDES'}</strong><small>{lang === 'ja' ? site.descriptor : site.descriptorEn ?? site.descriptor}</small></span>
         </a>
         <nav className="brand-site-nav" aria-label={`${site.name} navigation`}>
-          {site.sections.map((section) => <a key={section.href} href={section.href}>{section.label}</a>)}
+          {site.sections.map((section) => <a key={section.href} href={section.href}>{lang === 'ja' ? section.labelJa ?? section.label : section.label}</a>)}
         </nav>
         <nav className="brand-site-switcher" aria-label="Other brand sites">
           {brandLinks.filter((brand) => brand.key !== site.key).map((brand) => (
@@ -65,7 +66,7 @@ export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
           </nav>
           <div className="brand-site-footer-meta">
             <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer">{site.instagramHandle} ↗</a>
-            <a href="https://ei8htplants.com/privacy">Privacy</a>
+            <a href="https://ei8htplants.com/privacy">{lang === 'ja' ? 'プライバシーポリシー' : 'Privacy'}</a>
             <span>© {new Date().getFullYear()} {site.name}</span>
           </div>
         </div>

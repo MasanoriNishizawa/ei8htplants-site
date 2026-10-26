@@ -35,7 +35,7 @@ export default function HabitatOidesWorkshop() {
 
   return (
     <>
-      <PageMeta title="Habitat Style Workshop" description={t('ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', 'A habitat-style workshop where you can create your own layout inspired by the natural environments of plants.')} ogImage="/img/habitatOides/habitat_oides_workshop_main.jpg" />
+      <PageMeta title={t('ワークショップ', 'Habitat Style Workshop')} description={t('植物と石や砂を組み合わせ、自生地の景色を自分の手で仕立てるワークショップです。', 'A hands-on workshop to compose a habitat-inspired landscape with plants, stone, and sand.')} ogImage="/img/habitatOides/habitat_oides_workshop_main.jpg" />
       {/* ページ内のセクションへ移動するサブナビ。左端は Habitat Oides のページへ戻るリンク */}
       <nav className="brand-subnav">
         <div className="brand-subnav-inner">
@@ -44,7 +44,7 @@ export default function HabitatOidesWorkshop() {
           </Link>
           {SECTIONS.map((id) => (
             <a key={id} href={`#${id}`} className={active === id ? 'subnav-active' : ''} onClick={scrollTo(id)}>
-              {id === 'about' ? 'About' : id === 'contents' ? 'Contents' : id === 'flow' ? 'Flow' : 'Fee'}
+              {id === 'about' ? t('概要', 'About') : id === 'contents' ? t('内容', 'Contents') : id === 'flow' ? t('当日の流れ', 'Flow') : t('参加費', 'Fee')}
             </a>
           ))}
         </div>
@@ -57,10 +57,10 @@ export default function HabitatOidesWorkshop() {
         </Link>
         <p style={{ fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: '#d8b8ca', marginBottom: 24, position: 'relative' }}>Habitat Oides</p>
         <h1 style={{ fontSize: 'clamp(40px, 8vw, 96px)', fontWeight: 200, letterSpacing: '0.15em', color: '#f0f2ff', lineHeight: 1, textTransform: 'uppercase', margin: 0, position: 'relative' }}>
-          WORKSHOP
+          {t('ワークショップ', 'WORKSHOP')}
         </h1>
         <p style={{ fontSize: 'clamp(12px, 2vw, 16px)', fontWeight: 300, letterSpacing: '0.4em', color: '#9aaedd', marginTop: 14, textTransform: 'uppercase', position: 'relative' }}>
-          Habitat Style
+          {t('植物の景色を仕立てる', 'Habitat Style')}
         </p>
       </section>
 
@@ -69,12 +69,12 @@ export default function HabitatOidesWorkshop() {
       {/* About: 写真とワークショップの紹介 */}
       <section id="about" className="brand-section" ref={sectionRef('about')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>About Workshop</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>{t('ワークショップについて', 'About Workshop')}</h2>
           <div className="wspage-about-grid">
             <div style={{ aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: '#e8e0d4' }}>
               <img
                 src="/img/habitatOides/habitat_oides_workshop_main.jpg"
-                alt="Habitat Style Workshop"
+                alt={t('ハビタットスタイルのワークショップ', 'Habitat Style Workshop')}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             </div>
@@ -101,7 +101,7 @@ export default function HabitatOidesWorkshop() {
       {/* Contents: 学べる内容のカード */}
       <section id="contents" className="brand-section" ref={sectionRef('contents')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Contents</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>{t('体験できること', 'Contents')}</h2>
           <div className="wspage-features">
             {FEATURES.map(({ bg, title, text }) => (
               <div key={title} style={{ background: bg, borderRadius: 4, padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -118,7 +118,7 @@ export default function HabitatOidesWorkshop() {
       {/* Flow: 当日の流れ */}
       <section id="flow" className="brand-section" ref={sectionRef('flow')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Flow</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>{t('当日の流れ', 'Flow')}</h2>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {FLOW.map(({ num, title, text }) => (
               <div key={num} style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 24, padding: '28px 0', borderBottom: '1px solid #dddde8', alignItems: 'start' }}>
@@ -138,7 +138,7 @@ export default function HabitatOidesWorkshop() {
       {/* Fee & Info: 参加費・持ち込み・お子様連れの案内 */}
       <section id="fee" className="brand-section" ref={sectionRef('fee')}>
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Fee & Info</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>{t('参加費とご案内', 'Fee & Info')}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
             <div style={{ padding: '28px 24px', border: '1px solid #dddde8', borderRadius: 4 }}>
               <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 12px' }}>{t('参加費', 'Fee')}</p>
@@ -161,7 +161,7 @@ export default function HabitatOidesWorkshop() {
 
       {/* 予約の案内とイベント一覧へのリンク（紺色の帯） */}
       <section style={{ background: '#1e3272', color: '#f0f2ff', textAlign: 'center', padding: '88px 20px' }}>
-        <h2 style={{ fontSize: 'clamp(22px, 4vw, 44px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 14px' }}>Reservation</h2>
+        <h2 style={{ fontSize: 'clamp(22px, 4vw, 44px)', fontWeight: 200, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 14px' }}>{t('お申し込み', 'Reservation')}</h2>
         <p style={{ fontSize: 13, letterSpacing: 2, color: '#9aaedd', textTransform: 'uppercase', margin: '0 0 40px', lineHeight: 1.8 }}>
           {t(<>ワークショップへのご参加は<br />各イベントページよりお申し込みいただけます。</>, <>To join a workshop,<br />please sign up on the individual event page.</>)}
         </p>
@@ -169,7 +169,7 @@ export default function HabitatOidesWorkshop() {
           to={siteForHost(window.location.hostname).key === 'habitat-oides' ? 'https://ei8htplants.com/events' : '/events'}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f0f2ff', textDecoration: 'none', border: '1px solid #5572cc', padding: '16px 36px', borderRadius: 2 }}
         >
-          View all events →
+          {t('開催イベントを見る', 'View all events')} →
         </Link>
       </section>
     </>
