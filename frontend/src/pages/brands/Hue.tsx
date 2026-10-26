@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
@@ -8,6 +8,12 @@ import { api } from '../../lib/api'
 export default function Hue() {
   const t = useT()
   const [paletteImages, setPaletteImages] = useState<string[]>(Array(6).fill(''))
+  const homeRef = useRef<HTMLDivElement>(null)
+  const heroRef = useRef<HTMLElement>(null)
+  const storyRef = useRef<HTMLElement>(null)
+  const storyTrackRef = useRef<HTMLDivElement>(null)
+  const storyProgressRef = useRef<HTMLSpanElement>(null)
+  const storyCounterRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     Promise.all(Array.from({ length: 6 }, (_, index) =>
@@ -17,16 +23,113 @@ export default function Hue() {
     )).then(setPaletteImages)
   }, [])
 
+  useEffect(() => {
+    const root = homeRef.current
+    if (!root) return
+
+    const revealItems = Array.from(root.querySelectorAll<HTMLElement>('[data-hue-reveal]'))
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    root.classList.add('hue-motion-ready')
+
+    if (reducedMotion || !('IntersectionObserver' in window)) {
+      root.classList.add('hue-motion-reduced')
+      revealItems.forEach((item) => item.classList.add('is-inview'))
+      return () => root.classList.remove('hue-motion-ready', 'hue-motion-reduced')
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('is-inview')
+        observer.unobserve(entry.target)
+      })
+    }, { threshold: 0.12, rootMargin: '0px 0px -7% 0px' })
+    revealItems.forEach((item) => observer.observe(item))
+
+    const clamp = (value: number) => Math.min(1, Math.max(0, value))
+    let frame = 0
+    const updateScrollMotion = () => {
+      frame = 0
+      const hero = heroRef.current
+      const story = storyRef.current
+      const track = storyTrackRef.current
+      if (hero) {
+        const rect = hero.getBoundingClientRect()
+        root.style.setProperty('--hue-hero-progress', clamp(-rect.top / Math.max(1, rect.height)).toFixed(3))
+      }
+      if (!story || !track) return
+
+      if (window.matchMedia('(min-width: 900px)').matches) {
+        const storyTop = window.scrollY + story.getBoundingClientRect().top
+        const headerHeight = Number.parseFloat(getComputedStyle(root).getPropertyValue('--brand-site-header-height')) || 82
+        const pinHeight = Math.max(1, window.innerHeight - headerHeight)
+        const travel = Math.max(1, story.offsetHeight - pinHeight)
+        const progress = clamp((window.scrollY - storyTop) / travel)
+        const maxX = Math.max(0, track.scrollWidth - window.innerWidth)
+        track.style.transform = `translate3d(${-maxX * progress}px, 0, 0)`
+        if (storyProgressRef.current) storyProgressRef.current.style.transform = `scaleX(${progress})`
+        if (storyCounterRef.current) {
+          const chapter = Math.min(3, Math.round(progress * 2) + 1)
+          storyCounterRef.current.textContent = `${String(chapter).padStart(2, '0')} / 03`
+        }
+      } else {
+        track.style.transform = ''
+        if (storyProgressRef.current) storyProgressRef.current.style.transform = 'scaleX(0)'
+      }
+    }
+    const requestScrollUpdate = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(updateScrollMotion)
+    }
+    updateScrollMotion()
+    window.addEventListener('scroll', requestScrollUpdate, { passive: true })
+    window.addEventListener('resize', requestScrollUpdate)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', requestScrollUpdate)
+      window.removeEventListener('resize', requestScrollUpdate)
+      if (frame) window.cancelAnimationFrame(frame)
+      root.classList.remove('hue-motion-ready', 'hue-motion-reduced')
+      root.style.removeProperty('--hue-hero-progress')
+      if (storyTrackRef.current) storyTrackRef.current.style.transform = ''
+    }
+  }, [])
+
+  const stories = [
+    {
+      label: t('光 / 葉', 'LIGHT / LEAF'),
+      title: t('朝の光で、葉の表情に気づく。', 'Notice a leaf in the morning light.'),
+      body: t('窓辺の光が変わるたび、葉の色も違って見える。昨日は見過ごした小さな変化が、植物と暮らす楽しみになります。', 'As the light shifts by the window, foliage takes on a different tone. Small changes become part of the pleasure of living with a plant.'),
+      image: paletteImages[0],
+      caption: t('朝の光と葉の色', 'MORNING LIGHT / FOLIAGE'),
+    },
+    {
+      label: t('かたち / 成長', 'FORM / GROWTH'),
+      title: t('伸びる線を、ゆっくり眺める。', 'Follow the shape as it grows.'),
+      body: t('新しい葉の重なりや、枝が描く線。植物が育つ時間を眺めると、部屋の中にもゆるやかなリズムが生まれます。', 'A new leaf, the line of a branch. Watching a plant grow brings a slower rhythm into the room.'),
+      image: paletteImages[2],
+      caption: t('葉が描くかたち', 'THE SHAPE OF GROWTH'),
+    },
+    {
+      label: t('鉢 / 居場所', 'POT / PLACE'),
+      title: t('一鉢から、部屋の景色をつくる。', 'Let one plant shape a room.'),
+      body: t('お気に入りの鉢と、いつもの家具。その組み合わせの中に植物を迎えると、見慣れた場所に自分らしい景色ができます。', 'Bring a plant together with a favorite pot and familiar furniture. A personal scene begins to take shape.'),
+      image: paletteImages[4],
+      caption: t('暮らしになじむ一鉢', 'A PLANT IN ITS PLACE'),
+    },
+  ]
+
   return (
-    <div className="hue-home">
+    <div className="hue-home" ref={homeRef}>
       <PageMeta
         title="HUE by ei8ht plants"
         description={t('葉の色彩とフォルムを楽しむ、インテリアのためのオーナメントプランツ。', 'An ornamental plant line celebrating foliage color and sculptural form.')}
         ogImage="/img/logo-hue.png"
       />
 
-      <section className="hue-editorial-hero" aria-labelledby="hue-title">
-        <div className="hue-hero-copy">
+      <section className="hue-editorial-hero" aria-labelledby="hue-title" ref={heroRef}>
+        <div className="hue-hero-copy" data-hue-reveal="rise">
           <p className="hue-overline">{t('植物と暮らす、HUEのある暮らし', 'A BOTANICAL COLOR STUDY')} <span>NO. 01</span></p>
           <h1 id="hue-title">{t(<>植物と、<br /><em>暮らす。</em></>, <>Live with<br /><em>plants.</em></>)}</h1>
           <p className="hue-hero-jp">{t('好きな一鉢と、日々を重ねる。', 'Make room for a plant in everyday life.')}</p>
@@ -36,7 +139,7 @@ export default function Hue() {
           )}</p>
           <a className="hue-discover-link" href="#point-of-view">{t('HUEの考え方', 'Discover HUE')} <span>↓</span></a>
         </div>
-        <div className="hue-hero-art" aria-hidden="true">
+        <div className="hue-hero-art" aria-hidden="true" data-hue-reveal="art">
           <div className="hue-art-orbit hue-art-orbit--one" />
           <div className="hue-art-orbit hue-art-orbit--two" />
           <div className="hue-art-disc hue-art-disc--amber" />
@@ -53,8 +156,8 @@ export default function Hue() {
       <section id="point-of-view" className="hue-point-of-view">
         <div className="hue-section-label"><span>01</span><span>{t('植物と暮らす', 'OUR POINT OF VIEW')}</span></div>
         <div className="hue-point-grid">
-          <h2>{t(<>一鉢の植物が、<br /><em>暮らしの景色になる。</em></>, <>Not just a plant.<br /><em>A point of color.</em></>)}</h2>
-          <div>
+          <h2 data-hue-reveal="rise">{t(<>一鉢の植物が、<br /><em>暮らしの景色になる。</em></>, <>Not just a plant.<br /><em>A point of color.</em></>)}</h2>
+          <div data-hue-reveal="rise">
             <p>{t(
               '窓辺に置いた一鉢を眺める。新しい葉に気づく。植物があると、いつもの部屋や時間が少し違って見えてきます。HUEは、色と形を楽しみながら暮らしに迎えられる植物を紹介します。',
               'A single leaf or the curve of a branch can change how a room feels. HUE looks closely at color and shape, bringing plants into the way we live.',
@@ -68,24 +171,44 @@ export default function Hue() {
       </section>
 
       <section className="hue-color-study" aria-labelledby="hue-color-title">
-        <div className="hue-section-label"><span>02</span><span>{t('植物のある暮らし', 'COLOR / FORM / SPACE')}</span></div>
-        <h2 id="hue-color-title">{t('一鉢から、暮らしを選ぶ。', 'Choose by feeling.')}</h2>
-        <p className="hue-color-intro">{t('朝の光に葉の色を見つける。部屋に似合う形を選ぶ。植物と過ごす日々を、自分らしく。', 'Notice the leaves in morning light. Find a shape that feels at home. Live with plants in your own way.')}</p>
+        <div className="hue-section-label" data-hue-reveal="rise"><span>02</span><span>{t('植物のある暮らし', 'COLOR / FORM / SPACE')}</span></div>
+        <h2 id="hue-color-title" data-hue-reveal="rise">{t('一鉢から、暮らしを選ぶ。', 'Choose by feeling.')}</h2>
+        <p className="hue-color-intro" data-hue-reveal="rise">{t('朝の光に葉の色を見つける。部屋に似合う形を選ぶ。植物と過ごす日々を、自分らしく。', 'Notice the leaves in morning light. Find a shape that feels at home. Live with plants in your own way.')}</p>
         <div className="hue-photo-grid" aria-label={t('HUE by ei8ht plants の植物写真', 'Plant photos from HUE by ei8ht plants')}>
           {paletteImages.map((url, index) => (
-            <div className="hue-photo-shape" key={index} style={{ '--photo-index': index } as React.CSSProperties}>
+            <div className="hue-photo-shape" key={index} data-hue-reveal="photo" style={{ '--photo-index': index } as React.CSSProperties}>
               {url && <img src={url} alt={t(`HUE by ei8ht plants の植物 ${index + 1}`, `HUE by ei8ht plants plant ${index + 1}`)} loading="lazy" />}
             </div>
           ))}
         </div>
-        <div className="hue-color-notes">
-          <article><span>01 / {t('色', 'COLOR')}</span><h3>{t('葉の色を楽しむ。', 'Notice the tone.')}</h3><p>{t('新芽の明るさや葉色の深み。小さな色の違いを楽しむ。', 'From fresh new growth to deep foliage tones, notice the subtle shifts in color.')}</p></article>
-          <article><span>02 / {t('かたち', 'FORM')}</span><h3>{t('かたちと過ごす。', 'Follow the shape.')}</h3><p>{t('葉の重なりや枝の線。植物が描くかたちに目を向ける。', 'Look closely at a plant’s lines, leaves, and the shapes they create.')}</p></article>
-          <article><span>03 / {t('居場所', 'SPACE')}</span><h3>{t('いつもの場所に迎える。', 'Make it your own.')}</h3><p>{t('お気に入りの鉢や家具と合わせて、自分らしい場所に飾る。', 'Pair a plant with your favorite pot and give it a place of its own.')}</p></article>
-        </div>
+        <section className="hue-story-scroll" aria-label={t('HUEの植物と暮らす3つの視点', 'Three ways to live with HUE plants')} ref={storyRef}>
+          <div className="hue-story-pin">
+            <div className="hue-story-track" ref={storyTrackRef}>
+              {stories.map((story, index) => (
+                <article className="hue-story-panel" key={story.label} data-hue-reveal="story">
+                  <div className="hue-story-copy">
+                    <p className="hue-story-kicker"><span>0{index + 1}</span> / {story.label}</p>
+                    <h3>{story.title}</h3>
+                    <p className="hue-story-body">{story.body}</p>
+                  </div>
+                  <figure className={`hue-story-visual hue-story-visual--${index + 1}${story.image ? '' : ' hue-story-visual--empty'}`}>
+                    {story.image && <img src={story.image} alt={story.caption} loading="lazy" />}
+                    <figcaption>{story.caption}</figcaption>
+                    <span className="hue-story-visual-index">0{index + 1}</span>
+                  </figure>
+                </article>
+              ))}
+            </div>
+            <div className="hue-story-footer" aria-hidden="true">
+              <span className="hue-story-counter" ref={storyCounterRef}>01 / 03</span>
+              <span className="hue-story-progress"><span ref={storyProgressRef} /></span>
+              <span className="hue-story-cue">{t('スクロールして見る', 'SCROLL TO EXPLORE')} <span>→</span></span>
+            </div>
+          </div>
+        </section>
       </section>
 
-      <section className="hue-follow">
+      <section className="hue-follow" data-hue-reveal="rise">
         <img src={BRAND.hue.logo} alt="HUE by ei8ht plants" />
         <p className="hue-overline">{t('暮らしに、もうひとつの彩りを', 'A LITTLE MORE COLOR')}</p>
         <h2>{t('植物と暮らす日々を。', 'Bring your space to life.')}</h2>
