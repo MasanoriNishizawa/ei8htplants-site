@@ -24,7 +24,7 @@ describe('ブランドサイトのホスト判定', () => {
 
   it('ブランドの公開トップURLを各専用ドメインへ向ける', () => {
     expect(BRAND_SITE_URLS).toEqual({
-      ei8htplants: 'https://ei8htplants.com/ei8htplants',
+      ei8htplants: 'https://ei8htplants.com/',
       'habitat-oides': 'https://habitatoides.com',
       hue: 'https://huebyei8htplants.com',
     })

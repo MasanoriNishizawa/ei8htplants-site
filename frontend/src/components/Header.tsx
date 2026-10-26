@@ -9,7 +9,7 @@ const BRANDS_PAGE = { to: '/brands', label: 'Our Brands' }
 
 /** ナビに並べるページ（end: true はそのパスちょうどのときだけ選択中にする） */
 const NAV_ITEMS = [
-  { to: '/', label: 'Home', end: true },
+  { to: '/official', label: 'Home', end: true },
   { to: '/events', label: 'Event' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/concept', label: 'Concept' },

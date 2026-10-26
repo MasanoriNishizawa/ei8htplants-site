@@ -4,5 +4,5 @@ export const ei8htPlantsSite = {
   origin: 'https://ei8htplants.com',
   brandName: 'ei8ht plants',
   adminPath: '/admin',
-  brandPagePath: '/ei8htplants',
+  brandPagePath: '/',
 }

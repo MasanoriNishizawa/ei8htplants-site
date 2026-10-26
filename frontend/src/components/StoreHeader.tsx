@@ -66,7 +66,7 @@ export default function StoreHeader() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2.5vw, 20px)', flexShrink: 0 }}>
         {/* ブランドサイト（トップページ）へ戻るボタン（狭い画面では index.css で隠す） */}
         <Link
-          to="/"
+          to="/official"
           className="store-header-official"
           style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '1.5px', color: 'var(--c-surface)', textDecoration: 'none', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'var(--c-muted)', padding: '5px 12px' }}
         >

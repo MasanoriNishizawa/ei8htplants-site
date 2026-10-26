@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
 import { CartProvider } from './lib/cart'
 import { LangProvider } from './lib/lang'
@@ -130,7 +130,8 @@ export default function App() {
           </> : <>
           {/* ブランドサイト側のページ（大きいヘッダー・フッター・チャットボタン付き） */}
           <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Ei8htPlants />} />
+            <Route path="/official" element={<Home />} />
             <Route path="/events" element={<Events />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/concept" element={<Concept />} />
@@ -139,7 +140,7 @@ export default function App() {
             <Route path="/stockists" element={<Stockists />} />
             <Route path="/collaborations" element={<Collaborations />} />
             <Route path="/media" element={<Media />} />
-            <Route path="/ei8htplants" element={<Ei8htPlants />} />
+            <Route path="/ei8htplants" element={<Navigate to="/" replace />} />
             <Route path="/habitatoides" element={<HabitatOides />} />
             <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
             <Route path="/hue" element={<Hue />} />

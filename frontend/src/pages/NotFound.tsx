@@ -29,7 +29,7 @@ export default function NotFound() {
           )}
         </p>
         {/* トップへ戻るリンク（枠線の四角いボタン） */}
-        <Link to="/" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid var(--c-border)', borderRadius: 4, color: 'var(--c-ink)', textDecoration: 'none', fontSize: 14, letterSpacing: 1 }}>
+        <Link to="/official" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid var(--c-border)', borderRadius: 4, color: 'var(--c-ink)', textDecoration: 'none', fontSize: 14, letterSpacing: 1 }}>
           {t('トップページへ', 'Back to Home')}
         </Link>
       </div>

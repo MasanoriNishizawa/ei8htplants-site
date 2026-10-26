@@ -88,7 +88,7 @@ export default function OrderComplete() {
               {t('ショップに戻る', 'Back to Shop')}
             </Link>
             <Link
-              to="/"
+              to="/official"
               style={{
                 padding: '13px 32px', border: '1px solid #e8e3da', color: '#717171',
                 textDecoration: 'none', fontFamily: SANS, fontSize: 13, letterSpacing: '2px',

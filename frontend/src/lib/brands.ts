@@ -31,7 +31,7 @@ export interface BrandInfo {
 const EI8HT_PLANTS: BrandInfo = {
   name: 'ei8ht plants',
   shortName: 'ei8ht plants',
-  path: '/ei8htplants',
+  path: '/',
   instagramUrl: 'https://www.instagram.com/ei8ht.plants/',
   instagramHandle: '@ei8ht.plants',
   logo: '/img/logo-ei8htplants.png',

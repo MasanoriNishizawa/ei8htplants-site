@@ -8,6 +8,7 @@ const SHOP_PATHS = ['/shop', '/checkout', '/order']
 
 /** 「Pages」の列に並べるサイト内のリンク（to: パス、label: 表示名） */
 const NAV_LINKS = [
+  { to: '/official', label: 'Home' },
   { to: '/events', label: 'Event' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/concept', label: 'Concept' },

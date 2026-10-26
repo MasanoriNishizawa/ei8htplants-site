@@ -5,6 +5,7 @@ import { test, expect } from '@playwright/test'
 
 const routes = [
   '/',
+  '/official',
   '/events',
   '/gallery',
   '/contact',
