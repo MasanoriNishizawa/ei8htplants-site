@@ -92,21 +92,21 @@ export default function Hue() {
   const stories = [
     {
       label: t('光 / 葉', 'LIGHT / LEAF'),
-      title: t('朝の光で、葉の表情に気づく。', 'Notice a leaf in the morning light.'),
+      title: t(<>朝の光で、<br />葉の表情に気づく。</>, <>Notice a leaf in the morning light.</>),
       body: t('窓辺の光が変わるたび、葉の色も違って見える。昨日は見過ごした小さな変化が、植物と暮らす楽しみになります。', 'As the light shifts by the window, foliage takes on a different tone. Small changes become part of the pleasure of living with a plant.'),
       image: paletteImages[0],
       caption: t('朝の光と葉の色', 'MORNING LIGHT / FOLIAGE'),
     },
     {
       label: t('かたち / 成長', 'FORM / GROWTH'),
-      title: t('伸びる線を、ゆっくり眺める。', 'Follow the shape as it grows.'),
+      title: t(<>伸びる線を、<br />ゆっくり眺める。</>, <>Follow the shape as it grows.</>),
       body: t('新しい葉の重なりや、枝が描く線。植物が育つ時間を眺めると、部屋の中にもゆるやかなリズムが生まれます。', 'A new leaf, the line of a branch. Watching a plant grow brings a slower rhythm into the room.'),
       image: paletteImages[2],
       caption: t('葉が描くかたち', 'THE SHAPE OF GROWTH'),
     },
     {
       label: t('鉢 / 居場所', 'POT / PLACE'),
-      title: t('一鉢から、部屋の景色をつくる。', 'Let one plant shape a room.'),
+      title: t(<>一鉢から、<br />部屋の景色をつくる。</>, <>Let one plant shape a room.</>),
       body: t('お気に入りの鉢と、いつもの家具。その組み合わせの中に植物を迎えると、見慣れた場所に自分らしい景色ができます。', 'Bring a plant together with a favorite pot and familiar furniture. A personal scene begins to take shape.'),
       image: paletteImages[4],
       caption: t('暮らしになじむ一鉢', 'A PLANT IN ITS PLACE'),
