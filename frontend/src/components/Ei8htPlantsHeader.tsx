@@ -16,7 +16,6 @@ export default function Ei8htPlantsHeader() {
         <Link to="/">Home</Link>
         <Link to="/about">Our Story</Link>
         <Link to="/plants">Plants</Link>
-        <Link to="/official/brands">Our Brands</Link>
         <Link to="/official/shop">Shop</Link>
         <Link to="/official" className="ep-brand-header-official">Official Site <span aria-hidden="true">↗</span></Link>
         <button type="button" className="ep-brand-header-language" onClick={toggle} aria-label={languageAccessibleLabel}>{languageLabel}</button>
@@ -27,7 +26,6 @@ export default function Ei8htPlantsHeader() {
           <Link to="/" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Home</Link>
           <Link to="/about" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Our Story</Link>
           <Link to="/plants" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Plants</Link>
-          <Link to="/official/brands" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Our Brands</Link>
           <Link to="/official/shop" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Shop</Link>
           <Link to="/official" className="ep-brand-header-official">Official Site ↗</Link>
           <button type="button" className="ep-brand-header-language" onClick={toggle} aria-label={languageAccessibleLabel}>{languageLabel}</button>

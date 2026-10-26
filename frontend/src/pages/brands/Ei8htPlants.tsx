@@ -1,21 +1,14 @@
 import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
-import { useSectionSpy } from '../../hooks/useSectionSpy'
 import { BRAND, TEXT_LOGO } from '../../lib/brands'
 
-/** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
-const SECTIONS = ['concept', 'store'] as const
-
 /**
- * ei8ht plants ブランドページ。スクロール位置に合わせてサブナビの選択中を変える（useSectionSpy）
+ * ei8ht plants ブランドページ。
  * @returns ブランドページの画面
  */
 export default function Ei8htPlants() {
   const t = useT()
-  // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
-  const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)
-
 
   return (
     <>
@@ -23,19 +16,8 @@ export default function Ei8htPlants() {
       {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
       <h1 className="sr-only">{t('ei8ht plants — ビザールプランツ専門ライン', 'ei8ht plants — Bizarre Plants Line')}</h1>
 
-      {/* ファーストビュー。上にサブナビを重ねる */}
+      {/* ブランドトップのファーストビュー */}
       <div className="hero-wrapper">
-        {/* ページ内のセクションへ移動するサブナビ（表示中のセクションに印を付ける） */}
-        <nav className="brand-subnav">
-          <div className="brand-subnav-inner">
-            {SECTIONS.map((id) => (
-              <a key={id} href={`#${id}`} className={active === id ? 'subnav-active' : ''} onClick={scrollTo(id)}>
-                {id === 'concept' ? 'Concept' : 'Store'}
-              </a>
-            ))}
-          </div>
-        </nav>
-
         {/* 背景写真の上に文字ロゴを重ねたヒーロー（写真は飾りなので読み上げない） */}
         <section className="ep-hero">
           <img className="ep-hero-bg-img" src="/img/ei8htPlants/ei8htplants_hero.jpg" alt="" aria-hidden />
@@ -58,7 +40,7 @@ export default function Ei8htPlants() {
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       {/* コンセプト: ロゴ・見出し・紹介文 */}
-      <section id="concept" className="brand-section" ref={sectionRef('concept')}>
+      <section id="concept" className="brand-section">
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'var(--brand-type-label)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
           <div className="brand-concept-grid">
@@ -81,7 +63,7 @@ export default function Ei8htPlants() {
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       {/* オンラインストアへの案内（黒い帯） */}
-      <section id="store" className="brand-section" ref={sectionRef('store')}
+      <section id="store" className="brand-section"
         style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
         <p style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
