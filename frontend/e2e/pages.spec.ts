@@ -6,6 +6,7 @@ import { test, expect } from '@playwright/test'
 const routes = [
   '/',
   '/official',
+  '/official/brands',
   '/official/events',
   '/official/gallery',
   '/official/contact',
@@ -20,7 +21,7 @@ const routes = [
   '/official/journal',
   // ブランドページ（App.tsx のルートパスに合わせた正確なパス）
   '/ei8htplants',
-  '/brands',
+  '/brands', // 旧URLから /official/brands に転送
   '/habitatoides',
   '/habitatoides/workshop',
   '/hue',

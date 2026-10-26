@@ -270,7 +270,7 @@ class TestServeSpaMeta:
 
     @pytest.mark.parametrize('path,title,desc,canonical', [
         ('/', 'ei8ht plants', 'アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'https://ei8htplants.com/'),
-        ('/brands', 'Our Brands | ei8ht plants', '植物との向き合い方から生まれた、ei8ht plants の3つのブランドをご紹介します。', 'https://ei8htplants.com/brands'),
+        ('/official/brands', 'Our Brands | ei8ht plants', '植物との向き合い方から生まれた、ei8ht plants の3つのブランドをご紹介します。', 'https://ei8htplants.com/official/brands'),
         ('/official', 'ei8ht plants', seo.DEFAULT_DESCRIPTION, 'https://ei8htplants.com/official'),
         ('/official/events', 'Events | ei8ht plants', 'ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。', 'https://ei8htplants.com/official/events'),
         ('/official/gallery', 'Gallery | ei8ht plants', 'ei8ht plants、Habitat Oides、HUE の植物ギャラリー。', 'https://ei8htplants.com/official/gallery'),

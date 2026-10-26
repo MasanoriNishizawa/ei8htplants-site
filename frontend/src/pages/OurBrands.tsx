@@ -20,7 +20,7 @@ export default function OurBrands() {
   return (
     <>
       <PageMeta
-        title="Our Brands | ei8ht plants"
+        title="Our Brands"
         description={t('植物との向き合い方から生まれた、ei8ht plantsの3つのブランドをご紹介します。', 'Discover three distinct brands shaped by different ways of living with plants.')}
       />
       <section className="our-brands-hero">

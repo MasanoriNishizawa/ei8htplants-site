@@ -142,13 +142,13 @@ export default function App() {
             <Route path="/" element={<Ei8htPlants />} />
             <Route path="/about" element={<Ei8htPlantsAbout />} />
             <Route path="/plants" element={<Ei8htPlantsPlants />} />
-            <Route path="/brands" element={<OurBrands />} />
             <Route path="/habitatoides" element={<HabitatOides />} />
             <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
             <Route path="/hue" element={<Hue />} />
 
             {/* 公式サイトのページは /official 配下にまとめる */}
             <Route path="/official" element={<Home />} />
+            <Route path="/official/brands" element={<OurBrands />} />
             <Route path="/official/events" element={<Events />} />
             <Route path="/official/events/:id" element={<EventSite />} />
             <Route path="/official/gallery" element={<Gallery />} />
@@ -164,7 +164,7 @@ export default function App() {
             <Route path="/official/cancel" element={<CancelReservation />} />
 
             {/* 旧URLからの転送。既存リンク・予約メールを引き続き使えるようにする */}
-            {['events', 'gallery', 'concept', 'contact', 'stockists', 'collaborations', 'media', 'legal', 'privacy', 'chat', 'reserve', 'cancel'].map((path) => (
+            {['brands', 'events', 'gallery', 'concept', 'contact', 'stockists', 'collaborations', 'media', 'legal', 'privacy', 'chat', 'reserve', 'cancel'].map((path) => (
               <Route key={path} path={`/${path}/*`} element={<LegacyOfficialRedirect />} />
             ))}
             <Route path="/ei8htplants" element={<Navigate to="/" replace />} />

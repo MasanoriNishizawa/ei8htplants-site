@@ -5,7 +5,7 @@ import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import { TEXT_LOGO } from '../lib/brands'
 
 /** Brand メニューから開くブランド一覧ページ */
-const BRANDS_PAGE = { to: '/brands', label: 'Our Brands' }
+const BRANDS_PAGE = { to: '/official/brands', label: 'Our Brands' }
 
 /** ナビに並べるページ（end: true はそのパスちょうどのときだけ選択中にする） */
 const NAV_ITEMS = [

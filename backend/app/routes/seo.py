@@ -96,7 +96,7 @@ STATIC_PAGES: dict[str, StaticPage] = {
     '/': StaticPage(None, 'アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。'),
     '/about': StaticPage('Our Story', '個性的な植物を育て、一株ごとの魅力を届けるei8ht plantsの考え方をご紹介します。'),
     '/plants': StaticPage('Plants', 'アガベ、塊根植物、灌木、多肉植物。ei8ht plantsが扱うビザールプランツをご紹介します。'),
-    '/brands': StaticPage('Our Brands', '植物との向き合い方から生まれた、ei8ht plants の3つのブランドをご紹介します。'),
+    '/official/brands': StaticPage('Our Brands', '植物との向き合い方から生まれた、ei8ht plants の3つのブランドをご紹介します。'),
     '/official': StaticPage(),
     '/official/events': StaticPage('Events', 'ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。'),
     '/official/gallery': StaticPage('Gallery', 'ei8ht plants、Habitat Oides、HUE の植物ギャラリー。'),
@@ -130,7 +130,7 @@ STATIC_PAGES: dict[str, StaticPage] = {
 
 # sitemap.xml に載せる固定ページ（検索結果に出してよい公開ページだけ。/reserve はイベントの指定が要るので外す）
 SITEMAP_STATIC_PATHS = (
-    '/', '/about', '/plants', '/brands', '/habitatoides', '/habitatoides/workshop', '/hue', '/official',
+    '/', '/about', '/plants', '/habitatoides', '/habitatoides/workshop', '/hue', '/official', '/official/brands',
     '/official/events', '/official/gallery', '/official/shop', '/official/journal',
     '/official/concept', '/official/contact', '/official/stockists', '/official/collaborations',
     '/official/media', '/official/chat', '/official/legal', '/official/privacy',
@@ -752,6 +752,8 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     norm = '/' + path.strip('/')
     if norm == '/ei8htplants':
         norm = '/'
+    elif norm == '/brands' or norm.startswith('/brands/'):
+        norm = '/official' + norm
     elif norm == '/events' or norm.startswith('/events/'):
         norm = '/official' + norm
     elif norm == '/shop' or norm.startswith('/shop/'):

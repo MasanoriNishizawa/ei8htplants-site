@@ -129,7 +129,7 @@ export default function Home() {
           <img src={TEXT_LOGO} alt="ei8ht plants" />
           <p className="home-hero-manifesto">Collect<br />the strange.</p>
           <h1>{t(<>育て、仕立て、<br />ともに暮らす。</>, <>Grow it. Style it.<br />Live with it.</>)}</h1>
-          <Link to="/brands" className="home-hero-brands">{t('ブランドを見る', 'OUR BRANDS')} <span>↗</span></Link>
+          <Link to="/official/brands" className="home-hero-brands">{t('ブランドを見る', 'OUR BRANDS')} <span>↗</span></Link>
         </div>
         <p className="home-hero-caption">{t('植物のかたちと、暮らしのあいだ。', 'PLANT FORMS / EVERYDAY LIFE')}</p>
         <a className="home-hero-scroll" href="#our-brands"><span />{t('スクロール', 'SCROLL')}</a>
@@ -145,7 +145,7 @@ export default function Home() {
           </div>
           <div className="home-brands-intro">
             <p>{t('植物との向き合い方から生まれた、3つのブランド。それぞれの世界をご紹介します。', 'Three distinct worlds shaped by different ways of living with plants.')}</p>
-            <Link to="/brands">{t('すべてのブランド', 'VIEW ALL BRANDS')} <span>↗</span></Link>
+            <Link to="/official/brands">{t('すべてのブランド', 'VIEW ALL BRANDS')} <span>↗</span></Link>
           </div>
         </div>
 
