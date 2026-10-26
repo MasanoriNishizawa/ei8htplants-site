@@ -865,6 +865,19 @@ class TestLegacyBrandRedirects:
         resp = TestClient(app).get('/events', headers={'host': 'ei8htplants.com'}, follow_redirects=False)
         assert resp.status_code == 200
 
+    @pytest.mark.parametrize('host', [
+        'habitatoides.com', 'www.habitatoides.com',
+        'huebyei8htplants.com', 'www.huebyei8htplants.com',
+    ])
+    @pytest.mark.parametrize('path', ['/admin', '/admin/site-images'])
+    def test_ブランドドメインから管理画面を本体ドメインへ転送する(self, host, path):
+        resp = TestClient(app).get(
+            f'{path}?from=brand', headers={'host': host}, follow_redirects=False,
+        )
+        assert resp.status_code == 301
+        assert resp.headers['location'] == f'https://ei8htplants.com{path}?from=brand'
+        assert 'no-store' in resp.headers['cache-control']
+
     @pytest.mark.parametrize('host', ['habitatoides.com', 'www.habitatoides.com'])
     def test_HabitatドメインのhueパスはHUE専用ドメインへ301転送する(self, host):
         resp = TestClient(app).get('/hue?from=habitat', headers={'host': host}, follow_redirects=False)

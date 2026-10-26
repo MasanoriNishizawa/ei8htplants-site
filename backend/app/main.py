@@ -234,6 +234,18 @@ if os.path.isdir(DIST):
         host = request.headers.get('host', '').lower().split(':', 1)[0]
         path = full_path.strip('/')
 
+        # 管理画面は ei8htplants.com に集約し、ブランドドメインからは SPA を読み込まずサーバー側で先に転送する。
+        # モバイル Safari でもクライアント側 JavaScript の起動に依存せず管理画面を開けるようにする。
+        if host in seo.BRAND_DOMAINS and (path == 'admin' or path.startswith('admin/')):
+            destination = f'{SITE_ORIGIN}/{path}'
+            if request.url.query:
+                destination += '?' + request.url.query
+            return RedirectResponse(
+                url=destination,
+                status_code=301,
+                headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
+            )
+
         # ブランドページの古い URL や別ブランドの URL を、それぞれの正規ドメインへ転送する。
         moved_pages = {
             'ei8htplants.com': {
