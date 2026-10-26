@@ -46,10 +46,10 @@ export default function Ei8htPlants() {
           <div className="brand-concept-grid">
             <img src={BRAND.ei8htPlants.logo} alt={BRAND.ei8htPlants.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
-              <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
+              <h2 style={{ fontSize: 'var(--brand-type-subheading)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
                 Bizarre<br />Plants
               </h2>
-              <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
+              <p style={{ fontSize: 'var(--brand-type-body)', color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
                 {t(
                   <>アガベ、塊根植物、灌木——<br />個性的なフォルムと深みある色彩を持つ植物を、<br />自ら生産し、一株一株に向き合って届けています。<br /><br />株選びから育て方まで、<br />幅広くサポートします。</>,
                   <>Agaves, caudiciform plants, shrubs —<br />plants with bold forms and rich character,<br />grown by us and delivered with care.<br /><br />From choosing the right plant to ongoing care,<br />we're here to support you every step of the way.</>
@@ -65,11 +65,11 @@ export default function Ei8htPlants() {
       {/* オンラインストアへの案内（黒い帯） */}
       <section id="store" className="brand-section"
         style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>
-        <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
+        <h2 style={{ fontSize: 'var(--brand-type-title)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
         <p style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
         <Link
           to="/official/shop"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#fff', textDecoration: 'none', border: '1px solid #444', padding: '16px 36px', borderRadius: 2, transition: 'background 0.2s' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 'var(--brand-type-body)', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#fff', textDecoration: 'none', border: '1px solid #444', padding: '16px 36px', borderRadius: 2, transition: 'background 0.2s' }}
         >
           Shop now →
         </Link>

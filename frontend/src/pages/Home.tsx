@@ -219,7 +219,7 @@ export default function Home() {
                   opacity: isActive ? 0 : 1,
                   transition: 'opacity 0.3s',
                   writingMode: 'vertical-rl',
-                  fontSize: 10, letterSpacing: '0.2em',
+                  fontSize: 'var(--brand-type-meta)', letterSpacing: '0.2em',
                   color: 'rgba(255,255,255,0.75)',
                   textTransform: 'uppercase', fontWeight: 300,
                   whiteSpace: 'nowrap',
@@ -247,7 +247,7 @@ export default function Home() {
                 />
                 {!isMobile && (
                   <p style={{
-                    fontSize: 12, color: 'rgba(255,255,255,0.85)',
+                    fontSize: 'var(--brand-type-meta)', color: 'rgba(255,255,255,0.85)',
                     letterSpacing: '0.06em', lineHeight: 1.8,
                     margin: '0 0 16px', fontWeight: 300, fontFamily: SANS,
                   }}>
@@ -255,7 +255,7 @@ export default function Home() {
                   </p>
                 )}
                 <span style={{
-                  fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase',
+                  fontSize: 'var(--brand-type-meta)', letterSpacing: '0.18em', textTransform: 'uppercase',
                   color: 'rgba(255,255,255,0.6)', fontWeight: 300, fontFamily: SANS,
                   borderBottom: '1px solid rgba(255,255,255,0.4)', paddingBottom: 2,
                 }}>
@@ -285,10 +285,10 @@ export default function Home() {
         <>
           <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
+              <h2 style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Next Event
               </h2>
-              <Link to="/official/events" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/events" style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 {t('全イベント →', 'All Events →')}
               </Link>
             </div>
@@ -303,10 +303,10 @@ export default function Home() {
         <>
           <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
+              <h2 style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Shop
               </h2>
-              <Link to="/official/shop" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/shop" style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 View All →
               </Link>
             </div>
@@ -323,12 +323,12 @@ export default function Home() {
                       )}
                       {p.stock === 0 && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: '#ffffff', border: '1px solid rgba(255,255,255,0.6)', padding: '6px 16px' }}>SOLD OUT</span>
+                          <span style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', letterSpacing: '4px', color: '#ffffff', border: '1px solid rgba(255,255,255,0.6)', padding: '6px 16px' }}>SOLD OUT</span>
                         </div>
                       )}
                     </div>
-                    <p style={{ fontFamily: SERIF, fontSize: 'clamp(14px, 1.4vw, 16px)', color: 'var(--c-ink)', margin: '0 0 5px', lineHeight: 1.5 }}>{p.name}</p>
-                    <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>{formatYen(p.price)}</p>
+                    <p style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-body)', color: 'var(--c-ink)', margin: '0 0 5px', lineHeight: 1.5 }}>{p.name}</p>
+                    <p style={{ fontFamily: SANS, fontSize: 'var(--brand-type-navigation)', color: 'var(--c-muted)', margin: 0 }}>{formatYen(p.price)}</p>
                   </div>
                 </Link>
               ))}
@@ -343,10 +343,10 @@ export default function Home() {
         <>
           <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
+              <h2 style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Journal
               </h2>
-              <Link to="/official/journal" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/journal" style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 All Articles →
               </Link>
             </div>
@@ -362,13 +362,13 @@ export default function Home() {
                       )}
                     </div>
                     {a.published_at && (
-                      <p style={{ fontFamily: SANS, fontSize: 10, color: 'var(--c-faint)', margin: '0 0 8px', letterSpacing: '1.5px' }}>{fmtDate(a.published_at)}</p>
+                      <p style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', color: 'var(--c-faint)', margin: '0 0 8px', letterSpacing: '1.5px' }}>{fmtDate(a.published_at)}</p>
                     )}
-                    <p style={{ fontFamily: SERIF, fontSize: idx === 0 ? 'clamp(18px, 2vw, 24px)' : 'clamp(15px, 1.5vw, 18px)', color: 'var(--c-ink)', margin: '0 0 10px', lineHeight: 1.5, letterSpacing: '0.02em' }}>
+                    <p style={{ fontFamily: SERIF, fontSize: idx === 0 ? 'var(--brand-type-emphasis)' : 'var(--brand-type-body-small)', color: 'var(--c-ink)', margin: '0 0 10px', lineHeight: 1.5, letterSpacing: '0.02em' }}>
                       {a.title}
                     </p>
                     {idx === 0 && articleExcerpt(a.content) && (
-                      <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-muted)', margin: '0 0 14px', lineHeight: 2 }}>
+                      <p style={{ fontFamily: SANS, fontSize: 'var(--brand-type-navigation)', color: 'var(--c-muted)', margin: '0 0 14px', lineHeight: 2 }}>
                         {articleExcerpt(a.content)}
                       </p>
                     )}
@@ -386,10 +386,10 @@ export default function Home() {
         <>
           <section style={{ padding: 'clamp(56px, 8vw, 96px) 0' }}>
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
+              <h2 style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Gallery
               </h2>
-              <Link to="/official/gallery" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/gallery" style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 View All →
               </Link>
             </div>
@@ -411,8 +411,8 @@ export default function Home() {
 
       {/* ─── INSTAGRAM ───（3 ブランドのロゴから各アカウントへ。下にシェアボタン） */}
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)', textAlign: 'center' }}>
-        <p style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '4px', color: 'var(--c-faint)', margin: '0 0 8px', textTransform: 'uppercase' }}>{t('フォロー', 'Follow us')}</p>
-        <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 300, fontStyle: 'italic', color: 'var(--c-ink)', margin: '0 0 clamp(28px, 4vw, 44px)', letterSpacing: '0.06em' }}>Instagram</p>
+        <p style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', letterSpacing: '4px', color: 'var(--c-faint)', margin: '0 0 8px', textTransform: 'uppercase' }}>{t('フォロー', 'Follow us')}</p>
+        <p style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', color: 'var(--c-ink)', margin: '0 0 clamp(28px, 4vw, 44px)', letterSpacing: '0.06em' }}>Instagram</p>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'clamp(24px, 5vw, 60px)', flexWrap: 'wrap' }}>
           {IG_LINKS.map(({ href, src, cls, brand }) => (
             <a

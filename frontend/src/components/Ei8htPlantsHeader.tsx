@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { TEXT_LOGO } from '../lib/brands'
 import { useLang } from '../lib/lang'
+import { BRAND_SITE_URLS } from '../lib/siteHost'
 
 /** ei8ht plants ブランドトップ専用ヘッダー。公式サイトのグローバルナビと分ける。 */
 export default function Ei8htPlantsHeader() {
@@ -16,6 +17,8 @@ export default function Ei8htPlantsHeader() {
         <Link to="/">Home</Link>
         <Link to="/about">Our Story</Link>
         <Link to="/plants">Plants</Link>
+        <a href={BRAND_SITE_URLS['habitat-oides']} target="_blank" rel="noopener noreferrer">Habitat Oides</a>
+        <a href={BRAND_SITE_URLS.hue} target="_blank" rel="noopener noreferrer">HUE by ei8ht plants</a>
         <Link to="/official/shop">Shop</Link>
         <Link to="/official" className="ep-brand-header-official">Official Site <span aria-hidden="true">↗</span></Link>
         <button type="button" className="ep-brand-header-language" onClick={toggle} aria-label={languageAccessibleLabel}>{languageLabel}</button>
@@ -26,6 +29,8 @@ export default function Ei8htPlantsHeader() {
           <Link to="/" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Home</Link>
           <Link to="/about" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Our Story</Link>
           <Link to="/plants" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Plants</Link>
+          <a href={BRAND_SITE_URLS['habitat-oides']} target="_blank" rel="noopener noreferrer">Habitat Oides</a>
+          <a href={BRAND_SITE_URLS.hue} target="_blank" rel="noopener noreferrer">HUE by ei8ht plants</a>
           <Link to="/official/shop" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open') }}>Shop</Link>
           <Link to="/official" className="ep-brand-header-official">Official Site ↗</Link>
           <button type="button" className="ep-brand-header-language" onClick={toggle} aria-label={languageAccessibleLabel}>{languageLabel}</button>

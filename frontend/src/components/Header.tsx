@@ -138,7 +138,7 @@ export default function Header() {
    * @returns style
    */
   const navItemStyle = (isActive: boolean): React.CSSProperties => ({
-    fontSize: 14,
+    fontSize: 'var(--brand-type-navigation)',
     fontWeight: 500,
     letterSpacing: '0.1em',
     textDecoration: 'none',
@@ -311,7 +311,7 @@ export default function Header() {
             end={end}
             onClick={closeMenuAndReturnFocus}
             style={({ isActive }) => ({
-              fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
+              fontSize: 'var(--brand-type-navigation)', fontWeight: 300, letterSpacing: '0.14em',
               textDecoration: 'none', textTransform: 'uppercase',
               color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
               borderBottom: isActive ? '1px solid var(--c-ink)' : '1px solid transparent',
@@ -328,7 +328,7 @@ export default function Header() {
           to="/official/shop"
           onClick={closeMenuAndReturnFocus}
           style={({ isActive }) => ({
-            fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
+            fontSize: 'var(--brand-type-navigation)', fontWeight: 300, letterSpacing: '0.14em',
             textDecoration: 'none', textTransform: 'uppercase',
             color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
             transition: 'color 0.2s',

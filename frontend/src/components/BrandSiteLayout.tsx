@@ -47,6 +47,7 @@ export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
         </a>
         <nav className="brand-site-nav" aria-label={`${site.name} navigation`}>
           {site.sections.map((section) => <a key={section.href} href={section.href}>{lang === 'ja' ? section.labelJa ?? section.label : section.label}</a>)}
+          <a href="https://ei8htplants.com/official">Official Site <span aria-hidden="true">↗</span></a>
         </nav>
         <nav className="brand-site-switcher" aria-label="Other brand sites">
           {brandLinks.filter((brand) => brand.key !== site.key).map((brand) => (
