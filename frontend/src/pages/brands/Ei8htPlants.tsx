@@ -38,9 +38,9 @@ export default function Ei8htPlants() {
 
         {/* 背景写真の上に文字ロゴを重ねたヒーロー（写真は飾りなので読み上げない） */}
         <section className="ep-hero">
-          <img className="ep-hero-bg-img" src="https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0" alt="" aria-hidden />
+          <img className="ep-hero-bg-img" src="/img/ei8htPlants/ei8htplants_hero.jpg" alt="" aria-hidden />
           <div className="ep-hero-content">
-            <p style={{ fontSize: 14, letterSpacing: 4, textTransform: 'uppercase', color: '#666', marginBottom: 24, position: 'relative', zIndex: 2 }}>
+            <p style={{ fontSize: 'var(--brand-type-body)', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#666', marginBottom: 24, position: 'relative', zIndex: 2 }}>
               Bizarre Plants
             </p>
             <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
@@ -48,7 +48,7 @@ export default function Ei8htPlants() {
             </div>
           </div>
           {/* 下へのスクロールを促す線と文字 */}
-          <div style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
+          <div className="ep-scroll-hint" style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
             <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #999, transparent)' }} />
             <span style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 3, color: '#999', textTransform: 'uppercase' }}>Scroll</span>
           </div>
@@ -64,7 +64,7 @@ export default function Ei8htPlants() {
           <div className="brand-concept-grid">
             <img src={BRAND.ei8htPlants.logo} alt={BRAND.ei8htPlants.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
             <div>
-              <h2 style={{ fontSize: 'clamp(20px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
+              <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 30px)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
                 Bizarre<br />Plants
               </h2>
               <p style={{ fontSize: 16, color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>

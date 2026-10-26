@@ -230,7 +230,7 @@ body {
 
 /* ei8ht plants のヒーロー: PC は背景画像として写真を敷き、上に文字ロゴを置く（写真の img 要素は PC では隠す） */
 .ep-hero {
-  background: #eaeae6 url('https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0') center 65%/cover no-repeat;
+  background: #eaeae6 url('/img/ei8htPlants/ei8htplants_hero.jpg') center 65%/cover no-repeat;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -438,6 +438,8 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
     align-self: start;
     z-index: 0;
   }
+  .ep-hero-bg-img { height: clamp(280px, 75vw, 420px); object-fit: cover; object-position: center 65%; }
+  .ep-scroll-hint { display: none !important; }
   /* 文字ロゴを写真の上に重ねる */
   .ep-hero-content {
     padding: 40px 20px 20px;
