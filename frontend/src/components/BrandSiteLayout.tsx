@@ -25,7 +25,7 @@ export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
   const brandLinks = [
     { key: 'ei8htplants', label: BRAND.ei8htPlants.name, href: BRAND_SITE_URLS.ei8htplants },
     { key: 'habitat-oides', label: BRAND.habitatOides.name, href: BRAND_SITE_URLS['habitat-oides'] },
-    { key: 'hue', label: 'HUE', href: BRAND_SITE_URLS.hue },
+    { key: 'hue', label: 'HUE by ei8ht plants', href: BRAND_SITE_URLS.hue },
   ] as const
 
   useEffect(() => {

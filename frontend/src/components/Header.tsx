@@ -149,9 +149,9 @@ export default function Header() {
    * @returns style
    */
   const navItemStyle = (isActive: boolean): React.CSSProperties => ({
-    fontSize: 11,
-    fontWeight: 300,
-    letterSpacing: '0.14em',
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: '0.1em',
     textDecoration: 'none',
     padding: '4px 0',
     color: isActive ? 'var(--c-ink)' : 'var(--c-muted)',
