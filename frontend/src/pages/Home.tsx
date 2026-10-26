@@ -8,40 +8,8 @@ import ShareButtons from '../components/ShareButtons'
 import { useT } from '../lib/lang'
 import { parseLocalDate } from '../lib/localDate'
 import { BRAND, TEXT_LOGO } from '../lib/brands'
-import { BRAND_SITE_URLS } from '../lib/siteHost'
+import { BRAND_SHOWCASES } from '../lib/brandShowcase'
 import { formatYen } from '../lib/format'
-
-/** ブランドストリップに並べる 3 ブランドのカード（リンク先・説明・背景・画像・ロゴ） */
-const BRAND_CARDS = [
-  {
-    to: BRAND_SITE_URLS.ei8htplants,
-    name: BRAND.ei8htPlants.name,
-    descJa: 'アガベ・塊根植物など、個性的なフォルムを持つビザールプランツ専門ライン',
-    descEn: 'Bizarre Plants — agaves, succulents & rare specimens',
-    bg: '#2d4a27',
-    img: 'https://lh3.googleusercontent.com/d/1-CERNFP0KtxoxVu-r8jeb-uSP9kj68R0',
-    logo: BRAND.ei8htPlants.logo,
-  },
-  {
-    to: BRAND_SITE_URLS['habitat-oides'],
-    name: BRAND.habitatOides.name,
-    descJa: '自生地の景色を鉢の中に再現する、ハビタットスタイルの作品とワークショップ',
-    descEn: 'Habitat-style compositions & workshops — nature in a pot',
-    bg: '#1e3272',
-    img: '/img/habitatOides/habitat_oides_hero.jpg',
-    logo: BRAND.habitatOides.logo,
-  },
-  {
-    to: BRAND_SITE_URLS.hue,
-    // カードには短い表記（HUE）を出す
-    name: BRAND.hue.shortName,
-    descJa: '色彩と形を楽しむ、インテリアのためのオーナメントプランツ',
-    descEn: 'Color & Form as Living Art — plants for your space',
-    bg: 'linear-gradient(135deg, #f9eef3 0%, #eee8f8 28%, #e6f4ef 58%, #fdf8e8 82%, #fdf0ea 100%)',
-    img: null,
-    logo: BRAND.hue.logo,
-  },
-]
 
 /**
  * Instagram のリンク（href: アカウントの URL、src: ロゴ画像、cls はロゴごとの大きさの調整用、brand は画像の説明に使うブランド名）。
@@ -150,83 +118,39 @@ export default function Home() {
       <PageMeta />
 
       {/* ─── HERO ─── */}
-      <section style={{
-        position: 'relative',
-        overflow: 'hidden',
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start',
-        padding: 'clamp(32px, 4vw, 56px) clamp(20px, 4vw, 48px) clamp(32px, 4vw, 48px)',
-      }}>
-        {/* 背景アニメーション（keyframes は index.css の .home-hero-blob。動きを減らす設定では止まる） */}
-        <div className="home-hero-blob" style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          width: '130%', height: '130%',
-          background: 'radial-gradient(ellipse 58% 48% at 55% 50%, rgba(255,255,255,0.7) 0%, transparent 68%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }} />
-
-        {/* ロゴ（上部） */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <img
-            src={TEXT_LOGO}
-            alt="ei8ht plants"
-            style={{
-              width: 'clamp(180px, 20vw, 300px)',
-              height: 'auto', display: 'block',
-              opacity: loaded ? 1 : 0,
-              transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
-              transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.3s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.3s',
-            }}
-          />
+      <section className={`home-hero${loaded ? ' is-loaded' : ''}`}>
+        <img className="home-hero-photo" src="/img/ei8htPlants/ei8htplants_hero.jpg" alt="手のひらに載った小さな植物" fetchPriority="high" />
+        <div className="home-hero-wash" aria-hidden="true" />
+        <div className="home-hero-topline">
+          <span>BOTANICAL OBJECTS / JAPAN</span>
+          <span>01 — 03</span>
         </div>
-
-        {/* テキスト2カラム（英語の小さなコピーと大きなキャッチコピー。少しずつ遅らせてフェードインする） */}
-        <div className="hero-catch" style={{ position: 'relative', zIndex: 1, marginTop: 'clamp(24px, 4vh, 48px)' }}>
-          <div style={{
-            opacity: loaded ? 1 : 0,
-            transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
-            transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.6s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.6s',
-          }}>
-            <p style={{
-              fontFamily: SERIF, fontStyle: 'italic',
-              fontSize: 'clamp(13px, 1.1vw, 15px)',
-              fontWeight: 300, letterSpacing: '0.08em',
-              color: 'var(--c-muted)', margin: 0, lineHeight: 1.9,
-            }}>
-              Collect<br />the strange.
-            </p>
-          </div>
-          <div style={{
-            opacity: loaded ? 1 : 0,
-            transform: loaded ? 'translateY(0)' : 'translateY(1.2em)',
-            transition: 'opacity 1.8s cubic-bezier(.22,1,.36,1) 0.85s, transform 1.8s cubic-bezier(.22,1,.36,1) 0.85s',
-          }}>
-            <p style={{
-              fontFamily: SANS,
-              fontSize: 'clamp(22px, 3.6vw, 52px)',
-              fontWeight: 300, letterSpacing: '0.04em',
-              color: 'var(--c-ink)', margin: 0, lineHeight: 1.55,
-            }}>
-              {t(
-                <>育て、仕立て、<br />ともに暮らす。</>,
-                <>Grow it. Style it.<br />Live with it.</>
-              )}
-            </p>
-          </div>
+        <div className="home-hero-copy">
+          <img src={TEXT_LOGO} alt="ei8ht plants" />
+          <p className="home-hero-manifesto">Collect<br />the strange.</p>
+          <h1>{t(<>育て、仕立て、<br />ともに暮らす。</>, <>Grow it. Style it.<br />Live with it.</>)}</h1>
+          <Link to="/brands" className="home-hero-brands">{t('ブランドを見る', 'OUR BRANDS')} <span>↗</span></Link>
         </div>
+        <p className="home-hero-caption">{t('植物のかたちと、暮らしのあいだ。', 'PLANT FORMS / EVERYDAY LIFE')}</p>
+        <a className="home-hero-scroll" href="#our-brands"><span />{t('スクロール', 'SCROLL')}</a>
       </section>
 
       {/* ─── BRAND GROW-STRIP ───
           PC はマウスを乗せた（フォーカスした）カードを広げ、外れたら先頭に戻す。スマホは全カードを開いたまま縦に並べる */}
-      <section
-        className="brand-strip"
-        onMouseLeave={() => !isMobile && setActiveCard(0)}
-      >
-        {BRAND_CARDS.map((card, i) => {
+      <section className="home-brands-section" id="our-brands">
+        <div className="home-brands-heading">
+          <div>
+            <p className="home-section-index">01 / OUR BRANDS</p>
+            <h2>{t('私たちのブランド', 'Our Brands')}</h2>
+          </div>
+          <div className="home-brands-intro">
+            <p>{t('植物との向き合い方から生まれた、3つのブランド。それぞれの世界をご紹介します。', 'Three distinct worlds shaped by different ways of living with plants.')}</p>
+            <Link to="/brands">{t('すべてのブランド', 'VIEW ALL BRANDS')} <span>↗</span></Link>
+          </div>
+        </div>
+
+        <div className="brand-strip" onMouseLeave={() => !isMobile && setActiveCard(0)}>
+        {BRAND_SHOWCASES.map((card, i) => {
           // このカードを広げて表示するか
           const isActive = isMobile || activeCard === i
           return (
@@ -277,7 +201,7 @@ export default function Home() {
                 }}>
                   <img
                     src={card.logo}
-                    alt={card.name}
+                    alt={card.shortName}
                     style={{
                       width: '100%', height: '100%', objectFit: 'contain',
                       display: 'block',
@@ -300,7 +224,7 @@ export default function Home() {
                   textTransform: 'uppercase', fontWeight: 300,
                   whiteSpace: 'nowrap',
                 }}>
-                  {card.name}
+                  {card.shortName}
                 </div>
               )}
 
@@ -314,7 +238,7 @@ export default function Home() {
               }}>
                 <img
                   src={card.logo}
-                  alt={card.name}
+                  alt={card.shortName}
                   style={{
                     height: isMobile ? 28 : 36, width: 'auto', objectFit: 'contain',
                     display: 'block', marginBottom: isMobile ? 6 : 12,
@@ -341,6 +265,17 @@ export default function Home() {
             </a>
           )
         })}
+        </div>
+      </section>
+
+      <section className="home-action">
+        <div className="home-action-copy">
+          <p className="home-section-index">02 / OUR APPROACH</p>
+          <h2>{t(<>植物を育て、<br />景色を仕立て、<br /><em>ともに暮らす。</em></>, <>Grow plants.<br />Shape a place.<br /><em>Live together.</em></>)}</h2>
+          <p>{t('ひとつの植物から、部屋の景色や人とのつながりまで。私たちは植物と過ごす時間を、いくつもの形で提案します。', 'From one remarkable plant to a landscape shared with others, we explore the many ways plants can become part of everyday life.')}</p>
+          <Link to="/concept">{t('私たちについて', 'OUR POINT OF VIEW')} <span>↗</span></Link>
+        </div>
+        <div className="home-action-mark" aria-hidden="true"><span>PLANTS</span><i /><b>∞</b></div>
       </section>
 
       <hr style={divider} />

@@ -2,15 +2,10 @@ import { useState, useEffect, useId, useRef } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { useLang } from '../lib/lang'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
-import { BRAND, TEXT_LOGO } from '../lib/brands'
-import { BRAND_SITE_URLS } from '../lib/siteHost'
+import { TEXT_LOGO } from '../lib/brands'
 
-/** Brand メニューに並べるブランドページ */
-const BRAND_ITEMS = [
-  { href: BRAND_SITE_URLS.ei8htplants, label: BRAND.ei8htPlants.name },
-  { href: BRAND_SITE_URLS['habitat-oides'], label: BRAND.habitatOides.name },
-  { href: BRAND_SITE_URLS.hue, label: BRAND.hue.name },
-]
+/** Brand メニューから開くブランド一覧ページ */
+const BRANDS_PAGE = { to: '/brands', label: 'Our Brands' }
 
 /** ナビに並べるページ（end: true はそのパスちょうどのときだけ選択中にする） */
 const NAV_ITEMS = [
@@ -208,7 +203,7 @@ export default function Header() {
             transform: 'rotate(45deg) translateY(-2px)',
           }} />
         </button>
-        {/* 開いているときだけ、ボタンの下にブランドページのリンクを並べる */}
+        {/* ブランドごとの個別ページではなく、全ブランドの一覧へ案内する */}
         {brandOpen && (
           <div
             id={brandMenuId}
@@ -220,24 +215,19 @@ export default function Header() {
               minWidth: 190, zIndex: 200, padding: '6px 0',
             }}
           >
-            {BRAND_ITEMS.map(({ href, label }) => (
-              <a
-                key={href}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setBrandOpen(false)}
-                style={{
-                  display: 'block', padding: '10px 20px',
-                  fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase',
-                  textDecoration: 'none', fontWeight: 300,
-                  color: 'var(--c-muted)',
-                  transition: 'color 0.2s',
-                }}
-              >
-                {label}
-              </a>
-            ))}
+            <Link
+              to={BRANDS_PAGE.to}
+              onClick={() => setBrandOpen(false)}
+              style={{
+                display: 'block', padding: '12px 20px',
+                fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase',
+                textDecoration: 'none', fontWeight: 300,
+                color: 'var(--c-muted)', whiteSpace: 'nowrap',
+                transition: 'color 0.2s',
+              }}
+            >
+              {BRANDS_PAGE.label} <span aria-hidden="true">↗</span>
+            </Link>
           </div>
         )}
       </div>
@@ -402,23 +392,18 @@ export default function Header() {
         ))}
         {/* 区切り線とブランドページのリンク */}
         <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
-        {BRAND_ITEMS.map(({ href, label }) => (
-          <a
-            key={href}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={closeMenuAndReturnFocus}
-            style={{
-              fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
-              textDecoration: 'none', textTransform: 'uppercase',
-              color: 'var(--c-muted)',
-              transition: 'color 0.2s',
-            }}
-          >
-            {label}
-          </a>
-        ))}
+        <Link
+          to={BRANDS_PAGE.to}
+          onClick={closeMenuAndReturnFocus}
+          style={{
+            fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
+            textDecoration: 'none', textTransform: 'uppercase',
+            color: 'var(--c-muted)',
+            transition: 'color 0.2s',
+          }}
+        >
+          {BRANDS_PAGE.label}
+        </Link>
         {/* 区切り線とショップへのリンク */}
         <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
         <NavLink

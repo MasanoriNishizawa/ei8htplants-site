@@ -38,6 +38,7 @@ const Stockists = lazy(() => import('./pages/Stockists'))
 const Collaborations = lazy(() => import('./pages/Collaborations'))
 const Ei8htPlants = lazy(() => import('./pages/brands/Ei8htPlants'))
 const HabitatOides = lazy(() => import('./pages/brands/HabitatOides'))
+const OurBrands = lazy(() => import('./pages/OurBrands'))
 const HabitatOidesWorkshop = lazy(() => import('./pages/brands/HabitatOidesWorkshop'))
 const Hue = lazy(() => import('./pages/brands/Hue'))
 const Reserve = lazy(() => import('./pages/Reserve'))
@@ -134,6 +135,7 @@ export default function App() {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/concept" element={<Concept />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/brands" element={<OurBrands />} />
             <Route path="/stockists" element={<Stockists />} />
             <Route path="/collaborations" element={<Collaborations />} />
             <Route path="/media" element={<Media />} />
