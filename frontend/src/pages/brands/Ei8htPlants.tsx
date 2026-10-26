@@ -3,77 +3,62 @@ import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND, TEXT_LOGO } from '../../lib/brands'
 
-/**
- * ei8ht plants ブランドページ。
- * @returns ブランドページの画面
- */
+/** ei8ht plants のブランドトップ。植物とブランドの考え方へ案内する。 */
 export default function Ei8htPlants() {
   const t = useT()
 
   return (
-    <>
-      <PageMeta description={t('アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'A line specializing in bizarre plants — agaves, caudiciform plants, shrubs and more.')} />
-      {/* 見た目には出さない、読み上げ・検索エンジン向けのページの見出し */}
-      <h1 className="sr-only">{t('ei8ht plants — ビザールプランツ専門ライン', 'ei8ht plants — Bizarre Plants Line')}</h1>
+    <div className="ep-editorial-page ep-home-page">
+      <PageMeta
+        title="ei8ht plants"
+        description={t('アガベ、塊根植物、灌木。一株ごとに異なる個性を持つ植物を育て、植物との暮らしを提案します。', 'Agaves, caudiciform plants, and shrubs, grown and selected for their singular character.')}
+      />
 
-      {/* ブランドトップのファーストビュー */}
-      <div className="hero-wrapper">
-        {/* 背景写真の上に文字ロゴを重ねたヒーロー（写真は飾りなので読み上げない） */}
-        <section className="ep-hero">
-          <img className="ep-hero-bg-img" src="/img/ei8htPlants/ei8htplants_hero.jpg" alt="" aria-hidden />
-          <div className="ep-hero-content">
-            <p style={{ fontSize: 'var(--brand-type-body)', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#666', marginBottom: 24, position: 'relative', zIndex: 2 }}>
-              Bizarre Plants
-            </p>
-            <div style={{ maxWidth: 380, width: '65%', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-              <img src={TEXT_LOGO} alt={BRAND.ei8htPlants.name} style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', opacity: 0.9 }} />
-            </div>
+      <section className="ep-home-hero" aria-labelledby="ep-home-title">
+        <figure className="ep-home-visual">
+          <img src="/img/ei8htPlants/ei8htplants_hero.jpg" alt={t('手のオブジェに載る小さなアガベ', 'A small agave resting on a hand-shaped object')} />
+          <figcaption>GROW / SELECT / LIVE</figcaption>
+        </figure>
+        <div className="ep-home-copy">
+          <p className="ep-home-kicker">BIZARRE PLANTS <span>—</span> EI8HT PLANTS</p>
+          <img className="ep-home-wordmark" src={TEXT_LOGO} alt={BRAND.ei8htPlants.name} />
+          <h1 id="ep-home-title">{t(<>ひと株の個性と、<br /><em>暮らす。</em></>, <>Live with<br /><em>a plant’s character.</em></>)}</h1>
+          <p className="ep-home-lead">{t('アガベ、塊根植物、灌木。姿も育つ時間も異なる植物を、自ら育て、一株ずつの魅力を届けています。', 'Agaves, caudiciform plants, and shrubs. We grow distinctive plants and share the character of each individual.')}</p>
+          <div className="ep-home-actions">
+            <Link className="ep-home-primary" to="/plants">{t('植物のラインを見る', 'Explore the plants')} <span aria-hidden="true">↗</span></Link>
+            <Link className="ep-home-secondary" to="/about">{t('ei8ht plantsについて', 'Our approach')}</Link>
           </div>
-          {/* 下へのスクロールを促す線と文字 */}
-          <div className="ep-scroll-hint" style={{ position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 2 }}>
-            <div className="scroll-hint-line" style={{ background: 'linear-gradient(to bottom, #999, transparent)' }} />
-            <span style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 3, color: '#999', textTransform: 'uppercase' }}>Scroll</span>
-          </div>
-        </section>
-      </div>
-
-      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
-
-      {/* コンセプト: ロゴ・見出し・紹介文 */}
-      <section id="concept" className="brand-section">
-        <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'var(--brand-type-label)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>Concept</h2>
-          <div className="brand-concept-grid">
-            <img src={BRAND.ei8htPlants.logo} alt={BRAND.ei8htPlants.name} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} />
-            <div>
-              <h2 style={{ fontSize: 'var(--brand-type-subheading)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>
-                Bizarre<br />Plants
-              </h2>
-              <p style={{ fontSize: 'var(--brand-type-body)', color: 'var(--c-body)', lineHeight: 2.1, letterSpacing: '0.03em', margin: 0 }}>
-                {t(
-                  <>アガベ、塊根植物、灌木——<br />個性的なフォルムと深みある色彩を持つ植物を、<br />自ら生産し、一株一株に向き合って届けています。<br /><br />株選びから育て方まで、<br />幅広くサポートします。</>,
-                  <>Agaves, caudiciform plants, shrubs —<br />plants with bold forms and rich character,<br />grown by us and delivered with care.<br /><br />From choosing the right plant to ongoing care,<br />we're here to support you every step of the way.</>
-                )}
-              </p>
-            </div>
-          </div>
+          <p className="ep-home-index"><span>01</span> / GROW WITH CHARACTER</p>
         </div>
       </section>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
-
-      {/* オンラインストアへの案内（黒い帯） */}
-      <section id="store" className="brand-section"
-        style={{ background: '#0e0e0e', color: '#fff', textAlign: 'center', padding: '88px 20px' }}>
-        <h2 style={{ fontSize: 'var(--brand-type-title)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
-        <p style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
-        <Link
-          to="/official/shop"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 'var(--brand-type-body)', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#fff', textDecoration: 'none', border: '1px solid #444', padding: '16px 36px', borderRadius: 2, transition: 'background 0.2s' }}
-        >
-          Shop now →
-        </Link>
+      <section className="ep-home-intro" aria-labelledby="ep-home-intro-title">
+        <p className="ep-editorial-kicker">A PLANT, A STORY</p>
+        <div className="ep-home-intro-grid">
+          <h2 id="ep-home-intro-title">{t(<>かたちの奥にある、<br /><em>その株だけの時間。</em></>, <>Every form holds<br /><em>its own story.</em></>)}</h2>
+          <div>
+            <p>{t('葉の重なり、幹の曲線、育ってきた時間。珍しさだけではなく、一株ごとに異なる姿と向き合いながら、植物との関係が長く続く一鉢を提案します。', 'The way leaves overlap, the curve of a trunk, the time held in its form. We look beyond rarity to help each plant find a lasting place in your life.')}</p>
+            <Link className="ep-editorial-link" to="/about">{t('私たちの考え方', 'Read our approach')} <span aria-hidden="true">↗</span></Link>
+          </div>
+        </div>
+        <div className="ep-home-lines" aria-label={t('取り扱う植物', 'Plants we grow')}>
+          <span>01 <b>AGAVE</b></span>
+          <span>02 <b>CAUDICIFORM</b></span>
+          <span>03 <b>SHRUB</b></span>
+        </div>
       </section>
-    </>
+
+      <section className="ep-home-store" aria-labelledby="ep-home-store-title">
+        <div>
+          <p className="ep-editorial-kicker">FIND YOUR PLANT</p>
+          <h2 id="ep-home-store-title">{t(<>次に迎える一株を、<br /><em>見つけに。</em></>, <>Find the plant<br /><em>that feels like yours.</em></>)}</h2>
+        </div>
+        <div className="ep-home-store-action">
+          <p>{t('植物のラインから個性を知り、オンラインストアで現在の出会いをご覧ください。', 'Explore our plant lines, then see what is available in the online store.')}</p>
+          <Link className="ep-home-primary" to="/official/shop">{t('オンラインストアへ', 'Visit the online store')} <span aria-hidden="true">↗</span></Link>
+        </div>
+        <span className="ep-home-store-mark" aria-hidden="true" />
+      </section>
+    </div>
   )
 }
