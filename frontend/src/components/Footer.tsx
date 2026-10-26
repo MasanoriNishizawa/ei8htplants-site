@@ -4,17 +4,17 @@ import { BRAND, BRANDS, TEXT_LOGO } from '../lib/brands'
 import { BRAND_SITE_URLS } from '../lib/siteHost'
 
 /** 特定商取引法のリンクを出すページのパス（ショップ・チェックアウト・注文完了とその下の階層） */
-const SHOP_PATHS = ['/shop', '/checkout', '/order']
+const SHOP_PATHS = ['/official/shop', '/official/checkout', '/official/order']
 
 /** 「Pages」の列に並べるサイト内のリンク（to: パス、label: 表示名） */
 const NAV_LINKS = [
   { to: '/official', label: 'Home' },
-  { to: '/events', label: 'Event' },
-  { to: '/gallery', label: 'Gallery' },
-  { to: '/concept', label: 'Concept' },
-  { to: '/stockists', label: 'Stockists' },
-  { to: '/contact', label: 'Contact' },
-  { to: '/shop', label: 'Shop' },
+  { to: '/official/events', label: 'Event' },
+  { to: '/official/gallery', label: 'Gallery' },
+  { to: '/official/concept', label: 'Concept' },
+  { to: '/official/stockists', label: 'Stockists' },
+  { to: '/official/contact', label: 'Contact' },
+  { to: '/official/shop', label: 'Shop' },
 ]
 
 /** 「Brand」の列に並べるブランドページへのリンク */
@@ -110,7 +110,7 @@ export default function Footer() {
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             {/* プライバシーポリシーは全ページに表示する（アクセス解析の利用を知らせるため） */}
-            <Link to="/privacy" style={{ ...linkStyle, fontSize: 10 }}
+            <Link to="/official/privacy" style={{ ...linkStyle, fontSize: 10 }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-muted)' }}
             >
@@ -118,7 +118,7 @@ export default function Footer() {
             </Link>
             {/* 特定商取引法はショップ系のページだけ */}
             {showLegal && (
-              <Link to="/legal" style={{ ...linkStyle, fontSize: 10 }}
+              <Link to="/official/legal" style={{ ...linkStyle, fontSize: 10 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-ink)' }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-muted)' }}
               >

@@ -74,6 +74,6 @@ describe('Footer — プライバシーポリシーのリンク', () => {
         </MemoryRouter>
       </LangProvider>
     )
-    expect(screen.getByRole('link', { name: 'プライバシーポリシー' })).toHaveAttribute('href', '/privacy')
+    expect(screen.getByRole('link', { name: 'プライバシーポリシー' })).toHaveAttribute('href', '/official/privacy')
   })
 })

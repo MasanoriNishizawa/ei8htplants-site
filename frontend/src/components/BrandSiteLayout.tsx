@@ -66,7 +66,7 @@ export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
           </nav>
           <div className="brand-site-footer-meta">
             <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer">{site.instagramHandle} ↗</a>
-            <a href="https://ei8htplants.com/privacy">{lang === 'ja' ? 'プライバシーポリシー' : 'Privacy'}</a>
+            <a href="https://ei8htplants.com/official/privacy">{lang === 'ja' ? 'プライバシーポリシー' : 'Privacy'}</a>
             <span>© {new Date().getFullYear()} {site.name}</span>
           </div>
         </div>

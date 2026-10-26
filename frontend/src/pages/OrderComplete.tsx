@@ -70,8 +70,8 @@ export default function OrderComplete() {
             </p>
             <p style={{ fontFamily: SANS, fontSize: 13, color: '#717171', lineHeight: 2, margin: 0 }}>
               {t(
-                <>発送が完了しましたら、改めてメールでお知らせいたします。<br />ご不明な点は <Link to="/contact" style={{ color: '#717171' }}>お問い合わせフォーム</Link> よりご連絡ください。</>,
-                <>We will notify you by email once your order has shipped.<br />If you have any questions, please <Link to="/contact" style={{ color: '#717171' }}>contact us</Link>.</>
+                <>発送が完了しましたら、改めてメールでお知らせいたします。<br />ご不明な点は <Link to="/official/contact" style={{ color: '#717171' }}>お問い合わせフォーム</Link> よりご連絡ください。</>,
+                <>We will notify you by email once your order has shipped.<br />If you have any questions, please <Link to="/official/contact" style={{ color: '#717171' }}>contact us</Link>.</>
               )}
             </p>
           </div>
@@ -79,7 +79,7 @@ export default function OrderComplete() {
           {/* ショップ・トップへ戻るボタン */}
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
-              to="/shop"
+              to="/official/shop"
               style={{
                 padding: '13px 32px', background: '#1c1c1c', color: '#fff',
                 textDecoration: 'none', fontFamily: SANS, fontSize: 13, letterSpacing: '2px',

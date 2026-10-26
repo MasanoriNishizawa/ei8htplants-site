@@ -85,7 +85,7 @@ test.describe('スマホ幅（375px）', () => {
 
   test('/legal で横スクロールが出ない', async ({ page }) => {
     await page.context().route(/supabase\.co/, (route) => route.abort())
-    await page.goto('/legal')
+    await page.goto('/official/legal')
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expectNoHorizontalScroll(page)
   })
@@ -122,13 +122,13 @@ test.describe('ショップのヘッダー（StoreHeader）', () => {
     await page.context().route(/supabase\.co/, (route) => route.abort())
     // 1. PC の幅でのロゴの幅を測る
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.goto('/shop/p-1')
+    await page.goto('/official/shop/p-1')
     await page.getByRole('button', { name: /カートに入れる/ }).click()
     const pcWidth = await logoWidth(page)
     // 2. スマホの幅でも同じ幅（縮まない）
     for (const width of [375, 320]) {
       await page.setViewportSize({ width, height: 812 })
-      await page.goto('/shop')
+      await page.goto('/official/shop')
       const cart = page.getByRole('banner').getByRole('link', { name: /Cart/ })
       await expect(cart).toBeVisible()
       expect(Math.abs((await logoWidth(page)) - pcWidth)).toBeLessThanOrEqual(1)
@@ -144,7 +144,7 @@ test.describe('ショップのヘッダー（StoreHeader）', () => {
 
   test('言語切り替えボタンで EN と JA が切り替わる', async ({ page }) => {
     await page.context().route(/supabase\.co/, (route) => route.abort())
-    await page.goto('/shop')
+    await page.goto('/official/shop')
     const banner = page.getByRole('banner')
     await banner.getByRole('button', { name: 'Switch to English' }).click()
     await expect(banner.getByRole('button', { name: '日本語に切り替える' })).toHaveText('JA')

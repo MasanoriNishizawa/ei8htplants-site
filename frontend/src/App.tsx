@@ -101,6 +101,12 @@ function AdminDomainRedirect() {
   return <PageLoading />
 }
 
+/** 古い公開URLを公式サイト配下へ移し、クエリ（イベント切替・予約ID）とハッシュを保つ。 */
+function LegacyOfficialRedirect() {
+  const { pathname, search, hash } = useLocation()
+  return <Navigate to={`/official${pathname}${search}${hash}`} replace />
+}
+
 /**
  * アプリ全体のルーティング定義。言語・カートの Context を最上位で提供する
  * @returns アプリ全体
@@ -128,39 +134,50 @@ export default function App() {
             <Route path="/admin/*" element={<AdminDomainRedirect />} />
             <Route path="/*" element={<HueSite />} />
           </> : <>
-          {/* ブランドサイト側のページ（大きいヘッダー・フッター・チャットボタン付き） */}
+          {/* 公開ページ（大きいヘッダー・フッター・チャットボタン付き） */}
           <Route element={<Layout />}>
+            {/* ブランド関連ページはドメイン直下に配置 */}
             <Route path="/" element={<Ei8htPlants />} />
-            <Route path="/official" element={<Home />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/concept" element={<Concept />} />
-            <Route path="/contact" element={<Contact />} />
             <Route path="/brands" element={<OurBrands />} />
-            <Route path="/stockists" element={<Stockists />} />
-            <Route path="/collaborations" element={<Collaborations />} />
-            <Route path="/media" element={<Media />} />
-            <Route path="/ei8htplants" element={<Navigate to="/" replace />} />
             <Route path="/habitatoides" element={<HabitatOides />} />
             <Route path="/habitatoides/workshop" element={<HabitatOidesWorkshop />} />
             <Route path="/hue" element={<Hue />} />
-            <Route path="/events/:id" element={<EventSite />} />
-            <Route path="/legal" element={<LegalPage />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/reserve" element={<Reserve />} />
-            <Route path="/cancel" element={<CancelReservation />} />
+
+            {/* 公式サイトのページは /official 配下にまとめる */}
+            <Route path="/official" element={<Home />} />
+            <Route path="/official/events" element={<Events />} />
+            <Route path="/official/events/:id" element={<EventSite />} />
+            <Route path="/official/gallery" element={<Gallery />} />
+            <Route path="/official/concept" element={<Concept />} />
+            <Route path="/official/contact" element={<Contact />} />
+            <Route path="/official/stockists" element={<Stockists />} />
+            <Route path="/official/collaborations" element={<Collaborations />} />
+            <Route path="/official/media" element={<Media />} />
+            <Route path="/official/legal" element={<LegalPage />} />
+            <Route path="/official/privacy" element={<PrivacyPolicy />} />
+            <Route path="/official/chat" element={<Chat />} />
+            <Route path="/official/reserve" element={<Reserve />} />
+            <Route path="/official/cancel" element={<CancelReservation />} />
+
+            {/* 旧URLからの転送。既存リンク・予約メールを引き続き使えるようにする */}
+            {['events', 'gallery', 'concept', 'contact', 'stockists', 'collaborations', 'media', 'legal', 'privacy', 'chat', 'reserve', 'cancel'].map((path) => (
+              <Route key={path} path={`/${path}/*`} element={<LegacyOfficialRedirect />} />
+            ))}
+            <Route path="/ei8htplants" element={<Navigate to="/" replace />} />
             {/* どのページにも当たらない URL は「ページが見つかりません」（公開サイトのレイアウトの中に出す） */}
             <Route path="*" element={<NotFound />} />
           </Route>
           {/* ショップ・ジャーナル側のページ（コンパクトなヘッダー） */}
           <Route element={<StoreLayout />}>
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/shop/:id" element={<ShopProduct />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/journal/:id" element={<JournalArticle />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order/complete" element={<OrderComplete />} />
+            <Route path="/official/shop" element={<Shop />} />
+            <Route path="/official/shop/:id" element={<ShopProduct />} />
+            <Route path="/official/journal" element={<Journal />} />
+            <Route path="/official/journal/:id" element={<JournalArticle />} />
+            <Route path="/official/checkout" element={<Checkout />} />
+            <Route path="/official/order/complete" element={<OrderComplete />} />
+            {['shop', 'journal', 'checkout', 'order'].map((path) => (
+              <Route key={path} path={`/${path}/*`} element={<LegacyOfficialRedirect />} />
+            ))}
           </Route>
           {/* 管理画面（ログインが必要。AdminLayout がログイン画面とサイドメニューを出す） */}
           <Route path="/admin" element={<AdminLayout />}>

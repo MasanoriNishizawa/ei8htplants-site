@@ -4,6 +4,7 @@ import Header from './Header'
 import Footer from './Footer'
 import Analytics from './Analytics'
 import PageLoading from './PageLoading'
+import Ei8htPlantsHeader from './Ei8htPlantsHeader'
 
 /**
  * チャットページ以外の全ページに表示する右下固定のAIチャットボタン
@@ -12,7 +13,7 @@ import PageLoading from './PageLoading'
 function ChatFab() {
   // 今のページのパス（チャットページではボタンを出さない）
   const { pathname } = useLocation()
-  if (pathname === '/chat') return null
+  if (pathname === '/official/chat') return null
   return (
     <>
       {/* ボタンの見た目。この部品の中だけで使うので、ここに CSS を置いている */}
@@ -67,7 +68,7 @@ function ChatFab() {
           .chat-fab-label-short { display: inline; }
         }
       `}</style>
-      <Link to="/chat" className="chat-fab">
+      <Link to="/official/chat" className="chat-fab">
         {/* 吹き出しのアイコン */}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.85, flexShrink: 0 }}>
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -85,11 +86,13 @@ function ChatFab() {
  * @returns ヘッダー・ページ本体（Outlet）・フッター・チャットボタン
  */
 export default function Layout() {
+  const { pathname } = useLocation()
+  const isEi8htPlantsBrandHome = pathname === '/'
   return (
     <>
       {/* 本番サイトでだけ GA4 にページビューを送る（画面には何も出ない） */}
       <Analytics />
-      <Header />
+      {isEi8htPlantsBrandHome ? <Ei8htPlantsHeader /> : <Header />}
       {/* paddingTop: 64 は固定ヘッダーの高さ分。縦並びの flex にして、短いページでもフッターが画面下に来るようにする */}
       <main className="site-main" style={{ paddingTop: 64, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* ページは画面ごとに別ファイルで読み込む（App.tsx の lazy）。読み込み中は中身の部分にだけ控えめな表示を出す。

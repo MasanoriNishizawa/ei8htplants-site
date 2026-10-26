@@ -273,7 +273,7 @@ export default function Home() {
           <p className="home-section-index">02 / OUR APPROACH</p>
           <h2>{t(<>植物を育て、<br />景色を仕立て、<br /><em>ともに暮らす。</em></>, <>Grow plants.<br />Shape a place.<br /><em>Live together.</em></>)}</h2>
           <p>{t('ひとつの植物から、部屋の景色や人とのつながりまで。私たちは植物と過ごす時間を、いくつもの形で提案します。', 'From one remarkable plant to a landscape shared with others, we explore the many ways plants can become part of everyday life.')}</p>
-          <Link to="/concept">{t('私たちについて', 'OUR POINT OF VIEW')} <span>↗</span></Link>
+          <Link to="/official/concept">{t('私たちについて', 'OUR POINT OF VIEW')} <span>↗</span></Link>
         </div>
         <div className="home-action-mark" aria-hidden="true"><span>PLANTS</span><i /><b>∞</b></div>
       </section>
@@ -288,7 +288,7 @@ export default function Home() {
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Next Event
               </h2>
-              <Link to="/events" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/events" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 {t('全イベント →', 'All Events →')}
               </Link>
             </div>
@@ -306,14 +306,14 @@ export default function Home() {
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Shop
               </h2>
-              <Link to="/shop" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/shop" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 View All →
               </Link>
             </div>
             <div className="home-shop-grid">
               {products.map((p) => (
                 // ホバー・キーボード選択で画像を拡大する（index.css の .home-shop-card / .home-zoom-img）
-                <Link key={p.id} to={`/shop/${p.id}`} className="home-shop-card" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+                <Link key={p.id} to={`/official/shop/${p.id}`} className="home-shop-card" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
                   <div>
                     <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--c-border)', overflow: 'hidden', marginBottom: 12 }}>
                       {p.image_urls[0] ? (
@@ -346,13 +346,13 @@ export default function Home() {
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Journal
               </h2>
-              <Link to="/journal" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/journal" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 All Articles →
               </Link>
             </div>
             <div className="home-journal-grid">
               {articles.map((a, idx) => (
-                <Link key={a.id} to={`/journal/${a.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', gridColumn: idx === 0 ? 'span 2' : undefined }} className={idx === 0 ? 'home-journal-card home-journal-featured' : 'home-journal-card'}>
+                <Link key={a.id} to={`/official/journal/${a.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', gridColumn: idx === 0 ? 'span 2' : undefined }} className={idx === 0 ? 'home-journal-card home-journal-featured' : 'home-journal-card'}>
                   <div style={{ display: idx === 0 ? undefined : 'flex', flexDirection: idx === 0 ? undefined : 'column', height: '100%' }}>
                     <div style={{ overflow: 'hidden', background: 'var(--c-border)', aspectRatio: idx === 0 ? '16/7' : '4/3', marginBottom: 16, position: 'relative' }}>
                       {a.image_urls[0] ? (
@@ -389,7 +389,7 @@ export default function Home() {
               <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
                 Gallery
               </h2>
-              <Link to="/gallery" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <Link to="/official/gallery" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 View All →
               </Link>
             </div>
@@ -436,7 +436,7 @@ export default function Home() {
           ))}
         </div>
         <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center' }}>
-          <ShareButtons url={`${window.location.origin}/`} text="ei8ht plants — Collect the strange." />
+          <ShareButtons url={`${window.location.origin}/official`} text="ei8ht plants — Collect the strange." />
         </div>
       </section>
     </>

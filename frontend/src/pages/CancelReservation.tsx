@@ -93,7 +93,7 @@ export default function CancelReservation() {
                 )}
               </p>
             </div>
-            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
+            <Link to="/official/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
               {t('イベント一覧へ戻る', 'Back to Events')}
             </Link>
           </div>

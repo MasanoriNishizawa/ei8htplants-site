@@ -18,7 +18,7 @@ const SIMPLE_EVENT_ID = 'mock-no-time'
 test.describe('Reserve', () => {
   // ページが正常にロードされることを確認
   test('/reserve を開くと共通ヘッダーとサイト名入りのタイトルが表示される', async ({ page }) => {
-    await page.goto('/reserve')
+    await page.goto('/official/reserve')
     // ヘッダー（共通 Layout）が存在すること
     await expect(page.getByRole('banner').first()).toBeVisible()
     // タイトルにサイト名が含まれること
@@ -27,17 +27,17 @@ test.describe('Reserve', () => {
 
   // 予約フォームの見出しが表示されることを確認
   test('/reserve を開くと「Workshop 予約」の見出しが表示される', async ({ page }) => {
-    await page.goto('/reserve')
+    await page.goto('/official/reserve')
     await expect(page.getByRole('heading', { level: 1, name: 'Workshop 予約' })).toBeVisible()
   })
 
   // event_id が無いときはフォームを出さず、イベント一覧へ案内する
   test('event_id なしで開くと「イベントが見つかりません」が出て予約フォームは出ない', async ({ page }) => {
-    await page.goto('/reserve')
+    await page.goto('/official/reserve')
     // 1. 案内とイベント一覧へのリンク
     await expect(page.getByRole('alert')).toContainText('イベントが見つかりません')
     await expect(page.getByText('予約するイベントをイベント一覧からお選びください。')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'イベント一覧へ' })).toHaveAttribute('href', '/events')
+    await expect(page.getByRole('link', { name: 'イベント一覧へ' })).toHaveAttribute('href', '/official/events')
     // 2. 入力欄・予約ボタンは出ない
     await expect(page.getByRole('textbox')).toHaveCount(0)
     await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
@@ -45,27 +45,27 @@ test.describe('Reserve', () => {
 
   // 存在しない event_id でもフォームを出さない（モックの GET /api/events/:id は 404）
   test('存在しない event_id で開くと「イベントが見つかりません」が出て予約フォームは出ない', async ({ page }) => {
-    await page.goto('/reserve?event_id=no-such-event')
+    await page.goto('/official/reserve?event_id=no-such-event')
     await expect(page.getByRole('alert')).toContainText('イベントが見つかりません')
     await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
   })
 
   // イベント ID を指定してアクセスするとイベント情報が表示されることを確認
   test('event_id を指定するとイベント名が表示される', async ({ page }) => {
-    await page.goto('/reserve?event_id=mock-upcoming-1')
+    await page.goto('/official/reserve?event_id=mock-upcoming-1')
     await expect(page.getByText('Green Market 2027').first()).toBeVisible()
   })
 
   // 終了したイベントは受付終了の案内を出す
   test('終了したイベントの event_id で開くと「受付を終了しました」が出て予約ボタンは出ない', async ({ page }) => {
-    await page.goto('/reserve?event_id=mock-past-1')
+    await page.goto('/official/reserve?event_id=mock-past-1')
     await expect(page.getByText('受付を終了しました')).toBeVisible()
     await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
   })
 
   // フォームの入力欄がそろっていることを確認
   test('event_id を指定するとお名前・メールアドレス・電話番号の入力欄と予約ボタンが表示される', async ({ page }) => {
-    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    await page.goto(`/official/reserve?event_id=${SIMPLE_EVENT_ID}`)
     await expect(page.getByLabel('お名前')).toBeVisible()
     await expect(page.getByLabel('メールアドレス')).toBeVisible()
     // 電話番号は任意（placeholder「090-0000-0000」）
@@ -75,14 +75,14 @@ test.describe('Reserve', () => {
 
   // 参加人数の上限（10 名）を確認
   test('時間枠の無いイベントでは参加人数の入力欄の範囲が 1〜10 になる', async ({ page }) => {
-    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    await page.goto(`/official/reserve?event_id=${SIMPLE_EVENT_ID}`)
     const participants = page.getByLabel('参加人数')
     await expect(participants).toHaveAttribute('min', '1')
     await expect(participants).toHaveAttribute('max', '10')
   })
 
   test('参加人数に 11 を入れて送信してもブラウザの入力チェックで止まり、完了の表示にならない', async ({ page }) => {
-    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    await page.goto(`/official/reserve?event_id=${SIMPLE_EVENT_ID}`)
     // 1. 必須項目を埋め、人数だけ上限を超える値にする
     await page.getByLabel('お名前').fill('山田 花子')
     await page.getByLabel('メールアドレス').fill('hanako@example.com')
@@ -96,7 +96,7 @@ test.describe('Reserve', () => {
   })
 
   test('必要な項目を入れて予約すると「予約を受け付けました」と予約内容が表示される', async ({ page }) => {
-    await page.goto(`/reserve?event_id=${SIMPLE_EVENT_ID}`)
+    await page.goto(`/official/reserve?event_id=${SIMPLE_EVENT_ID}`)
     // 1. 入力（人数は上限ちょうどの 10 名）
     await page.getByLabel('お名前').fill('山田 花子')
     await page.getByLabel('メールアドレス').fill('hanako@example.com')

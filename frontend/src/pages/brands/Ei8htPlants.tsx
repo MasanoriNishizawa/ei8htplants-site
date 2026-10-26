@@ -86,7 +86,7 @@ export default function Ei8htPlants() {
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 200, letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 14px' }}>Online Store</h2>
         <p style={{ fontSize: 'var(--brand-type-caption)', letterSpacing: 2, color: '#666', textTransform: 'uppercase', margin: '0 0 40px' }}>Select Plants &amp; Items</p>
         <Link
-          to="/shop"
+          to="/official/shop"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#fff', textDecoration: 'none', border: '1px solid #444', padding: '16px 36px', borderRadius: 2, transition: 'background 0.2s' }}
         >
           Shop now →

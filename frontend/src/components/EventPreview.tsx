@@ -239,7 +239,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
               </p>
             ) : event.ws_requires_reservation ? (
               <Link
-                to={`/reserve?event_id=${event.id}`}
+                to={`/official/reserve?event_id=${event.id}`}
                 style={{ display: 'inline-block', fontSize: 12, color: '#1e3272', textDecoration: 'none', padding: '7px 16px', borderRadius: 20, border: '1px solid #1e3272', letterSpacing: 0.5, fontWeight: 500 }}
               >
                 {t('Habitat Style Workshop を予約する', 'Reserve Habitat Style Workshop')}
@@ -252,7 +252,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
         {hasSite && (
           <div style={{ marginTop: 16 }}>
             <Link
-              to={`/events/${event.slug ?? event.id}`}
+              to={`/official/events/${event.slug ?? event.id}`}
               style={{ display: 'inline-block', fontSize: 13, color: '#fff', textDecoration: 'none', padding: '9px 22px', borderRadius: 20, background: 'var(--c-ink)', fontWeight: 500, letterSpacing: 0.5 }}
             >
               {t('詳細を見る', 'View Details')}

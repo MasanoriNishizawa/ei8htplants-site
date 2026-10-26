@@ -73,12 +73,12 @@ HABITAT_SENDER = f'Habitat Oides <{HABITAT_FROM_EMAIL}>'
 NO_REPLY_NOTE = (
     '\n\n─────────────────\n'
     '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
-    f'  お問い合わせは {SITE_ORIGIN}/contact よりお願いいたします。'
+    f'  お問い合わせは {SITE_ORIGIN}/official/contact よりお願いいたします。'
 )
 
 # Habitat Oides 名義のテキストメールの末尾に付ける「返信不可」の注記
 HABITAT_NO_REPLY_NOTE = (
     '\n\n─────────────────\n'
     '※ このメールは送信専用です。このメールへの返信はお受けできません。\n'
-    f'  ご不明な点は公式HPお問い合わせ( {SITE_ORIGIN}/contact )または {HABITAT_ADMIN_EMAIL} までご連絡ください。'
+    f'  ご不明な点は公式HPお問い合わせ( {SITE_ORIGIN}/official/contact )または {HABITAT_ADMIN_EMAIL} までご連絡ください。'
 )

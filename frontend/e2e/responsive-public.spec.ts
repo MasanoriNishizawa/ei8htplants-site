@@ -37,15 +37,15 @@ async function checkoutColumns(page: Page) {
  * @param page - 対象ページ
  */
 async function openCheckoutWithItem(page: Page) {
-  await page.goto('/shop/p-1')
+  await page.goto('/official/shop/p-1')
   await page.getByRole('button', { name: /カートに入れる/ }).click()
-  await page.goto('/checkout')
+  await page.goto('/official/checkout')
 }
 
 test.describe('ヘッダーの言語切り替えボタン', () => {
   test('PC 幅（1280px）では言語切り替えボタンが読み上げ対象として 1 つだけ出る', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.goto('/')
+    await page.goto('/official')
     await expect(page.getByRole('banner')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Switch to English' })).toHaveCount(1)
     await expect(page.getByRole('button', { name: 'Switch to English' })).toBeVisible()
@@ -53,7 +53,7 @@ test.describe('ヘッダーの言語切り替えボタン', () => {
 
   test('スマホ幅（375px）ではメニューを開くと言語切り替えボタンがあり、押すと英語になってメニューは開いたまま', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto('/')
+    await page.goto('/official')
     // 1. 閉じているあいだは読み上げ対象の言語ボタンは無い（PC のナビは隠れている）
     await expect(page.getByRole('button', { name: 'Switch to English' })).toHaveCount(0)
     // 2. メニューを開くと中に 1 つ出る
@@ -72,7 +72,7 @@ test.describe('ヘッダーの言語切り替えボタン', () => {
 test.describe('注文手続き（/checkout）の列', () => {
   test.beforeEach(async ({ page }) => {
     // 前のテストのカートが残らないよう、最初に localStorage を空にする
-    await page.goto('/')
+    await page.goto('/official')
     await page.evaluate(() => localStorage.clear())
   })
 

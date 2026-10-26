@@ -223,7 +223,7 @@ export default function AdminEventReservations() {
    */
   const copyReserveLink = async () => {
     /** 公開サイトの予約ページの URL */
-    const url = `https://ei8htplants.com/reserve?event_id=${id}`
+    const url = `https://ei8htplants.com/official/reserve?event_id=${id}`
     setCopyFailedUrl(null)
     try {
       // navigator.clipboard が無い環境では、ここで TypeError になり catch に入る

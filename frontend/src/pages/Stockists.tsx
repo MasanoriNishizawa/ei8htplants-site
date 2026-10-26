@@ -89,12 +89,12 @@ export default function Stockists() {
             {t(
               <>
                 取扱のご相談・卸のお問い合わせは{' '}
-                <a href="/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
+                <a href="/official/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせフォーム</a>
                 {' '}よりお気軽にご連絡ください。
               </>,
               <>
                 For stockist inquiries, please use our{' '}
-                <a href="/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>contact form</a>.
+                <a href="/official/contact" style={{ color: 'var(--c-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>contact form</a>.
               </>
             )}
           </div>

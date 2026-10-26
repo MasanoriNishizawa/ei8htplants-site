@@ -380,7 +380,7 @@ export default function Checkout() {
         {/* 全部が売り切れでカートが空になったときも、理由が分かるようにお知らせを出す */}
         {noticeBox && <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'left' }}>{noticeBox}</div>}
         <p style={{ color: 'var(--c-muted)', marginBottom: 20 }}>{t('カートに商品がありません。', 'Your cart is empty.')}</p>
-        <Link to="/shop" style={{ color: 'var(--c-ink)', fontSize: 13, letterSpacing: 1 }}>{t('ショップへ戻る', 'Go to Shop')}</Link>
+        <Link to="/official/shop" style={{ color: 'var(--c-ink)', fontSize: 13, letterSpacing: 1 }}>{t('ショップへ戻る', 'Go to Shop')}</Link>
       </div>
     )
   }
@@ -448,7 +448,7 @@ export default function Checkout() {
       })
       // 4. カートを空にして完了ページへ
       clear()
-      navigate('/order/complete', { state: { orderId: order_id, customerName: form.name, customerEmail: form.email } })
+      navigate('/official/order/complete', { state: { orderId: order_id, customerName: form.name, customerEmail: form.email } })
     } catch (err: unknown) {
       setErrorMsg(orderErrorMessage(err, t))
       setStatus('idle')
@@ -564,8 +564,8 @@ export default function Checkout() {
               <div style={{ background: '#f9f9f7', border: '1px solid #e8e3da', padding: '14px 18px', marginBottom: 16 }}>
                 <p style={{ fontFamily: SANS, fontSize: 12, color: '#555', margin: 0, lineHeight: 2 }}>
                   {t(
-                    <>ご注文確定後のキャンセル・返品はお承りしておりません。<br />商品の不良・破損があった場合のみ、到着後7日以内に<Link to="/contact" style={{ color: '#1c1c1c' }}>お問い合わせページ</Link>よりご連絡ください。</>,
-                    <>Cancellations and returns are not accepted after an order is placed.<br />If an item arrives damaged or defective, please <Link to="/contact" style={{ color: '#1c1c1c' }}>contact us</Link> within 7 days of receipt.</>
+                    <>ご注文確定後のキャンセル・返品はお承りしておりません。<br />商品の不良・破損があった場合のみ、到着後7日以内に<Link to="/official/contact" style={{ color: '#1c1c1c' }}>お問い合わせページ</Link>よりご連絡ください。</>,
+                    <>Cancellations and returns are not accepted after an order is placed.<br />If an item arrives damaged or defective, please <Link to="/official/contact" style={{ color: '#1c1c1c' }}>contact us</Link> within 7 days of receipt.</>
                   )}
                 </p>
               </div>

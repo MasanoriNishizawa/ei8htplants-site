@@ -21,12 +21,12 @@ const rows: { label: string; labelEn: string; value: string | string[]; valueEn:
     labelEn: 'Contact',
     value: [
       'メールアドレス：info@ei8htplants.com',
-      'お問い合わせフォーム：https://ei8htplants.com/contact',
+      'お問い合わせフォーム：https://ei8htplants.com/official/contact',
       '※ 電話番号は消費者からの請求により遅滞なく開示いたします。',
     ],
     valueEn: [
       'Email: info@ei8htplants.com',
-      'Contact form: https://ei8htplants.com/contact',
+      'Contact form: https://ei8htplants.com/official/contact',
       '※ Phone number will be disclosed promptly upon request by a consumer.',
     ],
   },

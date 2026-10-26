@@ -411,7 +411,7 @@ def _html_wrap(body_html: str) -> str:
         <tr><td style="padding:16px 32px 24px;border-top:1px solid #eeeeee;">
           <p style="margin:0;font-size:12px;color:#999999;line-height:1.8;">
             ※ このメールは送信専用です。このメールへの返信はお受けできません。<br>
-            ご不明な点は<a href="{SITE_ORIGIN}/contact" style="color:#4a6741;">公式HPお問い合わせ</a>または
+            ご不明な点は<a href="{SITE_ORIGIN}/official/contact" style="color:#4a6741;">公式HPお問い合わせ</a>または
             <a href="mailto:{esc(HABITAT_ADMIN_EMAIL)}" style="color:#4a6741;">{esc(HABITAT_ADMIN_EMAIL)}</a> までご連絡ください。
           </p>
         </td></tr>
@@ -537,7 +537,7 @@ def _send_confirmation(body: ReserveBody, cancel_token: str, event: Optional[dic
     # 1. 言語を決め、その言語の文言を使う
     lang = 'en' if body.lang == 'en' else 'ja'
     t = _CONFIRM_TEXTS[lang]
-    cancel_url = f'{SITE_ORIGIN}/cancel?id={cancel_token}'
+    cancel_url = f'{SITE_ORIGIN}/official/cancel?id={cancel_token}'
     # 2. 予約内容の表を作る（値はすべて _row の中でエスケープされる）
     rows_html = _row(t['event'], event['name'])
     rows_html += _row(t['date'], event['start_date'])

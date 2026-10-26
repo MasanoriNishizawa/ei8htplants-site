@@ -86,7 +86,7 @@ export default function HabitatOides() {
             <p className="habitat-small-label">{t('ともにつくる', 'MADE TOGETHER')}</p>
             <h2>{t(<>つくり手とともに、<br /><em>景色を仕立てる。</em></>, <>Different hands.<br /><em>One landscape.</em></>)}</h2>
             <p>{t('作り手や素材との出会いから生まれる、Habitat Oides のコラボレーションをご紹介します。', 'Discover collaborations shaped by the people, makers, and materials we meet along the way.')}</p>
-            <Link className="habitat-text-link habitat-text-link--light" to="/collaborations">{t('これまでの取り組み', 'View collaborations')} <span>↗</span></Link>
+            <Link className="habitat-text-link habitat-text-link--light" to="/official/collaborations">{t('これまでの取り組み', 'View collaborations')} <span>↗</span></Link>
           </div>
           <video src="/collab.mp4" autoPlay loop muted playsInline aria-label="Habitat Oides collaboration film" />
         </div>

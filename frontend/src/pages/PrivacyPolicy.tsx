@@ -175,13 +175,13 @@ const sections: Section[] = [
       'ei8ht plants（運営責任者：西澤 政徳）',
       '所在地：埼玉県入間市高倉4丁目9番地',
       'メールアドレス：info@ei8htplants.com',
-      { text: 'お問い合わせフォーム', href: '/contact' },
+      { text: 'お問い合わせフォーム', href: '/official/contact' },
     ],
     bodyEn: [
       'ei8ht plants (Representative: Masanori Nishizawa)',
       'Address: 4-9 Takakura, Iruma, Saitama, Japan',
       'Email: info@ei8htplants.com',
-      { text: 'Contact form', href: '/contact' },
+      { text: 'Contact form', href: '/official/contact' },
     ],
   },
 ]

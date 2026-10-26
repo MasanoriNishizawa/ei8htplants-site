@@ -268,15 +268,17 @@ class TestServeSpaMeta:
         assert _meta(head, 'property', 'og:site_name') == site_name
         assert _meta(head, 'name', 'robots') is None
 
-    @pytest.mark.parametrize('path,title,desc', [
-        ('/events', 'Events | ei8ht plants', 'ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。'),
-        ('/gallery', 'Gallery | ei8ht plants', 'ei8ht plants、Habitat Oides、HUE の植物ギャラリー。'),
-        ('/contact', 'Contact | ei8ht plants', 'ei8ht plants へのお問い合わせはこちらから。'),
-        ('/chat', 'AI コンシェルジュ | ei8ht plants', '植物の育て方・管理のご相談や、ワークショップ・予約に関するご質問にAIがお答えします。'),
-        ('/ei8htplants', 'ei8ht plants', 'アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。'),
-        ('/privacy', 'プライバシーポリシー | ei8ht plants', 'ei8ht plants のプライバシーポリシー（個人情報の取り扱い・アクセス解析について）'),
+    @pytest.mark.parametrize('path,title,desc,canonical', [
+        ('/', 'ei8ht plants', 'アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'https://ei8htplants.com/'),
+        ('/brands', 'Our Brands | ei8ht plants', '植物との向き合い方から生まれた、ei8ht plants の3つのブランドをご紹介します。', 'https://ei8htplants.com/brands'),
+        ('/official', 'ei8ht plants', seo.DEFAULT_DESCRIPTION, 'https://ei8htplants.com/official'),
+        ('/official/events', 'Events | ei8ht plants', 'ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。', 'https://ei8htplants.com/official/events'),
+        ('/official/gallery', 'Gallery | ei8ht plants', 'ei8ht plants、Habitat Oides、HUE の植物ギャラリー。', 'https://ei8htplants.com/official/gallery'),
+        ('/official/contact', 'Contact | ei8ht plants', 'ei8ht plants へのお問い合わせはこちらから。', 'https://ei8htplants.com/official/contact'),
+        ('/official/chat', 'AI コンシェルジュ | ei8ht plants', '植物の育て方・管理のご相談や、ワークショップ・予約に関するご質問にAIがお答えします。', 'https://ei8htplants.com/official/chat'),
+        ('/official/privacy', 'プライバシーポリシー | ei8ht plants', 'ei8ht plants のプライバシーポリシー（個人情報の取り扱い・アクセス解析について）', 'https://ei8htplants.com/official/privacy'),
     ])
-    def test_固定ページを開くと決まったタイトルと説明が入る(self, db, path, title, desc):
+    def test_固定ページを開くと決まったタイトルと説明が入る(self, db, path, title, desc, canonical):
         head = _head(TestClient(app).get(path).text)
         assert _title(head) == title
         assert _meta(head, 'property', 'og:title') == title
@@ -284,10 +286,13 @@ class TestServeSpaMeta:
         assert _meta(head, 'name', 'description') == desc
         assert _meta(head, 'property', 'og:description') == desc
         assert _meta(head, 'name', 'twitter:description') == desc
-        assert _canonical(head) == f'https://ei8htplants.com{path}'
+        assert _canonical(head) == canonical
         assert _meta(head, 'name', 'robots') is None
-        # 固定ページに JSON-LD は無い（トップだけ）
-        assert _json_ld(head) == []
+        # トップでは Organization の JSON-LD を出し、その他の固定ページには付けない
+        if path in {'/', '/official'}:
+            assert len(_json_ld(head)) == 1
+        else:
+            assert _json_ld(head) == []
 
     def test_チャットのタイトルはサイト名が二重にならない(self, db):
         head = _head(TestClient(app).get('/chat').text)
@@ -295,9 +300,9 @@ class TestServeSpaMeta:
         assert _title(head).count('ei8ht plants') == 1
 
     def test_末尾スラッシュ付きでも同じ固定ページの値になりcanonicalはスラッシュなし(self, db):
-        head = _head(TestClient(app).get('/gallery/').text)
+        head = _head(TestClient(app).get('/official/gallery/').text)
         assert _title(head) == 'Gallery | ei8ht plants'
-        assert _canonical(head) == 'https://ei8htplants.com/gallery'
+        assert _canonical(head) == 'https://ei8htplants.com/official/gallery'
 
     def test_固有画像のある固定ページはtwitter_cardがsummary_large_imageになる(self, db):
         head = _head(TestClient(app).get('/habitatoides').text)
@@ -318,7 +323,7 @@ class TestServeSpaMeta:
         # blob: は除外され、1枚目の絶対 URL が使われる
         assert _meta(head, 'property', 'og:image') == 'https://cdn.example.com/a.jpg'
         assert _meta(head, 'name', 'twitter:card') == 'summary_large_image'
-        assert _canonical(head) == 'https://ei8htplants.com/events/plant-market'
+        assert _canonical(head) == 'https://ei8htplants.com/official/events/plant-market'
         lds = _json_ld(head)
         assert len(lds) == 1
         ld = lds[0]
@@ -336,35 +341,35 @@ class TestServeSpaMeta:
         }
         # "/img/b.jpg" はサイトの絶対 URL になる。blob: は入らない
         assert ld['image'] == ['https://cdn.example.com/a.jpg', 'https://ei8htplants.com/img/b.jpg']
-        assert ld['url'] == 'https://ei8htplants.com/events/plant-market'
+        assert ld['url'] == 'https://ei8htplants.com/official/events/plant-market'
         assert ld['description'] == '植物の市'
         assert ld['organizer']['@type'] == 'Organization'
 
     def test_slugのあるイベントをUUIDで開くとcanonicalとog_urlとJSON_LDのurlがslugのURLになる(self, db):
         head = _head(TestClient(app).get(f'/events/{EVENT_ID}').text)
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
-        assert _canonical(head) == 'https://ei8htplants.com/events/plant-market'
-        assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/events/plant-market'
+        assert _canonical(head) == 'https://ei8htplants.com/official/events/plant-market'
+        assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/plant-market'
         ld = _json_ld(head)[0]
         assert ld['@type'] == 'Event'
-        assert ld['url'] == 'https://ei8htplants.com/events/plant-market'
+        assert ld['url'] == 'https://ei8htplants.com/official/events/plant-market'
         assert _meta(head, 'name', 'robots') is None
 
     def test_slugの無いイベントをUUIDで開くとcanonicalはUUIDのURLのまま(self):
         fake = _default_db(events=[_event(slug=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             head = _head(TestClient(app).get(f'/events/{EVENT_ID}').text)
-        assert _canonical(head) == f'https://ei8htplants.com/events/{EVENT_ID}'
-        assert _meta(head, 'property', 'og:url') == f'https://ei8htplants.com/events/{EVENT_ID}'
-        assert _json_ld(head)[0]['url'] == f'https://ei8htplants.com/events/{EVENT_ID}'
+        assert _canonical(head) == f'https://ei8htplants.com/official/events/{EVENT_ID}'
+        assert _meta(head, 'property', 'og:url') == f'https://ei8htplants.com/official/events/{EVENT_ID}'
+        assert _json_ld(head)[0]['url'] == f'https://ei8htplants.com/official/events/{EVENT_ID}'
 
     def test_日本語のslugのイベントはcanonicalでパーセントエンコードされる(self):
         fake = _default_db(events=[_event(slug='植物')])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             head = _head(TestClient(app).get('/events/植物').text)
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
-        assert _canonical(head) == 'https://ei8htplants.com/events/%E6%A4%8D%E7%89%A9'
-        assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/events/%E6%A4%8D%E7%89%A9'
+        assert _canonical(head) == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
+        assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
 
     def test_時刻のないイベントは構造化データの日付が日付だけになる(self):
         fake = _default_db(events=[_event(time=None, daily_times=None, end_date=None)])
@@ -380,7 +385,7 @@ class TestServeSpaMeta:
             head = _head(TestClient(app).get('/events/plant-market').text)
         assert _json_ld(head) == []
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
-        assert _canonical(head) == 'https://ei8htplants.com/events/plant-market'
+        assert _canonical(head) == 'https://ei8htplants.com/official/events/plant-market'
         assert _meta(head, 'name', 'robots') is None
 
     def test_eventsのaddressが無くても会場ページの住所があれば構造化データを出す(self):
@@ -442,7 +447,7 @@ class TestServeSpaMeta:
         # ソフト 404 対策: noindex を入れ、canonical は入れない（og:url は残る）
         assert _meta(head, 'name', 'robots') == 'noindex'
         assert _canonical(head) is None
-        assert _meta(head, 'property', 'og:url', ).startswith('https://ei8htplants.com/events/')
+        assert _meta(head, 'property', 'og:url', ).startswith('https://ei8htplants.com/official/events/')
 
     def test_UUIDでないイベントキーはidでの検索をしない(self, db):
         TestClient(app).get('/events/nope')
@@ -454,7 +459,7 @@ class TestServeSpaMeta:
         assert _title(head) == '記事A | Journal | ei8ht plants'
         assert _meta(head, 'name', 'description') == '本文です 次の行'
         assert _meta(head, 'property', 'og:image') == 'https://cdn.example.com/hero.png'
-        assert _canonical(head) == f'https://ei8htplants.com/journal/{ARTICLE_ID}'
+        assert _canonical(head) == f'https://ei8htplants.com/official/journal/{ARTICLE_ID}'
         assert _json_ld(head) == []
 
     @pytest.mark.parametrize('path', [
@@ -581,7 +586,7 @@ class TestServeSpaMeta:
 
     def test_日本語を含む存在しないパスはog_urlでパーセントエンコードされる(self, db):
         head = _head(TestClient(app).get('/events/植物').text)
-        assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/events/%E6%A4%8D%E7%89%A9'
+        assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
         assert _canonical(head) is None
 
     def test_HTMLにはキャッシュ制御とセキュリティヘッダーが付く(self, db):
@@ -609,7 +614,7 @@ class TestServeSpaMeta:
                 assert _meta(head, 'name', 'description') == seo.DEFAULT_DESCRIPTION
                 # 一時的な失敗なので noindex は付けず、canonical は入れる
                 assert _meta(head, 'name', 'robots') is None
-                assert _canonical(head) == f'https://ei8htplants.com{path}'
+                assert _canonical(head) == f'https://ei8htplants.com/official{path}'
 
     def test_埋め込み処理で例外が出たらindex_htmlをそのまま返す(self, db):
         with open(app_main.INDEX_HTML, encoding='utf-8') as f:
@@ -770,30 +775,30 @@ class TestSitemapXml:
         # 公開ページ以外・予約は入らない
         for p in ('/admin', '/cancel', '/checkout', '/reserve', '/order/complete'):
             assert f'https://ei8htplants.com{p}' not in locs
-        assert 'https://ei8htplants.com/events/plant-market' in locs
-        assert f'https://ei8htplants.com/journal/{ARTICLE_ID}' in locs
-        assert f'https://ei8htplants.com/shop/{PRODUCT_ID}' in locs
+        assert 'https://ei8htplants.com/official/events/plant-market' in locs
+        assert f'https://ei8htplants.com/official/journal/{ARTICLE_ID}' in locs
+        assert f'https://ei8htplants.com/official/shop/{PRODUCT_ID}' in locs
         # 非公開は入らない
-        assert 'https://ei8htplants.com/journal/44444444-4444-4444-4444-444444444444' not in locs
-        assert 'https://ei8htplants.com/shop/55555555-5555-5555-5555-555555555555' not in locs
+        assert 'https://ei8htplants.com/official/journal/44444444-4444-4444-4444-444444444444' not in locs
+        assert 'https://ei8htplants.com/official/shop/55555555-5555-5555-5555-555555555555' not in locs
 
     def test_記事と商品にはlastmodの日付が付く(self, db):
         xml = TestClient(app).get('/sitemap.xml').text
-        assert f'<loc>https://ei8htplants.com/journal/{ARTICLE_ID}</loc><lastmod>2026-01-02</lastmod>' in xml
-        assert f'<loc>https://ei8htplants.com/shop/{PRODUCT_ID}</loc><lastmod>2026-02-01</lastmod>' in xml
+        assert f'<loc>https://ei8htplants.com/official/journal/{ARTICLE_ID}</loc><lastmod>2026-01-02</lastmod>' in xml
+        assert f'<loc>https://ei8htplants.com/official/shop/{PRODUCT_ID}</loc><lastmod>2026-02-01</lastmod>' in xml
 
     def test_slugの無いイベントはidのURLになる(self):
         fake = _default_db(events=[_event(slug=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             locs = _locs(TestClient(app).get('/sitemap.xml').text)
-        assert f'https://ei8htplants.com/events/{EVENT_ID}' in locs
+        assert f'https://ei8htplants.com/official/events/{EVENT_ID}' in locs
 
     def test_URLに入る記号はXMLエスケープされる(self):
         fake = _default_db(events=[_event(slug='a&b')])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             xml = TestClient(app).get('/sitemap.xml').text
-        assert '<loc>https://ei8htplants.com/events/a%26b</loc>' in xml or \
-            '<loc>https://ei8htplants.com/events/a&amp;b</loc>' in xml
+        assert '<loc>https://ei8htplants.com/official/events/a%26b</loc>' in xml or \
+            '<loc>https://ei8htplants.com/official/events/a&amp;b</loc>' in xml
         assert 'a&b' not in xml
 
     def test_sitemapは60秒キャッシュされ2回目はDBを読まない(self, db):
@@ -811,13 +816,13 @@ class TestSitemapXml:
             resp = client.get('/sitemap.xml')
             assert resp.status_code == 200
             locs = _locs(resp.text)
-            assert 'https://ei8htplants.com/events/plant-market' in locs
-            assert f'https://ei8htplants.com/shop/{PRODUCT_ID}' in locs
-            assert not any('/journal/' in l and l != 'https://ei8htplants.com/journal' for l in locs)
+            assert 'https://ei8htplants.com/official/events/plant-market' in locs
+            assert f'https://ei8htplants.com/official/shop/{PRODUCT_ID}' in locs
+            assert not any('/official/journal/' in l for l in locs)
             # キャッシュされていないので、失敗が直ると次で記事も入る
             fake.errors = set()
             locs2 = _locs(client.get('/sitemap.xml').text)
-            assert f'https://ei8htplants.com/journal/{ARTICLE_ID}' in locs2
+            assert f'https://ei8htplants.com/official/journal/{ARTICLE_ID}' in locs2
 
     def test_全部の読み取りに失敗しても固定ページだけで返す(self):
         fake = FakeDB(errors={'events', 'articles', 'products'})

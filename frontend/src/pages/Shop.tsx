@@ -81,7 +81,7 @@ export default function Shop() {
                         From the Blog
                       </h2>
                     </div>
-                    <Link to="/journal" style={{ fontFamily: SANS, fontSize: 10, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    <Link to="/official/journal" style={{ fontFamily: SANS, fontSize: 10, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                       All →
                     </Link>
                   </div>
@@ -165,7 +165,7 @@ export default function Shop() {
 
                 {/* ショップのページのシェアボタン */}
                 <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid var(--c-border)' }}>
-                  <ShareButtons url={`${window.location.origin}/shop`} text="ei8ht plants Shop" />
+                  <ShareButtons url={`${window.location.origin}/official/shop`} text="ei8ht plants Shop" />
                 </div>
               </section>
             </>
@@ -177,7 +177,7 @@ export default function Shop() {
       {cartCount > 0 && (
         <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 100 }}>
           <Link
-            to="/checkout"
+            to="/official/checkout"
             style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--c-ink)', color: '#fffdf9', textDecoration: 'none', padding: '11px 22px', fontFamily: SANS, fontSize: 11, letterSpacing: '1px', boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}
           >
             Cart &nbsp;{cartCount}
@@ -195,7 +195,7 @@ export default function Shop() {
  */
 function ArticleCard({ article }: { article: Article }) {
   return (
-    <Link to={`/journal/${article.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+    <Link to={`/official/journal/${article.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
       <div
         onMouseEnter={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1.04)' }}
         onMouseLeave={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1)' }}
@@ -222,7 +222,7 @@ function ArticleCard({ article }: { article: Article }) {
  */
 function ProductCard({ product }: { product: Product }) {
   return (
-    <Link to={`/shop/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+    <Link to={`/official/shop/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
       <div
         onMouseEnter={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1.04)' }}
         onMouseLeave={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1)' }}

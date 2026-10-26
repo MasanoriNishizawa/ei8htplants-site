@@ -382,7 +382,7 @@ export default function AdminEventForm() {
               </button>
             )}
           </div>
-          {form.slug && <p style={{ fontSize: 11, color: 'var(--c-muted)', margin: '4px 0 0' }}>ei8htplants.com/events/{form.slug}</p>}
+          {form.slug && <p style={{ fontSize: 11, color: 'var(--c-muted)', margin: '4px 0 0' }}>ei8htplants.com/official/events/{form.slug}</p>}
         </div>
         {/* 開始日・終了日（2020 年より前は打ち間違いの可能性があるので確認の文字を赤くする） */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

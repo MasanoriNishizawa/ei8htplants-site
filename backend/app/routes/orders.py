@@ -271,7 +271,7 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
             '決済完了後のキャンセル・返品はお承りしておりません。\n'
             '商品の不良・破損があった場合のみ、到着後7日以内にお問い合わせください。\n\n'
             '■ お問い合わせ\n'
-            f'{SITE_ORIGIN}/contact\n'
+            f'{SITE_ORIGIN}/official/contact\n'
             + NO_REPLY_NOTE
         )
         send_mail(RESEND_API_KEY, {
@@ -587,7 +587,7 @@ def _send_shipping_notification(order: dict) -> None:
             '商品のお届けまでしばらくお待ちください。\n'
             'ご不明な点は下記よりお問い合わせください。\n\n'
             '■ お問い合わせ\n'
-            f'{SITE_ORIGIN}/contact\n'
+            f'{SITE_ORIGIN}/official/contact\n'
             + NO_REPLY_NOTE
         )
         send_mail(RESEND_API_KEY, {

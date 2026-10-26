@@ -99,7 +99,7 @@ export default function Collaborations() {
                     {item.description}
                   </p>
                 )}
-                <ShareButtons url={`${window.location.origin}/collaborations`} text={item.title} />
+                <ShareButtons url={`${window.location.origin}/official/collaborations`} text={item.title} />
               </div>
             </article>
           ))}

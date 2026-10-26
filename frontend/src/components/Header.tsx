@@ -10,13 +10,13 @@ const BRANDS_PAGE = { to: '/brands', label: 'Our Brands' }
 /** ナビに並べるページ（end: true はそのパスちょうどのときだけ選択中にする） */
 const NAV_ITEMS = [
   { to: '/official', label: 'Home', end: true },
-  { to: '/events', label: 'Event' },
-  { to: '/gallery', label: 'Gallery' },
-  { to: '/concept', label: 'Concept' },
-  { to: '/stockists', label: 'Stockists' },
-  { to: '/collaborations', label: 'Collabs' },
-  { to: '/media', label: 'Media' },
-  { to: '/contact', label: 'Contact' },
+  { to: '/official/events', label: 'Event' },
+  { to: '/official/gallery', label: 'Gallery' },
+  { to: '/official/concept', label: 'Concept' },
+  { to: '/official/stockists', label: 'Stockists' },
+  { to: '/official/collaborations', label: 'Collabs' },
+  { to: '/official/media', label: 'Media' },
+  { to: '/official/contact', label: 'Contact' },
 ]
 
 /**
@@ -233,7 +233,7 @@ export default function Header() {
       </div>
 
       {/* Shop ボタン。ホバー時の色の反転は index.css の .header-shop-link */}
-      <Link to="/shop" className="header-shop-link">
+      <Link to="/official/shop" className="header-shop-link">
         Shop
       </Link>
     </>
@@ -256,7 +256,7 @@ export default function Header() {
         }}
       >
         {/* ロゴ（トップページへ） */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+        <Link to="/official" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
           <img
             src={TEXT_LOGO}
             alt="ei8ht plants"
@@ -407,7 +407,7 @@ export default function Header() {
         {/* 区切り線とショップへのリンク */}
         <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
         <NavLink
-          to="/shop"
+          to="/official/shop"
           onClick={closeMenuAndReturnFocus}
           style={({ isActive }) => ({
             fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',

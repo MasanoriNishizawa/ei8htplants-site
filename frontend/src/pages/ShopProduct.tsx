@@ -70,7 +70,7 @@ export default function ShopProduct() {
   const handleBuyNow = () => {
     if (!product) return
     add(product, qty)
-    navigate('/checkout')
+    navigate('/official/checkout')
   }
 
   // 読み込み中
@@ -90,7 +90,7 @@ export default function ShopProduct() {
     return (
       <div style={{ background: BG, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <p style={{ fontFamily: SERIF, fontSize: 18, color: '#999', fontWeight: 300 }}>{t('商品が見つかりません。', 'Product not found.')}</p>
-        <Link to="/shop" style={{ fontFamily: SANS, color: '#1c1c1c', fontSize: 13, letterSpacing: 1 }}>{t('ショップに戻る', 'Back to Shop')}</Link>
+        <Link to="/official/shop" style={{ fontFamily: SANS, color: '#1c1c1c', fontSize: 13, letterSpacing: 1 }}>{t('ショップに戻る', 'Back to Shop')}</Link>
       </div>
     )
   }
@@ -116,7 +116,7 @@ export default function ShopProduct() {
         {/* パンくず */}
         <div style={{ borderBottom: '1px solid #e8e3da', background: '#fff' }}>
           <div style={{ maxWidth: 720, margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 8, fontFamily: SANS, fontSize: 12, color: '#aaa' }}>
-            <Link to="/shop" style={{ color: '#aaa', textDecoration: 'none' }}>Shop</Link>
+        <Link to="/official/shop" style={{ color: '#aaa', textDecoration: 'none' }}>Shop</Link>
             <span>/</span>
             <span style={{ color: '#717171' }}>{product.name}</span>
           </div>
@@ -264,9 +264,9 @@ export default function ShopProduct() {
         {/* シェアボタンとショップに戻るリンク */}
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 24px 80px' }}>
           <div style={{ marginBottom: 24 }}>
-            <ShareButtons url={`${window.location.origin}/shop/${id}`} text={`${product.name} | ei8ht plants Shop`} />
+          <ShareButtons url={`${window.location.origin}/official/shop/${id}`} text={`${product.name} | ei8ht plants Shop`} />
           </div>
-          <Link to="/shop" style={{ fontFamily: SANS, fontSize: 13, color: '#aaa', textDecoration: 'none', letterSpacing: 1 }}>
+          <Link to="/official/shop" style={{ fontFamily: SANS, fontSize: 13, color: '#aaa', textDecoration: 'none', letterSpacing: 1 }}>
             {t('← Shop 一覧に戻る', '← Back to Shop')}
           </Link>
         </div>
@@ -275,7 +275,7 @@ export default function ShopProduct() {
         {cartCount > 0 && (
           <div style={{ position: 'fixed', bottom: 32, right: 32, zIndex: 100 }}>
             <Link
-              to="/checkout"
+              to="/official/checkout"
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 background: '#1c1c1c', color: '#fff', textDecoration: 'none',

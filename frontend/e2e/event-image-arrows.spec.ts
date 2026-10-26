@@ -27,9 +27,9 @@ const VIEWPORTS = [
 
 /** 確かめる画面（URL とスクリーンショットのファイル名に使う名前） */
 const PAGES = [
-  { label: 'events-list', path: '/events', desc: 'イベント一覧（/events）の通常のカード' },
-  { label: 'home-next', path: '/', desc: 'ホーム（/）の Next Event の大きいカード' },
-  { label: 'event-site', path: `/events/${EVENT_ID}`, desc: '公開のイベントサイト（/events/:id）' },
+  { label: 'events-list', path: '/official/events', desc: 'イベント一覧（/official/events）の通常のカード' },
+  { label: 'home-next', path: '/official', desc: '公式ホーム（/official）の Next Event の大きいカード' },
+  { label: 'event-site', path: `/official/events/${EVENT_ID}`, desc: '公開のイベントサイト（/official/events/:id）' },
 ]
 
 // すべてのテストで Supabase（認証・DB）への通信を遮断する
@@ -98,7 +98,7 @@ for (const vp of VIEWPORTS) {
 
     test('イベントサイトで「次へ」を押して写真が切り替わっても、矢印は写真の上下の真ん中にある', async ({ page }) => {
       // 1. イベントサイトを開く（1枚目は横長 2560x1608、2枚目は 1567x1045 で縦横比が違う）
-      await page.goto(`/events/${EVENT_ID}`)
+      await page.goto(`/official/events/${EVENT_ID}`)
       const { img, container } = await findPhoto(page)
       await expect(img).toHaveAttribute('src', /habitat_oides_hero/)
       // 2. 「次へ」を押すと 2 枚目に切り替わる

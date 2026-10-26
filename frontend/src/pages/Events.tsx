@@ -208,7 +208,7 @@ export default function Events() {
         {/* 今後と過去の切り替えリンク */}
         <div style={{ textAlign: 'center', marginTop: 60 }}>
           <Link
-            to={isPast ? '/events' : '/events?page=past'}
+            to={isPast ? '/official/events' : '/official/events?page=past'}
             style={{ display: 'inline-block', padding: '12px 30px', background: '#ffffff', border: '1px solid #dddde8', color: 'var(--c-muted)', textDecoration: 'none', borderRadius: 4, fontSize: 16, letterSpacing: 2 }}
           >
             {isPast ? t('現在のイベントを見る', 'View upcoming events') : t('過去のイベントを見る', 'View past events')}

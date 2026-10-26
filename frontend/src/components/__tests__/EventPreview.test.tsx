@@ -226,11 +226,11 @@ describe('EventPreview 詳細を見るリンク', () => {
     expect(links.length).toBeGreaterThan(0)
   })
 
-  it('「詳細を見る」リンクが /events/:slug を指す', () => {
-    // slug が設定されているとき /events/<slug> へのリンクになる
+  it('「詳細を見る」リンクが /official/events/:slug を指す', () => {
+    // slug が設定されているとき公式イベントページへのリンクになる
     renderPreview(makeEvent({ slug: 'my-preview', page_content: { concept: 'テスト' } }))
     const link = screen.getAllByText('詳細を見る')[0].closest('a')
-    expect(link?.getAttribute('href')).toBe('/events/my-preview')
+    expect(link?.getAttribute('href')).toBe('/official/events/my-preview')
   })
 })
 
@@ -253,9 +253,9 @@ describe('EventPreview ワークショップセクション', () => {
     }))
     const link = screen.getByText('Habitat Style Workshop を予約する')
     expect(link).toBeDefined()
-    // リンク先が /reserve?event_id=<id> であることを確認する
+    // リンク先が /official/reserve?event_id=<id> であることを確認する
     const anchor = link.closest('a')
-    expect(anchor?.getAttribute('href')).toContain('/reserve?event_id=ev-ws-1')
+    expect(anchor?.getAttribute('href')).toContain('/official/reserve?event_id=ev-ws-1')
   })
 
   it('has_workshop=true かつ ws_requires_reservation=false のとき予約リンクもメッセージも表示されない', () => {

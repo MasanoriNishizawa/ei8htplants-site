@@ -272,7 +272,7 @@ export default function EventSite() {
                     {t('ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。', 'The workshop has concluded. Thank you to all who participated.')}
                   </p>
                 ) : event.ws_requires_reservation ? (
-                  <Link to={`/reserve?event_id=${event.id}`}
+                  <Link to={`/official/reserve?event_id=${event.id}`}
                     style={{ display: 'inline-block', background: 'var(--c-ink)', color: '#fff', textDecoration: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
                     {t('ワークショップを予約する', 'Reserve the workshop')}
                   </Link>
@@ -350,7 +350,7 @@ export default function EventSite() {
 
             {/* シェアボタン（URL は slug があれば slug） */}
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #dddde8' }}>
-              <ShareButtons url={`${window.location.origin}/events/${event.slug ?? id}`} text={event.name} />
+              <ShareButtons url={`${window.location.origin}/official/events/${event.slug ?? id}`} text={event.name} />
             </div>
           </div>
 

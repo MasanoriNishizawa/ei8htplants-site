@@ -19,7 +19,7 @@ export default function StoreHeader() {
   // 今のページのパス
   const { pathname } = useLocation()
   // チェックアウト・注文完了ページではカートボタンをリンクではなくテキスト表示にする
-  const isCheckout = pathname === '/checkout' || pathname === '/order/complete'
+  const isCheckout = pathname === '/official/checkout' || pathname === '/official/order/complete'
   // 今の表示言語と切り替え関数（公開サイトのヘッダーと同じ）
   const { lang, toggle: toggleLang } = useLang()
 
@@ -36,7 +36,7 @@ export default function StoreHeader() {
       {/* 左: ロゴ（トップページへ）+ Shop / Journal の切り替え */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 3vw, 20px)', minWidth: 0 }}>
         {/* ロゴは縮めない（右側の部品が増えても潰れないように） */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
+        <Link to="/official" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
           <img
             src={TEXT_LOGO}
             alt="ei8ht plants"
@@ -45,7 +45,7 @@ export default function StoreHeader() {
         </Link>
         {/* ショップとジャーナルの切り替え（表示中のほうに下線） */}
         <nav style={{ display: 'flex', gap: 'clamp(12px, 3vw, 20px)', alignItems: 'center' }}>
-          {[{ to: '/shop', label: 'Shop' }, { to: '/journal', label: 'Journal' }].map(({ to, label }) => (
+          {[{ to: '/official/shop', label: 'Shop' }, { to: '/official/journal', label: 'Journal' }].map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}
@@ -84,7 +84,7 @@ export default function StoreHeader() {
         {/* カートに商品があるときだけ、チェックアウトへのリンクを出す */}
         {!isCheckout && cartCount > 0 && (
           <Link
-            to="/checkout"
+          to="/official/checkout"
             style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '1px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--c-ink)', color: '#fffdf9', padding: '6px clamp(8px, 2.5vw, 14px)', whiteSpace: 'nowrap' }}
           >
             Cart &nbsp;<span style={{ fontVariantNumeric: 'tabular-nums' }}>{cartCount}</span>

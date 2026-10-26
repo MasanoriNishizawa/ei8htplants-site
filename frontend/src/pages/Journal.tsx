@@ -125,7 +125,7 @@ export default function Journal() {
             {/* フィーチャー記事（1番目・大きく） */}
             {featured && (
               <div style={{ borderBottom: '1px solid #e0dbd4', padding: '56px 0' }}>
-                <Link to={`/journal/${featured.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'grid', gridTemplateColumns: '1fr', gap: 0 }} className="journal-featured">
+                <Link to={`/official/journal/${featured.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'grid', gridTemplateColumns: '1fr', gap: 0 }} className="journal-featured">
                   <div style={{ display: 'grid', gap: 0 }} className="journal-featured-grid">
                     {/* 画像 */}
                     <div style={{ overflow: 'hidden', background: '#e8e3da', aspectRatio: '16/9', position: 'relative' }} className="journal-featured-img">
@@ -179,7 +179,7 @@ export default function Journal() {
                 <div className="journal-grid">
                   {rest.map((article) => (
                     <article key={article.id}>
-                      <Link to={`/journal/${article.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+                      <Link to={`/official/journal/${article.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
                         {/* 画像 */}
                         <div style={{ overflow: 'hidden', background: '#e8e3da', aspectRatio: '3/2', marginBottom: 20, position: 'relative' }}>
                           {article.image_urls[0] ? (

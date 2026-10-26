@@ -65,7 +65,7 @@ DESCRIPTION_MAX_LEN = 120
 EVENT_JSONLD_MAX_IMAGES = 5
 
 # 検索結果に出さないページ（パスの先頭がこれと一致するもの）。noindex を入れ、robots.txt でも Disallow にする
-NOINDEX_PREFIXES = ('/admin', '/cancel', '/checkout', '/order')
+NOINDEX_PREFIXES = ('/admin', '/cancel', '/checkout', '/order', '/official/cancel', '/official/checkout', '/official/order')
 # robots.txt で Disallow にするパス（NOINDEX_PREFIXES と同じ）。
 # /api は入れない: Googlebot は JavaScript を実行してページを描画する際に /api/... を読むため、
 # /api を除外するとイベント・記事などの本文が描画できず、索引されなくなる
@@ -93,18 +93,19 @@ class StaticPage:
 # 固定ページのメタ情報。キーはパス（末尾スラッシュなし）。値は frontend/src/pages/*.tsx の
 # <PageMeta> 呼び出しを写したもの（言語切り替えのあるページは日本語の値）
 STATIC_PAGES: dict[str, StaticPage] = {
-    '/': StaticPage(),
-    '/events': StaticPage('Events', 'ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。'),
-    '/gallery': StaticPage('Gallery', 'ei8ht plants、Habitat Oides、HUE の植物ギャラリー。'),
-    '/concept': StaticPage('Concept', 'ei8ht plants のブランドコンセプト。ビザールプランツ・ハビタットスタイル・オーナメントプランツの3ラインをご紹介します。'),
-    '/contact': StaticPage('Contact', 'ei8ht plants へのお問い合わせはこちらから。'),
-    '/stockists': StaticPage('Stockists', 'ei8ht plants 取扱店一覧。'),
-    '/collaborations': StaticPage(
+    '/': StaticPage(None, 'アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。'),
+    '/brands': StaticPage('Our Brands', '植物との向き合い方から生まれた、ei8ht plants の3つのブランドをご紹介します。'),
+    '/official': StaticPage(),
+    '/official/events': StaticPage('Events', 'ei8ht plants のイベント・出展情報。ワークショップ予約も受け付けています。'),
+    '/official/gallery': StaticPage('Gallery', 'ei8ht plants、Habitat Oides、HUE の植物ギャラリー。'),
+    '/official/concept': StaticPage('Concept', 'ei8ht plants のブランドコンセプト。ビザールプランツ・ハビタットスタイル・オーナメントプランツの3ラインをご紹介します。'),
+    '/official/contact': StaticPage('Contact', 'ei8ht plants へのお問い合わせはこちらから。'),
+    '/official/stockists': StaticPage('Stockists', 'ei8ht plants 取扱店一覧。'),
+    '/official/collaborations': StaticPage(
         'Collaborations', 'Habitat Oides のコラボレーション作品・活動記録。',
         f'{SITE_ORIGIN}/img/habitatOides/habitat_oides_hero.jpg',
     ),
-    '/media': StaticPage('Media', 'ei8ht plants のメディア出演情報をまとめています。'),
-    '/ei8htplants': StaticPage(None, 'アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。'),
+    '/official/media': StaticPage('Media', 'ei8ht plants のメディア出演情報をまとめています。'),
     '/habitatoides': StaticPage(
         'Habitat Oides', '植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。',
         f'{SITE_ORIGIN}/img/habitatOides/habitat_oides_hero.jpg',
@@ -114,21 +115,23 @@ STATIC_PAGES: dict[str, StaticPage] = {
         f'{SITE_ORIGIN}/img/habitatOides/habitat_oides_workshop_main.jpg',
     ),
     '/hue': StaticPage('HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。'),
-    '/legal': StaticPage('特定商取引法に基づく表示', 'ei8ht plants 特定商取引法に基づく表示'),
-    '/privacy': StaticPage('プライバシーポリシー', 'ei8ht plants のプライバシーポリシー（個人情報の取り扱い・アクセス解析について）'),
-    '/chat': StaticPage('AI コンシェルジュ', '植物の育て方・管理のご相談や、ワークショップ・予約に関するご質問にAIがお答えします。'),
-    '/reserve': StaticPage('Workshop 予約', 'Habitat Style Workshop へのご予約はこちらから。'),
-    '/cancel': StaticPage('予約キャンセル', 'ワークショップ予約のキャンセルはこちらから。'),
-    '/shop': StaticPage('Shop', 'ei8ht plants オンラインストア'),
-    '/journal': StaticPage('Journal', '植物と暮らしにまつわるコラム'),
-    '/checkout': StaticPage('ご注文手続き', 'ご注文手続き'),
-    '/order/complete': StaticPage('ご注文ありがとうございます', 'ご注文を受け付けました。'),
+    '/official/legal': StaticPage('特定商取引法に基づく表示', 'ei8ht plants 特定商取引法に基づく表示'),
+    '/official/privacy': StaticPage('プライバシーポリシー', 'ei8ht plants のプライバシーポリシー（個人情報の取り扱い・アクセス解析について）'),
+    '/official/chat': StaticPage('AI コンシェルジュ', '植物の育て方・管理のご相談や、ワークショップ・予約に関するご質問にAIがお答えします。'),
+    '/official/reserve': StaticPage('Workshop 予約', 'Habitat Style Workshop へのご予約はこちらから。'),
+    '/official/cancel': StaticPage('予約キャンセル', 'ワークショップ予約のキャンセルはこちらから。'),
+    '/official/shop': StaticPage('Shop', 'ei8ht plants オンラインストア'),
+    '/official/journal': StaticPage('Journal', '植物と暮らしにまつわるコラム'),
+    '/official/checkout': StaticPage('ご注文手続き', 'ご注文手続き'),
+    '/official/order/complete': StaticPage('ご注文ありがとうございます', 'ご注文を受け付けました。'),
 }
 
 # sitemap.xml に載せる固定ページ（検索結果に出してよい公開ページだけ。/reserve はイベントの指定が要るので外す）
 SITEMAP_STATIC_PATHS = (
-    '/', '/events', '/gallery', '/shop', '/journal', '/concept', '/contact', '/stockists',
-    '/media', '/ei8htplants', '/chat', '/legal', '/privacy',
+    '/', '/brands', '/habitatoides', '/habitatoides/workshop', '/hue', '/official',
+    '/official/events', '/official/gallery', '/official/shop', '/official/journal',
+    '/official/concept', '/official/contact', '/official/stockists', '/official/collaborations',
+    '/official/media', '/official/chat', '/official/legal', '/official/privacy',
 )
 
 # ブランド専用ドメイン。未知の Host ヘッダーを canonical URL に使わないよう、許可リストで解決する。
@@ -743,20 +746,32 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     if host in BRAND_DOMAINS:
         return _brand_domain_meta(path, *BRAND_DOMAINS[host])
 
-    # パスを "/a/b" の形にそろえる（末尾のスラッシュは外す）
+    # パスを "/a/b" の形にそろえ、旧公式ページURLは新しい場所へ寄せる。
     norm = '/' + path.strip('/')
+    if norm == '/ei8htplants':
+        norm = '/'
+    elif norm == '/events' or norm.startswith('/events/'):
+        norm = '/official' + norm
+    elif norm == '/shop' or norm.startswith('/shop/'):
+        norm = '/official' + norm
+    elif norm == '/journal' or norm.startswith('/journal/'):
+        norm = '/official' + norm
+    elif norm == '/order' or norm.startswith('/order/'):
+        norm = '/official' + norm
+    elif norm in {'/gallery', '/concept', '/contact', '/stockists', '/collaborations', '/media', '/legal', '/privacy', '/chat', '/reserve', '/cancel', '/checkout'}:
+        norm = '/official' + norm
     segments = [s for s in norm.split('/') if s]
     query = query or {}
 
     try:
         # 1. イベントの個別ページ
-        if len(segments) == 2 and segments[0] == 'events':
+        if len(segments) == 3 and segments[:2] == ['official', 'events']:
             event = _fetch_event(segments[1])
             if event and _str(event.get('name')):
                 images = event.get('image_urls') or []
                 # UUID で開かれても slug があれば canonical・og:url は slug の URL にする（sitemap と同じ URL）
                 slug = _str(event.get('slug'))
-                canonical_path = f'/events/{slug}' if slug else None
+                canonical_path = f'/official/events/{slug}' if slug else None
                 meta = _make_meta(
                     norm, _str(event.get('name')), _event_description(event),
                     images[0] if images else None, canonical_path,
@@ -768,7 +783,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             return _not_found_meta(norm)
 
         # 2. 記事の個別ページ（タイトルは JournalArticle.tsx と同じ "記事名 | Journal"）
-        if len(segments) == 2 and segments[0] == 'journal':
+        if len(segments) == 3 and segments[:2] == ['official', 'journal']:
             article = _fetch_article(segments[1])
             if article and _str(article.get('title')):
                 blocks = _parse_blocks(article.get('content'))
@@ -779,7 +794,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             return _not_found_meta(norm)
 
         # 3. 商品の個別ページ（ShopProduct.tsx と同じく画像は image_urls の1枚目）
-        if len(segments) == 2 and segments[0] == 'shop':
+        if len(segments) == 3 and segments[:2] == ['official', 'shop']:
             product = _fetch_product(segments[1])
             if product and _str(product.get('name')):
                 blocks = _parse_blocks(product.get('description'))
@@ -796,10 +811,10 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     page = STATIC_PAGES.get(norm)
     if page is not None:
         title = page.title
-        if norm == '/events' and query.get('page') == 'past':
+        if norm == '/official/events' and query.get('page') == 'past':
             title = 'Past Events'
         meta = _make_meta(norm, title, page.description, page.image)
-        if norm == '/':
+        if norm in {'/', '/official'}:
             meta.json_ld.append(_organization_json_ld())
         return meta
 
@@ -993,7 +1008,7 @@ def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -
         for ev in events:
             key = _str(ev.get('slug')) or _str(ev.get('id'))
             if key:
-                entries.append(_sitemap_url(f'/events/{key}', origin=origin))
+                entries.append(_sitemap_url(f'/official/events/{key}', origin=origin))
     except Exception as e:
         ok = False
         logger.error('sitemap イベント取得エラー: %s', error_summary(e))
@@ -1003,7 +1018,7 @@ def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -
         )
         for a in articles:
             if _str(a.get('id')):
-                entries.append(_sitemap_url(f"/journal/{a['id']}", a.get('published_at') or a.get('created_at'), origin))
+                entries.append(_sitemap_url(f"/official/journal/{a['id']}", a.get('published_at') or a.get('created_at'), origin))
     except Exception as e:
         ok = False
         logger.error('sitemap 記事取得エラー: %s', error_summary(e))
@@ -1013,7 +1028,7 @@ def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -
         )
         for p in products:
             if _str(p.get('id')):
-                entries.append(_sitemap_url(f"/shop/{p['id']}", p.get('created_at'), origin))
+                entries.append(_sitemap_url(f"/official/shop/{p['id']}", p.get('created_at'), origin))
     except Exception as e:
         ok = False
         logger.error('sitemap 商品取得エラー: %s', error_summary(e))

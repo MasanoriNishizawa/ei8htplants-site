@@ -325,7 +325,7 @@ export default function Reserve() {
                 ? t('通信状況をご確認のうえ、ページを再読み込みしてください。', 'Please check your connection and reload the page.')
                 : t('予約するイベントをイベント一覧からお選びください。', 'Please choose an event from the event list.')}
             </p>
-            <Link to="/events" style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
+            <Link to="/official/events" style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
               {t('イベント一覧へ', 'Back to events')}
             </Link>
           </div>
@@ -386,8 +386,8 @@ export default function Reserve() {
                 <div style={{ marginTop: 16, padding: '16px 20px', background: 'var(--c-bg)', borderRadius: 4, border: '1px solid var(--c-border)' }}>
                   <p style={{ fontSize: 13, color: 'var(--c-muted)', lineHeight: 1.9, margin: 0 }}>
                     {t(
-                      <>ご記入いただいた内容を確認後、メールにて予約確認をお送りします。<br />ご不明な点は <Link to="/contact" style={{ color: 'var(--c-green)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせ</Link> ください。</>,
-                      <>After reviewing your submission, we'll send a confirmation email.<br />Questions? <Link to="/contact" style={{ color: 'var(--c-green)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Contact us</Link>.</>
+                      <>ご記入いただいた内容を確認後、メールにて予約確認をお送りします。<br />ご不明な点は <Link to="/official/contact" style={{ color: 'var(--c-green)', textDecoration: 'underline', textUnderlineOffset: 3 }}>お問い合わせ</Link> ください。</>,
+                      <>After reviewing your submission, we'll send a confirmation email.<br />Questions? <Link to="/official/contact" style={{ color: 'var(--c-green)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Contact us</Link>.</>
                     )}
                   </p>
                 </div>
@@ -405,7 +405,7 @@ export default function Reserve() {
             <p style={{ fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.8, marginBottom: 28 }}>
               {t('このイベントの予約受付は終了しています。次回のワークショップをお待ちください。', 'Reservations for this event are no longer available. Please look forward to the next workshop.')}
             </p>
-            <Link to="/events" style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
+            <Link to="/official/events" style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
               {t('イベント一覧へ', 'Back to events')}
             </Link>
           </div>
@@ -439,7 +439,7 @@ export default function Reserve() {
                 </div>
               ))}
             </div>
-            <Link to="/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
+            <Link to="/official/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
               {t('イベント一覧へ戻る', 'Back to events')}
             </Link>
           </div>

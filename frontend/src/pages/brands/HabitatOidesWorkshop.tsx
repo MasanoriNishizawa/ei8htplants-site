@@ -166,7 +166,7 @@ export default function HabitatOidesWorkshop() {
           {t(<>ワークショップへのご参加は<br />各イベントページよりお申し込みいただけます。</>, <>To join a workshop,<br />please sign up on the individual event page.</>)}
         </p>
         <Link
-          to={siteForHost(window.location.hostname).key === 'habitat-oides' ? 'https://ei8htplants.com/events' : '/events'}
+          to={siteForHost(window.location.hostname).key === 'habitat-oides' ? 'https://ei8htplants.com/official/events' : '/official/events'}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: 16, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#f0f2ff', textDecoration: 'none', border: '1px solid #5572cc', padding: '16px 36px', borderRadius: 2 }}
         >
           {t('開催イベントを見る', 'View all events')} →

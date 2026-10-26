@@ -207,7 +207,7 @@ describe('EventReservations（イベント別の予約画面）', () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: '予約ページリンクをコピー' }))
     expect(await screen.findByRole('button', { name: 'コピーしました' })).toBeInTheDocument()
-    expect(writeText).toHaveBeenCalledWith('https://ei8htplants.com/reserve?event_id=ev-1')
+    expect(writeText).toHaveBeenCalledWith('https://ei8htplants.com/official/reserve?event_id=ev-1')
   })
 
   it('コピーに失敗すると、手でコピーしてもらう URL の案内が出る', async () => {
@@ -215,7 +215,7 @@ describe('EventReservations（イベント別の予約画面）', () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: '予約ページリンクをコピー' }))
     expect(await screen.findByText(/リンクをコピーできませんでした/)).toBeInTheDocument()
-    expect(screen.getByText('https://ei8htplants.com/reserve?event_id=ev-1')).toBeInTheDocument()
+    expect(screen.getByText('https://ei8htplants.com/official/reserve?event_id=ev-1')).toBeInTheDocument()
   })
 
   it('navigator.clipboard が無い環境でも、URL の案内が出て画面は落ちない', async () => {

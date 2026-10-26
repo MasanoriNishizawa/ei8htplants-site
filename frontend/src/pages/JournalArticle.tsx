@@ -74,7 +74,7 @@ export default function JournalArticle() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <p style={{ fontFamily: SERIF, fontSize: 20, color: '#8c8478', fontWeight: 300 }}>{t('記事が見つかりません。', 'Article not found.')}</p>
-        <Link to="/journal" style={{ fontFamily: SANS, color: '#1a1a18', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' }}>← Journal</Link>
+        <Link to="/official/journal" style={{ fontFamily: SANS, color: '#1a1a18', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' }}>← Journal</Link>
       </div>
     )
   }
@@ -136,7 +136,7 @@ export default function JournalArticle() {
       {/* パンくず */}
       <div style={{ background: 'var(--c-surface)', borderBottom: '1px solid var(--c-border)' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 8, fontFamily: SANS, fontSize: 11, color: 'var(--c-faint)', letterSpacing: '1px' }}>
-          <Link to="/journal" style={{ color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '1px', textTransform: 'uppercase', fontSize: 10 }}>Journal</Link>
+          <Link to="/official/journal" style={{ color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '1px', textTransform: 'uppercase', fontSize: 10 }}>Journal</Link>
           <span style={{ color: 'var(--c-faint)' }}>/</span>
           <span style={{ color: 'var(--c-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.title}</span>
         </div>
@@ -194,7 +194,7 @@ export default function JournalArticle() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 28 }}>
               {linkedProducts.map((p) => (
                 <div key={p.id}>
-                  <Link to={`/shop/${p.id}`} style={{ display: 'block', overflow: 'hidden', aspectRatio: '1/1', background: '#e8e3da', marginBottom: 14 }}>
+                  <Link to={`/official/shop/${p.id}`} style={{ display: 'block', overflow: 'hidden', aspectRatio: '1/1', background: '#e8e3da', marginBottom: 14 }}>
                     {p.image_urls[0] ? (
                       <img src={p.image_urls[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s ease' }}
                         onMouseEnter={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.04)' }}
@@ -204,7 +204,7 @@ export default function JournalArticle() {
                       <div style={{ width: '100%', height: '100%', background: '#e8e3da' }} />
                     )}
                   </Link>
-                  <Link to={`/shop/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <Link to={`/official/shop/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                     <p style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 400, color: 'var(--c-ink)', margin: '0 0 6px', lineHeight: 1.5 }}>{p.name}</p>
                   </Link>
                   <p style={{ fontFamily: SANS, fontSize: 13, color: 'var(--c-muted)', margin: '0 0 12px' }}>
@@ -231,9 +231,9 @@ export default function JournalArticle() {
         {/* シェアボタンと一覧へ戻るリンク */}
         <div style={{ borderTop: '1px solid var(--c-border)', paddingTop: 36, marginTop: linkedProducts.length > 0 ? 56 : 24 }}>
           <div style={{ marginBottom: 24 }}>
-            <ShareButtons url={`${window.location.origin}/journal/${id}`} text={article.title} />
+            <ShareButtons url={`${window.location.origin}/official/journal/${id}`} text={article.title} />
           </div>
-          <Link to="/journal" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase' }}>
+          <Link to="/official/journal" style={{ fontFamily: SANS, fontSize: 11, color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase' }}>
             ← Back to Journal
           </Link>
         </div>
@@ -243,7 +243,7 @@ export default function JournalArticle() {
       {cartCount > 0 && (
         <div style={{ position: 'fixed', bottom: 32, right: 32, zIndex: 100 }}>
           <Link
-            to="/checkout"
+            to="/official/checkout"
             style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--c-ink)', color: '#fffdf9', textDecoration: 'none', padding: '13px 26px', fontFamily: SANS, fontSize: 12, letterSpacing: '1px', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
           >
             {t(`カート (${cartCount})`, `Cart (${cartCount})`)}

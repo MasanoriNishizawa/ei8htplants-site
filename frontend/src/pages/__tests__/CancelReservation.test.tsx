@@ -95,7 +95,7 @@ describe('CancelReservation の送信結果', () => {
     fireEvent.click(screen.getByRole('button', { name: '予約をキャンセルする' }))
     expect(await screen.findByText('キャンセルが完了しました')).toBeInTheDocument()
     expect(sent).toEqual([{ token: 'Tok_en-1' }])
-    expect(screen.getByRole('link', { name: 'イベント一覧へ戻る' })).toHaveAttribute('href', '/events')
+    expect(screen.getByRole('link', { name: 'イベント一覧へ戻る' })).toHaveAttribute('href', '/official/events')
   })
 
   it.each([
