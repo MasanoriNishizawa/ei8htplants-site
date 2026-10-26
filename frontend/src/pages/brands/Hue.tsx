@@ -1,27 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
-import { api } from '../../lib/api'
+import { useHueImages } from '../../sites/hue/useHueImages'
 
 /** HUE 専用サイト。色とフォルムから植物を楽しむ、編集的なブランド体験をつくる。 */
 export default function Hue() {
   const t = useT()
-  const [paletteImages, setPaletteImages] = useState<string[]>(Array(6).fill(''))
+  const paletteImages = useHueImages()
   const homeRef = useRef<HTMLDivElement>(null)
   const heroRef = useRef<HTMLElement>(null)
   const storyRef = useRef<HTMLElement>(null)
   const storyTrackRef = useRef<HTMLDivElement>(null)
   const storyProgressRef = useRef<HTMLSpanElement>(null)
   const storyCounterRef = useRef<HTMLSpanElement>(null)
-
-  useEffect(() => {
-    Promise.all(Array.from({ length: 6 }, (_, index) =>
-      api.siteAssets.get(`hue-color-${String(index + 1).padStart(2, '0')}`)
-        .then(({ url }) => url)
-        .catch(() => ''),
-    )).then(setPaletteImages)
-  }, [])
 
   useEffect(() => {
     const root = homeRef.current
@@ -119,6 +112,11 @@ export default function Hue() {
       caption: t('暮らしになじむ一鉢', 'A PLANT IN ITS PLACE'),
     },
   ]
+  const readingLinks = [
+    { href: '/about', label: t('HUEについて', 'ABOUT HUE'), title: t('植物と暮らす、HUEのこと。', 'A life with plants, in the HUE way.'), image: paletteImages[1], index: '01' },
+    { href: '/choose', label: t('一鉢の選び方', 'CHOOSING A PLANT'), title: t('好き、から始める一鉢選び。', 'Start with what you love.'), image: paletteImages[3], index: '02' },
+    { href: '/living', label: t('植物のある部屋', 'PLANTS AT HOME'), title: t('一鉢から、部屋の景色をつくる。', 'Let one plant shape a room.'), image: paletteImages[5], index: '03' },
+  ]
 
   return (
     <div className="hue-home" ref={homeRef}>
@@ -206,6 +204,27 @@ export default function Hue() {
             </div>
           </div>
         </section>
+      </section>
+
+      <section className="hue-reading" aria-labelledby="hue-reading-title">
+        <div className="hue-section-label"><span>03</span><span>{t('HUEを知る', 'EXPLORE HUE')}</span></div>
+        <div className="hue-reading-heading">
+          <h2 id="hue-reading-title">{t(<>植物と暮らすヒントを、<br /><em>もう少し。</em></>, <>A little more about<br /><em>living with plants.</em></>)}</h2>
+          <p>{t('HUEの考え方や、一鉢との出会い方。気になるテーマからご覧ください。', 'Explore HUE’s point of view, choosing a plant, and making room for it at home.')}</p>
+        </div>
+        <div className="hue-reading-grid">
+          {readingLinks.map((item) => (
+            <Link className="hue-reading-card" to={item.href} key={item.href}>
+              <figure className="hue-reading-image">
+                {item.image && <img src={item.image} alt="" loading="lazy" />}
+                <span>{item.index}</span>
+              </figure>
+              <p className="hue-story-kicker">{item.label}</p>
+              <h3>{item.title}</h3>
+              <span className="hue-reading-arrow" aria-hidden="true">↗</span>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="hue-follow" data-hue-reveal="rise">
