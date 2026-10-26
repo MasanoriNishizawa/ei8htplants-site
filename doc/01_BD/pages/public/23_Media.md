@@ -1,6 +1,6 @@
 # PG-23 — Media（出演情報）
 
-**URL**: `/media`
+**URL**: `/official/media`
 **レイアウト**: `Layout`
 **機能**: —
 **実装ファイル**: `frontend/src/pages/Media.tsx`

@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "mock": "VITE_MSW=true vite",
-    "mock:e2e": "VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true vite"
+    "mock:e2e": "VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true vite --host 127.0.0.1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",

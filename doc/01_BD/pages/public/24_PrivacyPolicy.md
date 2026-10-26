@@ -1,6 +1,6 @@
 # PG-24 — PrivacyPolicy（プライバシーポリシー）
 
-**URL**: `/privacy`
+**URL**: `/official/privacy`
 **レイアウト**: `Layout`
 **機能**: —
 **実装ファイル**: `frontend/src/pages/PrivacyPolicy.tsx`

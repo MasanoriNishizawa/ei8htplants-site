@@ -1,6 +1,6 @@
 # PG-21 — LegalPage（特定商取引法に基づく表示）
 
-**URL**: `/legal`
+**URL**: `/official/legal`
 **レイアウト**: `Layout`
 **機能**: —
 **実装ファイル**: `frontend/src/pages/LegalPage.tsx`

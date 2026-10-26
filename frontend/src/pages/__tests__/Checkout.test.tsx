@@ -1,4 +1,4 @@
-// @vitest-environment-options {"url": "https://ei8htplants.com/checkout"}
+// @vitest-environment-options {"url": "https://ei8htplants.com/official/checkout"}
 /**
  * 注文手続き（pages/Checkout.tsx）のテスト
  * - 注文の送信に失敗したときのステータスごとの文言（orderErrorMessage）を、画面の操作を通して確かめる
@@ -79,10 +79,10 @@ async function renderCheckout() {
   const result = render(
     <LangProvider>
       <CartProvider>
-        <MemoryRouter initialEntries={['/checkout']}>
+        <MemoryRouter initialEntries={['/official/checkout']}>
           <Routes>
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order/complete" element={<p>注文完了</p>} />
+            <Route path="/official/checkout" element={<Checkout />} />
+            <Route path="/official/order/complete" element={<p>注文完了</p>} />
           </Routes>
         </MemoryRouter>
       </CartProvider>
@@ -254,9 +254,9 @@ describe('Checkout を開いたときの商品の取り直し（404・通信の�
     return render(
       <LangProvider>
         <CartProvider>
-          <MemoryRouter initialEntries={['/checkout']}>
+          <MemoryRouter initialEntries={['/official/checkout']}>
             <Routes>
-              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/official/checkout" element={<Checkout />} />
             </Routes>
           </MemoryRouter>
         </CartProvider>

@@ -1,6 +1,6 @@
 # PG-16 — Checkout（ご注文手続き）
 
-**URL**: `/checkout`
+**URL**: `/official/checkout`
 **レイアウト**: `StoreLayout`
 **機能**: FT-13
 **実装ファイル**: `frontend/src/pages/Checkout.tsx`

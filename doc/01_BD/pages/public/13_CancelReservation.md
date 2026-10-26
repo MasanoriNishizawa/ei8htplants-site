@@ -8,8 +8,8 @@
 
 ## URL / ルート
 
-`/cancel`  
-`/cancel?id={cancel_token}` — メールのリンクからアクセスした場合、IDを自動入力
+`/official/cancel`
+`/official/cancel?id={cancel_token}` — メールのリンクからアクセスした場合、IDを自動入力
 
 ## 実装ファイル
 

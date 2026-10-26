@@ -1,12 +1,12 @@
-# PG-01 — Home
+# PG-01 — 公式サイト Home
 
 ## 概要
 
-サイトのトップページ。ブランドロゴのスライドショー、直近イベントカード、ギャラリーマーキー、Instagram導線で構成される。
+公式サイトのトップページ。ブランド紹介、イベント、商品、ジャーナル、ギャラリーなどを案内する。ei8ht plants ブランドのトップページとは別で、ブランドトップは `/`、このページは `/official` に配置する。
 
 ## URL / ルート
 
-`/`
+`/official`
 
 ## 実装ファイル
 
@@ -16,29 +16,33 @@
 
 | 機能ID | 機能名 | 用途 |
 |---|---|---|
-| [FT-02](../../features/02_APIクライアント.md) | APIクライアント | events.list / gallery.list 呼び出し |
+| [FT-02](../../features/02_APIクライアント.md) | APIクライアント | イベント・ギャラリー・商品・記事の取得 |
 | [FT-03](../../features/03_イベント表示.md) | イベント表示 | `EventPreview`（`horizontal`）で直近イベント1件を表示（2026-10-20 訂正。以前は `EventCard` と書いていたが、現在 `EventCard` はどの画面からも使われていない） |
-| [FT-04](../../features/04_ギャラリー.md) | ギャラリー | マーキー用ギャラリー画像の取得・横スクロールアニメーション |
+| [FT-04](../../features/04_ギャラリー.md) | ギャラリー | ギャラリー画像の取得・マーキー表示 |
 
 ## 画面レイアウト
 
 ```
 ┌─────────────────────────────────┐
-│ ヘッダー（固定）                │
+│ 公式サイトヘッダー（ブランドヘッダーと別）│
 ├─────────────────────────────────┤
 │ ヒーロー                        │
-│  ・ブランドロゴスライドショー   │
-│    （4秒ごと自動切替、フェード）│
-│  ・Agave / Habitat Style /      │
-│    Color Plants テキスト        │
+│  ・ブランド紹介ヒーロー         │
+│  ・OUR BRANDS への導線          │
+├─────────────────────────────────┤
+│ OUR BRANDS（3ブランド紹介）      │
+├─────────────────────────────────┤
+│ OUR APPROACH（運営の考え方）     │
 ├─────────────────────────────────┤
 │ NEXT EVENT（イベントある場合）  │
 │  ・EventPreview（horizontal）   │
 │  ・VIEW ALL EVENTS ボタン       │
 ├─────────────────────────────────┤
-│ GALLERY（画像ある場合）         │
-│  ・マーキー横スクロール         │
-│  ・VIEW ALL GALLERY ボタン      │
+│ SHOP（新着商品 最大4件）         │
+├─────────────────────────────────┤
+│ JOURNAL（新着記事 最大3件）      │
+├─────────────────────────────────┤
+│ GALLERY（全ブランドの写真）      │
 ├─────────────────────────────────┤
 │ Instagram                       │
 │  ・3ブランドのInstagramリンク   │
@@ -49,31 +53,33 @@
 
 | データ | API | 条件 |
 |---|---|---|
-| 直近イベント | `api.events.list(false)` | 開催予定のみ取得後、start_date 昇順ソートで先頭1件 |
-| ギャラリー画像 | `api.gallery.list()` | ブランド指定なし（全件） |
+| 直近イベント | `api.events.list(false)` | 開催予定のみ開始日時順に並べ先頭1件を表示 |
+| ギャラリー画像 | `api.gallery.list()` | 全ブランドの写真 |
+| 新着商品 | `api.products.list()` | 先頭4件を表示 |
+| 新着記事 | `api.articles.list()` | 先頭3件を表示 |
 
-- 両方を `useEffect` マウント時に取得
-- エラー時は `.catch(() => {})` で無視（表示しないだけ）
+- マウント時に4種類を取得する
+- エラー時は該当セクションを表示しない
 
 ## 状態管理
 
 | state | 型 | 説明 |
 |---|---|---|
 | `nextEvent` | `Event \| null` | 直近イベント（nullの場合セクション非表示） |
-| `gallery` | `GalleryImage[]` | マーキー用画像（空の場合セクション非表示） |
-| `slideIdx` | number | ヒーローのスライドショー現在インデックス（0-2） |
-
-## ブランドロゴスライドショー
-
-- `SLIDES` 配列（ei8htplants / habitatoides / hue）を4秒ごとにループ
-- `setInterval` → `setSlideIdx((i) => (i + 1) % 3)`
-- アクティブ以外は `opacity: 0`、アクティブは `opacity: 1`（transition: 1s）
+| `gallery` | `GalleryImage[]` | ギャラリーの写真 |
+| `products` | `Product[]` | 新着商品（最大4件） |
+| `articles` | `Article[]` | 新着記事（最大3件） |
+| `activeCard` | `number` | ブランドカードの展開位置 |
+| `loaded` | `boolean` | ヒーローの表示状態 |
+| `isMobile` | `boolean` | ブランドカードの画面幅判定 |
 
 ## 画面遷移
 
 | 操作 | 遷移先 |
 |---|---|
-| VIEW ALL EVENTS クリック | `/events` |
-| VIEW ALL GALLERY クリック | `/gallery` |
+| OUR BRANDS / ブランドを見る | `/official/brands` |
+| イベント・ギャラリー等の公式ナビ | `/official/events`・`/official/gallery` 等 |
 | Instagram ロゴクリック | 各ブランドのInstagram（外部リンク） |
-| EventPreview の予約ボタン | `/reserve?event_id={id}` |
+| EventPreview の予約ボタン | `/official/reserve?event_id={id}` |
+
+ei8ht plants ブランド用ヘッダーの `Official Site` から `/official` に移動できる。公式サイト側のブランドリンクからはブランド固有ページへ移動する。

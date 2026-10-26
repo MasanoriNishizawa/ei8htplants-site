@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-// 予約フォームページ（/reserve）の E2E テスト
+// 予約フォームページ（/official/reserve）の E2E テスト
 // MSW モックモードで実行（本番 DB には接続しない）
 // - POST /api/reserve は handlers.ts で { ok: true } を返す
 // - 予約は event_id が必須。event_id が無い・イベントが見つからないときはフォームを出さず「イベントが見つかりません」を出す
@@ -17,7 +17,7 @@ const SIMPLE_EVENT_ID = 'mock-no-time'
 
 test.describe('Reserve', () => {
   // ページが正常にロードされることを確認
-  test('/reserve を開くと共通ヘッダーとサイト名入りのタイトルが表示される', async ({ page }) => {
+  test('/official/reserve を開くと共通ヘッダーとサイト名入りのタイトルが表示される', async ({ page }) => {
     await page.goto('/official/reserve')
     // ヘッダー（共通 Layout）が存在すること
     await expect(page.getByRole('banner').first()).toBeVisible()
@@ -26,7 +26,7 @@ test.describe('Reserve', () => {
   })
 
   // 予約フォームの見出しが表示されることを確認
-  test('/reserve を開くと「Workshop 予約」の見出しが表示される', async ({ page }) => {
+  test('/official/reserve を開くと「Workshop 予約」の見出しが表示される', async ({ page }) => {
     await page.goto('/official/reserve')
     await expect(page.getByRole('heading', { level: 1, name: 'Workshop 予約' })).toBeVisible()
   })

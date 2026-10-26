@@ -234,7 +234,7 @@ class TestServeSpaMeta:
         assert resp.headers['content-type'].startswith('text/html')
         head = _head(resp.text)
         assert _title(head) == 'ei8ht plants'
-        assert _meta(head, 'name', 'description') == seo.DEFAULT_DESCRIPTION
+        assert _meta(head, 'name', 'description') == seo.STATIC_PAGES['/'].description
         assert _canonical(head) == 'https://ei8htplants.com/'
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/'
         assert _meta(head, 'property', 'og:image') == seo.DEFAULT_OG_IMAGE
@@ -516,8 +516,8 @@ class TestServeSpaMeta:
         head = _head(TestClient(app).get(path).text)
         assert _canonical(head) is None
 
-    @pytest.mark.parametrize('path', ['/cancel', '/checkout', '/order/complete'])
-    def test_固定ページの手続き画面はnoindexでcanonicalは入る(self, db, path):
+    @pytest.mark.parametrize('path', ['/official/cancel', '/official/checkout', '/official/order/complete'])
+    def test_現行の手続き画面はnoindexで正規URLのcanonicalが入る(self, db, path):
         head = _head(TestClient(app).get(path).text)
         assert _meta(head, 'name', 'robots') == 'noindex'
         assert _canonical(head) == f'https://ei8htplants.com{path}'
@@ -733,7 +733,7 @@ class TestRobotsTxt:
         text = TestClient(app).get('/robots.txt').text
         assert 'Disallow: /api' not in text
         disallows = [l for l in text.splitlines() if l.startswith('Disallow:')]
-        assert len(disallows) == 4
+        assert disallows == [f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW]
 
     def test_robots_txtはindex_htmlではない(self):
         text = TestClient(app).get('/robots.txt').text
@@ -772,6 +772,9 @@ class TestSitemapXml:
         locs = _locs(xml)
         for p in seo.SITEMAP_STATIC_PATHS:
             assert f'https://ei8htplants.com{p}' in locs
+        # ブランド専用ドメインへ転送する旧URLは載せず、現在のブランド階層を掲載する。
+        assert all(f'https://ei8htplants.com{p}' not in locs for p in ('/habitatoides', '/habitatoides/workshop', '/hue'))
+        assert all(f'https://ei8htplants.com{p}' in locs for p in ('/', '/about', '/plants', '/official', '/official/brands'))
         # 公開ページ以外・予約は入らない
         for p in ('/admin', '/cancel', '/checkout', '/reserve', '/order/complete'):
             assert f'https://ei8htplants.com{p}' not in locs
@@ -833,7 +836,7 @@ class TestSitemapXml:
 
     @pytest.mark.parametrize('host,origin,paths', [
         ('habitatoides.com', 'https://habitatoides.com', ('/', '/workshop', '/collaborations')),
-        ('huebyei8htplants.com', 'https://huebyei8htplants.com', ('/',)),
+        ('huebyei8htplants.com', 'https://huebyei8htplants.com', ('/', '/about', '/choose', '/living')),
     ])
     def test_ブランド専用サイトのsitemapは自ブランドの公開URLだけを含む(self, host, origin, paths):
         resp = TestClient(app).get('/sitemap.xml', headers={'host': host})
@@ -841,6 +844,20 @@ class TestSitemapXml:
         locs = _locs(resp.text)
         assert locs == [f'{origin}{path}' for path in paths]
         assert all(not loc.startswith('https://ei8htplants.com/') for loc in locs)
+
+    @pytest.mark.parametrize('path,title', [
+        ('/about', 'HUEについて | HUE by ei8ht plants'),
+        ('/choose', '一鉢の選び方 | HUE by ei8ht plants'),
+        ('/living', '植物のある部屋 | HUE by ei8ht plants'),
+    ])
+    def test_HUEの各編集ページに正規canonicalと個別メタ情報を返す(self, db, path, title):
+        resp = TestClient(app).get(path, headers={'host': 'huebyei8htplants.com'})
+        assert resp.status_code == 200
+        head = _head(resp.text)
+        assert _title(head) == title
+        assert _canonical(head) == f'https://huebyei8htplants.com{path}'
+        assert _meta(head, 'property', 'og:url') == f'https://huebyei8htplants.com{path}'
+        assert _meta(head, 'name', 'robots') is None
 
 
 @needs_dist

@@ -128,9 +128,10 @@ STATIC_PAGES: dict[str, StaticPage] = {
     '/official/order/complete': StaticPage('ご注文ありがとうございます', 'ご注文を受け付けました。'),
 }
 
-# sitemap.xml に載せる固定ページ（検索結果に出してよい公開ページだけ。/reserve はイベントの指定が要るので外す）
+# sitemap.xml に載せる固定ページ（検索結果に出してよい正規公開ページだけ。
+# ブランド旧URLは別ドメインへの転送用なので載せず、予約・購入完了などの個別導線も外す）
 SITEMAP_STATIC_PATHS = (
-    '/', '/about', '/plants', '/habitatoides', '/habitatoides/workshop', '/hue', '/official', '/official/brands',
+    '/', '/about', '/plants', '/official', '/official/brands',
     '/official/events', '/official/gallery', '/official/shop', '/official/journal',
     '/official/concept', '/official/contact', '/official/stockists', '/official/collaborations',
     '/official/media', '/official/chat', '/official/legal', '/official/privacy',
@@ -428,7 +429,7 @@ def _fetch_event(key: str) -> Optional[dict]:
     DB の読み取りは公開用クライアント（anon）で行う。
 
     Args:
-        key: URL の /events/ の後ろの部分（slug または UUID）
+        key: URL の /official/events/ の後ろの部分（slug または UUID）
 
     Returns:
         イベントの dict（image_urls 付き）。見つからなければ None
@@ -461,7 +462,7 @@ def _fetch_article(article_id: str) -> Optional[dict]:
     読むのはメタ情報に必要な列だけにする。
 
     Args:
-        article_id: URL の /journal/ の後ろの部分
+        article_id: URL の /official/journal/ の後ろの部分
 
     Returns:
         記事の dict（id・title・content・image_urls・published_at・created_at）。無ければ None
@@ -489,7 +490,7 @@ def _fetch_product(product_id: str) -> Optional[dict]:
     条件を付けて読む。読むのはメタ情報に必要な列だけにする。
 
     Args:
-        product_id: URL の /shop/ の後ろの部分
+        product_id: URL の /official/shop/ の後ろの部分
 
     Returns:
         商品の dict（id・name・description・image_urls・created_at）。無ければ None
@@ -710,6 +711,9 @@ def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
         'HUE by ei8ht plants': {
             '/': ('HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png'),
             '/hue': ('HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png'),
+            '/about': ('HUEについて', '植物を、部屋に置くものとしてだけでなく、日々を一緒に過ごす存在として。HUEは葉の色やかたちに目を向け、暮らしの景色になる一鉢を紹介します。', '/img/logo-hue.png'),
+            '/choose': ('一鉢の選び方', '名前や育て方を調べる前に、まずは心に留まった葉の色やかたちを見つける。HUEの一鉢選びは、そんな小さな好みから始まります。', '/img/logo-hue.png'),
+            '/living': ('植物のある部屋', '植物を迎えると、目に入る景色や部屋で過ごす時間が少し変わります。飾り方に決まりはありません。好きなものと並べながら、自分の居場所をつくっていきます。', '/img/logo-hue.png'),
         },
     }
     page = pages[site_name].get(norm)
@@ -730,16 +734,16 @@ def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
 def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '') -> PageMeta:
     """パスに応じた <head> のメタ情報を決める。
 
-    1. /events/{slug または id}: イベント名・説明・画像・構造化データ
-    2. /journal/{id}: 公開済みの記事のタイトル・本文の冒頭・アイキャッチ画像
-    3. /shop/{id}: 公開中の商品の名前・説明・画像
+    1. /official/events/{slug または id}: イベント名・説明・画像・構造化データ
+    2. /official/journal/{id}: 公開済みの記事のタイトル・本文の冒頭・アイキャッチ画像
+    3. /official/shop/{id}: 公開中の商品の名前・説明・画像
     4. 固定ページ: STATIC_PAGES の値（トップは Organization の構造化データも）
     5. それ以外・見つからない・非公開: サイトの既定値に noindex を付け、canonical は付けない（ソフト 404 対策）
     DB の読み取りに失敗したときは既定値で返す（一時的な失敗なので noindex は付けない。SPA の表示は止めない）。
 
     Args:
-        path: リクエストのパス（"/events/foo" など。先頭のスラッシュは無くてもよい）
-        query: クエリ文字列（/events?page=past で "Past Events" にするために使う）
+        path: リクエストのパス（"/official/events/foo" など。先頭のスラッシュは無くてもよい）
+        query: クエリ文字列（/official/events?page=past で "Past Events" にするために使う）
 
     Returns:
         PageMeta
@@ -770,7 +774,8 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     try:
         # 1. イベントの個別ページ
         if len(segments) == 3 and segments[:2] == ['official', 'events']:
-            event = _fetch_event(segments[1])
+            # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
+            event = _fetch_event(segments[2])
             if event and _str(event.get('name')):
                 images = event.get('image_urls') or []
                 # UUID で開かれても slug があれば canonical・og:url は slug の URL にする（sitemap と同じ URL）
@@ -788,7 +793,8 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
 
         # 2. 記事の個別ページ（タイトルは JournalArticle.tsx と同じ "記事名 | Journal"）
         if len(segments) == 3 and segments[:2] == ['official', 'journal']:
-            article = _fetch_article(segments[1])
+            # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
+            article = _fetch_article(segments[2])
             if article and _str(article.get('title')):
                 blocks = _parse_blocks(article.get('content'))
                 image_urls = article.get('image_urls') if isinstance(article.get('image_urls'), list) else []
@@ -799,7 +805,8 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
 
         # 3. 商品の個別ページ（ShopProduct.tsx と同じく画像は image_urls の1枚目）
         if len(segments) == 3 and segments[:2] == ['official', 'shop']:
-            product = _fetch_product(segments[1])
+            # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
+            product = _fetch_product(segments[2])
             if product and _str(product.get('name')):
                 blocks = _parse_blocks(product.get('description'))
                 image_urls = product.get('image_urls') if isinstance(product.get('image_urls'), list) else []
@@ -973,7 +980,7 @@ def _sitemap_url(path: str, lastmod: Any = None, origin: str = SITE_ORIGIN) -> s
     """sitemap の <url> 要素を1つ作る。lastmod は日付として読めるときだけ入れる。
 
     Args:
-        path: ページのパス（"/events/foo" など）
+        path: ページのパス（"/official/events/foo" など）
         lastmod: 最終更新日（'YYYY-MM-DD...'）。読めなければ入れない
 
     Returns:
@@ -999,7 +1006,13 @@ def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -
         (XML の文字列, 全部読めたか)
     """
     if site_name:
-        paths = ('/', '/workshop', '/collaborations') if site_name == 'Habitat Oides' else ('/',)
+        # 独立ブランドサイトごとに、そのホストで公開している正規ページだけを列挙する。
+        if site_name == 'Habitat Oides':
+            paths = ('/', '/workshop', '/collaborations')
+        elif site_name == 'HUE by ei8ht plants':
+            paths = ('/', '/about', '/choose', '/living')
+        else:
+            paths = ()
         entries = [_sitemap_url(p, origin=origin) for p in paths]
         return ('<?xml version="1.0" encoding="UTF-8"?>\n'
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

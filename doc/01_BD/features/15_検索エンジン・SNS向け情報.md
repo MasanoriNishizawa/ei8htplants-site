@@ -1,4 +1,4 @@
-# FT-26 — 検索エンジン・SNS 向けの情報（2026-10-21 追加、2026-10-26 更新）
+# FT-26 — 検索エンジン・SNS 向けの情報（2026-10-27 更新）
 
 ## 概要
 
@@ -8,7 +8,7 @@
 
 2026-10-21 から、サーバーがページの入口（`index.html`）を返す時点で、開かれた URL に合わせた情報を入れて返す。あわせて、検索エンジン向けの `robots.txt` と `sitemap.xml` を返す。
 
-2026-10-26 から、Habitat Oides と HUE の独立ドメインでは、許可されたホスト名に応じてブランド名・正式URL・OGP画像を切り替える。無関係なHostヘッダーを正式URLに使わない。各ブランドの未知のパスは noindex にし、ei8ht plants のサイト情報を混ぜない。
+2026-10-26 から、Habitat Oides と HUE の独立ドメインでは、許可されたホスト名に応じてブランド名・正式URL・OGP画像を切り替える。無関係なHostヘッダーを正式URLに使わない。ei8ht plants は `/` をブランドトップ、`/official` を公式サイトトップに分け、旧 `/ei8htplants` は `/` へ、従来の公式サイトURLは対応する `/official/...` へ正規化する。各ブランドの未知のパスは noindex にし、ei8ht plants のサイト情報を混ぜない。
 
 ## 言葉の説明
 
@@ -36,11 +36,11 @@
 
 | 入れる情報 | 内容 |
 |---|---|
-| タイトル | 「ページ名 \| ei8ht plants」。トップページは「ei8ht plants」だけ |
+| タイトル | ei8ht plants は「ページ名 \| ei8ht plants」。独立ブランドは各ブランド名をタイトル末尾に付け、各ブランドのトップはブランド名だけ |
 | 説明文 | ページの説明。無ければサイト共通の説明 |
-| 正式な URL（canonical） | `https://ei8htplants.com` ＋ パス。存在しないページには入れない |
+| 正式な URL（canonical） | 許可された現在のホスト名の正式ドメイン＋正規パス。存在しないページには入れない |
 | noindex | 検索結果に出さないページだけ（下の表） |
-| OGP | `og:type`（website）・`og:title`・`og:description`・`og:image`・`og:url`・`og:site_name`（ei8ht plants）・`og:locale`（ja_JP） |
+| OGP | `og:type`（website）・`og:title`・`og:description`・`og:image`・`og:url`・ブランドに応じた `og:site_name`・`og:locale`（ja_JP） |
 | X のカード | `twitter:card`・`twitter:title`・`twitter:description`・`twitter:image`。ページ固有の画像があるときは大きい画像のカード（`summary_large_image`）、無いときはロゴの小さいカード（`summary`） |
 | 構造化データ | イベントのページとトップページだけ（下の「構造化データ」） |
 
@@ -50,12 +50,12 @@
 
 | パス | タイトル | 説明文 | 画像 |
 |---|---|---|---|
-| `/events/{slug または ID}` | イベント名 | イベントページのキャッチコピー・サブタイトル・コンセプトをつないだもの（最大 120 文字）。どれも無ければ「開催日 / 会場」 | イベントの1枚目の写真 |
-| `/journal/{ID}` | 「記事名 \| Journal」 | 記事の本文の先頭（最大 120 文字）。本文が空なら記事名 | 本文の最初の画像、無ければ記事の1枚目の画像 |
-| `/shop/{ID}` | 「商品名 \| Shop」 | 商品説明の先頭（最大 120 文字）。商品説明が空なら商品名 | 商品の1枚目の画像 |
-| 固定ページ（`/`・`/events`・`/gallery` など） | 各ページで決めた値（`PageMeta` と同じ。言語の切り替えがあるページは日本語） | 同じ | ページによる（Habitat Oides などはヒーロー画像） |
+| `/official/events/{slug または ID}` | イベント名 | イベントページのキャッチコピー・サブタイトル・コンセプトをつないだもの（最大 120 文字）。どれも無ければ「開催日 / 会場」 | イベントの1枚目の写真 |
+| `/official/journal/{ID}` | 「記事名 \| Journal」 | 記事の本文の先頭（最大 120 文字）。本文が空なら記事名 | 本文の最初の画像、無ければ記事の1枚目の画像 |
+| `/official/shop/{ID}` | 「商品名 \| Shop」 | 商品説明の先頭（最大 120 文字）。商品説明が空なら商品名 | 商品の1枚目の画像 |
+| 固定ページ（`/`・`/about`・`/plants`・`/official`・`/official/events` など） | 各ページで決めた値（`PageMeta` と同じ。言語の切り替えがあるページは日本語） | 同じ | ページによる（ブランドページは各ブランドの画像） |
 
-- `/events?page=past` のときはタイトルを「Past Events」にする
+- `/official/events?page=past` のときはタイトルを「Past Events」にする
 - イベントは、URL がイベントの ID（UUID）でも、イベントに slug（URL 用の短い名前）があれば、正式な URL（canonical・`og:url`）は slug の URL にする（`sitemap.xml` と同じ URL にそろえる）
 - 記事・商品は公開中のものだけ。非公開の記事・商品は「存在しないページ」と同じ扱いにする
 - イベント名が空のイベント、タイトルが空の記事、商品名が空の商品も「存在しないページ」と同じ扱いにする（noindex・canonical なし）
@@ -65,16 +65,16 @@
 | 対象 | 理由 |
 |---|---|
 | `/admin` 以下 | 管理画面 |
-| `/cancel` 以下 | 予約キャンセル（お客さんごとの画面） |
-| `/checkout` 以下 | 購入手続き |
-| `/order` 以下 | 注文完了 |
+| `/official/cancel` 以下（旧 `/cancel` を含む） | 予約キャンセル（お客さんごとの画面） |
+| `/official/checkout` 以下（旧 `/checkout` を含む） | 購入手続き |
+| `/official/order` 以下（旧 `/order` を含む） | 注文完了 |
 | 存在しないイベント・記事・商品、非公開の記事・商品、名前（タイトル）が空のイベント・記事・商品、どの画面にも当たらないパス | 中身の無いページが検索結果に載らないようにする。サイト共通の情報に noindex を付け、正式な URL（canonical）は入れない。画面は SPA なので、ステータスは 200（「見つかりません」の 404 ではない） |
 
 ### 構造化データ
 
 | ページ | 種類 | 内容 |
 |---|---|---|
-| トップページ（`/`） | Organization（お店・団体） | 名前（ei8ht plants）・URL・ロゴ |
+| ei8ht plants ブランドトップ（`/`）・公式サイトトップ（`/official`） | Organization（お店・団体） | 名前（ei8ht plants）・URL・ロゴ |
 | イベントのページ | Event（イベント） | イベント名・開始・終了・会場（名前と住所）・画像（最大5枚）・説明・URL・主催（ei8ht plants） |
 
 イベントの構造化データのきまり:
@@ -102,6 +102,9 @@ Disallow: /admin
 Disallow: /cancel
 Disallow: /checkout
 Disallow: /order
+Disallow: /official/cancel
+Disallow: /official/checkout
+Disallow: /official/order
 
 Sitemap: https://ei8htplants.com/sitemap.xml
 ```
@@ -115,15 +118,16 @@ Sitemap: https://ei8htplants.com/sitemap.xml
 
 | 載せるもの | URL | 更新日 |
 |---|---|---|
-| ei8ht plants の固定ページ | `/`・`/events`・`/gallery`・`/shop`・`/journal`・`/concept`・`/contact`・`/stockists`・`/media`・`/ei8htplants`・`/chat`・`/legal`・`/privacy` | 入れない |
+| ei8ht plants のブランドページ（ei8htplants.com） | `/`・`/about`・`/plants` | 入れない |
+| 公式サイトの固定ページ（ei8htplants.com） | `/official`・`/official/brands`・`/official/events`・`/official/gallery`・`/official/shop`・`/official/journal`・`/official/concept`・`/official/contact`・`/official/stockists`・`/official/collaborations`・`/official/media`・`/official/chat`・`/official/legal`・`/official/privacy` | 入れない |
 | Habitat Oides の固定ページ | `/`・`/workshop`・`/collaborations`（`habitatoides.com` 上） | 入れない |
-| HUE の固定ページ | `/`（`huebyei8htplants.com` 上） | 入れない |
-| イベント（全件） | slug があれば `/events/{slug}`、無ければ `/events/{ID}` | 入れない |
-| 公開中の記事 | `/journal/{ID}` | 公開日（無ければ作成日） |
-| 公開中の商品 | `/shop/{ID}` | 作成日 |
+| HUE by ei8ht plants の固定ページ | `/`・`/about`・`/choose`・`/living`（`huebyei8htplants.com` 上） | 入れない |
+| イベント（全件） | slug があれば `/official/events/{slug}`、無ければ `/official/events/{ID}` | 入れない |
+| 公開中の記事 | `/official/journal/{ID}` | 公開日（無ければ作成日） |
+| 公開中の商品 | `/official/shop/{ID}` | 作成日 |
 
-- `/reserve`（予約フォーム）はイベントの指定が必要なので載せない。noindex のページも載せない
-- ei8ht plants の一覧に、独立ドメインへ移した Habitat Oides・HUE・コラボレーションの旧ページは載せない
+- `/official/reserve`（予約フォーム）はイベントの指定が必要なので載せない。noindex のページも載せない
+- ei8ht plants のサイトマップには、ブランド専用ドメインへ移した Habitat Oides・HUE の旧パスを載せない
 - 作った一覧は 60 秒覚えておく。イベント・記事・商品のどれかの読み取りに失敗したときは、読めた分だけで返し、覚えておかない（次に来たときに作り直す）
 
 ## 関係するページ

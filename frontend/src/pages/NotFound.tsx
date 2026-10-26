@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
 
@@ -10,6 +10,9 @@ import { useT } from '../lib/lang'
  */
 export default function NotFound() {
   const t = useT()
+  const { pathname } = useLocation()
+  // 公式サイト内の404は公式ホームへ、それ以外の公開サイトの404はブランドホームへ戻す。
+  const homePath = pathname === '/official' || pathname.startsWith('/official/') ? '/official' : '/'
   return (
     <>
       <PageMeta title={t('ページが見つかりません', 'Page Not Found')} description={t('お探しのページは見つかりませんでした。', 'The page you are looking for could not be found.')} />
@@ -29,7 +32,7 @@ export default function NotFound() {
           )}
         </p>
         {/* トップへ戻るリンク（枠線の四角いボタン） */}
-        <Link to="/official" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid var(--c-border)', borderRadius: 4, color: 'var(--c-ink)', textDecoration: 'none', fontSize: 14, letterSpacing: 1 }}>
+        <Link to={homePath} style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid var(--c-border)', borderRadius: 4, color: 'var(--c-ink)', textDecoration: 'none', fontSize: 14, letterSpacing: 1 }}>
           {t('トップページへ', 'Back to Home')}
         </Link>
       </div>

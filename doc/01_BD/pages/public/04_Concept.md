@@ -6,7 +6,7 @@
 
 ## URL / ルート
 
-`/concept`
+`/official/concept`
 
 ## 実装ファイル
 
@@ -41,7 +41,7 @@
 
 | ブランド | リンク先 | サブタイトル |
 |---|---|---|
-| ei8ht plants | `https://ei8htplants.com/ei8htplants` | Agave Specialist |
+| ei8ht plants | `https://ei8htplants.com/` | Agave Specialist |
 | Habitat Oides | `https://habitatoides.com/` | Habitat Style Materials & Plants |
 | HUE by ei8ht plants | `https://huebyei8htplants.com/` | Color Plants Selection |
 

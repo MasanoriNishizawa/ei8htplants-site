@@ -6,58 +6,59 @@ ei8ht plants ブランドページ。アガベ専門ラインのコンセプト�
 
 ## URL / ルート
 
-`/ei8htplants`
+- `/` — ブランドトップ（ei8htplants.com）
+- `/about` — Our Story
+- `/plants` — 植物のライン
+- `/ei8htplants` — `/` へ転送
 
 ## 実装ファイル
 
-`frontend/src/pages/brands/Ei8htPlants.tsx`
+`frontend/src/pages/brands/Ei8htPlants.tsx`（トップ）、`Ei8htPlantsAbout.tsx`、`Ei8htPlantsPlants.tsx`
 
 ## 使用機能（FT紐付け）
 
 | 機能ID | 機能名 | 用途 |
 |---|---|---|
-| [FT-07](../../features/07_ブランドサブナビゲーション.md) | ブランドサブナビゲーション | concept / store セクション連動ナビ |
+| [FT-27](../../features/16_ブランド別ドメインとサイト表示.md) | ブランド別ドメインとサイト表示 | `/` をブランドトップ、公式サイトを `/official` 配下に分離 |
 
-## セクション構成
+## ページ構成
 
-| セクションID | ラベル | 内容 |
+| パス | ページ | 主な内容 |
 |---|---|---|
-| `concept` | Concept | アガベ専門の説明文・ロゴ画像 |
-| `store` | Store | 自前のショップ（`/shop`）への案内 |
+| `/` | ブランドトップ | ブランドの世界観・代表ビジュアル・ブランド内外への導線 |
+| `/about` | Our Story | ブランド紹介、考え方、育てる・選ぶ・暮らすのアプローチ |
+| `/plants` | Plants | アガベ、塊根植物、灌木・樹木、多肉植物のライン紹介 |
 
 ## 画面レイアウト
 
 ```
 ┌─────────────────────────────────┐
-│ ヒーロー（.ep-hero）            │
-│  ・サブナビ（Concept / Store）  │
-│  ・"Agave Specialist" テキスト  │
-│  ・ei8ht plants テキストロゴ    │
-│  ・スクロールヒントライン       │
+│ ブランド専用ヘッダー             │
+│  Home / Our Story / Plants       │
+│  Habitat Oides / HUE / Shop      │
+│  Official Site / 言語切替        │
 ├─────────────────────────────────┤
-│ Concept セクション              │
-│  ┌──────────┬─────────────────┐ │
-│  │ロゴ画像  │ "Agave          │ │
-│  │          │ Specialist"     │ │
-│  │          │ テキスト        │ │
-│  └──────────┴─────────────────┘ │
+│ Ei8htPlants ブランドトップ       │
 ├─────────────────────────────────┤
-│ Store セクション（黒背景）      │
-│  ・"Online Store" 見出し        │
-│  ・"Shop now →" ボタン          │
-│  ・自前のショップ（/shop）へ    │
+│ /about — ストーリーと考え方      │
+├─────────────────────────────────┤
+│ /plants — 植物ライン             │
 └─────────────────────────────────┘
 ```
 
 ## CSS クラス
 
-- `.ep-hero`：白系背景画像ヒーロー
-- `.brand-concept-grid`：2カラムグリッド（ロゴ + テキスト）
+- ブランド用スタイル：`frontend/src/index.css` の `.ep-*` 系クラス
 
 ## 画面遷移
 
 | 操作 | 遷移先 |
 |---|---|
-| Shop now → | `/shop`（同じサイトのショップ。2026-10-22 に修正。それまでは Square のオンラインストア（外部リンク）と書いていた） |
+| Home / ロゴ | `/` |
+| Our Story | `/about` |
+| Plants | `/plants` |
+| Shop | `/official/shop` |
+| Official Site | `/official` |
+| 他ブランド | 各ブランドの専用ドメイン（新しいタブ） |
 
-*最終更新: 2026-10-22（Store の行き先を `/shop` に直した）*
+*最終更新: 2026-10-27（ブランドトップを `/` に移し、複数ページと公式サイト `/official` を反映）*

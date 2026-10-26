@@ -6,8 +6,8 @@
 
 ## URL / ルート
 
-`/events` — 開催予定  
-`/events?page=past` — 過去のイベント
+`/official/events` — 開催予定
+`/official/events?page=past` — 過去のイベント
 
 ## 実装ファイル
 
@@ -108,11 +108,11 @@ PC (`display: flex`) / モバイル (`display: none`) を CSS クラスで切り
 
 | 操作 | 遷移先 |
 |---|---|
-| 「詳細を見る」ボタンクリック（EventPreview内） | `/events/{slug}` または `/events/{id}` |
-| 予約ボタンクリック（EventPreview内） | `/reserve?event_id={id}` |
+| 「詳細を見る」ボタンクリック（EventPreview内） | `/official/events/{slug}` または `/official/events/{id}` |
+| 予約ボタンクリック（EventPreview内） | `/official/reserve?event_id={id}` |
 | 公式URLクリック | 外部サイト（新しいタブ） |
 | 住所クリック | Google Maps（新しいタブ） |
-| 「過去のイベントを見る」 | `/events?page=past` |
-| 「現在のイベントを見る」 | `/events` |
+| 「過去のイベントを見る」 | `/official/events?page=past` |
+| 「現在のイベントを見る」 | `/official/events` |
 
 *最終更新: 2026-10-23（画面図の罫線をそろえ、0件・絞り込み後0件の文言を実際の文言にした）／2026-10-22（読み込み・失敗の表示と useApi、月の絞り込みの持ち方を今のコードに合わせた）*

@@ -1,21 +1,30 @@
 /**
  * lib/priceCalc.ts（管理画面「販売価格計算」の計算）のテスト
  * - PRICE_UNIT: 切り上げの単位（金額の大きさに関係なく 100 円）
- * - recommendPrice: 原価 ÷ 0.4 を 100 円単位で切り上げる（仕様の例・100 円の境目・浮動小数の誤差・最低 100 円）
- * - recommendPrice の結果の原価率が必ず 40% 以下で、1 単位下げると 40% を超える（必要以上に高くしない）
+ * - recommendPrice: 原価 ÷ 目標原価率を 100 円単位で切り上げる（仕様の例・100 円の境目・浮動小数の誤差・最低 100 円）
+ * - recommendPrice の結果の原価率が目標以下で、1 単位下げると目標を超える（必要以上に高くしない）
  * - costRate・formatCostRate・exceedsMaxCostRate（ちょうど 40% は超えていない扱い）
  * - 目標原価率を変えたとき（maxRate 引数）の recommendPrice・formatCostRate・exceedsMaxCostRate
  * - formatRateLabel・parseCostRateInput・loadCostRateInput・saveCostRateInput（localStorage の読み書き）
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
-  MAX_COST_RATE, PRICE_UNIT, recommendPrice, costRate, formatCostRate, exceedsMaxCostRate,
-  COST_RATE_STORAGE_KEY, formatRateLabel, parseCostRateInput, loadCostRateInput, saveCostRateInput,
+  MAX_COST_RATE, DEFAULT_COST_RATES, PRICE_UNIT, recommendPrice, costRate, formatCostRate, exceedsMaxCostRate,
+  COST_RATE_STORAGE_KEY, formatRateLabel, parseCostRateInput, defaultCostRateInput, loadCostRateInput, saveCostRateInput,
 } from '../priceCalc'
 
 describe('MAX_COST_RATE（原価率の上限）', () => {
   it('上限は 0.4（40%）になっている', () => {
     expect(MAX_COST_RATE).toBe(0.4)
+  })
+})
+
+describe('DEFAULT_COST_RATES（ブランド別の画面既定値）', () => {
+  it('ei8ht plants は 33.4%、Habitat Oides と HUE は 40%', () => {
+    expect(DEFAULT_COST_RATES).toEqual({ ei8htplants: 0.334, habitatoides: 0.4, hue: 0.4 })
+    expect(defaultCostRateInput('ei8htplants')).toBe('33.4')
+    expect(defaultCostRateInput('habitatoides')).toBe('40')
+    expect(defaultCostRateInput('hue')).toBe('40')
   })
 })
 
@@ -287,6 +296,12 @@ describe('loadCostRateInput・saveCostRateInput（目標原価率の保存と復
 
   it('何も保存していなければ既定の「40」を返す', () => {
     expect(loadCostRateInput('habitatoides')).toBe('40')
+  })
+
+  it('ブランドごとの保存値が無ければ各ブランドの既定値を返す', () => {
+    expect(loadCostRateInput('ei8htplants')).toBe('33.4')
+    expect(loadCostRateInput('habitatoides')).toBe('40')
+    expect(loadCostRateInput('hue')).toBe('40')
   })
 
   it('保存した「35」はそのまま「35」で復元される', () => {

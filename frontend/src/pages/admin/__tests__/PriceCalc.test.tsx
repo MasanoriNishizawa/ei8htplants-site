@@ -1,13 +1,13 @@
 /**
  * 管理画面「販売価格計算」（pages/admin/PriceCalc.tsx）の画面のテスト
- * - 推奨価格の見出し「推奨販売価格（原価率 40% 以下）」・推奨価格（原価 ÷ 0.4 をキリの良い値に切り上げ）・その原価率
+ * - ブランド別の既定原価率（ei8ht plants 33.4%、Habitat Oides・HUE 40%）と、明示設定した目標率での推奨価格
  * - 任意価格を入れたときの「登録価格: ¥x,xxx（原価率 xx.x%）」と、40% を超えたときの注意（登録は止めない）
  * - HUE のタブ: 植物名・植物仕入れ値・鉢仕入れ値の計算フォーム（鉢作家の選択は無い）と登録時に送る内容
  * - Habitat Oides のタブ: 鉢作家を選べて、選んだ作家名が送られる
  * - 登録リストの植物名の下の 2 行目（鉢作家名 or「量産鉢」）は Habitat Oides の行だけ
  * - HUE の書きかけ保護（タブの切り替えで確認が出る・登録に成功したら出ない）
- * - 目標原価率の欄（初期値 40%・変えると見出しと推奨価格と注意が変わる・使えない値・localStorage の保存と復元・
- *   「40% に戻す」・書きかけ扱いしない・タブを切り替えても残る）
+ * - 目標原価率の欄（ブランド別既定値・変更時の見出しと推奨価格と注意・入力検証・ブランド別 localStorage の保存と復元・
+ *   既定値に戻す・書きかけ扱いしない・ブランド切替時の独立値）
  * api はモックにして本番には接続しない
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -73,9 +73,11 @@ const filterButton = (name: string): HTMLElement =>
  * @param withProvider - 書きかけ保護の Provider の中で描画するか
  * @returns render の戻り値
  */
-const renderPurchase = (withProvider = false) => {
+const renderPurchase = (withProvider = false, setTestRate = true) => {
   const result = render(withProvider ? <UnsavedChangesProvider><PriceCalc /></UnsavedChangesProvider> : <PriceCalc />)
   fireEvent.click(screen.getByRole('button', { name: '仕入れ' }))
+  // 仕入れ計算の共通ケースでは目標原価率40%を明示して、ei8ht plants の既定値33.4%と分けて検証する。
+  if (setTestRate) fireEvent.change(screen.getByRole('textbox', { name: '目標原価率（%）' }), { target: { value: '40' } })
   return result
 }
 
@@ -89,7 +91,7 @@ const openHue = () => {
 }
 
 beforeEach(() => {
-  // 目標原価率はこのブラウザ（localStorage）に覚えるので、テストごとに消して既定の 40% から始める
+  // 目標原価率はブランドごとに localStorage へ保存するので、テストごとに状態を消す
   localStorage.clear()
   vi.mocked(api.potArtists.list).mockReset().mockResolvedValue(ARTISTS)
   vi.mocked(api.priceCalcEntries.list).mockReset().mockResolvedValue([])
@@ -106,11 +108,11 @@ describe('推奨販売価格の表示', () => {
     renderPurchase()
     await screen.findByText('まだ登録されていません。')
     expect(screen.getByText('推奨販売価格（原価率 40% 以下）')).toBeInTheDocument()
-    expect(screen.getByText('¥ —')).toBeInTheDocument()
+    expect(screen.getAllByText('¥ —').length).toBeGreaterThan(0)
     expect(screen.queryByText(/^原価率 \d/)).toBeNull()
   })
 
-  it('ei8ht plants で仕入れ値 1,500 円を入れると推奨価格は ¥3,800（原価 × 2 の ¥3,000 でも 500 円単位の ¥4,000 でもない）、原価率 39.5% になる', async () => {
+  it('目標原価率を40%に設定して仕入れ値 1,500 円を入れると推奨価格は ¥3,800・原価率 39.5% になる', async () => {
     renderPurchase()
     fireEvent.change(screen.getByPlaceholderText('例: 1500'), { target: { value: '1500' } })
     expect(screen.getByText('¥3,800')).toBeInTheDocument()
@@ -139,7 +141,7 @@ describe('推奨販売価格の表示', () => {
     renderPurchase()
     fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'アガベ' } })
     fireEvent.change(screen.getByPlaceholderText('例: 1500'), { target: { value: '0' } })
-    expect(screen.getByText('¥ —')).toBeInTheDocument()
+    expect(screen.getAllByText('¥ —').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: '登録' })).toBeDisabled()
   })
 })
@@ -428,12 +430,13 @@ describe('目標原価率の欄', () => {
    */
   const rateInput = () => screen.getByRole('textbox', { name: '目標原価率（%）' })
 
-  it('初期値は 40 で、「40% に戻す」ボタンは出ず、見出しは「推奨販売価格（原価率 40% 以下）」', async () => {
-    renderPurchase()
-    expect(rateInput()).toHaveValue('40')
+  it('ei8ht plants の初期値は 33.4 で、「33.4% に戻す」ボタンは出ず、見出しも 33.4% 以下', async () => {
+    render(<PriceCalc />)
+    fireEvent.click(screen.getByRole('button', { name: '仕入れ' }))
+    expect(rateInput()).toHaveValue('33.4')
     expect(rateInput()).toHaveAttribute('inputmode', 'decimal')
-    expect(screen.queryByRole('button', { name: '40% に戻す' })).toBeNull()
-    expect(screen.getByText('推奨販売価格（原価率 40% 以下）')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '33.4% に戻す' })).toBeNull()
+    expect(screen.getByText('推奨販売価格（原価率 33.4% 以下）')).toBeInTheDocument()
   })
 
   it('35 に変えると見出しが「原価率 35% 以下」になり、原価 1,500 円の推奨価格は ¥4,300（原価率 34.9%）になる', async () => {
@@ -478,7 +481,7 @@ describe('目標原価率の欄', () => {
       fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'アガベ' } })
       fireEvent.change(screen.getByPlaceholderText('例: 1500'), { target: { value: '1500' } })
       fireEvent.change(rateInput(), { target: { value } })
-      expect(screen.getByText('¥ —')).toBeInTheDocument()
+      expect(screen.getAllByText('¥ —').length).toBeGreaterThan(0)
       expect(screen.getByText('推奨販売価格（目標原価率が未設定）')).toBeInTheDocument()
       expect(screen.getByText('0 より大きく 100 以下の数を入れてください')).toBeInTheDocument()
       expect(rateInput()).toHaveAttribute('aria-invalid', 'true')
@@ -505,22 +508,24 @@ describe('目標原価率の欄', () => {
     }))
   })
 
-  it('「40% に戻す」は 40 と違うときだけ出て、押すと 40 に戻り見出しと推奨価格も戻る', async () => {
+  it('「33.4% に戻す」は既定値と違うときだけ出て、押すと既定値に戻る', async () => {
     renderPurchase()
     fireEvent.change(screen.getByPlaceholderText('例: 1500'), { target: { value: '1500' } })
     fireEvent.change(rateInput(), { target: { value: '35' } })
-    fireEvent.click(screen.getByRole('button', { name: '40% に戻す' }))
-    expect(rateInput()).toHaveValue('40')
-    expect(screen.queryByRole('button', { name: '40% に戻す' })).toBeNull()
-    expect(screen.getByText('推奨販売価格（原価率 40% 以下）')).toBeInTheDocument()
-    expect(screen.getByText('¥3,800')).toBeInTheDocument()
-    expect(localStorage.getItem('price-calc-cost-rate')).toBe('40')
+    fireEvent.click(screen.getByRole('button', { name: '33.4% に戻す' }))
+    expect(rateInput()).toHaveValue('33.4')
+    expect(screen.queryByRole('button', { name: '33.4% に戻す' })).toBeNull()
+    expect(screen.getByText('推奨販売価格（原価率 33.4% 以下）')).toBeInTheDocument()
+    expect(screen.getByText('¥4,500')).toBeInTheDocument()
+    expect(localStorage.getItem('price-calc-cost-rate:ei8htplants')).toBe('33.4')
   })
 
   it.each([['40.0'], ['４０'], [' 40 ']])('「%s」は 40% と同じ率なので「40% に戻す」は出ず、見出しは「原価率 40% 以下」', async (value) => {
     renderPurchase()
     fireEvent.change(rateInput(), { target: { value } })
     expect(screen.queryByRole('button', { name: '40% に戻す' })).toBeNull()
+    // ei8ht plants の画面既定値は33.4%なので、40%を入力すると既定値へ戻すボタンが表示される。
+    expect(screen.getByRole('button', { name: '33.4% に戻す' })).toBeInTheDocument()
     expect(screen.queryByText('0 より大きく 100 以下の数を入れてください')).toBeNull()
     expect(screen.getByText('推奨販売価格（原価率 40% 以下）')).toBeInTheDocument()
   })
@@ -538,34 +543,35 @@ describe('目標原価率の欄', () => {
     fireEvent.change(screen.getByPlaceholderText('例: 1500'), { target: { value: '1500' } })
     fireEvent.change(rateInput(), { target: { value } })
     expect(screen.getByText('0 より大きく 100 以下の数を入れてください')).toBeInTheDocument()
-    expect(screen.getByText('¥ —')).toBeInTheDocument()
+    expect(screen.getAllByText('¥ —').length).toBeGreaterThan(0)
   })
 
-  it('変えた率は localStorage（price-calc-cost-rate）に保存され、開き直すとその率から始まる', async () => {
+  it('変えた率はブランド別 localStorage に保存され、開き直すとその率から始まる', async () => {
     const { unmount } = renderPurchase()
     fireEvent.change(rateInput(), { target: { value: '35' } })
-    expect(localStorage.getItem('price-calc-cost-rate')).toBe('35')
+    expect(localStorage.getItem('price-calc-cost-rate:ei8htplants')).toBe('35')
     unmount()
-    renderPurchase()
+    renderPurchase(false, false)
     expect(rateInput()).toHaveValue('35')
     expect(screen.getByText('推奨販売価格（原価率 35% 以下）')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '40% に戻す' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '33.4% に戻す' })).toBeInTheDocument()
   })
 
   it('使えない値は保存されず、開き直すと前に保存した率から始まる', async () => {
     const { unmount } = renderPurchase()
     fireEvent.change(rateInput(), { target: { value: '35' } })
     fireEvent.change(rateInput(), { target: { value: '150' } })
-    expect(localStorage.getItem('price-calc-cost-rate')).toBe('35')
+    expect(localStorage.getItem('price-calc-cost-rate:ei8htplants')).toBe('35')
     unmount()
-    renderPurchase()
+    renderPurchase(false, false)
     expect(rateInput()).toHaveValue('35')
   })
 
   it('localStorage に使えない値が入っていれば 40 から始まる', async () => {
-    localStorage.setItem('price-calc-cost-rate', '0')
-    renderPurchase()
-    expect(rateInput()).toHaveValue('40')
+    localStorage.setItem('price-calc-cost-rate:ei8htplants', '0')
+    render(<PriceCalc />)
+    fireEvent.click(screen.getByRole('button', { name: '仕入れ' }))
+    expect(rateInput()).toHaveValue('33.4')
   })
 
   it('率だけ変えても書きかけ扱いにならず、タブを切り替えても確認は出ない', async () => {
@@ -577,11 +583,11 @@ describe('目標原価率の欄', () => {
     expect(screen.getByPlaceholderText('例: ユーフォルビア オベサ')).toBeInTheDocument()
   })
 
-  it('タブを切り替えても率は残り、HUE の推奨価格と登録にもその率が使われる', async () => {
+  it('ブランドごとに率を分け、HUE は独立して保存した率を使う', async () => {
     renderPurchase()
-    fireEvent.change(rateInput(), { target: { value: '35' } })
     openHue()
-    expect(rateInput()).toHaveValue('35')
+    expect(rateInput()).toHaveValue('40')
+    fireEvent.change(rateInput(), { target: { value: '35' } })
     expect(screen.getByText('推奨販売価格（原価率 35% 以下）')).toBeInTheDocument()
     fireEvent.change(screen.getByPlaceholderText('例: ユーフォルビア オベサ'), { target: { value: 'オベサ' } })
     fireEvent.change(screen.getByPlaceholderText('例: 3000'), { target: { value: '1000' } })
@@ -591,9 +597,9 @@ describe('目標原価率の欄', () => {
     await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith({
       brand: 'hue', plant_name: 'オベサ', pot_artist_name: null, cost: 1500, selling_price: 4300, mode: 'purchase',
     }))
-    // Habitat Oides に切り替えても 35 のまま
+    // Habitat Oides は ei8ht plants と独立した既定値 40% を使う
     fireEvent.click(brandTab('Habitat Oides'))
-    expect(rateInput()).toHaveValue('35')
+    expect(rateInput()).toHaveValue('40')
   })
 })
 
@@ -612,10 +618,10 @@ describe('生産（卸価格の 2 倍）', () => {
     expect(screen.getByRole('button', { name: '仕入れ' })).toBeInTheDocument()
     expect(screen.getByText('卸価格')).toBeInTheDocument()
     expect(screen.getByText('販売価格（卸価格の 2 倍）')).toBeInTheDocument()
-    expect(screen.getByText('¥ —')).toBeInTheDocument()
+    expect(screen.getAllByText('¥ —').length).toBeGreaterThan(0)
     expect(screen.queryByRole('textbox', { name: '目標原価率（%）' })).toBeNull()
     expect(screen.queryByRole('radio')).toBeNull()
-    expect(screen.queryByText('実生')).toBeNull()
+    expect(screen.getByRole('button', { name: '実生' })).toBeInTheDocument()
     expect(screen.queryByText(/上代/)).toBeNull()
     expect(screen.queryByText('仕入れ値')).toBeNull()
     expect(screen.queryByText(/^推奨販売価格/)).toBeNull()
@@ -690,7 +696,7 @@ describe('生産（卸価格の 2 倍）', () => {
     expect(screen.getByRole('button', { name: /^登録/ })).toBeDisabled()
     fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'チタノタ' } })
     fireEvent.change(wholesaleInput(), { target: { value: '0' } })
-    expect(screen.getByText('¥ —')).toBeInTheDocument()
+    expect(screen.getAllByText('¥ —').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: '登録' })).toBeDisabled()
   })
 
@@ -771,7 +777,7 @@ describe('生産・仕入れのタブ', () => {
     fireEvent.change(rate, { target: { value: '35' } })
     fireEvent.click(screen.getByRole('button', { name: '生産' }))
     expect(screen.queryByRole('textbox', { name: '目標原価率（%）' })).toBeNull()
-    expect(localStorage.getItem('price-calc-cost-rate')).toBe('35')
+    expect(localStorage.getItem('price-calc-cost-rate:ei8htplants')).toBe('35')
     fireEvent.click(screen.getByRole('button', { name: '仕入れ' }))
     expect(screen.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('35')
   })
@@ -989,7 +995,8 @@ describe('登録リストの種類（生産・仕入れ）の表示と絞り込�
     fireEvent.click(screen.getByRole('button', { name: '仕入れ' }))
     fireEvent.change(screen.getByPlaceholderText(plantPh), { target: { value: '新しい仕入れ' } })
     fireEvent.change(screen.getByPlaceholderText(pricePh), { target: { value: '1500' } })
-    fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥3,800$/ }))
+    const expectedPrice = brand === 'ei8ht plants' ? '¥4,500' : '¥3,800'
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^登録\\s+${expectedPrice.replace(',', ',')}$`) }))
     await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith(expect.objectContaining({ mode: 'purchase' })))
     await screen.findByText('新しい仕入れ')
     expect(Array.from(brandCell('新しい仕入れ').children).map((c) => c.textContent)).toEqual([brand, '仕入れ'])

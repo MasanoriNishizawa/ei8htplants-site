@@ -32,8 +32,13 @@ frontend/node_modules/
 .DS_Store
 .vscode/
 
-# Claude
-.claude/
+# Claude / Codex の端末ローカル設定は共有しない。
+# 共通運用ルールとして Claude の担当定義だけ Git に含める。
+.claude/*
+!.claude/agents/
+.claude/agents/*
+!.claude/agents/*.md
+.codex/
 
 # Source / design files
 *.pdf

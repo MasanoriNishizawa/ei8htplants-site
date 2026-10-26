@@ -16,7 +16,7 @@ export default defineConfig({
   reporter: 'list',
   use: {
     // page.goto('/events') のような相対パスの頭
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://127.0.0.1:5173',
     // ブラウザの言語を日本語にする（サイトの表示言語が日本語になる）
     locale: 'ja-JP',
     // やり直したときだけ、操作の記録（トレース）を残す
@@ -32,7 +32,7 @@ export default defineConfig({
   // テストの前に、ログイン省略・MSW のモックつきの開発サーバーを起動する（手元で起動済みならそれを使う）
   webServer: {
     command: 'npm run mock:e2e',
-    url: 'http://localhost:5173',
+    url: 'http://127.0.0.1:5173',
     reuseExistingServer: !process.env.CI,
     // 起動を待つ最大の時間（ミリ秒）
     timeout: 60000,

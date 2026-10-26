@@ -19,9 +19,9 @@ const routes = [
   '/official/concept',
   // ジャーナルページ（StoreLayout）
   '/official/journal',
-  // ブランドページ（App.tsx のルートパスに合わせた正確なパス）
-  '/ei8htplants',
-  '/brands', // 旧URLから /official/brands に転送
+  // ei8ht plants のブランドページはルート直下、公式サイトは /official 配下
+  '/about',
+  '/plants',
   '/habitatoides',
   '/habitatoides/workshop',
   '/hue',

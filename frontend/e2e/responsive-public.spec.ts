@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test'
 // 1. ヘッダーの言語切り替えボタン
 //    - PC（1280px）では PC のナビの 1 つだけが読み上げ対象になる（閉じたスマホのメニューの中のボタンは inert・非表示で数えない）
 //    - スマホ（375px）ではメニューを開くと中に言語切り替えボタンがあり、押すと英語に変わる（メニューは閉じない）
-// 2. 注文手続き（/checkout）は狭い画面では 1 列（フォームの下に注文サマリー）、768px 以上で 2 列
+// 2. 注文手続き（/official/checkout）は狭い画面では 1 列（フォームの下に注文サマリー）、768px 以上で 2 列
 //    カートは商品詳細（MOCK_PRODUCTS の p-1）から「カートに入れる」で入れる
 
 /**
@@ -69,7 +69,39 @@ test.describe('ヘッダーの言語切り替えボタン', () => {
   })
 })
 
-test.describe('注文手続き（/checkout）の列', () => {
+test.describe('ブランドホームの見出し（スマホ幅）', () => {
+  test('3ブランドのトップ見出しが画面内に収まり、過度な折り返しや横スクロールがない', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+
+    // 1. ブランドごとのトップを開き、見出しが描画されるまで待つ
+    const pages = [
+      { path: '/', heading: '.ep-home-copy h1' },
+      { path: '/habitatoides', heading: '.habitat-hero h1' },
+      { path: '/hue', heading: '.hue-hero-copy h1' },
+    ]
+    for (const brandPage of pages) {
+      await page.goto(brandPage.path)
+      const heading = page.locator(brandPage.heading)
+      await expect(heading).toBeVisible()
+
+      // 2. 見出しの表示範囲が画面からはみ出さず、改行が4行以内であることを確認する
+      const headingLayout = await heading.evaluate((element) => {
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        const rects = Array.from(range.getClientRects())
+        const linePositions = new Set(rects.map((rect) => Math.round(rect.top)))
+        const bounds = element.getBoundingClientRect()
+        return { lineCount: linePositions.size, left: bounds.left, right: bounds.right }
+      })
+      expect(headingLayout.lineCount).toBeLessThanOrEqual(4)
+      expect(headingLayout.left).toBeGreaterThanOrEqual(0)
+      expect(headingLayout.right).toBeLessThanOrEqual(390)
+      await expectNoHorizontalScroll(page)
+    }
+  })
+})
+
+test.describe('注文手続き（/official/checkout）の列', () => {
   test.beforeEach(async ({ page }) => {
     // 前のテストのカートが残らないよう、最初に localStorage を空にする
     await page.goto('/official')

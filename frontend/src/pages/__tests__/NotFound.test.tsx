@@ -1,6 +1,6 @@
 /**
  * 公開サイトの 404 ページ（pages/NotFound.tsx）のテスト
- * - 存在しない URL を開くと、公開サイトのレイアウト（ヘッダー）の中に「ページが見つかりません」とトップへのリンクが出る
+ * - 存在しない URL を開くと、公開サイトのレイアウト（ヘッダー）の中に「ページが見つかりません」とブランドホームへのリンクが出る
  * - 検索エンジンに登録させない noindex が付く
  * - 英語表示に切り替えると英語の案内になる
  * ルートの組み方は App.tsx（Layout の中の path="*"）と同じにする
@@ -23,7 +23,8 @@ function renderAt(path: string) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<div>トップの中身</div>} />
+            <Route path="/" element={<div>ei8ht plants ブランドホーム</div>} />
+            <Route path="/official" element={<div>公式サイトHOME</div>} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
@@ -45,12 +46,20 @@ describe('公開サイトの NotFound', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'ページが見つかりません' })).toBeInTheDocument()
   })
 
-  it('「トップページへ」のリンクが / を指し、押すとトップの中身に切り替わる', async () => {
+  it('「トップページへ」のリンクが / を指し、押すと ei8ht plants ブランドホームに切り替わる', async () => {
     renderAt('/events/aaa/bbb')
     const link = screen.getByRole('link', { name: 'トップページへ' })
     expect(link).toHaveAttribute('href', '/')
     link.click()
-    expect(await screen.findByText('トップの中身')).toBeInTheDocument()
+    expect(await screen.findByText('ei8ht plants ブランドホーム')).toBeInTheDocument()
+  })
+
+  it('公式サイト配下の404からは公式HOMEへ戻れる', async () => {
+    renderAt('/official/no-such-page')
+    const link = screen.getByRole('link', { name: 'トップページへ' })
+    expect(link).toHaveAttribute('href', '/official')
+    link.click()
+    expect(await screen.findByText('公式サイトHOME')).toBeInTheDocument()
   })
 
   it('検索エンジンに登録させない noindex の meta が付く', () => {
@@ -63,5 +72,6 @@ describe('公開サイトの NotFound', () => {
     renderAt('/no-such-page')
     expect(screen.getByRole('heading', { level: 1, name: 'Page Not Found' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to Home' })).toHaveAttribute('href', '/')
+    // 公式トップではなく ei8ht plants ブランドHOMEを指す仕様
   })
 })

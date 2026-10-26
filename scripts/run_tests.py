@@ -195,12 +195,17 @@ def run_playwright(targets: list[str] | None = None) -> dict:
         f"[{p}] {n.strip()}"
         for p, n in re.findall(r"^\s*\d+\) \[(\w+)\] › (.+?) ─*$", out, flags=re.M)
     ]
+    # 起動前エラーなどで通常の passed/failed 集計行が無い場合も、原因を実行ログに残す。
+    summary_lines = [l.strip() for l in out.splitlines() if re.search(r"\d+ (passed|failed)", l)]
+    tail = summary_lines[-1:] if summary_lines else []
+    if code != 0 and not tail:
+        tail = out.strip().splitlines()[-5:] if out.strip() else [f"出力なし（終了コード {code}）"]
     return {
         "name": "画面テスト（Playwright）", "code": code, "sec": sec,
         "passed": num(r"(\d+) passed", out), "failed": num(r"(\d+) failed", out),
         "skipped": num(r"(\d+) skipped", out), "xfail": 0,
         "failed_names": failed_names[:10],
-        "tail": [l.strip() for l in out.splitlines() if re.search(r"\d+ (passed|failed)", l)][-1:],
+        "tail": tail,
     }
 
 
@@ -317,7 +322,11 @@ def make_entry(results: list[dict], note: str, skipped_suites: list[str], target
         lines.append(f"| {name} | {'省略（関連なし）' if targets is not None else '省略'} | - | - | - | - | - |")
     failed = [(r["name"], n) for r in results for n in r["failed_names"]]
     if failed:
-        lines += ["", "**失敗したテスト**", ""] + [f"- {suite}：`{n}`" for suite, n in failed]
+        truncated_suites = [r for r in results if r["failed"] > len(r["failed_names"]) and r["failed_names"]]
+        heading = "**失敗したテスト（各テスト枠につき最大10件表示）**" if truncated_suites else "**失敗したテスト**"
+        lines += ["", heading, ""] + [f"- {suite}：`{n}`" for suite, n in failed]
+        for r in truncated_suites:
+            lines.append(f"- {r['name']}：ほか {r['failed'] - len(r['failed_names'])} 件（合計 {r['failed']} 件）")
     for r in results:
         if r["code"] != 0 and not r["failed_names"]:
             lines += ["", f"**{r['name']} の最後の出力**：`{' '.join(r['tail']) or '（なし）'}`"]

@@ -6,7 +6,7 @@
 
 ## URL / ルート
 
-`/gallery`
+`/official/gallery`
 
 ## 実装ファイル
 

@@ -1583,6 +1583,9 @@ Disallow: /admin
 Disallow: /cancel
 Disallow: /checkout
 Disallow: /order
+Disallow: /official/cancel
+Disallow: /official/checkout
+Disallow: /official/order
 
 Sitemap: https://ei8htplants.com/sitemap.xml
 ```
@@ -1595,9 +1598,9 @@ Sitemap: https://ei8htplants.com/sitemap.xml
 
 | Host | 固定ページ |
 |---|---|
-| ei8ht plants（通常・未登録Host） | `/`・`/events`・`/gallery`・`/shop`・`/journal`・`/concept`・`/contact`・`/stockists`・`/media`・`/ei8htplants`・`/chat`・`/legal`・`/privacy` |
+| ei8ht plants（通常・未登録Host） | `/`・`/about`・`/plants`・`/official`・`/official/brands`・`/official/events`・`/official/gallery`・`/official/shop`・`/official/journal`・`/official/concept`・`/official/contact`・`/official/stockists`・`/official/collaborations`・`/official/media`・`/official/chat`・`/official/legal`・`/official/privacy` |
 | Habitat Oides | `/`・`/workshop`・`/collaborations` |
-| HUE | `/` |
+| HUE | `/`・`/about`・`/choose`・`/living` |
 
 独立ブランドの一覧はブランド内のページだけを含み、ei8ht plants のイベント・記事・商品は含めない。ei8ht plants の一覧には移転済みのブランドページを含めない。
 
@@ -1605,9 +1608,9 @@ Sitemap: https://ei8htplants.com/sitemap.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://ei8htplants.com/</loc></url>
-  <url><loc>https://ei8htplants.com/events/autumn-market-2026</loc></url>
-  <url><loc>https://ei8htplants.com/journal/uuid</loc><lastmod>2026-10-01</lastmod></url>
-  <url><loc>https://ei8htplants.com/shop/uuid</loc><lastmod>2026-09-15</lastmod></url>
+  <url><loc>https://ei8htplants.com/official/events/autumn-market-2026</loc></url>
+  <url><loc>https://ei8htplants.com/official/journal/uuid</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>https://ei8htplants.com/official/shop/uuid</loc><lastmod>2026-09-15</lastmod></url>
 </urlset>
 ```
 

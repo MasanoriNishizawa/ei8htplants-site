@@ -334,12 +334,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toHaveValue('')
     await expectSidebarFree(page)
   })
-  test('目標原価率を 35 に変えても書きかけ扱いにならず、タブを切り替えても再読み込みしても 35 のまま', async ({ page }) => {
+  test('目標原価率はブランドごとに保存され、初期値と再読み込み後の値を保つ', async ({ page }) => {
     await page.goto('/admin/price-calc')
     // 目標原価率の欄は仕入れのときだけ出る
     await page.getByRole('button', { name: '仕入れ' }).click()
     const rate = page.getByRole('textbox', { name: '目標原価率（%）' })
-    await expect(rate).toHaveValue('40')
+    await expect(rate).toHaveValue('33.4')
     await rate.fill('35')
     await expect(page.getByText('推奨販売価格（原価率 35% 以下）')).toBeVisible()
     // 1. 率だけなら確認なしでタブを切り替えられ、率は残る
@@ -348,6 +348,8 @@ test.describe('販売価格計算（PriceCalc）', () => {
     page.on('dialog', onDialog)
     await brandTab(page, 'HUE').click()
     await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toBeVisible()
+    await expect(rate).toHaveValue('40')
+    await rate.fill('35')
     await expect(rate).toHaveValue('35')
     // 原価 1,500 円 → ¥4,300（1,500 ÷ 0.35 = 4,285.7… を 100 円単位で切り上げ）
     await page.getByPlaceholder('例: 3000').fill('1500')
@@ -360,10 +362,10 @@ test.describe('販売価格計算（PriceCalc）', () => {
     // 再読み込みすると種類は初期の「生産」に戻るので、仕入れに切り替える
     await page.getByRole('button', { name: '仕入れ' }).click()
     await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('35')
-    // 3. 「40% に戻す」で 40 に戻り、ボタンは消える
-    await page.getByRole('button', { name: '40% に戻す' }).click()
-    await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('40')
-    await expect(page.getByRole('button', { name: '40% に戻す' })).toHaveCount(0)
+    // 3. ei8ht plants の既定値 33.4% に戻り、ボタンは消える
+    await page.getByRole('button', { name: '33.4% に戻す' }).click()
+    await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveValue('33.4')
+    await expect(page.getByRole('button', { name: '33.4% に戻す' })).toHaveCount(0)
     await expectSidebarFree(page)
   })
 

@@ -6,7 +6,7 @@
 
 ## URL / ルート
 
-`/reserve?event_id={uuid}`
+`/official/reserve?event_id={uuid}`
 
 ## 実装ファイル
 

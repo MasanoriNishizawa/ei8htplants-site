@@ -20,32 +20,32 @@
 
 | ID | ファイル | URL | 使用機能 |
 |---|---|---|---|
-| PG-01 | [Home](pages/public/01_Home.md) | `/` | FT-03, FT-04 |
-| PG-02 | [Events](pages/public/02_Events.md) | `/events` | FT-03 |
-| PG-03 | [Gallery](pages/public/03_Gallery.md) | `/gallery` | FT-04 |
-| PG-04 | [Concept](pages/public/04_Concept.md) | `/concept` | — |
-| PG-05 | [Contact](pages/public/05_Contact.md) | `/contact` | FT-05 |
-| PG-06 | [Stockists](pages/public/06_Stockists.md) | `/stockists` | FT-10 (read) |
-| PG-07 | [Collaborations](pages/public/07_Collaborations.md) | `habitatoides.com/collaborations`（ei8htplants.com の旧 `/collaborations` は転送） | FT-08, FT-27 (read) |
-| PG-08 | [ei8ht plants](pages/public/08_Ei8htPlants.md) | `/ei8htplants` | FT-07 |
+| PG-01 | [公式サイト Home](pages/public/01_Home.md) | `/official` | FT-03, FT-04 |
+| PG-02 | [Events](pages/public/02_Events.md) | `/official/events` | FT-03 |
+| PG-03 | [Gallery](pages/public/03_Gallery.md) | `/official/gallery` | FT-04 |
+| PG-04 | [Concept](pages/public/04_Concept.md) | `/official/concept` | — |
+| PG-05 | [Contact](pages/public/05_Contact.md) | `/official/contact` | FT-05 |
+| PG-06 | [Stockists](pages/public/06_Stockists.md) | `/official/stockists` | FT-10 (read) |
+| PG-07 | [Collaborations](pages/public/07_Collaborations.md) | `habitatoides.com/collaborations`・`ei8htplants.com/official/collaborations` | FT-08, FT-27 (read) |
+| PG-08 | [ei8ht plants](pages/public/08_Ei8htPlants.md) | `/`・`/about`・`/plants` | FT-27 |
 | PG-09 | [Habitat Oides](pages/public/09_HabitatOides.md) | `habitatoides.com/`（旧 `/habitatoides` は転送） | FT-07, FT-27 |
 | PG-10 | [HabitatOides Workshop](pages/public/10_HabitatOidesWorkshop.md) | `habitatoides.com/workshop`（旧 `/habitatoides/workshop` は転送） | FT-07, FT-27 |
-| PG-11 | [HUE](pages/public/11_Hue.md) | `huebyei8htplants.com/`（旧 `/hue` は転送） | FT-07, FT-27 |
-| PG-12 | [Reserve](pages/public/12_Reserve.md) | `/reserve` | FT-06 |
-| PG-13 | [予約キャンセル](pages/public/13_CancelReservation.md) | `/cancel` | FT-06 |
-| PG-14 | [Shop](pages/public/14_Shop.md) | `/shop` | FT-13 |
-| PG-15 | [ShopProduct](pages/public/15_ShopProduct.md) | `/shop/:id` | FT-13 |
-| PG-16 | [Checkout](pages/public/16_Checkout.md) | `/checkout` | FT-13 |
-| PG-17 | [OrderComplete](pages/public/17_OrderComplete.md) | `/order/complete` | FT-13 |
-| PG-18 | [Journal](pages/public/18_Journal.md) | `/journal` | FT-14 |
-| PG-19 | [JournalArticle](pages/public/19_JournalArticle.md) | `/journal/:id` | FT-14, FT-13 |
-| PG-20 | [EventSite](pages/public/20_EventSite.md) | `/events/:id` | FT-03 |
-| PG-21 | [LegalPage](pages/public/21_LegalPage.md) | `/legal` | — |
-| PG-22 | [Chat（AI コンシェルジュ）](pages/public/22_Chat.md) | `/chat` | FT-24 |
-| PG-23 | [Media（出演情報）](pages/public/23_Media.md) | `/media` | — |
-| PG-24 | [PrivacyPolicy（プライバシーポリシー）](pages/public/24_PrivacyPolicy.md) | `/privacy` | — |
+| PG-11 | [HUE](pages/public/11_Hue.md) | `huebyei8htplants.com/`・`/about`・`/choose`・`/living` | FT-27 |
+| PG-12 | [Reserve](pages/public/12_Reserve.md) | `/official/reserve` | FT-06 |
+| PG-13 | [予約キャンセル](pages/public/13_CancelReservation.md) | `/official/cancel` | FT-06 |
+| PG-14 | [Shop](pages/public/14_Shop.md) | `/official/shop` | FT-13 |
+| PG-15 | [ShopProduct](pages/public/15_ShopProduct.md) | `/official/shop/:id` | FT-13 |
+| PG-16 | [Checkout](pages/public/16_Checkout.md) | `/official/checkout` | FT-13 |
+| PG-17 | [OrderComplete](pages/public/17_OrderComplete.md) | `/official/order/complete` | FT-13 |
+| PG-18 | [Journal](pages/public/18_Journal.md) | `/official/journal` | FT-14 |
+| PG-19 | [JournalArticle](pages/public/19_JournalArticle.md) | `/official/journal/:id` | FT-14, FT-13 |
+| PG-20 | [EventSite](pages/public/20_EventSite.md) | `/official/events/:id` | FT-03 |
+| PG-21 | [LegalPage](pages/public/21_LegalPage.md) | `/official/legal` | — |
+| PG-22 | [Chat（AI コンシェルジュ）](pages/public/22_Chat.md) | `/official/chat` | FT-24 |
+| PG-23 | [Media（出演情報）](pages/public/23_Media.md) | `/official/media` | — |
+| PG-24 | [PrivacyPolicy（プライバシーポリシー）](pages/public/24_PrivacyPolicy.md) | `/official/privacy` | — |
 
-PG-01〜PG-08・PG-12・PG-13・PG-20〜PG-24 はヘッダーとフッターの付いた共通の枠（`Layout`）の中に、PG-09〜PG-11 は各ブランド専用の枠（`BrandSiteLayout`）の中に表示する。PG-14〜PG-19 はストア用の枠（`StoreLayout`）の中に表示する。予約（PG-12）と予約キャンセル（PG-13）は `Layout` の中にある。
+PG-01〜PG-07・PG-12〜PG-24 の公式サイトページは `Layout`（ショップ・ジャーナルは `StoreLayout`）で表示する。`/`・`/about`・`/plants` の ei8ht plants ブランドページも `Layout` のルート配下だが、専用の `Ei8htPlantsHeader` を使う。PG-09〜PG-11 は各ブランド専用の `BrandSiteLayout` を使う。予約とキャンセルは公式サイト配下の `Layout` で表示する。
 
 どのページにも当たらない URL を開いたときは、`Layout` の中に「ページが見つかりません」のページ（`pages/NotFound.tsx`。ID は付けていない。2026-10-22 追加）を出す。内容は [画面遷移図](02_画面遷移図.md) の「ルーティング定義」を参照。
 

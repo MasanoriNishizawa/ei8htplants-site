@@ -6,7 +6,7 @@
 
 ## URL / ルート
 
-`/contact`
+`/official/contact`
 
 ## 実装ファイル
 

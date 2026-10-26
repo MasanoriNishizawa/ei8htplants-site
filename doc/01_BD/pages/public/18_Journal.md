@@ -1,7 +1,7 @@
 # PG-18 — Journal（記事一覧）
 
-**URL**: `/journal`  
-**レイアウト**: `StoreLayout`  
+**URL**: `/official/journal`
+**レイアウト**: `StoreLayout`
 **機能**: FT-14
 
 ---

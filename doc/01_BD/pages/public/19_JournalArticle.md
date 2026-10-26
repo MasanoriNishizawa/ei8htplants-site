@@ -1,6 +1,6 @@
 # PG-19 — JournalArticle（記事のページ）
 
-**URL**: `/journal/:id`
+**URL**: `/official/journal/:id`
 **レイアウト**: `StoreLayout`
 **機能**: FT-14, FT-13
 **実装ファイル**: `frontend/src/pages/JournalArticle.tsx`
