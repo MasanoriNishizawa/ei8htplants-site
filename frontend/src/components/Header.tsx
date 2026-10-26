@@ -4,9 +4,6 @@ import { useLang } from '../lib/lang'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import { TEXT_LOGO } from '../lib/brands'
 
-/** Brand メニューから開くブランド一覧ページ */
-const BRANDS_PAGE = { to: '/official/brands', label: 'Our Brands' }
-
 /** ナビに並べるページ（end: true はそのパスちょうどのときだけ選択中にする） */
 const NAV_ITEMS = [
   { to: '/official', label: 'Home', end: true },
@@ -17,6 +14,7 @@ const NAV_ITEMS = [
   { to: '/official/collaborations', label: 'Collabs' },
   { to: '/official/media', label: 'Media' },
   { to: '/official/contact', label: 'Contact' },
+  { to: '/official/brands', label: 'Brands' },
 ]
 
 /**
@@ -26,20 +24,15 @@ const NAV_ITEMS = [
 export default function Header() {
   // モバイルメニューを開いているか
   const [menuOpen, setMenuOpen] = useState(false)
-  // PC 表示の Brand メニューを開いているか
-  const [brandOpen, setBrandOpen] = useState(false)
   // ページを少しでもスクロールしたか（ヘッダー下の線を出す）
   const [scrolled, setScrolled] = useState(false)
   // 今の表示言語と切り替え関数
   const { lang, toggle: toggleLang } = useLang()
-  // Brand メニューとモバイルメニューの要素の id（ボタンの aria-controls 用）
-  const brandMenuId = useId()
+  // モバイルメニューの id（開閉ボタンの aria-controls 用）
   const mobileMenuId = useId()
   // Brand メニューの開閉ボタン・モバイルメニューの開閉ボタン（Esc で閉じたときにフォーカスを戻す先）
-  const brandBtnRef = useRef<HTMLButtonElement>(null)
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   // Brand メニューを含む枠（枠の外へフォーカスが移ったら閉じる判定用）
-  const brandWrapRef = useRef<HTMLDivElement>(null)
   // モバイルメニュー本体（Tab のフォーカスをメニューの中で回すため）と、メニューの中の閉じるボタン（開いたときのフォーカス先）
   const mobileNavRef = useRef<HTMLElement>(null)
   const menuCloseBtnRef = useRef<HTMLButtonElement>(null)
@@ -105,10 +98,10 @@ export default function Header() {
     }
   }, [menuOpen])
 
-  // Esc キーで開いているメニューを閉じ、開閉ボタンへフォーカスを戻す。
+  // Esc キーで開いているモバイルメニューを閉じ、開閉ボタンへフォーカスを戻す。
   // モバイルメニューを開いているあいだは、Tab のフォーカスをメニューの中で回す（後ろのページへ出ないように）
   useEffect(() => {
-    if (!menuOpen && !brandOpen) return
+    if (!menuOpen) return
     /** Esc で開いているメニューを閉じ、Tab はモバイルメニューの中で回す */
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Tab' && menuOpen && mobileNavRef.current) {
@@ -134,14 +127,10 @@ export default function Header() {
         returnFocusOnClose.current = true
         setMenuOpen(false)
       }
-      if (brandOpen) {
-        setBrandOpen(false)
-        brandBtnRef.current?.focus()
-      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [menuOpen, brandOpen])
+  }, [menuOpen])
 
   /**
    * ナビの各リンクの見た目
@@ -161,7 +150,7 @@ export default function Header() {
     whiteSpace: 'nowrap' as const,
   })
 
-  // PC 表示のナビゲーション（ページのリンク・Brand メニュー・言語の切り替え）
+  // PC 表示のナビゲーション（ページのリンク・言語の切り替え）
   const desktopNav = (
     <>
       {NAV_ITEMS.map(({ to, label, end }) => (
@@ -174,63 +163,6 @@ export default function Header() {
           {label}
         </NavLink>
       ))}
-
-      {/* Brand メニュー。マウスを乗せる・ボタンを押す・キーボードで開ける。フォーカスが枠の外へ出たら閉じる */}
-      <div
-        ref={brandWrapRef}
-        style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
-        onMouseEnter={() => setBrandOpen(true)}
-        onMouseLeave={() => setBrandOpen(false)}
-        onBlur={(e) => {
-          // 次にフォーカスが移る先（relatedTarget）が枠の中でなければ閉じる
-          if (!brandWrapRef.current?.contains(e.relatedTarget as Node | null)) setBrandOpen(false)
-        }}
-      >
-        <button
-          ref={brandBtnRef}
-          type="button"
-          className="header-brand-btn"
-          aria-expanded={brandOpen}
-          aria-haspopup="true"
-          aria-controls={brandMenuId}
-          onClick={() => setBrandOpen(!brandOpen)}
-        >
-          Brand
-          {/* 下向きの小さな矢印（枠線2辺を45度回して作る） */}
-          <span aria-hidden="true" style={{
-            display: 'inline-block', width: 4, height: 4,
-            borderRight: '1px solid currentColor', borderBottom: '1px solid currentColor',
-            transform: 'rotate(45deg) translateY(-2px)',
-          }} />
-        </button>
-        {/* ブランドごとの個別ページではなく、全ブランドの一覧へ案内する */}
-        {brandOpen && (
-          <div
-            id={brandMenuId}
-            style={{
-              position: 'absolute', top: 'calc(100% + 4px)', left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'var(--c-surface)',
-              border: '1px solid var(--c-border)',
-              minWidth: 190, zIndex: 200, padding: '6px 0',
-            }}
-          >
-            <Link
-              to={BRANDS_PAGE.to}
-              onClick={() => setBrandOpen(false)}
-              style={{
-                display: 'block', padding: '12px 20px',
-                fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase',
-                textDecoration: 'none', fontWeight: 300,
-                color: 'var(--c-muted)', whiteSpace: 'nowrap',
-                transition: 'color 0.2s',
-              }}
-            >
-              {BRANDS_PAGE.label} <span aria-hidden="true">↗</span>
-            </Link>
-          </div>
-        )}
-      </div>
 
       {/* Shop ボタン。ホバー時の色の反転は index.css の .header-shop-link */}
       <Link to="/official/shop" className="header-shop-link">
@@ -390,20 +322,6 @@ export default function Header() {
             {label}
           </NavLink>
         ))}
-        {/* 区切り線とブランドページのリンク */}
-        <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
-        <Link
-          to={BRANDS_PAGE.to}
-          onClick={closeMenuAndReturnFocus}
-          style={{
-            fontSize: 13, fontWeight: 300, letterSpacing: '0.14em',
-            textDecoration: 'none', textTransform: 'uppercase',
-            color: 'var(--c-muted)',
-            transition: 'color 0.2s',
-          }}
-        >
-          {BRANDS_PAGE.label}
-        </Link>
         {/* 区切り線とショップへのリンク */}
         <div style={{ height: '1px', background: 'var(--c-border)', margin: '4px 0' }} />
         <NavLink

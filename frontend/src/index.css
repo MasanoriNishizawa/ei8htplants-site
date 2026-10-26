@@ -141,7 +141,7 @@ body {
 .ep-editorial-hero-copy { max-width: 590px; }
 .ep-editorial-kicker { margin: 0 0 28px; color: #85877a; font: 12px/1.6 'Cormorant Garamond', 'Noto Sans JP', serif; letter-spacing: .18em; text-transform: uppercase; }
 .ep-editorial-hero h1,
-.ep-plants-intro h1 { margin: 0; font-size: clamp(44px, 6.2vw, 86px); line-height: 1.12; letter-spacing: .025em; }
+.ep-plants-intro h1 { margin: 0; font-size: clamp(40px, 5.2vw, 68px); line-height: 1.12; letter-spacing: .025em; }
 .ep-editorial-hero h1 em,
 .ep-plants-intro h1 em,
 .ep-about-principles h2 em { color: #758168; font-weight: 300; }
@@ -153,12 +153,12 @@ body {
 .ep-about-image span { position: absolute; bottom: 18px; left: 20px; color: white; font-size: 11px; letter-spacing: .18em; text-shadow: 0 1px 8px #3338; }
 .ep-about-principles { padding: 100px max(7vw, calc((100vw - 1120px) / 2)) 120px; background: #e9e8df; }
 .ep-about-principles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12vw; align-items: start; }
-.ep-about-principles h2 { margin: 0; font-size: clamp(42px, 6vw, 76px); line-height: 1.28; }
+.ep-about-principles h2 { margin: 0; font-size: clamp(38px, 5vw, 62px); line-height: 1.28; }
 .ep-about-principles-grid > div p { margin: 0 0 24px; color: #62655c; font-size: 15px; line-height: 2.1; }
 .ep-about-principles-grid img { width: 150px; height: auto; margin-top: 18px; opacity: .85; }
 .ep-editorial-endcap { padding: 85px 24px 105px; text-align: center; background: #f8f7f3; }
 .ep-editorial-endcap > span { color: #85877a; font-size: 11px; letter-spacing: .18em; }
-.ep-editorial-endcap h2 { margin: 15px 0 0; font-size: clamp(32px, 5vw, 58px); line-height: 1.35; }
+.ep-editorial-endcap h2 { margin: 15px 0 0; font-size: clamp(30px, 4.2vw, 50px); line-height: 1.35; }
 .ep-editorial-endcap a { margin-top: 22px; }
 .ep-plants-intro { padding: 105px max(7vw, calc((100vw - 1120px) / 2)) 72px; background: #e9e8df; }
 .ep-plants-intro .ep-editorial-lead { max-width: 660px; }
@@ -178,18 +178,18 @@ body {
 .ep-plant-line--3 .ep-plant-line-art { background: #dfe5df; color: #718478; }
 .ep-plant-line--4 .ep-plant-line-art { background: #e7e5d8; color: #96936f; }
 .ep-plant-line-copy .ep-editorial-kicker { margin-bottom: 14px; }
-.ep-plant-line-copy h2 { display: flex; align-items: baseline; gap: 18px; margin: 0 0 16px; font-size: clamp(36px, 4.4vw, 58px); }
+.ep-plant-line-copy h2 { display: flex; align-items: baseline; gap: 18px; margin: 0 0 16px; font-size: clamp(34px, 3.8vw, 50px); }
 .ep-plant-line-copy h2 em { color: #85877a; font: 400 16px/1.5 'Noto Sans JP', sans-serif; letter-spacing: .08em; }
 .ep-plant-line-copy > p:last-child { max-width: 540px; margin: 0; color: #66695f; font-size: 15px; line-height: 2.1; }
 .ep-plants-endcap { background: #e9e8df; }
 @media (max-width: 768px) {
   .ep-editorial-hero { min-height: auto; grid-template-columns: 1fr; gap: 44px; padding: 64px 24px 54px; }
-  .ep-editorial-hero h1, .ep-plants-intro h1 { font-size: clamp(42px, 12vw, 62px); }
+  .ep-editorial-hero h1, .ep-plants-intro h1 { font-size: clamp(38px, 10.5vw, 48px); }
   .ep-editorial-lead { margin-top: 22px; font-size: 15px; }
   .ep-about-image { height: 62vw; min-height: 250px; max-height: 390px; }
   .ep-about-principles { padding: 65px 24px 74px; }
   .ep-about-principles-grid { grid-template-columns: 1fr; gap: 28px; }
-  .ep-about-principles h2 { font-size: 48px; }
+  .ep-about-principles h2 { font-size: 42px; }
   .ep-editorial-endcap { padding: 65px 24px 76px; }
   .ep-plants-intro { padding: 68px 24px 48px; }
   .ep-plants-index { gap: 10px 18px; margin-top: 32px; }
@@ -197,7 +197,7 @@ body {
   .ep-plant-line, .ep-plant-line:nth-child(even) { min-height: 0; grid-template-columns: 1fr; gap: 25px; padding: 32px 0; }
   .ep-plant-line:nth-child(even) .ep-plant-line-art { order: 0; }
   .ep-plant-line-art { height: 220px; }
-  .ep-plant-line-copy h2 { font-size: 42px; }
+  .ep-plant-line-copy h2 { font-size: 38px; }
 }
 
 /* ---- ハンバーガーボタン（Header のモバイルメニューの開閉ボタン。PC では隠し、768px 以下で出す） ---- */
@@ -726,7 +726,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
 .our-brands-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .65fr); align-items: center; gap: 6vw; min-height: min(630px, calc(100svh - 64px)); padding: 80px 10vw 94px; overflow: hidden; background: #f4f3ec; }
 .our-brands-hero-copy { position: relative; z-index: 1; max-width: 730px; }
 .our-brands-kicker { margin: 0 0 28px; color: #727b6b; font-size: var(--brand-type-label); letter-spacing: .2em; }
-.our-brands-hero h1 { margin: 0; color: #263025; font: 300 clamp(76px, 12vw, 160px)/.78 'Cormorant Garamond', serif; letter-spacing: -.055em; }
+.our-brands-hero h1 { margin: 0; color: #263025; font: 300 clamp(54px, 6vw, 88px)/.92 'Cormorant Garamond', serif; letter-spacing: -.04em; }
 .our-brands-hero h1 em { display: inline-block; margin-left: .38em; color: #798772; font-weight: 300; }
 .our-brands-hero-copy > p:not(.our-brands-kicker) { max-width: 510px; margin: 38px 0 0; color: #656a60; font-size: var(--brand-type-body); line-height: 2; }
 .our-brands-scroll { display: inline-flex; gap: 28px; margin-top: 22px; padding: 10px 0; border-bottom: 1px solid #909785; color: #374233; font-size: var(--brand-type-navigation); letter-spacing: .12em; text-decoration: none; }
@@ -818,7 +818,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
   .home-action-mark b { font-size: 38px; }
   .our-brands-hero { display: block; min-height: 0; padding: 72px 24px 84px; }
   .our-brands-kicker { font-size: var(--brand-type-caption); letter-spacing: .15em; }
-  .our-brands-hero h1 { position: relative; z-index: 1; font-size: clamp(76px, 21vw, 112px); }
+  .our-brands-hero h1 { position: relative; z-index: 1; font-size: clamp(48px, 12.5vw, 62px); line-height: .94; }
   .our-brands-hero h1 em { margin-left: .12em; }
   .our-brands-hero-copy > p:not(.our-brands-kicker) { position: relative; z-index: 1; max-width: 340px; margin-top: 30px; }
   .our-brands-hero-stamp { position: absolute; top: 24px; right: -90px; width: 64vw; opacity: .55; }
@@ -1112,29 +1112,6 @@ textarea,
 .header-lang-btn:focus-visible {
   color: var(--c-ink);
   border-color: var(--c-ink);
-}
-
-/* ---- Header: Brand メニューの開閉ボタン。ほかのナビの文字と同じ見た目にそろえる ---- */
-.header-brand-btn {
-  background: none;
-  border: none;
-  border-bottom: 1px solid transparent;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--c-muted);
-  padding: 4px 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: color 0.2s;
-}
-.header-brand-btn:hover,
-.header-brand-btn[aria-expanded="true"] {
-  color: var(--c-ink);
 }
 
 /* ---- Home: 商品・記事のサムネイル。ホバー・キーボード選択で画像を少し拡大する ---- */
