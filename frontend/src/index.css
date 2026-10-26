@@ -1112,23 +1112,28 @@ textarea,
 .habitat-hero-index { left: 5vw; }
 .habitat-hero-side-label { right: 5vw; writing-mode: vertical-rl; }
 .habitat-world { max-width: 1320px; margin: 0 auto; padding: 116px 6vw 110px; }
-.habitat-section-kicker { display: flex; gap: 18px; color: #8c6b50; padding-bottom: 16px; border-bottom: 1px solid #cfc5b4; }
-.habitat-section-kicker span:first-child { color: #b8784d; }
-.habitat-world-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8vw; align-items: start; padding: 76px 0 70px; }
+.habitat-section-kicker { display: flex; align-items: center; width: max-content; max-width: 100%; gap: 14px; color: #8c6b50; padding: 0; border: 0; }
+.habitat-section-kicker span:first-child { display: grid; width: 38px; height: 38px; place-items: center; flex: 0 0 auto; border: 1px solid #b8784d; border-radius: 50%; color: #b8784d; font: 400 12px/1 'M PLUS 1 Code', monospace; letter-spacing: 0; }
+.habitat-world-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); grid-template-rows: auto 1fr; gap: 24px 7vw; align-items: start; padding: 54px 0 70px; }
+.habitat-world-grid .habitat-world-image { grid-column: 1; grid-row: 1 / span 2; height: clamp(440px, 46vw, 660px); }
+.habitat-world-heading { grid-column: 2; grid-row: 1; align-self: end; }
+.habitat-world-copy { grid-column: 2; grid-row: 2; align-self: start; padding-top: 0; }
 .habitat-small-label { color: #a16e49; margin: 0 0 18px; }
-.habitat-world-heading h2, .habitat-collaboration h2 { margin: 0; font: 300 clamp(43px, 6vw, 78px)/.98 'Cormorant Garamond', 'Noto Serif JP', serif; letter-spacing: -.02em; }
-.habitat-world-heading h2 em, .habitat-collaboration h2 em { color: #9a6847; font-weight: 300; }
+.habitat-world-heading h2, .habitat-collaboration h2 { margin: 0; font: 400 clamp(40px, 5vw, 66px)/1.28 'Noto Sans JP', sans-serif; letter-spacing: .015em; }
+.habitat-world-heading h2 em, .habitat-collaboration h2 em { color: #9a6847; font-weight: 500; font-style: normal; }
+.habitat-world-heading h2 { font-size: clamp(36px, 3.7vw, 52px); }
 .habitat-world-jp, .habitat-workshop-jp { font-size: 14px; letter-spacing: .2em; line-height: 2; }
-.habitat-world-copy { padding-top: 18px; max-width: 520px; }
+.habitat-world-copy { padding-top: 0; max-width: 520px; }
 .habitat-world-copy p, .habitat-workshop-copy > p:not(.habitat-small-label):not(.habitat-workshop-jp), .habitat-collaboration-grid > div > p:not(.habitat-small-label) { color: #58615f; font-size: var(--brand-type-body); line-height: 2; }
-.habitat-world-image { margin: 0; position: relative; }
-.habitat-world-image img { display: block; width: 100%; max-height: 640px; object-fit: cover; }
-.habitat-world-image figcaption { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; color: #866c55; font-size: var(--brand-type-caption); letter-spacing: .12em; }
+.habitat-world-image { margin: 0; position: relative; overflow: hidden; background: #172532; }
+.habitat-world-image::after { position: absolute; inset: 45% 0 0; background: linear-gradient(0deg, rgba(15, 29, 39, .68), transparent); content: ''; pointer-events: none; }
+.habitat-world-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.habitat-world-image figcaption { position: absolute; z-index: 1; right: 18px; bottom: 18px; left: 18px; display: flex; justify-content: space-between; gap: 12px; color: #f3f0e8; font: 400 12px/1.5 'M PLUS 1 Code', monospace; letter-spacing: .04em; }
 .habitat-text-link { display: inline-flex; gap: 24px; color: #172532; border-bottom: 1px solid #a99a86; padding: 7px 0; margin-top: 16px; text-decoration: none; font-size: var(--brand-type-navigation); letter-spacing: .13em; text-transform: uppercase; }
 .habitat-elements { padding: 90px 8vw 106px; color: #f3f0e8; background: #172532; }
-.habitat-section-kicker--light { color: #c9b89c; border-color: rgba(230, 215, 189, .28); }
-.habitat-section-kicker--light span:first-child { color: #d09a6e; }
-.habitat-elements > h2 { max-width: 1280px; margin: 58px auto 54px; font: 300 clamp(42px, 6vw, 78px)/1 'Cormorant Garamond', serif; }
+.habitat-section-kicker--light { color: #c9b89c; }
+.habitat-section-kicker--light span:first-child { border-color: #d09a6e; color: #d09a6e; }
+.habitat-elements > h2 { max-width: 1280px; margin: 58px auto 54px; font: 400 clamp(36px, 5vw, 62px)/1.3 'Noto Sans JP', sans-serif; letter-spacing: .015em; }
 .habitat-elements-grid { max-width: 1280px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3vw; margin: 0 auto; }
 .habitat-elements-grid article { border-top: 1px solid rgba(230, 215, 189, .42); padding-top: 20px; }
 .habitat-elements-grid article > span { color: #c78c60; font-size: var(--brand-type-caption); letter-spacing: .16em; }
@@ -1138,7 +1143,7 @@ textarea,
 .habitat-workshop-image { min-height: 560px; overflow: hidden; }
 .habitat-workshop-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .habitat-workshop-copy { align-self: center; max-width: 620px; padding: 80px 9vw 90px 7vw; }
-.habitat-workshop-copy h2 { margin: 0; color: #172532; font: 300 clamp(48px, 6vw, 78px)/.94 'Cormorant Garamond', serif; }
+.habitat-workshop-copy h2 { margin: 0; color: #172532; font: 400 clamp(38px, 5vw, 62px)/1.3 'Noto Sans JP', sans-serif; letter-spacing: .015em; }
 .habitat-workshop-copy > p:not(.habitat-small-label):not(.habitat-workshop-jp) { max-width: 470px; }
 .habitat-workshop-index { position: absolute; right: 5vw; bottom: 22px; color: #745f49; font-size: var(--brand-type-caption); letter-spacing: .17em; }
 .habitat-collaboration { color: #f3f0e8; background: #263d4a; padding: 86px 8vw 100px; }
@@ -1148,7 +1153,7 @@ textarea,
 .habitat-text-link--light { color: #f3f0e8; border-color: #9a8068; }
 .habitat-collaboration-grid video { width: 100%; max-height: 570px; object-fit: cover; background: #101b21; }
 .habitat-follow { text-align: center; padding: 92px 20px; color: #172532; background: #e9e2d5; }
-.habitat-follow h2 { margin: 0 0 24px; font: 300 clamp(38px, 5vw, 64px)/1 'Cormorant Garamond', serif; }
+.habitat-follow h2 { margin: 0 0 24px; font: 400 clamp(36px, 4.8vw, 60px)/1.3 'Noto Sans JP', sans-serif; letter-spacing: .015em; }
 .habitat-follow > a { display: inline-block; color: #172532; border-bottom: 1px solid #9a6847; padding: 10px; text-decoration: none; font-size: var(--brand-type-navigation); letter-spacing: .14em; }
 
 /* HUE: 余白と色面を主役にした、軽やかなカラースタディのデザイン */
@@ -1332,9 +1337,10 @@ textarea,
   .habitat-hero-jp { font-size: var(--brand-type-body); line-height: 1.9; }
   .habitat-hero-side-label { display: none; }
   .habitat-world { padding: 74px 24px; }
-  .habitat-world-grid, .habitat-collaboration-grid { grid-template-columns: 1fr; gap: 20px; padding: 50px 0; }
+  .habitat-world-grid, .habitat-collaboration-grid { grid-template-columns: 1fr; grid-template-rows: auto; gap: 28px; padding: 34px 0 46px; }
+  .habitat-world-grid .habitat-world-image { grid-column: 1; grid-row: auto; height: min(112vw, 440px); }
+  .habitat-world-heading, .habitat-world-copy { grid-column: 1; grid-row: auto; }
   .habitat-world-copy { padding-top: 0; }
-  .habitat-world-image img { max-height: 430px; }
   .habitat-world-image figcaption { flex-direction: column; }
   .habitat-elements, .habitat-collaboration { padding: 68px 24px 76px; }
   .habitat-elements-grid { grid-template-columns: 1fr; gap: 24px; }

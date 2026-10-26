@@ -34,6 +34,10 @@ export default function HabitatOides() {
       <section id="world" className="habitat-world">
         <div className="habitat-section-kicker"><span>01</span><span>{t('私たちの考え方', 'OUR POINT OF VIEW')}</span></div>
         <div className="habitat-world-grid">
+          <figure className="habitat-world-image">
+            <img src="/img/habitatOides/habitat_oides_workshop_main.jpg" alt={t('ハビタットスタイルの制作風景', 'A habitat-style arrangement in progress')} />
+            <figcaption><span>{t('仕立ての記録', 'COMPOSITION STUDY')}</span><span>{t('植物 / 素材 / 景色', 'PLANTS / MATERIALS / PLACE')}</span></figcaption>
+          </figure>
           <div className="habitat-world-heading">
             <p className="habitat-small-label">{t('ハビタットスタイル', 'HABITAT STYLE')}</p>
             <h2>{t(<>自然を見つめ、<br /><em>景色を仕立てる。</em></>, <>Nature is the<br /><em>original artist.</em></>)}</h2>
@@ -51,10 +55,6 @@ export default function HabitatOides() {
             <a className="habitat-text-link" href={BRAND.habitatOides.instagramUrl} target="_blank" rel="noreferrer">{t('作品と制作風景を見る', 'Follow the landscape')} <span>↗</span></a>
           </div>
         </div>
-        <figure className="habitat-world-image">
-          <img src="/img/habitatOides/habitat_oides_workshop_main.jpg" alt={t('ハビタットスタイルの制作風景', 'A habitat-style arrangement in progress')} />
-          <figcaption><span>{t('仕立ての記録', 'COMPOSITION STUDY')}</span><span>{t('植物 / 素材 / 景色', 'PLANTS / MATERIALS / PLACE')}</span></figcaption>
-        </figure>
       </section>
 
       <section className="habitat-elements" aria-labelledby="habitat-elements-title">
