@@ -67,6 +67,7 @@ const AdminFinances = lazy(adminPageLoaders.Finances)
 const PriceCalc = lazy(adminPageLoaders.PriceCalc)
 const AdminPotArtists = lazy(adminPageLoaders.AdminPotArtists)
 const AdminMedia = lazy(adminPageLoaders.AdminMedia)
+const AdminSiteImages = lazy(adminPageLoaders.SiteImages)
 const AdminDocs = lazy(adminPageLoaders.AdminDocs)
 const AdminChatQA = lazy(adminPageLoaders.AdminChatQA)
 const AdminChatLogs = lazy(adminPageLoaders.AdminChatLogs)
@@ -183,6 +184,7 @@ export default function App() {
             <Route path="price-calc" element={<PriceCalc />} />
             <Route path="pot-artists" element={<AdminPotArtists />} />
             <Route path="media" element={<AdminMedia />} />
+            <Route path="site-images" element={<AdminSiteImages />} />
             <Route path="docs" element={<AdminDocs />} />
             <Route path="chat-qa" element={<AdminChatQA />} />
             <Route path="chat-logs" element={<AdminChatLogs />} />

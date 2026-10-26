@@ -31,6 +31,7 @@ from .routes import (
     products,
     reserve,
     seo,
+    site_assets,
     shipping,
     stockists,
     upload,
@@ -43,8 +44,8 @@ app = FastAPI(title='ei8ht plants API')
 # 予期しない例外のときに利用者へ返す文言（内部の例外の文字列は返さない）
 INTERNAL_ERROR_MESSAGE = 'サーバーでエラーが発生しました。時間をおいて再度お試しください。'
 
-# キャッシュさせない公開 GET のパス（ワークショップの空き状況は予約のたびに変わるため）
-_NO_STORE_PATH_RE = re.compile(r'^/api/events/[^/]+/sessions$')
+# キャッシュさせない公開 GET（予約枠と、管理画面からの変更をすぐ反映するサイト画像）
+_NO_STORE_PATH_RE = re.compile(r'^/api/(?:events/[^/]+/sessions|site-assets/[^/]+)$')
 
 # 公開の GET API の Cache-Control（Cloudflare 5 分・ブラウザ 60 秒。管理画面は fetch 側で no-store にしている）
 _PUBLIC_API_CACHE = 'public, s-maxage=300, max-age=60'
@@ -186,6 +187,7 @@ app.include_router(stockists.router, prefix='/api')
 app.include_router(contact.router, prefix='/api')
 app.include_router(reserve.router, prefix='/api')
 app.include_router(collaborations.router, prefix='/api')
+app.include_router(site_assets.router, prefix='/api')
 app.include_router(upload.router, prefix='/api')
 app.include_router(products.router, prefix='/api')
 app.include_router(shipping.router, prefix='/api')

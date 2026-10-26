@@ -180,6 +180,14 @@ export const api = {
   upload: (file: File): Promise<string> => uploadFile('/upload', file),
   /** 動画を Storage にアップロードし、公開 URL を返す（管理者のみ） */
   uploadVideo: (file: File): Promise<string> => uploadFile('/upload/video', file),
+  /** 公開サイトの管理画像 */
+  siteAssets: {
+    /** 公開ページ用の画像 URL を取得する */
+    get: (key: string) => request<SiteAsset>(`/site-assets/${encodeURIComponent(key)}`),
+    /** 管理画面から画像 URL を保存する */
+    save: (key: string, url: string) =>
+      authRequest<SiteAsset>(`/site-assets/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ url }) }),
+  },
   /** イベント（公開の一覧・1 件と、管理画面の作成・更新・削除・収支・時間枠・イベントページ・管理情報） */
   events: {
     /** イベントの一覧を取る（past が true なら終了したイベント） */
@@ -603,6 +611,14 @@ export interface GalleryImage {
   brand: string | null
   /** 並び順（小さい順） */
   display_order: number
+}
+
+/** サイトページに表示する管理画像 */
+export interface SiteAsset {
+  /** 固定の画像設定キー */
+  key: string
+  /** Storage の公開 URL。空文字なら未設定 */
+  url: string
 }
 
 /** ギャラリーの画像を追加するときに送る内容 */

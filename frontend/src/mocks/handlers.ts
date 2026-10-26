@@ -47,6 +47,9 @@ import type {
  */
 const savedAdminInfo: Record<string, EventAdminInfo> = {}
 
+/** サイト画像の管理用モック（Storage のアップロードと同様、ブラウザのメモリだけに保持） */
+let hueColorStudyImage = ''
+
 /**
  * 保存（PUT）された収支。イベントID → 収支
  * 管理情報と同じく、ページを再読み込みすると空に戻る
@@ -710,6 +713,18 @@ export const handlers = [
   }),
   http.post('/api/upload/video', () => {
     return HttpResponse.json({ url: '/img/mock-video.mp4' })
+  }),
+
+  // HUE by ei8ht plants のカラースタディ写真（管理画面から URL を設定）
+  http.get('/api/site-assets/:key', ({ params }) => {
+    if (params.key !== 'hue-color-study') return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    return HttpResponse.json({ key: params.key, url: hueColorStudyImage })
+  }),
+  http.put('/api/site-assets/:key', async ({ params, request }) => {
+    if (params.key !== 'hue-color-study') return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    const body = await request.json() as { url: string }
+    hueColorStudyImage = body.url
+    return HttpResponse.json({ key: params.key, url: hueColorStudyImage })
   }),
 
   // 設計書の目次（管理画面「設計書」用）

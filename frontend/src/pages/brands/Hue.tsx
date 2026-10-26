@@ -1,19 +1,19 @@
+import { useEffect, useState } from 'react'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
-
-const PALETTE = [
-  { color: '#d9a76f', name: '琥珀', en: 'AMBER' },
-  { color: '#9eae8c', name: '苔', en: 'MOSS' },
-  { color: '#d6a5a5', name: '薔薇', en: 'ROSE' },
-  { color: '#91b6ad', name: '霞', en: 'MIST' },
-  { color: '#e4ca7d', name: '柑橘', en: 'CITRUS' },
-  { color: '#a69bc4', name: '菖蒲', en: 'IRIS' },
-]
+import { api } from '../../lib/api'
 
 /** HUE 専用サイト。色とフォルムから植物を楽しむ、編集的なブランド体験をつくる。 */
 export default function Hue() {
   const t = useT()
+  const [colorStudyImage, setColorStudyImage] = useState('')
+
+  useEffect(() => {
+    api.siteAssets.get('hue-color-study')
+      .then(({ url }) => setColorStudyImage(url))
+      .catch(() => setColorStudyImage(''))
+  }, [])
 
   return (
     <div className="hue-home">
@@ -69,14 +69,11 @@ export default function Hue() {
         <div className="hue-section-label"><span>02</span><span>{t('植物のある暮らし', 'COLOR / FORM / SPACE')}</span></div>
         <h2 id="hue-color-title">{t('一鉢から、暮らしを選ぶ。', 'Choose by feeling.')}</h2>
         <p className="hue-color-intro">{t('朝の光に葉の色を見つける。部屋に似合う形を選ぶ。植物と過ごす日々を、自分らしく。', 'Notice the leaves in morning light. Find a shape that feels at home. Live with plants in your own way.')}</p>
-        <div className="hue-palette" aria-label="HUE color palette">
-          {PALETTE.map(({ color, name, en }, index) => (
-            <div className="hue-palette-item" key={name}>
-              <span className="hue-palette-swatch" style={{ '--swatch-color': color, '--swatch-index': index } as React.CSSProperties} />
-              <span>{t(name, en)}</span>
-            </div>
-          ))}
-        </div>
+        {colorStudyImage && (
+          <figure className="hue-color-photo">
+            <img src={colorStudyImage} alt={t('HUE by ei8ht plants の植物の写真', 'A plant from HUE by ei8ht plants')} />
+          </figure>
+        )}
         <div className="hue-color-notes">
           <article><span>01 / {t('色', 'COLOR')}</span><h3>{t('葉の色を楽しむ。', 'Notice the tone.')}</h3><p>{t('新芽の明るさや葉色の深み。小さな色の違いを楽しむ。', 'From fresh new growth to deep foliage tones, notice the subtle shifts in color.')}</p></article>
           <article><span>02 / {t('かたち', 'FORM')}</span><h3>{t('かたちと過ごす。', 'Follow the shape.')}</h3><p>{t('葉の重なりや枝の線。植物が描くかたちに目を向ける。', 'Look closely at a plant’s lines, leaves, and the shapes they create.')}</p></article>

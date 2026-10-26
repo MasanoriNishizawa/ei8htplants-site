@@ -27,6 +27,7 @@ export const adminPageLoaders = {
   PriceCalc: () => import('./PriceCalc'),
   AdminPotArtists: () => import('./AdminPotArtists'),
   AdminMedia: () => import('./AdminMedia'),
+  SiteImages: () => import('./SiteImages'),
   AdminDocs: () => import('./AdminDocs'),
   AdminChatQA: () => import('./AdminChatQA'),
   AdminChatLogs: () => import('./AdminChatLogs'),

@@ -30,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: ANALYTICS_URL, label: '分析' },
   { to: '/admin/events', label: 'イベント' },
   { to: '/admin/gallery', label: 'ギャラリー' },
+  { to: '/admin/site-images', label: 'サイト画像' },
   { to: '/admin/stockists', label: '取扱店' },
   { to: '/admin/reservations', label: 'WS予約' },
   { to: '/admin/collaborations', label: 'コラボレーション' },
