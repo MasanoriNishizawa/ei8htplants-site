@@ -12,7 +12,7 @@ from ..db import admin_supabase, supabase
 router = APIRouter(prefix='/site-assets', tags=['site-assets'])
 
 # 公開ページから変更する画像設定だけを許可する
-EDITABLE_KEYS = {'hue-color-study'}
+EDITABLE_KEYS = {'hue-color-study'} | {f'hue-color-{index:02d}' for index in range(1, 7)}
 
 
 class SiteAssetBody(BaseModel):

@@ -48,7 +48,7 @@ import type {
 const savedAdminInfo: Record<string, EventAdminInfo> = {}
 
 /** サイト画像の管理用モック（Storage のアップロードと同様、ブラウザのメモリだけに保持） */
-let hueColorStudyImage = ''
+const hueColorStudyImages = Array(6).fill('') as string[]
 
 /**
  * 保存（PUT）された収支。イベントID → 収支
@@ -715,16 +715,18 @@ export const handlers = [
     return HttpResponse.json({ url: '/img/mock-video.mp4' })
   }),
 
-  // HUE by ei8ht plants のカラースタディ写真（管理画面から URL を設定）
+  // HUE by ei8ht plants の6枚の写真（管理画面から URL を設定）
   http.get('/api/site-assets/:key', ({ params }) => {
-    if (params.key !== 'hue-color-study') return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
-    return HttpResponse.json({ key: params.key, url: hueColorStudyImage })
+    const index = /^hue-color-0([1-6])$/.exec(String(params.key))?.[1]
+    if (!index) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    return HttpResponse.json({ key: params.key, url: hueColorStudyImages[Number(index) - 1] })
   }),
   http.put('/api/site-assets/:key', async ({ params, request }) => {
-    if (params.key !== 'hue-color-study') return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    const index = /^hue-color-0([1-6])$/.exec(String(params.key))?.[1]
+    if (!index) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
     const body = await request.json() as { url: string }
-    hueColorStudyImage = body.url
-    return HttpResponse.json({ key: params.key, url: hueColorStudyImage })
+    hueColorStudyImages[Number(index) - 1] = body.url
+    return HttpResponse.json({ key: params.key, url: hueColorStudyImages[Number(index) - 1] })
   }),
 
   // 設計書の目次（管理画面「設計書」用）
