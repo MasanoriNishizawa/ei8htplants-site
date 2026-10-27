@@ -13,13 +13,15 @@
  * api（商品の取り直し・送料・注文）はモックにして本番には接続しない
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import type { ComponentType } from 'react'
 import { api, ApiError, type Product } from '../../lib/api'
 import { LangProvider } from '../../lib/lang'
 import { CartProvider } from '../../lib/cart'
 import { CART_STORAGE_KEY } from '../../lib/cartContext'
+import CheckoutOrderSummary from '../../components/CheckoutOrderSummary'
+import type { CartItem } from '../../lib/cart'
 
 // 使う api の関数だけをモックする（ApiError などの実装はそのまま）
 vi.mock('../../lib/api', async (importActual) => {
@@ -238,6 +240,87 @@ describe('Checkout の入力欄の maxLength', () => {
     expect(max('address1')).toBe('200')
     expect(max('address2')).toBe('200')
     expect(max('note')).toBe('2000')
+  })
+})
+
+describe('CheckoutOrderSummary の注文内容表示', () => {
+  /** 表示テストで使う2商品の注文内容 */
+  const summaryItems: CartItem[] = [
+    { product: PRODUCT, quantity: 1 },
+    { product: { ...PRODUCT, id: 'p-2', name: '鉢 M', price: 5200 }, quantity: 2 },
+  ]
+
+  /** 注文サマリーを表示する */
+  function renderSummary(options?: {
+    items?: CartItem[]
+    subtotal?: number
+    total?: number
+    prefecture?: string
+    shippingFee?: number | null
+    shippingStatus?: 'idle' | 'loading' | 'error'
+    onRetryShipping?: () => void
+  }) {
+    const language = localStorage.getItem('site-lang')
+    return render(
+      <CheckoutOrderSummary
+        items={options?.items ?? summaryItems}
+        subtotal={options?.subtotal ?? 14200}
+        total={options?.total ?? 15000}
+        prefecture={options?.prefecture ?? ''}
+        shippingFee={options?.shippingFee !== undefined ? options.shippingFee : 800}
+        shippingStatus={options?.shippingStatus ?? 'idle'}
+        onRetryShipping={options?.onRetryShipping ?? vi.fn()}
+        t={(ja, en) => language === 'en' ? en : ja}
+        serif="serif"
+        sans="sans-serif"
+      />,
+    )
+  }
+
+  it('複数商品の名前・数量・商品ごとの金額と、小計・送料・合計を表示する', () => {
+    renderSummary()
+    const summary = screen.getByText('ご注文内容').parentElement!.parentElement!
+
+    expect(within(summary).getByText('鉢 S')).toBeInTheDocument()
+    expect(within(summary).getByText('× 1')).toBeInTheDocument()
+    expect(within(summary).getByText('¥3,800')).toBeInTheDocument()
+    expect(within(summary).getByText('鉢 M')).toBeInTheDocument()
+    expect(within(summary).getByText('× 2')).toBeInTheDocument()
+    expect(within(summary).getByText('¥10,400')).toBeInTheDocument()
+    expect(within(summary).getByText('小計')).toBeInTheDocument()
+    expect(within(summary).getByText('¥14,200')).toBeInTheDocument()
+    expect(within(summary).getByText('送料')).toBeInTheDocument()
+    expect(within(summary).getByText('¥800')).toBeInTheDocument()
+    expect(within(summary).getByText('合計')).toBeInTheDocument()
+    expect(within(summary).getByText('¥15,000')).toBeInTheDocument()
+  })
+
+  it('送料が未確定なら送料と合計を「—」にし、都道府県選択後の案内を表示する', () => {
+    renderSummary({ shippingFee: null, total: 14200 })
+    const summary = screen.getByText('ご注文内容').parentElement!.parentElement!
+
+    expect(within(summary).getAllByText('—')).toHaveLength(2)
+    expect(within(summary).getByText('都道府県選択後に確定')).toBeInTheDocument()
+  })
+
+  it('送料確認中は案内を表示し、英語設定では注文サマリーの項目名も英語になる', () => {
+    localStorage.setItem('site-lang', 'en')
+    renderSummary({ shippingFee: null, shippingStatus: 'loading', total: 14200 })
+    const summary = screen.getByText('Order Summary').parentElement!.parentElement!
+
+    expect(within(summary).getByText('Subtotal')).toBeInTheDocument()
+    expect(within(summary).getByText('Shipping')).toBeInTheDocument()
+    expect(within(summary).getByText('Total')).toBeInTheDocument()
+    expect(within(summary).getByText('Calculating shipping...')).toBeInTheDocument()
+    expect(within(summary).queryByText('送料')).not.toBeInTheDocument()
+  })
+
+  it('送料の取得に失敗したら案内と再取得ボタンを表示し、押すと再取得を依頼する', () => {
+    const onRetryShipping = vi.fn()
+    renderSummary({ shippingFee: null, shippingStatus: 'error', onRetryShipping })
+    expect(screen.getByRole('alert')).toHaveTextContent('送料を取得できませんでした。通信状況をご確認ください。')
+    fireEvent.click(screen.getByRole('button', { name: '送料を再取得' }))
+    expect(onRetryShipping).toHaveBeenCalledOnce()
   })
 })
 

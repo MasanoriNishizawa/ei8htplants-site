@@ -4,6 +4,7 @@ import { api, ApiError, type Product } from '../lib/api'
 import { useCart } from '../lib/cart'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
+import CheckoutOrderSummary from '../components/CheckoutOrderSummary'
 import { formatYen } from '../lib/format'
 import { INPUT_MAX_LENGTH } from '../lib/constants'
 
@@ -591,64 +592,19 @@ export default function Checkout() {
               </p>
             </form>
 
-            {/* 注文サマリー（商品ごとの金額・小計・送料・合計） */}
-            <div style={{ background: '#fff', border: '1px solid #e8e3da', padding: 28 }}>
-              <p style={{ fontFamily: SERIF, fontSize: 14, color: '#1c1c1c', margin: '0 0 20px', letterSpacing: '0.05em', borderBottom: '1px solid #e8e3da', paddingBottom: 12 }}>
-                {t('ご注文内容', 'Order Summary')}
-              </p>
-              <div style={{ marginBottom: 20 }}>
-                {items.map((i) => (
-                  <div key={i.product.id} style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'flex-start' }}>
-                    <div style={{ width: 60, height: 60, flexShrink: 0, background: '#f0ede8', overflow: 'hidden' }}>
-                      {i.product.image_urls[0] && (
-                        <img src={i.product.image_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      )}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontFamily: SANS, fontSize: 13, color: '#1c1c1c', margin: '0 0 3px', lineHeight: 1.5 }}>{i.product.name}</p>
-                      <p style={{ fontFamily: SANS, fontSize: 12, color: '#aaa', margin: 0 }}>× {i.quantity}</p>
-                    </div>
-                    <p style={{ fontFamily: SERIF, fontSize: 14, color: '#1c1c1c', margin: 0, whiteSpace: 'nowrap' }}>{formatYen(i.product.price * i.quantity)}</p>
-                  </div>
-                ))}
-              </div>
-              <div style={{ borderTop: '1px solid #e8e3da', paddingTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontFamily: SANS, fontSize: 13, color: '#717171' }}>
-                  <span>{t('小計', 'Subtotal')}</span><span>{formatYen(subtotal)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, fontFamily: SANS, fontSize: 13, color: '#717171' }}>
-                  <span>{t('送料', 'Shipping')}{form.prefecture ? `（${form.prefecture}）` : ''}</span>
-                  <span>{shippingFee !== null ? formatYen(shippingFee) : '—'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: SERIF, fontSize: 19, color: '#1c1c1c' }}>
-                  <span>{t('合計', 'Total')}</span>
-                  <span>{shippingFee !== null ? formatYen(total) : '—'}</span>
-                </div>
-                {/* 送料が未確定のときの案内。未選択・取得中・取得失敗で文言を分ける */}
-                {shippingFee === null && shippingStatus !== 'error' && (
-                  <p style={{ fontFamily: SANS, fontSize: 11, color: '#aaa', marginTop: 6, textAlign: 'right' }}>
-                    {shippingStatus === 'loading'
-                      ? t('送料を確認中...', 'Calculating shipping...')
-                      : t('都道府県選択後に確定', 'Determined after selecting prefecture')}
-                  </p>
-                )}
-                {shippingStatus === 'error' && (
-                  <div role="alert" style={{ marginTop: 6, textAlign: 'right' }}>
-                    <p style={{ fontFamily: SANS, fontSize: 11, color: '#c0392b', margin: '0 0 6px', lineHeight: 1.7 }}>
-                      {t('送料を取得できませんでした。通信状況をご確認ください。', 'Could not get the shipping fee. Please check your connection.')}
-                    </p>
-                    {/* 送料の再取得ボタン（文字だけの小さなボタン） */}
-                    <button
-                      type="button"
-                      onClick={() => setShippingRetry((n) => n + 1)}
-                      style={{ fontFamily: SANS, fontSize: 11, color: '#1c1c1c', background: 'none', border: '1px solid #ddd', padding: '4px 12px', cursor: 'pointer' }}
-                    >
-                      {t('送料を再取得', 'Retry shipping')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* 注文商品の表示専用サマリー。送料の取得・計算は親画面で行う */}
+            <CheckoutOrderSummary
+              items={items}
+              subtotal={subtotal}
+              total={total}
+              prefecture={form.prefecture}
+              shippingFee={shippingFee}
+              shippingStatus={shippingStatus}
+              onRetryShipping={() => setShippingRetry((n) => n + 1)}
+              t={t}
+              serif={SERIF}
+              sans={SANS}
+            />
           </div>
         </div>
       </div>

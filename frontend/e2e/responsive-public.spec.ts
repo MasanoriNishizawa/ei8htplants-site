@@ -118,6 +118,24 @@ test.describe('注文手続き（/official/checkout）の列', () => {
     await expectNoHorizontalScroll(page)
   })
 
+  test('注文サマリーに商品金額を表示し、都道府県選択後に送料込み合計を更新する', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await openCheckoutWithItem(page)
+    const summary = page.locator('.checkout-layout > :nth-child(2)')
+
+    await expect(summary.getByText('ご注文内容')).toBeVisible()
+    await expect(summary.getByText('Habitat Style Pot S')).toBeVisible()
+    await expect(summary.getByText('× 1')).toBeVisible()
+    await expect(summary.getByText('小計')).toBeVisible()
+    await expect(summary.getByText('¥3,800')).toHaveCount(2)
+    await expect(summary.getByText('都道府県選択後に確定')).toBeVisible()
+
+    await page.getByLabel('都道府県 *').selectOption('東京都')
+    await expect(summary.getByText('送料（東京都）')).toBeVisible()
+    await expect(summary.getByText('¥800')).toBeVisible()
+    await expect(summary.getByText('¥4,600')).toBeVisible()
+  })
+
   test('767px でも 1 列、768px では 2 列（サマリーがフォームの右）になる', async ({ page }) => {
     await page.setViewportSize({ width: 767, height: 900 })
     await openCheckoutWithItem(page)
