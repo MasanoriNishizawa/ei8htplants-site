@@ -1,12 +1,15 @@
 """テストランナーの省略判定とログの回帰テスト。"""
+import os
+import signal
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from scripts import run_tests
+from scripts import runner_process
 
 
 class TestRunnerSkipLogging(unittest.TestCase):
@@ -63,14 +66,191 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn(f"`{failed_name}`", entry)
 
     def test_runはmonotonic時計で経過時間を測る(self):
-        completed = subprocess.CompletedProcess(["example"], 0, "stdout", "stderr")
+        process = Mock(returncode=0)
+        process.communicate.return_value = ("stdout", "stderr")
         with patch.object(run_tests.time, "monotonic", side_effect=[10.0, 12.5]) as monotonic:
             with patch.object(run_tests.time, "time", side_effect=AssertionError("壁時計を使わないこと")):
-                with patch.object(run_tests.subprocess, "run", return_value=completed):
+                with patch.object(run_tests.subprocess, "Popen", return_value=process):
                     code, output, elapsed = run_tests.run(["example"], Path("."))
 
         self.assertEqual((code, output, elapsed), (0, "stdoutstderr", 2.5))
         self.assertEqual(monotonic.call_count, 2)
+
+    def test_runは新しいセッションで起動して正常終了結果を返す(self):
+        """正常終了時の戻り値を保ち、POSIXでは専用セッションで起動する。"""
+        class FakeProcess:
+            """Popen の最小限の正常系応答を返す偽物。"""
+            pid = 4321
+            returncode = 0
+
+            def communicate(self):
+                return "標準出力", "標準エラー"
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        process = FakeProcess()
+        with patch.object(run_tests.subprocess, "Popen", return_value=process) as popen:
+            with patch.object(run_tests.time, "monotonic", side_effect=[10.0, 12.5]):
+                code, output, elapsed = run_tests.run(["example"], Path("."))
+
+        self.assertEqual((code, output, elapsed), (0, "標準出力標準エラー", 2.5))
+        if os.name == "posix":
+            self.assertTrue(popen.call_args.kwargs.get("start_new_session"))
+
+    def test_runは起動時のOSErrorを127と診断文に変換する(self):
+        """実行ファイルを起動できない場合も呼び出し元へ例外を漏らさない。"""
+        with patch.object(run_tests.subprocess, "Popen", side_effect=FileNotFoundError("実行ファイルなし")):
+            with patch.object(run_tests.time, "monotonic", side_effect=[20.0, 20.25]):
+                code, output, elapsed = run_tests.run(["missing"], Path("."))
+
+        self.assertEqual(code, 127)
+        self.assertIn("実行ファイルなし", output)
+        self.assertEqual(elapsed, 0.25)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX のプロセスグループ終了を検証する")
+    def test_runは割り込み時にグループへTERM後KILLを送りleaderを回収して再送出する(self):
+        """TERM猶予中に終了しない子をKILLし、wait/reap 後に割り込みを伝える。"""
+        events = []
+
+        class FakeProcess:
+            """割り込みと wait timeout を再現する Popen の偽物。"""
+            pid = 9876
+            returncode = None
+
+            def communicate(self):
+                events.append("communicate")
+                raise KeyboardInterrupt
+
+            def wait(self, timeout=None):
+                events.append(("wait", timeout))
+                if sum(1 for event in events if isinstance(event, tuple) and event[0] == "wait") == 1:
+                    raise subprocess.TimeoutExpired(["example"], timeout)
+                self.returncode = -signal.SIGKILL
+                return self.returncode
+
+            def poll(self):
+                return self.returncode
+
+        process = FakeProcess()
+
+        def record_killpg(pid, signum):
+            events.append(("killpg", pid, signum))
+
+        with patch.object(run_tests.subprocess, "Popen", return_value=process) as popen:
+            with patch.object(os, "killpg", side_effect=record_killpg):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_tests.run(["example"], Path("."))
+
+        self.assertTrue(popen.call_args.kwargs.get("start_new_session"))
+        self.assertEqual(events[0], "communicate")
+        self.assertEqual(events[1], ("killpg", process.pid, signal.SIGTERM))
+        self.assertEqual(events[2][0], "wait")
+        self.assertGreater(events[2][1], 0)
+        self.assertEqual(events[3], ("killpg", process.pid, signal.SIGKILL))
+        self.assertEqual(events[4][0], "wait")
+
+    @unittest.skipUnless(os.name == "posix", "POSIX のプロセスグループ終了を検証する")
+    def test_leader回収後も残るプロセスグループを期限後にKILLする(self):
+        """leader の wait 成功で後始末を終えず、残存する子孫を期限後に終了する。"""
+        events = []
+        clock = {"now": 0.0}
+
+        class FakeProcess:
+            """leader は終了するが、子孫はプロセスグループに残る状態を表す。"""
+            pid = 2468
+            returncode = 0
+
+            def communicate(self):
+                events.append("communicate")
+                raise KeyboardInterrupt
+
+            def wait(self, timeout=None):
+                events.append(("leader_wait", timeout))
+                return self.returncode
+
+        process = FakeProcess()
+
+        def record_group_signal(pid, signum):
+            events.append(("killpg", pid, signum))
+            # signal 0 はグループ内の子孫が猶予期間中ずっと残っていると示す。
+            return None
+
+        def advance_clock():
+            current = clock["now"]
+            clock["now"] += 1.0
+            return current
+
+        with patch.object(run_tests.subprocess, "Popen", return_value=process):
+            with patch.object(os, "killpg", side_effect=record_group_signal):
+                with patch.object(runner_process.time, "monotonic", side_effect=advance_clock):
+                    with patch.object(runner_process.time, "sleep", return_value=None):
+                        with self.assertRaises(KeyboardInterrupt):
+                            run_tests.run(["example"], Path("."))
+
+        term_index = events.index(("killpg", process.pid, signal.SIGTERM))
+        leader_wait_index = next(
+            index for index, event in enumerate(events) if isinstance(event, tuple) and event[0] == "leader_wait"
+        )
+        group_probe_indices = [
+            index for index, event in enumerate(events)
+            if event == ("killpg", process.pid, 0)
+        ]
+
+        self.assertLess(term_index, leader_wait_index)
+        self.assertTrue(group_probe_indices, "leader終了後もkillpg(pid, 0)でグループ残存を確認する")
+        self.assertGreater(group_probe_indices[0], leader_wait_index)
+        self.assertIn(("killpg", process.pid, signal.SIGKILL), events)
+        kill_index = events.index(("killpg", process.pid, signal.SIGKILL))
+        self.assertGreater(kill_index, group_probe_indices[-1])
+
+    @unittest.skipUnless(os.name == "posix", "POSIX のプロセスグループ終了を検証する")
+    def test_SIGTERMからleader待ちと残存group待ちの合計猶予は5秒以内(self):
+        """leader待ちに4.9秒かかった後のgroup待ちは残り約0.1秒だけ使う。"""
+        events = []
+        clock = {"now": 0.0, "wait_calls": 0}
+
+        class FakeProcess:
+            """leaderは4.9秒で終了し、子孫だけが5秒時点まで残る偽物。"""
+            pid = 7531
+            returncode = 0
+
+            def communicate(self):
+                events.append(("communicate", clock["now"]))
+                raise KeyboardInterrupt
+
+            def wait(self, timeout=None):
+                events.append(("leader_wait", timeout, clock["now"]))
+                if clock["wait_calls"] == 0:
+                    clock["now"] += 4.9
+                clock["wait_calls"] += 1
+                return self.returncode
+
+        process = FakeProcess()
+
+        def record_group_signal(pid, signum):
+            events.append(("killpg", pid, signum, clock["now"]))
+
+        def advance_clock(seconds):
+            events.append(("sleep", seconds, clock["now"]))
+            clock["now"] += seconds
+
+        with patch.object(run_tests.subprocess, "Popen", return_value=process):
+            with patch.object(os, "killpg", side_effect=record_group_signal):
+                with patch.object(runner_process.time, "monotonic", side_effect=lambda: clock["now"]):
+                    with patch.object(runner_process.time, "sleep", side_effect=advance_clock):
+                        with self.assertRaises(KeyboardInterrupt):
+                            run_tests.run(["example"], Path("."))
+
+        term_time = next(event[3] for event in events if len(event) == 4 and event[:3] == ("killpg", process.pid, signal.SIGTERM))
+        kill_time = next(event[3] for event in events if len(event) == 4 and event[:3] == ("killpg", process.pid, signal.SIGKILL))
+
+        self.assertAlmostEqual(term_time, 0.0)
+        self.assertGreaterEqual(kill_time - term_time, 4.9)
+        self.assertLessEqual(kill_time - term_time, 5.05)
 
     def test_append_logはmarker直下へ新しい記録を先頭追記して既存記録を保つ(self):
         marker = run_tests.MARKER

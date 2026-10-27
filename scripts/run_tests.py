@@ -42,9 +42,11 @@ from pathlib import Path
 try:
     # unittest からの読み込みではパッケージ相対、直接実行では同じディレクトリから読み込む。
     from .runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
+    from .runner_process import run_process
     from .runner_selection import select_tests
 except ImportError:
     from runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
+    from runner_process import run_process
     from runner_selection import select_tests
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,7 +54,7 @@ LOG = ROOT / "doc/04_TEST/08_テスト実行ログ.md"
 
 
 def run(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
-    """コマンドを実行して結果を返す。
+    """従来の呼び出し口を保ち、コマンド実行を専用モジュールへ委ねる。
 
     Args:
         cmd: 実行するコマンド
@@ -61,9 +63,7 @@ def run(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
     Returns:
         (終了コード, 出力（標準出力＋標準エラー）, かかった秒数)
     """
-    start = time.monotonic()
-    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
-    return p.returncode, p.stdout + p.stderr, time.monotonic() - start
+    return run_process(cmd, cwd)
 
 
 def num(pattern: str, text: str) -> int:

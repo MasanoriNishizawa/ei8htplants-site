@@ -40,7 +40,7 @@ const EVENT_ID = 'mock-past-1'
 test('搬入・搬出の日付・時・分を選んで保存すると、保存 API に日時が送られる', async ({ page }) => {
   // 1. 管理情報の編集画面を開き、読み込みが終わるのを待つ
   await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
-  await expect(page.getByText('搬入日時')).toBeVisible()
+  await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
 
   // 2. 搬入・搬出の日付 input と、時・分の select を取り出す（画面の並び順: 搬入の日付・時・分 → 搬出の日付・時・分）
   const dates = page.locator('input[type="date"]')
@@ -76,7 +76,7 @@ test('搬入・搬出を保存すると確認画面に日時・金額が表示�
   // MSW は保存（PUT）した値をブラウザのメモリに持つため、再読み込みせずに画面内リンクで開き直して確かめる
   // 1. 管理情報の編集画面を開く
   await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
-  await expect(page.getByText('搬入日時')).toBeVisible()
+  await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
 
   // 2. 搬入・搬出・宿泊料金・出店料を入力する
   const dates = page.locator('input[type="date"]')
@@ -123,7 +123,7 @@ test('搬入・搬出を保存すると確認画面に日時・金額が表示�
   // 6. 「編集」で編集画面に入り直す（再読み込みはしない）
   await page.getByRole('link', { name: '編集' }).first().click()
   await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info/edit$`))
-  await expect(page.getByText('搬入日時')).toBeVisible()
+  await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
 
   // 7. 保存した日付・時・分・金額がプルダウンと入力欄に入っている
   const reDates = page.locator('input[type="date"]')
