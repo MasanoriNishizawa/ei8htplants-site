@@ -365,9 +365,9 @@ describe('Checkout を開いたときの商品の取り直し（404・通信の�
     vi.mocked(api.products.get).mockRejectedValue(new ApiError(404, '404 Not Found', '商品が見つかりません'))
     renderWithTwoItems()
     expect(await screen.findByText('カートに商品がありません。')).toBeInTheDocument()
-    expect(screen.getByText('「鉢 S」は販売を終了したためカートから削除しました')).toBeInTheDocument()
-    expect(screen.getByText('「鉢 M」は販売を終了したためカートから削除しました')).toBeInTheDocument()
-    expect(savedIds()).toEqual([])
+    expect(await screen.findByText('「鉢 S」は販売を終了したためカートから削除しました')).toBeInTheDocument()
+    expect(await screen.findByText('「鉢 M」は販売を終了したためカートから削除しました')).toBeInTheDocument()
+    await waitFor(() => expect(savedIds()).toEqual([]))
   })
 
   it('通信の失敗（404 以外）の商品はカートに残し、「最新の在庫・価格を確認できませんでした」を出す', async () => {

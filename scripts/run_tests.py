@@ -37,29 +37,16 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+try:
+    # unittest からの読み込みではパッケージ相対、直接実行では同じディレクトリから読み込む。
+    from .runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
+except ImportError:
+    from runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
 
 ROOT = Path(__file__).resolve().parent.parent
 LOG = ROOT / "doc/04_TEST/08_テスト実行ログ.md"
-JST = timezone(timedelta(hours=9))
-MARKER = "<!-- 実行結果はこの下に新しい順で追加される（scripts/run_tests.py が書き込む。手で書き換えない） -->"
-
-HEADER = f"""# テスト実行ログ
-
-**プロジェクト：** ei8htplants-site
-
-自動テストを実行した結果の記録。`python scripts/run_tests.py --note "何を変えたか"` を実行するたびに、一番上に 1 件追加される（手で書き換えない）。
-テストの方針は [01_マスターテスト計画書](01_マスターテスト計画書.md)、ケース一覧は [07_テストケース一覧](07_テストケース一覧.md) を参照。
-
-## 見方
-
-- **判定**：✅ 全部成功 ／ ❌ 失敗あり（失敗したらコミットしない）
-- **コミット**：テストしたときのソースの版（`git` のコミット番号）。「＋未コミット」は、まだコミットしていない変更を含めてテストしたもの
-- **省略**：急ぐときなどに、そのテストを実行しなかったもの。「省略（関連なし）」は絞った実行で対象外のテスト、「省略（--no-e2e）」は画面テストを明示的に省いたもの。Playwright 以外を全件実行した場合も部分実行として記録する。分析ダッシュボードは `analytics/.venv` がない場合、スキップ件数と理由を表示する
-
-{MARKER}
-"""
 
 
 def run(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
@@ -72,9 +59,9 @@ def run(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
     Returns:
         (終了コード, 出力（標準出力＋標準エラー）, かかった秒数)
     """
-    start = time.time()
+    start = time.monotonic()
     p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
-    return p.returncode, p.stdout + p.stderr, time.time() - start
+    return p.returncode, p.stdout + p.stderr, time.monotonic() - start
 
 
 def num(pattern: str, text: str) -> int:
@@ -110,13 +97,13 @@ def run_build() -> dict:
     """
     name = "本番ビルド（tsc -b ＋ vite build）"
     frontend = ROOT / "frontend"
-    start = time.time()
+    start = time.monotonic()
     # 1. ビルド時の型チェック（npm run build の前半と同じ）
     code, out, _ = run(["npx", "tsc", "-b"], frontend)
     errors = re.findall(r"error TS\d+: .+", out)
     if code != 0:
         return {
-            "name": name, "code": code, "sec": time.time() - start,
+            "name": name, "code": code, "sec": time.monotonic() - start,
             "passed": 0, "failed": max(len(errors), 1), "skipped": 0, "xfail": 0,
             "failed_names": errors[:10] or ["tsc -b が失敗しました"],
             "tail": out.strip().splitlines()[-2:] if out.strip() else [],
@@ -126,7 +113,7 @@ def run_build() -> dict:
         code, out, _ = run(["npx", "vite", "build", "--outDir", tmp, "--emptyOutDir"], frontend)
         if code != 0:
             return {
-                "name": name, "code": code, "sec": time.time() - start,
+                "name": name, "code": code, "sec": time.monotonic() - start,
                 "passed": 0, "failed": 1, "skipped": 0, "xfail": 0,
                 "failed_names": ["vite build が失敗しました"],
                 "tail": out.strip().splitlines()[-3:] if out.strip() else [],
@@ -138,13 +125,13 @@ def run_build() -> dict:
         ]
     if leaked:
         return {
-            "name": name, "code": 1, "sec": time.time() - start,
+            "name": name, "code": 1, "sec": time.monotonic() - start,
             "passed": 0, "failed": 1, "skipped": 0, "xfail": 0,
             "failed_names": [f"開発用のダミートークンが本番用の出力に残っています: {', '.join(leaked)}"],
             "tail": [],
         }
     return {
-        "name": name, "code": 0, "sec": time.time() - start,
+        "name": name, "code": 0, "sec": time.monotonic() - start,
         "passed": 1, "failed": 0, "skipped": 0, "xfail": 0,
         "failed_names": [], "tail": [],
     }
@@ -288,71 +275,30 @@ def git_info() -> str:
 
 
 def make_entry(results: list[dict], note: str, skipped_suites: list[tuple[str, str]], targets: list[str] | None = None) -> str:
-    """ログ 1 件分の Markdown を作る。
+    """従来の呼び出し口を保ったまま、ログ1件の整形を専用モジュールへ委ねる。
 
     Args:
-        results: 流したテストの結果
-        note: 何を変えたか
-        skipped_suites: 流さなかったテストと省略理由（「省略」の行を出す）
-        targets: 部分実行で流したテストファイルまたはテスト枠。None ならすべてを流した実行
+        results: 実行した各テスト枠の結果。
+        note: 今回の変更内容。
+        skipped_suites: 実行対象から省いたテスト枠と理由。
+        targets: 対象を絞った実行の対象一覧。全件実行は None。
 
     Returns:
-        ログ 1 件分の Markdown
+        ログファイルへ追加する Markdown。
     """
-    ok = all(r["code"] == 0 and r["failed"] == 0 for r in results)
-    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
-    total = sum(r["sec"] for r in results)
-    # 1. 見出し（絞った実行なら「対象のテストは成功」とし、すべて流した実行と見分けられるようにする）
-    if targets is None:
-        verdict = '✅ 全部成功' if ok else '❌ 失敗あり'
-    else:
-        verdict = '✅ 対象のテストは成功（関連する部分だけ実行）' if ok else '❌ 失敗あり（関連する部分だけ実行）'
-    lines = [
-        f"### {now}　{verdict}",
-        "",
-        f"- **変更内容**：{note or '（記載なし）'}",
-        f"- **コミット**：{git_info()}",
-        f"- **かかった時間**：{total:.0f} 秒",
-    ]
-    # 2. 絞った実行なら、流したテストファイルを残す
-    if targets is not None:
-        lines.append(f"- **流したテスト**：{'、'.join(f'`{t}`' for t in targets) or '（型チェックと本番ビルドだけ）'}")
-    lines += [
-        "",
-        "| テスト | 判定 | 成功 | 失敗 | スキップ | 既知の問題 | 時間 |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    for r in results:
-        good = r["code"] == 0 and r["failed"] == 0
-        lines.append(
-            f"| {r['name']} | {'✅' if good else '❌'} | {r['passed']} | {r['failed']} | {r['skipped']} | {r['xfail']} | {r['sec']:.0f} 秒 |"
-        )
-    for name, reason in skipped_suites:
-        lines.append(f"| {name} | {reason} | - | - | - | - | - |")
-    for r in results:
-        if r.get("skip_reason"):
-            lines += ["", f"- **省略理由**：{r['name']} — {r['skip_reason']}"]
-    failed = [(r["name"], n) for r in results for n in r["failed_names"]]
-    if failed:
-        truncated_suites = [r for r in results if r["failed"] > len(r["failed_names"]) and r["failed_names"]]
-        heading = "**失敗したテスト（各テスト枠につき最大10件表示）**" if truncated_suites else "**失敗したテスト**"
-        lines += ["", heading, ""] + [f"- {suite}：`{n}`" for suite, n in failed]
-        for r in truncated_suites:
-            lines.append(f"- {r['name']}：ほか {r['failed'] - len(r['failed_names'])} 件（合計 {r['failed']} 件）")
-    for r in results:
-        if r["code"] != 0 and not r["failed_names"]:
-            lines += ["", f"**{r['name']} の最後の出力**：`{' '.join(r['tail']) or '（なし）'}`"]
-    lines += ["", "---", ""]
-    return "\n".join(lines)
+    return _make_log_entry(results, note, skipped_suites, git_revision=git_info(), targets=targets)
 
 
 def append_log(text: str) -> None:
-    """ログファイルの目印の行のすぐ下（一番上）に追加する。ファイルがなければ作る。"""
-    current = LOG.read_text(encoding="utf-8") if LOG.exists() else HEADER
-    if MARKER not in current:
-        current = HEADER + current
-    head, rest = current.split(MARKER, 1)
-    LOG.write_text(head + MARKER + "\n\n" + text + rest.lstrip("\n"), encoding="utf-8")
+    """従来の呼び出し口を保ち、ログ追記を専用モジュールへ委ねる。
+
+    Args:
+        text: 先頭に追加する Markdown 記録。
+
+    Returns:
+        戻り値なし。
+    """
+    _append_log(LOG, text)
 
 
 def main() -> int:
