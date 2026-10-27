@@ -21,6 +21,7 @@
 実行するテスト:
     1. TypeScript チェック（型エラーがないか）  cd frontend && npx tsc --noEmit -p tsconfig.app.json
        ＋ 本番ビルドの確認                       cd frontend && npx tsc -b && npx vite build（一時フォルダに出力。frontend/dist は書き換えない）
+    1-3. テストランナー回帰テスト（unittest）   python -m unittest discover -s scripts/tests
     2. フロントのロジック（Vitest）             cd frontend && npx vitest run
     3. 画面テスト（Playwright。API は MSW モック）cd frontend && npx playwright test
     4. バックエンド（pytest）                   cd backend && python -m pytest
@@ -250,6 +251,30 @@ def run_analytics() -> dict:
     }
 
 
+def run_runner_tests() -> dict:
+    """テストランナーのCLI・結果記録の回帰テストを実行する。"""
+    tests_dir = ROOT / "scripts" / "tests"
+    code, out, sec = run(
+        [sys.executable, "-m", "unittest", "discover", "-s", str(tests_dir)], ROOT
+    )
+    passed_match = re.search(r"Ran (\d+) tests?", out)
+    total = int(passed_match.group(1)) if passed_match else 0
+    skipped = num(r"skipped=(\d+)", out)
+    xfail = num(r"expected failures=(\d+)", out)
+    failed_match = re.search(r"FAILED \(([^)]*)\)", out)
+    failure_counts = (
+        [int(value) for value in re.findall(r"(?:failures|errors)=(\d+)", failed_match.group(1))]
+        if failed_match else []
+    )
+    failed = 0 if code == 0 else max(1, sum(failure_counts))
+    passed = max(0, total - skipped - xfail - failed)
+    return {
+        "name": "テストランナー（unittest）", "code": code, "sec": sec,
+        "passed": passed, "failed": failed, "skipped": skipped, "xfail": xfail,
+        "failed_names": [], "tail": out.strip().splitlines()[-3:] if out.strip() else [],
+    }
+
+
 def git_info() -> str:
     """今のコミット番号と、まだコミットしていない変更があるかを返す。"""
     head = subprocess.run(
@@ -370,6 +395,10 @@ def main() -> int:
     # 1-2. 本番ビルドの確認（frontend/dist は書き換えない）
     print("本番ビルドを確認中…", flush=True)
     results.append(run_build())
+
+    # 1-3. テストランナー自身のCLI・ログ処理
+    print("テストランナーの回帰テスト中…", flush=True)
+    results.append(run_runner_tests())
 
     # 2. Vitest（フロントロジック。絞った実行で指定が無ければ流さない）
     if narrowed and args.vitest is None:
