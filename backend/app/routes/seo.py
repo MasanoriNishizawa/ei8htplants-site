@@ -34,6 +34,7 @@ from ..db import admin_supabase, supabase
 from ..utils.cache import TTLCache
 from ..utils.errors import error_summary
 from ..utils.ids import UUID_RE
+from .seo_html import OG_LOCALE, inject_head, json_for_script as _json_for_script, render_head_tags
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 
 logger = logging.getLogger(__name__)
@@ -53,9 +54,6 @@ DEFAULT_DESCRIPTION = '植物の生息環境を切り取るハビタットスタ
 DEFAULT_OG_IMAGE = f'{SITE_ORIGIN}/img/logo-ei8htplants.png'
 # 構造化データ（Organization）のロゴ
 LOGO_URL = DEFAULT_OG_IMAGE
-# og:locale の値
-OG_LOCALE = 'ja_JP'
-
 # DB の読み取り結果をメモリに残しておく秒数（クローラーが連続で来ても DB を叩きすぎないため）
 CACHE_TTL_SECONDS = 60
 # メモリキャッシュに残す件数の上限（存在しない ID を大量に叩かれてもメモリが増え続けないようにする）
@@ -378,28 +376,6 @@ def _event_datetime(day: date, hhmm: Optional[str]) -> str:
     if hhmm:
         return f'{day.isoformat()}T{hhmm}:00+09:00'
     return day.isoformat()
-
-
-def _json_for_script(data: Any) -> str:
-    """<script> の中に安全に埋め込める JSON 文字列を返す。
-
-    "</script>" や "<!--" で script が閉じられないよう、< > & と
-    JavaScript で改行扱いになる U+2028 / U+2029 を \\uXXXX の形に置き換える。
-
-    Args:
-        data: JSON にする値（構造化データの dict など）
-
-    Returns:
-        エスケープ済みの JSON 文字列
-    """
-    s = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
-    return (
-        s.replace('<', '\\u003c')
-        .replace('>', '\\u003e')
-        .replace('&', '\\u0026')
-        .replace('\u2028', '\\u2028')
-        .replace('\u2029', '\\u2029')
-    )
 
 
 def _is_noindex(path: str) -> bool:
@@ -835,64 +811,6 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
 
 
 # ---------------------------------------------------------------------------
-# index.html への埋め込み
-# ---------------------------------------------------------------------------
-
-def render_head_tags(meta: PageMeta) -> str:
-    """PageMeta から <head> に入れるタグの文字列を作る。値はすべて HTML エスケープする。
-
-    Args:
-        meta: build_page_meta() が返すメタ情報
-
-    Returns:
-        title・meta・link・構造化データの script タグを改行でつないだ文字列
-    """
-    e = lambda v: html.escape(v, quote=True)  # noqa: E731 属性値・本文のエスケープ（& < > " ' を実体参照にする）
-    card = 'summary_large_image' if meta.has_own_image else 'summary'
-    tags = [
-        f'<title>{e(meta.title)}</title>',
-        f'<meta name="description" content="{e(meta.description)}" />',
-    ]
-    if meta.canonical:
-        tags.append(f'<link rel="canonical" href="{e(meta.url)}" />')
-    if meta.noindex:
-        tags.append('<meta name="robots" content="noindex" />')
-    tags += [
-        '<meta property="og:type" content="website" />',
-        f'<meta property="og:title" content="{e(meta.title)}" />',
-        f'<meta property="og:description" content="{e(meta.description)}" />',
-        f'<meta property="og:image" content="{e(meta.image)}" />',
-        f'<meta property="og:url" content="{e(meta.url)}" />',
-        f'<meta property="og:site_name" content="{e(meta.site_name)}" />',
-        f'<meta property="og:locale" content="{OG_LOCALE}" />',
-        f'<meta name="twitter:card" content="{card}" />',
-        f'<meta name="twitter:title" content="{e(meta.title)}" />',
-        f'<meta name="twitter:description" content="{e(meta.description)}" />',
-        f'<meta name="twitter:image" content="{e(meta.image)}" />',
-    ]
-    for ld in meta.json_ld:
-        tags.append(f'<script type="application/ld+json">{_json_for_script(ld)}</script>')
-    return '\n    '.join(tags)
-
-
-def inject_head(index_html: str, meta: PageMeta) -> str:
-    """index.html の <title> をメタ情報のタグに置き換える。<title> が無ければ </head> の前に入れる。
-
-    Args:
-        index_html: index.html の中身
-        meta: 入れるメタ情報
-
-    Returns:
-        メタ情報のタグを入れた HTML 文字列
-    """
-    tags = render_head_tags(meta)
-    # 置き換え文字列に "\" が含まれても正規表現の参照として解釈されないよう、関数で渡す
-    replaced, count = re.subn(r'<title>.*?</title>', lambda _m: tags, index_html, count=1, flags=re.S | re.I)
-    if count:
-        return replaced
-    return index_html.replace('</head>', tags + '\n  </head>', 1)
-
-
 # index.html のパス → (更新時刻, 中身)。デプロイで差し替わって更新時刻が変わったら読み直す
 _index_cache: dict[str, tuple[float, str]] = {}
 # _index_cache を読み書きするときに取るロック（複数のリクエストが同時に読み書きしても壊れないようにする）。
