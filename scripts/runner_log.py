@@ -44,11 +44,16 @@ def make_entry(
         ログファイルへ追加する Markdown。
     """
     # 1. 失敗と省略を分けて判定し、部分実行やスキップを全件成功と表示しない。
-    failed_results = any(r["code"] != 0 or r["failed"] != 0 for r in results)
+    interrupted = any(r.get("interrupted", False) for r in results)
+    failed_results = any(r["code"] != 0 or r["failed"] != 0 for r in results if not r.get("interrupted", False))
     has_skips = bool(skipped_suites) or any(r["skipped"] > 0 for r in results)
     elapsed = sum(r["sec"] for r in results)
     timestamp = (now or datetime.now(JST)).astimezone(JST).strftime("%Y-%m-%d %H:%M")
-    if failed_results:
+    if interrupted and failed_results:
+        verdict = "⏹ 中断・失敗あり（関連する部分だけ実行）" if targets is not None else "⏹ 中断・失敗あり"
+    elif interrupted:
+        verdict = "⏹ 中断（関連する部分だけ実行）" if targets is not None else "⏹ 中断"
+    elif failed_results:
         verdict = "❌ 失敗あり（関連する部分だけ実行）" if targets is not None else "❌ 失敗あり"
     elif has_skips:
         verdict = "⚠️ 実行した対象は成功（省略あり）"
@@ -75,7 +80,10 @@ def make_entry(
     for result in results:
         # 3. 実行したテスト枠の行でも、省略があれば成功と誤読されない表示にする。
         good = result["code"] == 0 and result["failed"] == 0 and result["skipped"] == 0
-        judgment = "⚠️ 省略あり" if result["code"] == 0 and result["failed"] == 0 and result["skipped"] > 0 else ("✅" if good else "❌")
+        if result.get("interrupted", False):
+            judgment = "⏹ 中断"
+        else:
+            judgment = "⚠️ 省略あり" if result["code"] == 0 and result["failed"] == 0 and result["skipped"] > 0 else ("✅" if good else "❌")
         lines.append(
             f"| {result['name']} | {judgment} | {result['passed']} | {result['failed']} | {result['skipped']} | {result['xfail']} | {result['sec']:.0f} 秒 |"
         )
@@ -92,7 +100,9 @@ def make_entry(
         for result in truncated:
             lines.append(f"- {result['name']}：ほか {result['failed'] - len(result['failed_names'])} 件（合計 {result['failed']} 件）")
     for result in results:
-        if result["code"] != 0 and not result["failed_names"]:
+        if result.get("interrupted", False):
+            lines += ["", f"**{result['name']} の状態**：実行中に割り込みを受けました"]
+        elif result["code"] != 0 and not result["failed_names"]:
             lines += ["", f"**{result['name']} の最後の出力**：`{' '.join(result['tail']) or '（なし）'}`"]
     lines += ["", "---", ""]
     return "\n".join(lines)

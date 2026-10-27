@@ -329,39 +329,48 @@ def main() -> int:
         no_e2e=args.no_e2e,
     )
 
-    # 1. TypeScript チェック
-    print("TypeScript チェック中…", flush=True)
-    results.append(run_tsc())
-
-    # 1-2. 本番ビルドの確認（frontend/dist は書き換えない）
-    print("本番ビルドを確認中…", flush=True)
-    results.append(run_build())
-
-    # 1-3. テストランナー自身のCLI・ログ処理
-    print("テストランナーの回帰テスト中…", flush=True)
-    results.append(run_runner_tests())
-
-    # 2. Vitest（フロントロジック。絞った実行で指定が無ければ流さない）
+    # 2. 選択されたsuiteを順番に実行し、途中中断でも現在位置を記録できるようにする。
+    suites = [
+        ("TypeScript チェック（tsc）", "TypeScript チェック中…", run_tsc, ()),
+        ("本番ビルド（tsc -b ＋ vite build）", "本番ビルドを確認中…", run_build, ()),
+        ("テストランナー（unittest）", "テストランナーの回帰テスト中…", run_runner_tests, ()),
+    ]
     if selection.run_vitest:
-        print("Vitest（フロントロジック）を実行中…", flush=True)
-        results.append(run_vitest(args.vitest))
-
-    # 3. Playwright（画面テスト）
+        suites.append(("フロントのロジック（Vitest）", "Vitest（フロントロジック）を実行中…", run_vitest, (args.vitest,)))
     if selection.run_playwright:
-        print("Playwright（画面テスト）を実行中…", flush=True)
-        results.append(run_playwright(args.e2e))
-
-    # 4. pytest（バックエンド）
+        suites.append(("画面テスト（Playwright）", "Playwright（画面テスト）を実行中…", run_playwright, (args.e2e,)))
     if selection.run_pytest:
-        print("pytest（バックエンド）を実行中…", flush=True)
-        results.append(run_pytest(args.pytest))
-
-    # 5. pytest（分析ダッシュボード）
+        suites.append(("バックエンド（pytest）", "pytest（バックエンド）を実行中…", run_pytest, (args.pytest,)))
     if selection.run_analytics:
-        print("pytest（分析ダッシュボード）を実行中…", flush=True)
-        results.append(run_analytics())
+        suites.append(("分析ダッシュボード（pytest）", "pytest（分析ダッシュボード）を実行中…", run_analytics, ()))
 
-    text = make_entry(results, args.note, selection.skipped_suites, selection.targets)
+    interrupted = False
+    interrupted_index: int | None = None
+    for index, (suite_name, progress, suite_runner, suite_args) in enumerate(suites):
+        suite_started = time.monotonic()
+        try:
+            print(progress, flush=True)
+            results.append(suite_runner(*suite_args))
+        except KeyboardInterrupt:
+            # 3. 実行中だったsuiteを中断として残し、開始していないsuiteと区別する。
+            interrupted = True
+            interrupted_index = index
+            results.append({
+                "name": suite_name, "code": 130, "sec": time.monotonic() - suite_started,
+                "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
+                "failed_names": [], "tail": ["実行中に割り込みを受けました"], "interrupted": True,
+            })
+            break
+
+    # 4. CLIで省略したsuiteに加え、中断後に開始できなかったsuiteもログへ明示する。
+    skipped_suites = list(selection.skipped_suites)
+    if interrupted_index is not None:
+        skipped_suites.extend(
+            (name, "⏹ 中断により未実行")
+            for name, _, _, _ in suites[interrupted_index + 1:]
+        )
+
+    text = make_entry(results, args.note, skipped_suites, selection.targets)
     print("\n" + text)
 
     if not args.no_log:
@@ -369,6 +378,8 @@ def main() -> int:
         append_log(text)
         print(f"ログに追加しました: {LOG.relative_to(ROOT)}")
 
+    if interrupted:
+        return 130
     return 0 if all(r["code"] == 0 and r["failed"] == 0 for r in results) else 1
 
 

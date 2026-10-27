@@ -65,6 +65,25 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn("❌ | 2 | 1 |", entry)
         self.assertIn(f"`{failed_name}`", entry)
 
+    def test_先行suiteの失敗後に中断した場合は両方を全体判定に出す(self):
+        """中断が先行suiteの失敗を見えなくしない。"""
+        failed = {
+            "name": "フロントのロジック（Vitest）", "code": 1, "sec": 1,
+            "passed": 2, "failed": 1, "skipped": 0, "xfail": 0,
+            "failed_names": ["example.test.ts"], "tail": [],
+        }
+        interrupted = {
+            "name": "画面テスト（Playwright）", "code": 130, "sec": 1,
+            "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
+            "failed_names": [], "tail": ["実行中に割り込みを受けました"], "interrupted": True,
+        }
+        with patch.object(run_tests, "git_info", return_value="`test`"):
+            entry = run_tests.make_entry([failed, interrupted], "runner test", [])
+
+        self.assertIn("⏹ 中断・失敗あり", entry)
+        self.assertIn("| フロントのロジック（Vitest） | ❌ |", entry)
+        self.assertIn("| 画面テスト（Playwright） | ⏹ 中断 |", entry)
+
     def test_runはmonotonic時計で経過時間を測る(self):
         process = Mock(returncode=0)
         process.communicate.return_value = ("stdout", "stderr")
@@ -294,6 +313,54 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("--no-e2e と --e2e は同時に指定できません", result.stderr)
         self.assertNotIn("TypeScript チェック中", result.stdout)
+
+
+class TestRunnerInterruptLogging(unittest.TestCase):
+    """suite 実行中の割り込みを終了結果とログへ残す契約を確認する。"""
+
+    def _successful_result(self, name):
+        """main が先行suiteの成功結果として扱える最小の値を返す。"""
+        return {
+            "name": name, "code": 0, "sec": 0.1,
+            "passed": 1, "failed": 0, "skipped": 0, "xfail": 0,
+            "failed_names": [], "tail": [],
+        }
+
+    def test_suite中断時はログ保存後に130を返し残りを未実行として記録する(self):
+        """Vitest 中断・後続3 suiteの未実行・中断判定をログで区別する。"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "test-log.md"
+            with patch.object(run_tests, "LOG", log_path), \
+                    patch.object(run_tests, "ROOT", Path(temp_dir)), \
+                    patch.object(run_tests, "git_info", return_value="`test`"), \
+                    patch.object(sys, "argv", ["run_tests.py", "--note", "割り込みログ確認"]), \
+                    patch.object(run_tests, "run_tsc", return_value=self._successful_result("tsc")), \
+                    patch.object(run_tests, "run_build", return_value=self._successful_result("build")), \
+                    patch.object(run_tests, "run_runner_tests", return_value=self._successful_result("runner")), \
+                    patch.object(run_tests, "run_vitest", side_effect=KeyboardInterrupt), \
+                    patch.object(run_tests, "run_playwright") as run_playwright, \
+                    patch.object(run_tests, "run_pytest") as run_pytest, \
+                    patch.object(run_tests, "run_analytics") as run_analytics:
+                exit_code = run_tests.main()
+
+            self.assertEqual(exit_code, 130)
+            self.assertTrue(log_path.exists(), "割り込み後も実行ログを保存する")
+            entry = log_path.read_text(encoding="utf-8")
+
+        self.assertTrue(
+            any("Vitest" in line and "中断" in line for line in entry.splitlines()),
+            "実行中だったsuiteの途中中断をsuite名とともに記録する",
+        )
+        for suite_name in ("画面テスト（Playwright）", "バックエンド（pytest）", "分析ダッシュボード（pytest）"):
+            self.assertTrue(
+                any(suite_name in line and "中断により未実行" in line for line in entry.splitlines()),
+                f"未開始suiteを中断による未実行として記録する: {suite_name}",
+            )
+        self.assertIn("中断", entry, "通常の成功・失敗とは区別できる中断判定を表示する")
+        self.assertNotIn("✅ 全部成功", entry)
+        run_playwright.assert_not_called()
+        run_pytest.assert_not_called()
+        run_analytics.assert_not_called()
 
 
 class TestRunnerSelection(unittest.TestCase):
