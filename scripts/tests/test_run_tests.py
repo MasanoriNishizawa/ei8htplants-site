@@ -116,5 +116,83 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertNotIn("TypeScript チェック中", result.stdout)
 
 
+class TestRunnerSelection(unittest.TestCase):
+    """CLI のテスト枠選択を独立関数の契約として確認する。"""
+
+    def assert_selection(self, args, expected):
+        """選択結果の全フィールドを期待値と照合する。"""
+        from scripts.runner_selection import select_tests
+
+        selection = select_tests(**args)
+        for field, value in expected.items():
+            self.assertEqual(getattr(selection, field), value, field)
+
+    def test_オプションなしは全件実行(self):
+        self.assert_selection(
+            {"vitest_targets": None, "e2e_targets": None, "pytest_targets": None, "analytics": False, "no_e2e": False},
+            {"narrowed": False, "partial": False, "targets": None,
+             "run_vitest": True, "run_playwright": True, "run_pytest": True, "run_analytics": True,
+             "skipped_suites": []},
+        )
+
+    def test_no_e2eのみはPlaywright以外を全件実行(self):
+        self.assert_selection(
+            {"vitest_targets": None, "e2e_targets": None, "pytest_targets": None, "analytics": False, "no_e2e": True},
+            {"narrowed": False, "partial": True,
+             "targets": ["Vitest: 全件", "バックエンド pytest: 全件", "分析ダッシュボード pytest: tests 全件（.venv がある場合。無い場合はスキップ）"],
+             "run_vitest": True, "run_playwright": False, "run_pytest": True, "run_analytics": True,
+             "skipped_suites": [("画面テスト（Playwright）", "省略（--no-e2e）")]},
+        )
+
+    def test_vitest単独指定(self):
+        self.assert_selection(
+            {"vitest_targets": ["src/example.test.ts"], "e2e_targets": None, "pytest_targets": None, "analytics": False, "no_e2e": False},
+            {"narrowed": True, "partial": True, "targets": ["Vitest: src/example.test.ts"],
+             "run_vitest": True, "run_playwright": False, "run_pytest": False, "run_analytics": False,
+             "skipped_suites": [("画面テスト（Playwright）", "省略（関連なし）"), ("バックエンド（pytest）", "省略（関連なし）"), ("分析ダッシュボード（pytest）", "省略（関連なし）")]},
+        )
+
+    def test_e2e単独指定(self):
+        self.assert_selection(
+            {"vitest_targets": None, "e2e_targets": ["e2e/example.spec.ts"], "pytest_targets": None, "analytics": False, "no_e2e": False},
+            {"narrowed": True, "partial": True, "targets": ["Playwright: e2e/example.spec.ts"],
+             "run_vitest": False, "run_playwright": True, "run_pytest": False, "run_analytics": False,
+             "skipped_suites": [("フロントのロジック（Vitest）", "省略（関連なし）"), ("バックエンド（pytest）", "省略（関連なし）"), ("分析ダッシュボード（pytest）", "省略（関連なし）")]},
+        )
+
+    def test_pytest単独指定(self):
+        self.assert_selection(
+            {"vitest_targets": None, "e2e_targets": None, "pytest_targets": ["tests/test_example.py"], "analytics": False, "no_e2e": False},
+            {"narrowed": True, "partial": True, "targets": ["pytest: tests/test_example.py"],
+             "run_vitest": False, "run_playwright": False, "run_pytest": True, "run_analytics": False,
+             "skipped_suites": [("フロントのロジック（Vitest）", "省略（関連なし）"), ("画面テスト（Playwright）", "省略（関連なし）"), ("分析ダッシュボード（pytest）", "省略（関連なし）")]},
+        )
+
+    def test_analytics単独指定(self):
+        self.assert_selection(
+            {"vitest_targets": None, "e2e_targets": None, "pytest_targets": None, "analytics": True, "no_e2e": False},
+            {"narrowed": True, "partial": True, "targets": ["分析ダッシュボード: tests"],
+             "run_vitest": False, "run_playwright": False, "run_pytest": False, "run_analytics": True,
+             "skipped_suites": [("フロントのロジック（Vitest）", "省略（関連なし）"), ("画面テスト（Playwright）", "省略（関連なし）"), ("バックエンド（pytest）", "省略（関連なし）")]},
+        )
+
+    def test_複数selector併用(self):
+        self.assert_selection(
+            {"vitest_targets": ["src/example.test.ts"], "e2e_targets": ["e2e/example.spec.ts"], "pytest_targets": ["tests/test_example.py"], "analytics": True, "no_e2e": False},
+            {"narrowed": True, "partial": True,
+             "targets": ["Vitest: src/example.test.ts", "Playwright: e2e/example.spec.ts", "pytest: tests/test_example.py", "分析ダッシュボード: tests"],
+             "run_vitest": True, "run_playwright": True, "run_pytest": True, "run_analytics": True,
+             "skipped_suites": []},
+        )
+
+    def test_selectorとno_e2e併用(self):
+        self.assert_selection(
+            {"vitest_targets": ["src/example.test.ts"], "e2e_targets": None, "pytest_targets": ["tests/test_example.py"], "analytics": False, "no_e2e": True},
+            {"narrowed": True, "partial": True, "targets": ["Vitest: src/example.test.ts", "pytest: tests/test_example.py"],
+             "run_vitest": True, "run_playwright": False, "run_pytest": True, "run_analytics": False,
+             "skipped_suites": [("画面テスト（Playwright）", "省略（--no-e2e）"), ("分析ダッシュボード（pytest）", "省略（関連なし）")]},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

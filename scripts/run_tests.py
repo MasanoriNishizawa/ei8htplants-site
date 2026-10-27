@@ -42,8 +42,10 @@ from pathlib import Path
 try:
     # unittest からの読み込みではパッケージ相対、直接実行では同じディレクトリから読み込む。
     from .runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
+    from .runner_selection import select_tests
 except ImportError:
     from runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
+    from runner_selection import select_tests
 
 ROOT = Path(__file__).resolve().parent.parent
 LOG = ROOT / "doc/04_TEST/08_テスト実行ログ.md"
@@ -318,21 +320,14 @@ def main() -> int:
         ap.error("--no-e2e と --e2e は同時に指定できません")
 
     results: list[dict] = []
-    skipped: list[tuple[str, str]] = []
-    # 1. テストファイルなどの指定があれば絞り込み、--no-e2e 単独ならE2E以外を全件実行する
-    narrowed = any(x is not None for x in (args.vitest, args.e2e, args.pytest)) or args.analytics
-    partial = narrowed or args.no_e2e
-    # 絞った実行と E2E 省略実行の対象をログに残す。通常の全件実行では None
-    targets: list[str] | None = None
-    if partial:
-        targets = (
-            [f"Vitest: {t}" for t in args.vitest or []]
-            + ([f"Playwright: {t}" for t in args.e2e or []] if not args.no_e2e else [])
-            + [f"pytest: {t}" for t in args.pytest or []]
-            + (["分析ダッシュボード: tests"] if args.analytics else [])
-        )
-        if not narrowed and args.no_e2e:
-            targets = ["Vitest: 全件", "バックエンド pytest: 全件", "分析ダッシュボード pytest: tests 全件（.venv がある場合。無い場合はスキップ）"]
+    # 1. CLI引数から実行範囲と省略理由を専用関数で確定する。
+    selection = select_tests(
+        vitest_targets=args.vitest,
+        e2e_targets=args.e2e,
+        pytest_targets=args.pytest,
+        analytics=args.analytics,
+        no_e2e=args.no_e2e,
+    )
 
     # 1. TypeScript チェック
     print("TypeScript チェック中…", flush=True)
@@ -347,35 +342,26 @@ def main() -> int:
     results.append(run_runner_tests())
 
     # 2. Vitest（フロントロジック。絞った実行で指定が無ければ流さない）
-    if narrowed and args.vitest is None:
-        skipped.append(("フロントのロジック（Vitest）", "省略（関連なし）"))
-    else:
+    if selection.run_vitest:
         print("Vitest（フロントロジック）を実行中…", flush=True)
         results.append(run_vitest(args.vitest))
 
     # 3. Playwright（画面テスト）
-    if args.no_e2e or (narrowed and args.e2e is None):
-        reason = "省略（--no-e2e）" if args.no_e2e else "省略（関連なし）"
-        skipped.append(("画面テスト（Playwright）", reason))
-    else:
+    if selection.run_playwright:
         print("Playwright（画面テスト）を実行中…", flush=True)
         results.append(run_playwright(args.e2e))
 
     # 4. pytest（バックエンド）
-    if narrowed and args.pytest is None:
-        skipped.append(("バックエンド（pytest）", "省略（関連なし）"))
-    else:
+    if selection.run_pytest:
         print("pytest（バックエンド）を実行中…", flush=True)
         results.append(run_pytest(args.pytest))
 
     # 5. pytest（分析ダッシュボード）
-    if narrowed and not args.analytics:
-        skipped.append(("分析ダッシュボード（pytest）", "省略（関連なし）"))
-    else:
+    if selection.run_analytics:
         print("pytest（分析ダッシュボード）を実行中…", flush=True)
         results.append(run_analytics())
 
-    text = make_entry(results, args.note, skipped, targets)
+    text = make_entry(results, args.note, selection.skipped_suites, selection.targets)
     print("\n" + text)
 
     if not args.no_log:
