@@ -8,6 +8,7 @@ import {
   loadCostRateInput, parseCostRateInput, recommendPrice, saveCostRateInput,
 } from '../../lib/priceCalc'
 import { failMessage } from './errorMessage'
+import { PriceCalcEntriesList } from './PriceCalcEntriesList'
 
 /** 価格計算で使うブランドのキー（price_calc_entries.brand に保存する値） */
 type Brand = 'ei8htplants' | 'habitatoides' | 'hue'
@@ -872,78 +873,6 @@ function TabBar<T extends string>({ tabs, current, onSelect, small = false, grou
 }
 
 /**
- * 登録済みの価格計算エントリを一覧表示するコンポーネント
- * @param entries - 表示するエントリ一覧（絞り込み済み）
- * @param emptyMessage - 0 件のときの案内（全体で 0 件か、絞り込んだ結果が 0 件かで親が変える）
- * @param onDelete - 削除ボタン押下時のコールバック
- * @returns 登録の表（0 件なら案内）
- */
-function EntriesList({ entries, emptyMessage, onDelete }: {
-  entries: PriceCalcEntry[]
-  emptyMessage: string
-  onDelete: (id: string) => void
-}) {
-  if (entries.length === 0) return (
-    <p style={{ color: '#aaa', fontSize: 14 }}>{emptyMessage}</p>
-  )
-
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 500 }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #dddde8' }}>
-            {['植物名 / 鉢作家', 'ブランド', '元値', '販売価格', ''].map((h, i) => (
-              <th key={i} style={{
-                padding: '8px 12px', textAlign: 'left',
-                fontWeight: 600, color: '#666', letterSpacing: 0.5, whiteSpace: 'nowrap',
-              }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e, i) => (
-            <tr key={e.id} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-              <td style={{ padding: '12px 12px' }}>
-                <div style={{ fontWeight: 500 }}>{e.plant_name}</div>
-                {/* 2 行目の鉢作家は、鉢を選ぶ Habitat Oides の記録だけ出す（ei8ht plants は鉢が無く、HUE は鉢作家の概念が無い） */}
-                {e.brand === 'habitatoides' && (
-                  <div style={{ fontSize: 12, color: '#888' }}>{e.pot_artist_name || '量産鉢'}</div>
-                )}
-              </td>
-              <td style={{ padding: '12px 12px', color: '#666', fontSize: 12, whiteSpace: 'nowrap' }}>
-                <div>{BRAND_LABELS[e.brand] ?? e.brand}</div>
-                {/* 2 行目に計算の種類（生産・仕入れ・実生）。種類を保存する前の記録（mode が null）は出さない */}
-                {e.mode && MODE_LABELS[e.mode] && (
-                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{MODE_LABELS[e.mode]}</div>
-                )}
-              </td>
-              <td style={{ padding: '12px 12px', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {yenRounded(e.cost)}
-              </td>
-              <td style={{ padding: '12px 12px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {yenRounded(e.selling_price)}
-              </td>
-              <td style={{ padding: '12px 12px' }}>
-                <button
-                  onClick={() => onDelete(e.id)}
-                  style={{
-                    padding: '4px 10px', background: 'none',
-                    border: '1px solid #e0b0b0', borderRadius: 4,
-                    color: '#c0392b', fontSize: 12, cursor: 'pointer',
-                  }}
-                >
-                  削除
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-/**
  * ブランド別の販売価格計算ツール。生産は卸価格の 2 倍、仕入れは仕入れ値とブランドごとの目標原価率から推奨価格、
  * 実生は種子の値段（Habitat Oides は + 鉢）を上代として算出し、登録リストとして保存する
  * @returns ブランドのタブ・生産／仕入れ／実生のタブ・（目標原価率）・計算フォーム・登録リスト
@@ -1099,7 +1028,7 @@ export default function PriceCalc() {
         {loadingEntries ? (
           <p style={{ color: '#aaa', fontSize: 14 }}>読み込み中...</p>
         ) : (
-          <EntriesList
+          <PriceCalcEntriesList
             entries={filteredEntries} onDelete={handleDelete}
             emptyMessage={entries.length === 0 ? 'まだ登録されていません。' : 'このブランドの登録はありません。'}
           />

@@ -1,0 +1,81 @@
+import { BRAND } from '../../lib/brands'
+import { formatYen } from '../../lib/format'
+import type { PriceCalcEntry, PriceCalcMode } from '../../lib/api'
+
+const BRAND_LABELS: Readonly<Record<string, string>> = {
+  ei8htplants: BRAND.ei8htPlants.shortName,
+  habitatoides: BRAND.habitatOides.shortName,
+  hue: BRAND.hue.shortName,
+}
+
+const MODE_LABELS: Readonly<Record<PriceCalcMode, string>> = {
+  production: '生産',
+  purchase: '仕入れ',
+  seedling: '実生',
+}
+
+const yenRounded = (value: number) => formatYen(Math.round(value))
+
+/** 登録済み価格エントリの表示だけを担当する一覧。更新・削除処理は呼び出し側へ委譲する。 */
+export function PriceCalcEntriesList({ entries, emptyMessage, onDelete }: {
+  entries: PriceCalcEntry[]
+  emptyMessage: string
+  onDelete: (id: string) => void
+}) {
+  if (entries.length === 0) return (
+    <p style={{ color: '#aaa', fontSize: 14 }}>{emptyMessage}</p>
+  )
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 500 }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid #dddde8' }}>
+            {['植物名 / 鉢作家', 'ブランド', '元値', '販売価格', ''].map((heading, index) => (
+              <th key={index} style={{
+                padding: '8px 12px', textAlign: 'left',
+                fontWeight: 600, color: '#666', letterSpacing: 0.5, whiteSpace: 'nowrap',
+              }}>{heading}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry, index) => (
+            <tr key={entry.id} style={{ borderBottom: '1px solid #f0f0f0', background: index % 2 === 0 ? '#fff' : '#fafafa' }}>
+              <td style={{ padding: '12px 12px' }}>
+                <div style={{ fontWeight: 500 }}>{entry.plant_name}</div>
+                {entry.brand === 'habitatoides' && (
+                  <div style={{ fontSize: 12, color: '#888' }}>{entry.pot_artist_name || '量産鉢'}</div>
+                )}
+              </td>
+              <td style={{ padding: '12px 12px', color: '#666', fontSize: 12, whiteSpace: 'nowrap' }}>
+                <div>{BRAND_LABELS[entry.brand] ?? entry.brand}</div>
+                {entry.mode && MODE_LABELS[entry.mode] && (
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{MODE_LABELS[entry.mode]}</div>
+                )}
+              </td>
+              <td style={{ padding: '12px 12px', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {yenRounded(entry.cost)}
+              </td>
+              <td style={{ padding: '12px 12px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {yenRounded(entry.selling_price)}
+              </td>
+              <td style={{ padding: '12px 12px' }}>
+                <button
+                  onClick={() => onDelete(entry.id)}
+                  style={{
+                    padding: '4px 10px', background: 'none',
+                    border: '1px solid #e0b0b0', borderRadius: 4,
+                    color: '#c0392b', fontSize: 12, cursor: 'pointer',
+                  }}
+                >
+                  削除
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
