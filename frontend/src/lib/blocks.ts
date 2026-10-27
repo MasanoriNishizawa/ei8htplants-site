@@ -12,6 +12,16 @@ export type Block =
   | { type: 'image'; url: string }
 
 /**
+ * 本文ブロックから、空でない画像 URL を元の並び順で取り出す
+ * @param blocks - 画像 URL を抽出する本文ブロックの一覧
+ * @returns 画像ブロックの URL 一覧
+ */
+export function blockImageUrls(blocks: Block[]): string[] {
+  // 1. 画像ブロックだけを選び、空でない URL を順序を保って返す
+  return blocks.flatMap((block) => (block.type === 'image' && block.url ? [block.url] : []))
+}
+
+/**
  * JSON から読んだ値が、本文のブロックとして使える形かを確かめる型ガード
  * （DB の値が壊れていたり古い形だったりしても、表示・編集の画面が落ちないようにする）
  * @param v - JSON.parse で読んだ配列の 1 要素

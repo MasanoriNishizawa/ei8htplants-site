@@ -5,7 +5,7 @@
  * - serializeBlocks・blocksToText
  */
 import { describe, it, expect } from 'vitest'
-import { blocksToText, isBlock, parseBlocks, serializeBlocks, type Block } from '../blocks'
+import { blockImageUrls, blocksToText, isBlock, parseBlocks, serializeBlocks, type Block } from '../blocks'
 
 describe('isBlock', () => {
   it('value が文字列の見出し・テキストと、url が文字列の画像はブロックと判定される', () => {
@@ -86,5 +86,36 @@ describe('blocksToText', () => {
 
   it('maxLen を超える分は切り捨てる', () => {
     expect(blocksToText([{ type: 'text', value: 'abcdef' }], 3)).toBe('abc')
+  })
+})
+
+describe('blockImageUrls', () => {
+  it('画像 URL だけを入力順で抽出し、見出しとテキストは除外する', () => {
+    const blocks: Block[] = [
+      { type: 'image', url: '/img/first.jpg' },
+      { type: 'heading', value: '見出し' },
+      { type: 'text', value: '本文' },
+      { type: 'image', url: '/img/second.jpg' },
+    ]
+
+    expect(blockImageUrls(blocks)).toEqual(['/img/first.jpg', '/img/second.jpg'])
+  })
+
+  it('空 URL の画像は除外する', () => {
+    const blocks: Block[] = [
+      { type: 'image', url: '/img/visible.jpg' },
+      { type: 'image', url: '' },
+    ]
+
+    expect(blockImageUrls(blocks)).toEqual(['/img/visible.jpg'])
+  })
+
+  it('画像がない場合は空配列を返す', () => {
+    const blocks: Block[] = [
+      { type: 'heading', value: '見出し' },
+      { type: 'text', value: '本文' },
+    ]
+
+    expect(blockImageUrls(blocks)).toEqual([])
   })
 })

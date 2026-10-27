@@ -16,7 +16,7 @@ export default defineConfig({
   reporter: 'list',
   use: {
     // page.goto('/events') のような相対パスの頭
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:4174',
     // ブラウザの言語を日本語にする（サイトの表示言語が日本語になる）
     locale: 'ja-JP',
     // やり直したときだけ、操作の記録（トレース）を残す
@@ -29,11 +29,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // テストの前に、ログイン省略・MSW のモックつきの開発サーバーを起動する（手元で起動済みならそれを使う）
+  // テスト専用ポートでログイン省略・MSW のモックつきサーバーを起動し、終了後に Playwright が停止する
   webServer: {
-    command: 'npm run mock:e2e',
-    url: 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
+    command: 'npm run mock:e2e -- --port 4174 --strictPort',
+    url: 'http://127.0.0.1:4174',
+    reuseExistingServer: false,
     // 起動を待つ最大の時間（ミリ秒）
     timeout: 60000,
   },

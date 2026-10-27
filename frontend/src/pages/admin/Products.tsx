@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Product, type ProductBody, type ProductCategory, PRODUCT_CATEGORIES } from '../../lib/api'
 import BlockEditor from '../../components/BlockEditor'
-import { type Block, parseBlocks, serializeBlocks } from '../../lib/blocks'
+import { blockImageUrls, type Block, parseBlocks, serializeBlocks } from '../../lib/blocks'
 import { confirmDiscard, dirtySnapshotJson, useEscapeToClose, useUnsavedChanges } from './UnsavedChanges'
 import { failMessage } from './errorMessage'
 import { formatYen } from '../../lib/format'
@@ -11,15 +11,6 @@ import { formatYen } from '../../lib/format'
 const errorBoxStyle: React.CSSProperties = {
   color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px',
   background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0',
-}
-
-/**
- * ブロックエディタの中の画像の URL を、並び順のまま取り出す（image_urls に同期するため。空の URL は除く）
- * @param blocks - ブロックの一覧
- * @returns 画像の URL の一覧
- */
-function imageUrlsOf(blocks: Block[]): string[] {
-  return blocks.flatMap((b) => (b.type === 'image' && b.url ? [b.url] : []))
 }
 
 /**
@@ -151,7 +142,7 @@ export default function AdminProducts() {
     setSaveError('')
     // 1. 画像 URL の同期
     /** 送る内容（本文はブロックを文字列にしたもの） */
-    const payload = { ...form, description: serializeBlocks(blocks), image_urls: imageUrlsOf(blocks) }
+    const payload = { ...form, description: serializeBlocks(blocks), image_urls: blockImageUrls(blocks) }
     try {
       // 2. 保存
       if (editing === 'new') {

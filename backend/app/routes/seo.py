@@ -34,6 +34,7 @@ from ..db import admin_supabase, supabase
 from ..utils.cache import TTLCache
 from ..utils.errors import error_summary
 from ..utils.ids import UUID_RE
+from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 
 logger = logging.getLogger(__name__)
 
@@ -986,11 +987,14 @@ def _sitemap_url(path: str, lastmod: Any = None, origin: str = SITE_ORIGIN) -> s
     Returns:
         <url> 要素の文字列
     """
-    loc = html.escape(origin + quote(path, safe='/'), quote=True)
-    d = _parse_date(lastmod)
-    if d:
-        return f'  <url><loc>{loc}</loc><lastmod>{d.isoformat()}</lastmod></url>'
-    return f'  <url><loc>{loc}</loc></url>'
+    return _make_sitemap_url(
+        path,
+        lastmod,
+        origin,
+        parse_date=_parse_date,
+        quote=quote,
+        escape=html.escape,
+    )
 
 
 def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -> tuple[str, bool]:
@@ -1005,57 +1009,18 @@ def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -
     Returns:
         (XML の文字列, 全部読めたか)
     """
-    if site_name:
-        # 独立ブランドサイトごとに、そのホストで公開している正規ページだけを列挙する。
-        if site_name == 'Habitat Oides':
-            paths = ('/', '/workshop', '/collaborations')
-        elif site_name == 'HUE by ei8ht plants':
-            paths = ('/', '/about', '/choose', '/living')
-        else:
-            paths = ()
-        entries = [_sitemap_url(p, origin=origin) for p in paths]
-        return ('<?xml version="1.0" encoding="UTF-8"?>\n'
-                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-                + '\n'.join(entries) + '\n</urlset>\n'), True
-
-    entries = [_sitemap_url(p, origin=origin) for p in SITEMAP_STATIC_PATHS]
-    ok = True
-    try:
-        events = _rows(supabase.table('events').select('id, slug, start_date').order('start_date', desc=True).execute())
-        for ev in events:
-            key = _str(ev.get('slug')) or _str(ev.get('id'))
-            if key:
-                entries.append(_sitemap_url(f'/official/events/{key}', origin=origin))
-    except Exception as e:
-        ok = False
-        logger.error('sitemap イベント取得エラー: %s', error_summary(e))
-    try:
-        articles = _rows(
-            admin_supabase.table('articles').select('id, published_at, created_at').eq('is_published', True).execute()
-        )
-        for a in articles:
-            if _str(a.get('id')):
-                entries.append(_sitemap_url(f"/official/journal/{a['id']}", a.get('published_at') or a.get('created_at'), origin))
-    except Exception as e:
-        ok = False
-        logger.error('sitemap 記事取得エラー: %s', error_summary(e))
-    try:
-        products = _rows(
-            admin_supabase.table('products').select('id, created_at').eq('is_published', True).execute()
-        )
-        for p in products:
-            if _str(p.get('id')):
-                entries.append(_sitemap_url(f"/official/shop/{p['id']}", p.get('created_at'), origin))
-    except Exception as e:
-        ok = False
-        logger.error('sitemap 商品取得エラー: %s', error_summary(e))
-    xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + '\n'.join(entries)
-        + '\n</urlset>\n'
+    return _build_sitemap_content(
+        site_name,
+        origin,
+        static_paths=SITEMAP_STATIC_PATHS,
+        make_url=_sitemap_url,
+        rows=_rows,
+        as_string=_str,
+        public_client=supabase,
+        admin_client=admin_supabase,
+        logger=logger,
+        summarize_error=error_summary,
     )
-    return xml, ok
 
 
 @router.get('/sitemap.xml')
