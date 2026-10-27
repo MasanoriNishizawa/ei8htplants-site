@@ -36,6 +36,20 @@ from ..utils.errors import error_summary
 from ..utils.ids import UUID_RE
 from .seo_html import OG_LOCALE, inject_head, json_for_script as _json_for_script, render_head_tags
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
+from .seo_structured_data import (
+    DESCRIPTION_MAX_LEN,
+    EVENT_JSONLD_MAX_IMAGES,
+    _TIME_RE,
+    _str,
+    _truncate,
+    event_datetime as _event_datetime,
+    event_description as _build_event_description,
+    event_json_ld as _build_event_json_ld,
+    format_date_label as _build_format_date_label,
+    organization_json_ld as _build_organization_json_ld,
+    parse_date as _build_parse_date,
+    times_in as _build_times_in,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +72,6 @@ LOGO_URL = DEFAULT_OG_IMAGE
 CACHE_TTL_SECONDS = 60
 # メモリキャッシュに残す件数の上限（存在しない ID を大量に叩かれてもメモリが増え続けないようにする）
 CACHE_MAX_ENTRIES = 500
-# イベント・記事・商品の説明文の最大文字数（PageMeta 側の blocksToText の既定値 120 と同じ）
-DESCRIPTION_MAX_LEN = 120
-# イベントの構造化データに入れる画像の最大枚数
-EVENT_JSONLD_MAX_IMAGES = 5
 
 # 検索結果に出さないページ（パスの先頭がこれと一致するもの）。noindex を入れ、robots.txt でも Disallow にする
 NOINDEX_PREFIXES = ('/admin', '/cancel', '/checkout', '/order', '/official/cancel', '/official/checkout', '/official/order')
@@ -72,8 +82,6 @@ ROBOTS_DISALLOW = NOINDEX_PREFIXES
 
 # UUID の形（events/articles/products の id）。共通の部品（app/utils/ids.py）のものを使う
 _UUID_RE = UUID_RE
-# 時刻（"10:00" など）を取り出す正規表現。event.time / daily_times の値（例 "10:00〜17:00"）から使う
-_TIME_RE = re.compile(r'(\d{1,2}):(\d{2})')
 
 
 @dataclass(frozen=True)
@@ -166,18 +174,6 @@ def clear_cache() -> None:
 # 小さな変換ヘルパー
 # ---------------------------------------------------------------------------
 
-def _str(value: Any) -> str:
-    """文字列ならそのまま、それ以外（None・数値・dict など）は空文字を返す。
-
-    Args:
-        value: DB から読んだ値（型は決まっていない）
-
-    Returns:
-        value が文字列ならそのまま、それ以外は ''
-    """
-    return value if isinstance(value, str) else ''
-
-
 def _rows(result: Any) -> list[dict]:
     """supabase の execute() の結果から行のリストを取り出す。
 
@@ -212,22 +208,6 @@ def _absolute_url(url: Any) -> Optional[str]:
     if u.startswith('/'):
         return SITE_ORIGIN + u
     return None
-
-
-def _truncate(text: str, max_len: int = DESCRIPTION_MAX_LEN) -> str:
-    """空白・改行を1つの空白にまとめ、max_len 文字を超える分を切って「…」を付ける。
-
-    Args:
-        text: 切り詰める文字列
-        max_len: 「…」を含めた最大の文字数（既定は DESCRIPTION_MAX_LEN）
-
-    Returns:
-        max_len 文字以内の文字列
-    """
-    t = re.sub(r'\s+', ' ', text).strip()
-    if len(t) <= max_len:
-        return t
-    return t[: max_len - 1] + '…'
 
 
 def _parse_blocks(content: Any) -> list[dict]:
@@ -299,83 +279,40 @@ def _first_image_block_url(blocks: list[dict]) -> Optional[str]:
 
 
 def _parse_date(value: Any) -> Optional[date]:
-    """'YYYY-MM-DD'（後ろに時刻が付いていてもよい）を date にする。
+    """従来の SEO モジュール名で日付変換関数を公開する互換ラッパー。
 
     Args:
-        value: 日付の文字列（start_date・published_at など。文字列でなければ読めない扱い）
+        value: ISO 形式の日付文字列。
 
     Returns:
-        date。読めなければ None
+        読み取れた日付。形式が不正な場合は None。
     """
-    s = _str(value)[:10]
-    try:
-        return date.fromisoformat(s)
-    except ValueError:
-        return None
+    return _build_parse_date(value)
 
 
 def _format_date_label(start: Any, end: Any) -> str:
-    """開催日を「2026年10月24日〜25日」の形にする（EventSite.tsx の formatDate と同じ）。
+    """従来の関数名でイベント開催日の表示文字列を返す互換ラッパー。
 
     Args:
-        start: 開始日（'YYYY-MM-DD'）
-        end: 終了日（'YYYY-MM-DD'。None や開始日と同じなら 1 日だけの表記）
+        start: 開始日（YYYY-MM-DD）。
+        end: 終了日（YYYY-MM-DD）。
 
     Returns:
-        開催日の文字列。開始日が読めなければ ''
+        開催日の表示文字列。開始日を読めない場合は空文字。
     """
-    s = _parse_date(start)
-    if s is None:
-        return ''
-    e = _parse_date(end)
-
-    def fmt(d: date) -> str:
-        """日付を「2026年10月24日」の形にする。
-
-        Args:
-            d: 日付
-
-        Returns:
-            「YYYY年M月D日」の文字列
-        """
-        return f'{d.year}年{d.month}月{d.day}日'
-
-    if e is None or e == s:
-        return fmt(s)
-    if s.year == e.year and s.month == e.month:
-        return f'{fmt(s)}〜{e.day}日'
-    return f'{fmt(s)}〜{fmt(e)}'
+    return _build_format_date_label(start, end)
 
 
 def _times_in(text: str) -> list[str]:
-    """文字列に含まれる時刻を "HH:MM" の形で順に返す（例 "10:00〜17:00" → ["10:00", "17:00"]）。
+    """従来の関数名と正規表現差し替え境界を保ってイベント時刻を抽出する。
 
     Args:
-        text: 時刻を含む文字列（event.time・daily_times の値）
+        text: 時刻を含む event.time または daily_times の文字列。
 
     Returns:
-        "HH:MM" のリスト（24 時・60 分以上のような時刻として読めないものは除く）
+        有効な時刻を HH:MM 形式で並べたリスト。
     """
-    result = []
-    for h, m in _TIME_RE.findall(text):
-        if int(h) < 24 and int(m) < 60:
-            result.append(f'{int(h):02d}:{m}')
-    return result
-
-
-def _event_datetime(day: date, hhmm: Optional[str]) -> str:
-    """構造化データ用の日付（時刻が分かれば日本時間の日時）を返す。
-
-    Args:
-        day: 日付
-        hhmm: 時刻（"HH:MM"）。None なら日付だけにする
-
-    Returns:
-        'YYYY-MM-DDTHH:MM:00+09:00' または 'YYYY-MM-DD'
-    """
-    if hhmm:
-        return f'{day.isoformat()}T{hhmm}:00+09:00'
-    return day.isoformat()
+    return _build_times_in(text, _TIME_RE)
 
 
 def _is_noindex(path: str) -> bool:
@@ -578,100 +515,50 @@ def _not_found_meta(path: str) -> PageMeta:
 
 
 def _event_description(event: dict) -> str:
-    """イベントの説明文を作る。
-
-    page_content の hero.tagline・hero.subtitle・concept をつないだもの。どれも無ければ
-    「開催日 / 会場」（EventSite.tsx の PageMeta と同じ形）にする。DESCRIPTION_MAX_LEN 字で切る。
+    """従来の SEO モジュール名でイベント説明文を作る互換ラッパー。
 
     Args:
         event: _fetch_event() が返すイベントの dict
 
     Returns:
-        説明文。材料が何も無ければ DEFAULT_DESCRIPTION
+        説明文。材料が何も無ければ DEFAULT_DESCRIPTION。
     """
-    pc = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
-    hero = pc.get('hero') if isinstance(pc.get('hero'), dict) else {}
-    parts = [_str(hero.get('tagline')), _str(hero.get('subtitle')), _str(pc.get('concept'))]
-    text = ' '.join(p.strip() for p in parts if p.strip())
-    if not text:
-        date_label = _format_date_label(event.get('start_date'), event.get('end_date'))
-        text = ' / '.join(p for p in (date_label, _str(event.get('location'))) if p)
-    return _truncate(text) if text else DEFAULT_DESCRIPTION
+    return _build_event_description(
+        event,
+        default_description=DEFAULT_DESCRIPTION,
+        description_max_len=DESCRIPTION_MAX_LEN,
+    )
 
 
 def _event_json_ld(event: dict, meta: PageMeta) -> Optional[dict]:
-    """イベントの schema.org Event（Google 検索のイベント情報）を作る。
-
-    開始時刻は daily_times の開始日の値か event.time の最初の時刻、終了時刻は
-    daily_times の終了日の値か event.time の2つ目の時刻から取る。
+    """従来の SEO モジュール名で Event JSON-LD を作る互換ラッパー。
 
     Args:
         event: _fetch_event() が返すイベントの dict（image_urls 付き）
-        meta: このページの PageMeta（description・url を使う）
+        meta: このページの PageMeta（description・url を使う）。
 
     Returns:
-        Event の dict。開始日が読めない、または住所が無いときは None
+        Event の dict。開始日が読めない、または住所が無いときは None。
     """
-    start = _parse_date(event.get('start_date'))
-    if start is None:
-        return None
-    end = _parse_date(event.get('end_date')) or start
-    daily = event.get('daily_times') if isinstance(event.get('daily_times'), dict) else {}
-    # 1. 開始日・終了日それぞれの時間帯の文字列（例 "10:00〜17:00"）を決める
-    start_text = _str(daily.get(start.isoformat())) or _str(event.get('time'))
-    end_text = _str(daily.get(end.isoformat())) or _str(event.get('time'))
-    start_times = _times_in(start_text)
-    end_times = _times_in(end_text)
-    # 2. startDate と endDate の形をそろえる。開始時刻と終了時刻の両方が分かるときだけ
-    #    両方を日時にし、どちらかが分からなければ両方とも日付だけにする
-    #    （片方だけ日時だと、終了が開始より前と解釈されるなど食い違うことがあるため）
-    start_hhmm: Optional[str] = start_times[0] if start_times else None
-    end_hhmm: Optional[str] = end_times[1] if len(end_times) >= 2 else None
-    if not (start_hhmm and end_hhmm):
-        start_hhmm = end_hhmm = None
-    # 3. 会場（Place）を作る。住所は events.address、無ければ page_content.venue.address。
-    #    住所が無いと Google の必須項目（location.address）を満たせないので、Event 自体を出さない
-    pc = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
-    venue = pc.get('venue') if isinstance(pc.get('venue'), dict) else {}
-    address = _str(event.get('address')).strip() or _str(venue.get('address')).strip()
-    if not address:
-        return None
-    location: dict[str, Any] = {
-        '@type': 'Place',
-        'name': _str(event.get('location')) or SITE_NAME,
-        'address': {'@type': 'PostalAddress', 'streetAddress': address, 'addressCountry': 'JP'},
-    }
-    # 4. 全体をまとめる
-    images = (event.get('image_urls') or [])[:EVENT_JSONLD_MAX_IMAGES] or [DEFAULT_OG_IMAGE]
-    return {
-        '@context': 'https://schema.org',
-        '@type': 'Event',
-        'name': _str(event.get('name')),
-        'startDate': _event_datetime(start, start_hhmm),
-        'endDate': _event_datetime(end, end_hhmm),
-        'eventStatus': 'https://schema.org/EventScheduled',
-        'eventAttendanceMode': 'https://schema.org/OfflineEventAttendanceMode',
-        'location': location,
-        'image': images,
-        'description': meta.description,
-        'url': meta.url,
-        'organizer': {'@type': 'Organization', 'name': SITE_NAME, 'url': SITE_ORIGIN},
-    }
+    return _build_event_json_ld(
+        event,
+        description=meta.description,
+        url=meta.url,
+        site_name=SITE_NAME,
+        site_origin=SITE_ORIGIN,
+        default_image=DEFAULT_OG_IMAGE,
+        max_images=EVENT_JSONLD_MAX_IMAGES,
+        time_pattern=_TIME_RE,
+    )
 
 
 def _organization_json_ld() -> dict:
-    """トップページに入れる schema.org Organization を返す。
+    """従来の SEO モジュール名で Organization JSON-LD を返す互換ラッパー。
 
     Returns:
-        Organization の dict
+        トップページに埋め込む Organization JSON-LD。
     """
-    return {
-        '@context': 'https://schema.org',
-        '@type': 'Organization',
-        'name': SITE_NAME,
-        'url': SITE_ORIGIN + '/',
-        'logo': LOGO_URL,
-    }
+    return _build_organization_json_ld(site_name=SITE_NAME, site_origin=SITE_ORIGIN, logo_url=LOGO_URL)
 
 
 def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:

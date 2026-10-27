@@ -522,6 +522,7 @@ class TestServeSpaMeta:
         assert _meta(head, 'name', 'robots') == 'noindex'
         assert _canonical(head) == f'https://ei8htplants.com{path}'
 
+
     @pytest.mark.parametrize('path', ['/administrator', '/orders-info', '/cancellation', '/checkouts', '/admins/x'])
     def test_接頭辞が似ているだけのパスは除外対象と判定されない(self, path):
         # 不明なパスはどのみちソフト 404 として noindex になるので、判定の関数そのもので確かめる
@@ -631,6 +632,70 @@ class TestServeSpaMeta:
 # ---------------------------------------------------------------------------
 
 @needs_dist
+class TestLegacyStructuredDataConstants:
+    """seo.py に残す互換定数の差し替えが関数ラッパーへ反映される。"""
+
+    @pytest.mark.parametrize('limit,expected', [
+        (1, '…'),
+        (2, 'あ…'),
+        (5, 'あいうえ…'),
+        (10, 'あいうえおかきくけ…'),
+    ])
+    def test_DESCRIPTION_MAX_LENを差し替えるとイベント説明の長さに反映される(
+        self, monkeypatch, limit, expected,
+    ):
+        monkeypatch.setattr(seo, 'DESCRIPTION_MAX_LEN', limit)
+        event = {'page_content': {'hero': {'tagline': 'あいうえおかきくけこさしすせそ'}}}
+        assert seo._event_description(event) == expected
+
+    @pytest.mark.parametrize('max_images,expected_count', [
+        (0, 1),
+        (1, 1),
+        (3, 3),
+        (7, 7),
+    ])
+    def test_EVENT_JSONLD_MAX_IMAGESを差し替えると画像の上限に反映される(
+        self, monkeypatch, max_images, expected_count,
+    ):
+        monkeypatch.setattr(seo, 'EVENT_JSONLD_MAX_IMAGES', max_images)
+        images = [f'https://cdn.example.com/{index}.jpg' for index in range(7)]
+        event = _event(image_urls=images)
+        meta = seo.PageMeta(
+            title='Plant Market | ei8ht plants',
+            description='イベント説明',
+            image=images[0],
+            url='https://ei8htplants.com/official/events/plant-market',
+        )
+        ld = seo._event_json_ld(event, meta)
+        assert ld is not None
+        assert len(ld['image']) == expected_count
+        if max_images == 0:
+            assert ld['image'] == [seo.DEFAULT_OG_IMAGE]
+
+    @pytest.mark.parametrize('pattern,time_text,expected_start,expected_end', [
+        (r'(\d{2})h(\d{2})', '09h15〜17h30', '2026-11-03T09:15:00+09:00', '2026-11-04T17:30:00+09:00'),
+        (r'(\d{1,2})時(\d{2})分', '9時05分〜17時10分', '2026-11-03T09:05:00+09:00', '2026-11-04T17:10:00+09:00'),
+        (r'(\d{2})\.(\d{2})', '09.20〜16.40', '2026-11-03T09:20:00+09:00', '2026-11-04T16:40:00+09:00'),
+        (r'(\d{2})_(\d{2})', '10_00〜18_15', '2026-11-03T10:00:00+09:00', '2026-11-04T18:15:00+09:00'),
+        (r'(\d{2})-(\d{2})', '09-30〜17-00', '2026-11-03T09:30:00+09:00', '2026-11-04T17:00:00+09:00'),
+    ])
+    def test_TIME_REを差し替えるとEventの開始終了時刻に反映される(
+        self, monkeypatch, pattern, time_text, expected_start, expected_end,
+    ):
+        monkeypatch.setattr(seo, '_TIME_RE', re.compile(pattern))
+        event = _event(time=time_text, daily_times=None)
+        meta = seo.PageMeta(
+            title='Plant Market | ei8ht plants',
+            description='イベント説明',
+            image=seo.DEFAULT_OG_IMAGE,
+            url='https://ei8htplants.com/official/events/plant-market',
+        )
+        ld = seo._event_json_ld(event, meta)
+        assert ld is not None
+        assert ld['startDate'] == expected_start
+        assert ld['endDate'] == expected_end
+
+
 class TestSeoCache:
     """イベント・記事・商品の読み取りは 60 秒キャッシュされる。"""
 
