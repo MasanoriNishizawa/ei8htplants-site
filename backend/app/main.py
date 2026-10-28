@@ -16,6 +16,7 @@ from .config import SITE_ORIGIN
 from .router_registry import register_routers
 from .spa_files import resolve_dist_file_path
 from .spa_redirects import resolve_spa_redirect
+from .spa_normalization import normalize_spa_host, normalize_spa_path
 from .utils.errors import error_summary
 from .routes import seo
 
@@ -202,9 +203,9 @@ if os.path.isdir(DIST):
         Returns:
             静的ファイル、またはメタ情報入りの index.html
         """
-        # 変数の内容: host: リクエスト元のホスト名、path: 処理対象の URL パス。
-        host = request.headers.get('host', '').lower().split(':', 1)[0]
-        path = full_path.strip('/')
+        # 変数の内容: host: ブランド判定用に正規化したホスト名、path: 前後のスラッシュを除いたリクエストパス。
+        host = normalize_spa_host(request.headers.get('host', ''))
+        path = normalize_spa_path(full_path)
 
         # 1. ブランド管理画面を先に判定し、その後に旧ブランド URL を判定する。
         #    モバイル Safari でも JavaScript の起動に依存せず正規 URL へ転送できる。
