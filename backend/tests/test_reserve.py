@@ -207,6 +207,9 @@ class TestCreateReservation:
         # 1. _send_confirmation が例外を投げても予約レコードが返ること。
         mock_sb = _make_supabase_mock()
         mock_admin_sb = _make_admin_sb_for_create()
+        # 変数の内容: inserted_row: このテストだけで更新される予約 insert の戻り値。
+        inserted_row = dict(SAMPLE_RESERVATION)
+        mock_admin_sb.table.return_value.insert.return_value.execute.return_value.data = [inserted_row]
         mock_resend = MagicMock()
         # resend.Emails.send が例外を投げるよう設定
         mock_resend.Emails.send.side_effect = Exception('メール送信エラー')
@@ -223,6 +226,12 @@ class TestCreateReservation:
         # 変数の内容: data: Supabase モックが返す作成済み予約レコード。。
         data = resp.json()
         assert data['id'] == 'reservation-1'
+        assert data['email_failed'] is True
+        # 受付メールを送れない場合は、管理画面で追えるよう失敗フラグを保存する。
+        # 変数の内容: update_query: email_failedを予約IDで絞って保存するDB更新モック。
+        update_query = mock_admin_sb.table.return_value.update
+        update_query.assert_called_once_with({'email_failed': True})
+        update_query.return_value.eq.assert_called_once_with('id', 'reservation-1')
 
 
 class TestCancelReservation:

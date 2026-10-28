@@ -12,14 +12,19 @@ DB（supabase・admin_supabase）とメール（app.mail.resend）はすべて�
 日付は app.routes.reserve.today_jst をパッチして固定する。
 """
 import re
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier, Lock
+from types import SimpleNamespace
 from typing import Any, Optional
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.auth import require_auth
+from app.routes import reserve as reserve_module
 from tests._helpers import not_found_error
 
 # テストで使う「今日」（日本時間）
@@ -116,7 +121,7 @@ def _public_sb(event: Optional[dict] = EVENT) -> MagicMock:
 
 
 def _post(payload: dict, public_sb: MagicMock, admin_sb: MagicMock, resend: Optional[MagicMock] = None,
-          key: str = '', today: str = TODAY):
+          key: str = '', today: str = TODAY, raise_server_exceptions: bool = True):
     """POST /api/reserve を呼ぶ。
 
     Args:
@@ -126,6 +131,7 @@ def _post(payload: dict, public_sb: MagicMock, admin_sb: MagicMock, resend: Opti
         resend: resend のモック
         key: HABITAT_RESEND_API_KEY の値（空ならメールを送らない）
         today: 今日の日付
+        raise_server_exceptions: True なら未処理例外をテスト側へ送る
 
     Returns:
         応答
@@ -137,7 +143,7 @@ def _post(payload: dict, public_sb: MagicMock, admin_sb: MagicMock, resend: Opti
          patch('app.routes.reserve.HABITAT_RESEND_API_KEY', key), \
          patch('app.routes.reserve.HABITAT_ADMIN_EMAIL', 'admin@example.com'), \
          patch('app.routes.reserve.today_jst', return_value=today):
-        return TestClient(app).post('/api/reserve', json=payload)
+        return TestClient(app, raise_server_exceptions=raise_server_exceptions).post('/api/reserve', json=payload)
 
 
 # ---------------------------------------------------------------------------
@@ -558,6 +564,263 @@ class TestSessionAndDateValidation:
 
         assert resp.status_code == 409
         reservations.insert.assert_not_called()
+
+
+class TestReservationFailurePaths:
+    """予約処理を分割する前に、DB・メール・Webhookの失敗時の応答を固定する。"""
+
+    def test_予約の保存に失敗すると500でメールを送らない(self):
+        """予約 insert の障害は成功扱いせず、後続のメール送信も行わないこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: reservations: insert を失敗させる予約テーブル、admin_sb: DB クライアント、resend: メール未送信を確認するモック。
+        reservations = _table_mock()
+        reservations.insert.return_value.execute.side_effect = RuntimeError('database unavailable')
+        admin_sb = _db({'workshop_reservations': reservations})
+        resend = MagicMock()
+
+        # 1. DB insert を失敗させ、外部には一般的な 500 応答だけを返す。
+        # 変数の内容: resp: 予約保存失敗時のHTTP応答。
+        resp = _post(BASE_REQUEST, _public_sb(), admin_sb, resend=resend,
+                     key='test-key', raise_server_exceptions=False)
+
+        assert resp.status_code == 500
+        reservations.insert.assert_called_once()
+        resend.Emails.send.assert_not_called()
+
+    def test_同じ時間枠への同時予約で定員を超えない(self):
+        """同時に2件が空席を読んでも、時間枠ロック内の再確認で片方だけを保存すること。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: session_id: 他テストと衝突しない時間枠ID、rows: 保存済み予約、rows_lock: 保存行の読み書きロック、start: 同時にリクエストを始める同期器。
+        session_id = f'parallel-{uuid4()}'
+        rows: list[dict] = []
+        rows_lock = Lock()
+        start = Barrier(2)
+        # 変数の内容: reservations: insert 呼び出しを共有して記録する予約テーブルのモック。
+        reservations = MagicMock()
+        # 変数の内容: insert_query: 保存処理を共有リストへ反映するための execute モック。
+        insert_query = reservations.insert.return_value.execute
+
+        # 2名ずつの予約を同時に送り、定員3名なら1件のみ保存される条件にする。
+        def save_reservation():
+            """1件分の予約を共有リストへ追加し、DB insert の応答形式で返す。
+
+            Returns:
+                data に保存行を含む DB 応答相当のオブジェクト。
+            """
+            with rows_lock:
+                # 変数の内容: row: DB に保存されたものとして扱う予約レコード。
+                row = {'id': f'reservation-{len(rows) + 1}', 'event_id': 'event-1',
+                       'session_id': session_id, 'participants': 2, 'status': 'pending'}
+                rows.append(row)
+            return SimpleNamespace(data=[dict(row)])
+
+        insert_query.side_effect = save_reservation
+
+        # 1. 満席確認はロック内で共有された保存済み人数を読む。
+        def used_count(_event_id, _session, _preferred_date):
+            """キャンセルされていない共有予約の参加人数を合計する。
+
+            Args:
+                _event_id: テストでは使用しないイベント ID。
+                _session: テスト対象の時間枠。
+                _preferred_date: テストでは指定しない予約日。
+
+            Returns:
+                共有リストに保存済みの参加人数。
+            """
+            with rows_lock:
+                return sum(row['participants'] for row in rows if row['status'] != 'cancelled')
+
+        # 2. 二つのHTTP要求を別スレッドから同時に実行する。
+        def send_request():
+            """予約要求を同期開始点で待たせてから API に送る。
+
+            Returns:
+                予約 API の HTTP 応答。
+            """
+            start.wait(timeout=5)
+            # 変数の内容: client: このworker専用のHTTPクライアント、response: 並列送信した予約API応答。
+            client = TestClient(app)
+            response = client.post('/api/reserve', json={
+                **BASE_REQUEST, 'session_id': session_id, 'participants': 2,
+            })
+            return response
+
+        # 変数の内容: session: このテスト専用の時間枠。定員は3名とし、2名の同時予約のうち片方だけ通す。
+        session = {**SESSION, 'max_participants': 3}
+        session['id'] = session_id
+        # 変数の内容: public_sb: 並列要求で共有する公開Supabaseモック、admin_sb: 予約テーブルを共有する管理用Supabaseモック。
+        public_sb = _public_sb()
+        admin_sb = _db({'workshop_reservations': reservations})
+
+        # 3. モジュールpatchは要求スレッドの外で一度だけ行い、同じモックを両要求に共有する。
+        with patch.object(reserve_module, 'supabase', public_sb), \
+             patch.object(reserve_module, 'admin_supabase', admin_sb), \
+             patch.object(reserve_module, 'HABITAT_RESEND_API_KEY', ''), \
+             patch.object(reserve_module, 'today_jst', return_value=TODAY), \
+             patch.object(reserve_module, '_load_session_for_event', return_value=session), \
+             patch.object(reserve_module, '_session_used_count', side_effect=used_count), \
+             patch.object(reserve_module, '_sync_reserved_count_safely'):
+            # 変数の内容: executor: 並列HTTP要求を実行するスレッドプール。
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                # 変数の内容: responses: 2つの予約要求から返されたHTTP応答。
+                responses = list(executor.map(lambda _: send_request(), range(2)))
+
+        assert sorted(response.status_code for response in responses) == [200, 409]
+        assert len(rows) == 1
+        assert sum(row['participants'] for row in rows) <= session['max_participants']
+        insert_query.assert_called_once()
+        # 4. 実処理の finally が今回の時間枠ロックだけを後片付けしたことを確認する。
+        with reserve_module._session_locks_mu:
+            assert session_id not in reserve_module._session_locks
+
+    def test_キャンセルのDB更新に失敗すると500でメールを送らない(self):
+        """キャンセル状態の保存に失敗した場合、成功応答や確認メールを返さないこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: row: キャンセル対象、admin_sb: 更新を失敗させる管理用DB、resend: メール未送信確認用モック。
+        row = {'id': 'reservation-1', 'status': 'pending', 'session_id': None,
+               'event_id': 'event-1', 'name': 'テスト花子', 'email': 'hanako@example.com',
+               'created_at': '2099-01-01T00:00:00+00:00'}
+        admin_sb = MagicMock()
+        admin_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [row]
+        admin_sb.table.return_value.update.return_value.eq.return_value.execute.side_effect = RuntimeError('database unavailable')
+        resend = MagicMock()
+
+        # 1. キャンセル処理を実行し、未処理のDB障害が500となることを確認する。
+        with patch('app.routes.reserve.admin_supabase', admin_sb), \
+             patch('app.routes.reserve.HABITAT_RESEND_API_KEY', 'test-key'), \
+             patch('app.mail.resend', resend):
+            # 変数の内容: resp: キャンセル状態のDB更新失敗に対するHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).post(
+                '/api/reserve/cancel', json={'token': 'token-123'})
+
+        assert resp.status_code == 500
+        admin_sb.table.return_value.update.assert_called_once_with({'status': 'cancelled'})
+        resend.Emails.send.assert_not_called()
+
+    def test_配信失敗WebhookのDB更新失敗でも200を返す(self):
+        """配信失敗Webhookの更新がDB障害になっても200を返し、配信元の再送を止めること。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: admin_sb: email_failed の更新を失敗させる DB モック。
+        admin_sb = MagicMock()
+        admin_sb.table.return_value.update.return_value.eq.return_value.execute.side_effect = RuntimeError('database unavailable')
+
+        # 1. Resend形式の配信失敗通知を送り、例外を握って固定応答することを確認する。
+        with patch('app.routes.reserve.admin_supabase', admin_sb):
+            # 変数の内容: resp: WebhookのDB更新失敗に対するHTTP応答。
+            resp = TestClient(app).post('/api/reserve/webhook/resend', json={
+                'type': 'email.failed', 'data': {'email_id': 'mail-123'},
+            })
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+        admin_sb.table.return_value.update.assert_called_once_with({'email_failed': True})
+
+    def test_不正なJSONのWebhookでも200を返しDBを更新しない(self):
+        """JSONを解析できないWebhookは再送を促さず、DB更新もしないこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: admin_sb: 不正なWebhook本文でDBが呼ばれないことを確認するモック。
+        admin_sb = MagicMock()
+
+        # 1. JSON構文が壊れた本文を送り、固定応答とDB未呼び出しを確認する。
+        with patch('app.routes.reserve.admin_supabase', admin_sb):
+            # 変数の内容: resp: 不正なJSONを受け取ったWebhookのHTTP応答。
+            resp = TestClient(app).post('/api/reserve/webhook/resend',
+                                        data=b'{invalid',
+                                        headers={'content-type': 'application/json'})
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+        admin_sb.table.assert_not_called()
+
+    def test_未知イベントのWebhookではDBを更新しない(self):
+        """配信失敗以外のイベント種別は無視して固定応答すること。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: admin_sb: WebhookでDB更新が発生しないことを確認するモック。
+        admin_sb = MagicMock()
+
+        # 1. ID付きの未知イベントを送り、通知を無視する契約を確認する。
+        with patch('app.routes.reserve.admin_supabase', admin_sb):
+            # 変数の内容: resp: 未知イベントを受け取ったWebhookのHTTP応答。
+            resp = TestClient(app).post('/api/reserve/webhook/resend', json={
+                'type': 'email.delivered', 'data': {'email_id': 'mail-123'},
+            })
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+        admin_sb.table.assert_not_called()
+
+    @pytest.mark.parametrize('event_type', ['email.failed', 'email.bounced'])
+    def test_配信失敗WebhookにメールIDが無ければDBを更新しない(self, event_type):
+        """配信失敗イベントに特定用メールIDが無い場合は安全に何もしないこと。
+
+        Args:
+            event_type: ID欠落を検証する配信失敗イベント種別。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: admin_sb: ID欠落の通知でDB更新が発生しないことを確認するモック。
+        admin_sb = MagicMock()
+
+        # 1. email_id と id の両方が無い通知を送り、DBを更新しないことを確認する。
+        with patch('app.routes.reserve.admin_supabase', admin_sb):
+            # 変数の内容: resp: メールIDがない配信失敗WebhookのHTTP応答。
+            resp = TestClient(app).post('/api/reserve/webhook/resend', json={
+                'type': event_type, 'data': {},
+            })
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+        admin_sb.table.assert_not_called()
+
+    @pytest.mark.parametrize('event_type', ['email.failed', 'email.bounced'])
+    @pytest.mark.parametrize('email_id_key', ['email_id', 'id'])
+    def test_配信失敗Webhookが各ID形式を受けて予約に失敗フラグを保存する(
+            self, event_type, email_id_key):
+        """両方の配信失敗種別とResendの2種類のID項目を処理すること。
+
+        Args:
+            event_type: 検証する配信失敗イベント種別。
+            email_id_key: Webhook本文で使うメールIDの項目名。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: admin_sb: 失敗フラグ更新を記録する管理用DBモック。
+        admin_sb = MagicMock()
+
+        # 1. 通知を送り、対象メールIDでemail_failedを更新することを確認する。
+        with patch('app.routes.reserve.admin_supabase', admin_sb):
+            # 変数の内容: resp: 配信失敗WebhookのHTTP応答。
+            resp = TestClient(app).post('/api/reserve/webhook/resend', json={
+                'type': event_type, 'data': {email_id_key: 'mail-123'},
+            })
+
+        assert resp.status_code == 200
+        assert resp.json() == {'ok': True}
+        # 変数の内容: update_query: email_failedを指定メールIDの予約へ保存する更新モック。
+        update_query = admin_sb.table.return_value.update
+        update_query.assert_called_once_with({'email_failed': True})
+        update_query.return_value.eq.assert_called_once_with('resend_email_id', 'mail-123')
 
     @pytest.mark.parametrize('preferred_date', ['2026-10-19', '2026-10-26'])
     def test_予約日が開催期間の外なら400(self, preferred_date):
