@@ -561,6 +561,24 @@ class TestBrandDomainMeta:
         assert meta.site_name == site_name
         assert meta.url == f'{origin}/'
 
+    def test_ブランドホストは既知のイベントURLより先にブランドページとして判定する(self, db):
+        """ブランド専用ホストではイベントURLのDB情報よりブランド公開パス判定を優先する。
+
+        Args:
+            db: イベント詳細が取得可能な状態にした FakeDB。
+
+        Returns:
+            なし。
+        """
+        # 1. 本体サイトならイベント詳細になるパスをブランド専用ホストで判定する。
+        meta = seo.build_page_meta('/official/events/plant-market', hostname='habitatoides.com')
+        # 2. ブランドの未公開パスとして扱い、イベントDBへ問い合わせていないことを確かめる。
+        assert meta.site_name == 'Habitat Oides'
+        assert meta.title == 'Habitat Oides'
+        assert meta.noindex is True
+        assert meta.canonical is False
+        assert db.calls == []
+
 
 @needs_dist
 class TestServeSpaMeta:
