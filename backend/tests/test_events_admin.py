@@ -157,6 +157,96 @@ class TestEventCRUD:
         assert resp.status_code == 200
         assert resp.json()['name'] == 'テストイベント'
 
+    def test_イベント作成_画像を順番に保存して公開読戻しにも含める(self):
+        """画像付きイベントを作成し、表示順を保った公開応答を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event: events INSERT と公開読戻しが返す作成イベント、image_urls: 指定順の画像URL、image_rows: event_images の保存行、admin/public各モック: 管理書込・公開読戻しの記録用。
+        event = _event_data('11111111-1111-1111-1111-111111111111', '画像付きイベント')
+        image_urls = ['https://example.com/first.jpg', 'https://example.com/second.jpg']
+        image_rows = [
+            {'event_id': event['id'], 'url': image_urls[0], 'display_order': 0},
+            {'event_id': event['id'], 'url': image_urls[1], 'display_order': 1},
+        ]
+        event_table = MagicMock()
+        admin_images_table = MagicMock()
+        public_event_table = MagicMock()
+        public_images_table = MagicMock()
+        # 1. 管理側のイベント INSERT と画像 INSERT が成功する応答を設定する。
+        event_table.insert.return_value.execute.return_value.data = [event]
+        # 変数の内容: admin_images_table の INSERT は成功だけ記録し、公開読戻し用の画像行は別モックで返す。
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.attach_mock(event_table, 'events_table')
+        mock_admin_sb.attach_mock(admin_images_table, 'event_images_table')
+        mock_admin_sb.table.side_effect = [event_table, admin_images_table]
+        admin_images_table.insert.return_value.execute.return_value.data = image_rows
+
+        # 2. 公開側では作成イベントと表示順の画像行を返し、POST 応答を組み立てさせる。
+        mock_public_sb = MagicMock()
+        # slug 検索は未登録、UUID の id 検索では作成イベントが見つかる応答に分ける。
+        slug_query = MagicMock()
+        slug_query.execute.return_value.data = []
+        id_query = MagicMock()
+        id_query.execute.return_value.data = [event]
+        public_event_table.select.return_value.eq.side_effect = [slug_query, id_query]
+
+        def read_saved_images():
+            """画像の公開読戻しより先に管理側 INSERT が完了したことを確かめる。
+
+            Returns:
+                管理側で保存した表示順付き画像行。
+            """
+            # 1. API が公開側の画像取得へ進む前に、管理側の画像 INSERT が実行済みか確認する。
+            admin_images_table.insert.return_value.execute.assert_called_once()
+            # 2. Supabase の execute 応答と同じ data 属性に、保存済み画像行を設定して返す。
+            response = MagicMock()
+            response.data = image_rows
+            return response
+
+        public_images_table.select.return_value.in_.return_value.order.return_value.execute.side_effect = read_saved_images
+        mock_public_sb.table.side_effect = [public_event_table, public_event_table, public_images_table]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb), \
+             patch('app.routes.events.supabase', mock_public_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: 画像付き POST の応答。
+            client = TestClient(app)
+            resp = client.post('/api/events', json={
+                'name': '画像付きイベント',
+                'start_date': '2099-01-01',
+                'location': '東京',
+                'image_urls': image_urls,
+            })
+
+        # 3. イベント保存→画像保存の順、display_order、公開応答の images 順を確認する。
+        assert resp.status_code == 200
+        assert resp.json()['id'] == event['id']
+        assert [item['url'] for item in resp.json()['images']] == image_urls
+        assert [item['display_order'] for item in resp.json()['images']] == [0, 1]
+        # 変数の内容: executed_operations: 管理DBで実行されたイベント本体・画像保存の順序。
+        executed_operations = [
+            item[0]
+            for item in mock_admin_sb.mock_calls
+            if item[0] in {'events_table.insert().execute', 'event_images_table.insert().execute'}
+        ]
+        assert executed_operations == ['events_table.insert().execute', 'event_images_table.insert().execute']
+        event_table.insert.return_value.execute.assert_called_once()
+        admin_images_table.insert.assert_called_once_with([
+            {'event_id': event['id'], 'url': image_urls[0], 'display_order': 0},
+            {'event_id': event['id'], 'url': image_urls[1], 'display_order': 1},
+        ])
+        admin_images_table.insert.return_value.execute.assert_called_once()
+        assert public_event_table.select.return_value.eq.call_args_list == [
+            call('slug', event['id']),
+            call('id', event['id']),
+        ]
+        slug_query.execute.assert_called_once()
+        id_query.execute.assert_called_once()
+        public_images_table.select.return_value.in_.return_value.order.return_value.execute.assert_called_once()
+        public_images_table.select.return_value.in_.assert_called_once_with('event_id', [event['id']])
+        public_images_table.select.return_value.in_.return_value.order.assert_called_once_with('display_order')
+
     def test_イベント作成_eventsのinsert失敗時は画像保存へ進まず500(self):
         """イベント本体の INSERT 失敗は 500 となり画像テーブルを呼ばない。
 
