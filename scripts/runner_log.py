@@ -101,7 +101,12 @@ def make_entry(
             lines.append(f"- {result['name']}：ほか {result['failed'] - len(result['failed_names'])} 件（合計 {result['failed']} 件）")
     for result in results:
         if result.get("interrupted", False):
-            lines += ["", f"**{result['name']} の状態**：実行中に割り込みを受けました"]
+            state = (
+                "進捗表示中に割り込みを受け、suiteは開始されませんでした"
+                if result.get("started") is False
+                else "実行中に割り込みを受けました"
+            )
+            lines += ["", f"**{result['name']} の状態**：{state}"]
         elif result["code"] != 0 and not result["failed_names"]:
             lines += ["", f"**{result['name']} の最後の出力**：`{' '.join(result['tail']) or '（なし）'}`"]
     lines += ["", "---", ""]

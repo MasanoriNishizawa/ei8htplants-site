@@ -84,6 +84,22 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn("| フロントのロジック（Vitest） | ❌ |", entry)
         self.assertIn("| 画面テスト（Playwright） | ⏹ 中断 |", entry)
 
+    def test_runner開始前の割り込みをログで区別する(self):
+        """進捗表示中の割り込みを実行開始後の割り込みと混同しない。"""
+        interrupted_before_start = {
+            "name": "TypeScript チェック（tsc）", "code": 130, "sec": 0,
+            "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
+            "failed_names": [], "tail": ["進捗表示中に割り込みを受け、suiteは開始されませんでした"],
+            "interrupted": True, "started": False,
+        }
+
+        # 1. suite未開始を示す結果をログへ整形し、状態欄の文言を確認する。
+        with patch.object(run_tests, "git_info", return_value="`test`"):
+            entry = run_tests.make_entry([interrupted_before_start], "runner test", [])
+
+        self.assertIn("進捗表示中に割り込みを受け、suiteは開始されませんでした", entry)
+        self.assertNotIn("状態**：実行中に割り込みを受けました", entry)
+
     def test_runはmonotonic時計で経過時間を測る(self):
         process = Mock(returncode=0)
         process.communicate.return_value = ("stdout", "stderr")

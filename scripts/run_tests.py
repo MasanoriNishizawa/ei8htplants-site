@@ -42,6 +42,7 @@ try:
     # unittest からの読み込みではパッケージ相対、直接実行では同じディレクトリから読み込む。
     from .runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
     from .runner_process import run_process
+    from .runner_execution import SuiteSpec, execute_suites
     from .runner_results import (
         num as _parse_number, parse_build_result, parse_playwright_result, parse_pytest_result,
         parse_runner_tests_result, parse_tsc_result, parse_vitest_result,
@@ -50,6 +51,7 @@ try:
 except ImportError:
     from runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
     from runner_process import run_process
+    from runner_execution import SuiteSpec, execute_suites
     from runner_results import (
         num as _parse_number, parse_build_result, parse_playwright_result, parse_pytest_result,
         parse_runner_tests_result, parse_tsc_result, parse_vitest_result,
@@ -245,7 +247,6 @@ def main() -> int:
     if args.no_e2e and args.e2e is not None:
         ap.error("--no-e2e と --e2e は同時に指定できません")
 
-    results: list[dict] = []
     # 1. CLI引数から実行範囲と省略理由を専用関数で確定する。
     selection = select_tests(
         vitest_targets=args.vitest,
@@ -257,44 +258,34 @@ def main() -> int:
 
     # 2. 選択されたsuiteを順番に実行し、途中中断でも現在位置を記録できるようにする。
     suites = [
-        ("TypeScript チェック（tsc）", "TypeScript チェック中…", run_tsc, ()),
-        ("本番ビルド（tsc -b ＋ vite build）", "本番ビルドを確認中…", run_build, ()),
-        ("テストランナー（unittest）", "テストランナーの回帰テスト中…", run_runner_tests, ()),
+        SuiteSpec("TypeScript チェック（tsc）", "TypeScript チェック中…", run_tsc),
+        SuiteSpec("本番ビルド（tsc -b ＋ vite build）", "本番ビルドを確認中…", run_build),
+        SuiteSpec("テストランナー（unittest）", "テストランナーの回帰テスト中…", run_runner_tests),
     ]
     if selection.run_vitest:
-        suites.append(("フロントのロジック（Vitest）", "Vitest（フロントロジック）を実行中…", run_vitest, (args.vitest,)))
+        suites.append(SuiteSpec(
+            "フロントのロジック（Vitest）", "Vitest（フロントロジック）を実行中…",
+            lambda: run_vitest(args.vitest),
+        ))
     if selection.run_playwright:
-        suites.append(("画面テスト（Playwright）", "Playwright（画面テスト）を実行中…", run_playwright, (args.e2e,)))
+        suites.append(SuiteSpec(
+            "画面テスト（Playwright）", "Playwright（画面テスト）を実行中…",
+            lambda: run_playwright(args.e2e),
+        ))
     if selection.run_pytest:
-        suites.append(("バックエンド（pytest）", "pytest（バックエンド）を実行中…", run_pytest, (args.pytest,)))
+        suites.append(SuiteSpec(
+            "バックエンド（pytest）", "pytest（バックエンド）を実行中…",
+            lambda: run_pytest(args.pytest),
+        ))
     if selection.run_analytics:
-        suites.append(("分析ダッシュボード（pytest）", "pytest（分析ダッシュボード）を実行中…", run_analytics, ()))
+        suites.append(SuiteSpec(
+            "分析ダッシュボード（pytest）", "pytest（分析ダッシュボード）を実行中…", run_analytics,
+        ))
 
-    interrupted = False
-    interrupted_index: int | None = None
-    for index, (suite_name, progress, suite_runner, suite_args) in enumerate(suites):
-        suite_started = time.monotonic()
-        try:
-            print(progress, flush=True)
-            results.append(suite_runner(*suite_args))
-        except KeyboardInterrupt:
-            # 3. 実行中だったsuiteを中断として残し、開始していないsuiteと区別する。
-            interrupted = True
-            interrupted_index = index
-            results.append({
-                "name": suite_name, "code": 130, "sec": time.monotonic() - suite_started,
-                "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
-                "failed_names": [], "tail": ["実行中に割り込みを受けました"], "interrupted": True,
-            })
-            break
-
-    # 4. CLIで省略したsuiteに加え、中断後に開始できなかったsuiteもログへ明示する。
-    skipped_suites = list(selection.skipped_suites)
-    if interrupted_index is not None:
-        skipped_suites.extend(
-            (name, "⏹ 中断により未実行")
-            for name, _, _, _ in suites[interrupted_index + 1:]
-        )
+    # 3. 実行順・進捗・中断後の未実行suite記録を専用モジュールへ委ねる。
+    execution = execute_suites(suites, selection.skipped_suites)
+    results = execution.results
+    skipped_suites = execution.skipped_suites
 
     text = make_entry(results, args.note, skipped_suites, selection.targets)
     print("\n" + text)
@@ -304,7 +295,7 @@ def main() -> int:
         append_log(text)
         print(f"ログに追加しました: {LOG.relative_to(ROOT)}")
 
-    if interrupted:
+    if execution.interrupted:
         return 130
     return 0 if all(r["code"] == 0 and r["failed"] == 0 for r in results) else 1
 
