@@ -3,8 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import { api, type EventBody } from '../../lib/api'
 import { failMessage } from './errorMessage'
 import { confirmLeaveIfDirty, useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
-// 販売ブランドのチェックボックスの選択肢（正式名）
-import { BRAND_NAMES } from '../../lib/brands'
+import EventBrandSelector from './EventBrandSelector'
 import { formatJaMonthDayDow, listDates } from '../../lib/localDate'
 import { WS_DEFAULT_SESSION_CAPACITY } from '../../lib/constants'
 import { TIME_END_OPTIONS, TIME_START_OPTIONS, buildAutoSessions, hasTimeRange, parseTimeRange, type SessionInput } from './eventTime'
@@ -484,17 +483,8 @@ export default function AdminEventForm() {
           <div><label htmlFor="event-address" style={labelStyle}>住所</label><input id="event-address" style={inputStyle} value={form.address} onChange={(e) => set('address', e.target.value)} /></div>
         </div>
         <div><label htmlFor="event-official-url" style={labelStyle}>公式サイトURL</label><input id="event-official-url" type="url" style={inputStyle} value={form.official_url} onChange={(e) => set('official_url', e.target.value)} /></div>
-        <fieldset style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
-          <legend style={{ ...labelStyle, padding: 0 }}>販売ブランド</legend>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {BRAND_NAMES.map((b) => (
-              <label key={b} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.brands.includes(b)} onChange={() => toggleBrand(b)} />
-                {b}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        {/* 販売ブランド欄の表示を分離し、選択状態と切り替え処理はフォーム側で管理する */}
+        <EventBrandSelector selectedBrands={form.brands} labelStyle={labelStyle} onToggle={toggleBrand} />
         <div>
           {/* 画像は一覧と「追加」のボタンの集まりなので、label ではなく見出しの文字にする */}
           <p style={{ ...labelStyle, margin: '0 0 6px' }}>画像（複数可）</p>
