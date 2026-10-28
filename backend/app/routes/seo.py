@@ -51,6 +51,11 @@ from .seo_page_data import (
     fetch_event as _fetch_event_data,
     fetch_product as _fetch_product_data,
 )
+from .seo_page_meta import (
+    build_article_page_meta as _build_article_page_meta,
+    build_event_page_meta as _build_event_page_meta,
+    build_product_page_meta as _build_product_page_meta,
+)
 from .seo_robots import build_robots_txt as _build_robots_txt
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 from .seo_structured_data import (
@@ -574,19 +579,14 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
             event = _fetch_event(segments[2])
             if event and _str(event.get('name')):
-                # 変数の内容: canonical_path: 正規 URL として使うパス、images: 対象画像の一覧、ld: JSON-LD の構造化データ、meta: ページの title・description・画像などの SEO 情報、slug: イベントの公開 URL 用スラッグ。
-                images = event.get('image_urls') or []
-                # UUID で開かれても slug があれば canonical・og:url は slug の URL にする（sitemap と同じ URL）
-                slug = _str(event.get('slug'))
-                canonical_path = f'/official/events/{slug}' if slug else None
-                meta = _make_meta(
-                    norm, _str(event.get('name')), _event_description(event),
-                    images[0] if images else None, canonical_path,
+                # 2. 既存の差し替え可能な関数群を渡し、イベント用メタ情報を生成する。
+                return _build_event_page_meta(
+                    norm,
+                    event,
+                    _make_meta,
+                    _event_description,
+                    _event_json_ld,
                 )
-                ld = _event_json_ld(event, meta)
-                if ld:
-                    meta.json_ld.append(ld)
-                return meta
             return _not_found_meta(norm)
 
         # 2. 記事の個別ページ（タイトルは JournalArticle.tsx と同じ "記事名 | Journal"）
@@ -594,12 +594,15 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
             article = _fetch_article(segments[2])
             if article and _str(article.get('title')):
-                # 変数の内容: blocks: イベントページに設定されたブロック一覧、hero: ページ先頭に表示する内容、image_urls: イベントに設定する画像 URL の一覧、title: ページまたはメールのタイトル。
-                blocks = _parse_blocks(article.get('content'))
-                image_urls = article.get('image_urls') if isinstance(article.get('image_urls'), list) else []
-                hero = _first_image_block_url(blocks) or (image_urls[0] if image_urls else None)
-                title = _str(article.get('title'))
-                return _make_meta(norm, f'{title} | Journal', _blocks_to_text(blocks) or title, hero)
+                # 2. 既存の差し替え可能な本文・画像関数を渡し、Journal 用メタ情報を生成する。
+                return _build_article_page_meta(
+                    norm,
+                    article,
+                    _make_meta,
+                    _parse_blocks,
+                    _blocks_to_text,
+                    _first_image_block_url,
+                )
             return _not_found_meta(norm)
 
         # 3. 商品の個別ページ（ShopProduct.tsx と同じく画像は image_urls の1枚目）
@@ -607,11 +610,14 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
             product = _fetch_product(segments[2])
             if product and _str(product.get('name')):
-                # 変数の内容: blocks: イベントページに設定されたブロック一覧、image_urls: イベントに設定する画像 URL の一覧、name: 画面やログに表示する名前。
-                blocks = _parse_blocks(product.get('description'))
-                image_urls = product.get('image_urls') if isinstance(product.get('image_urls'), list) else []
-                name = _str(product.get('name'))
-                return _make_meta(norm, f'{name} | Shop', _blocks_to_text(blocks) or name, image_urls[0] if image_urls else None)
+                # 2. 既存の差し替え可能な本文関数を渡し、Shop 用メタ情報を生成する。
+                return _build_product_page_meta(
+                    norm,
+                    product,
+                    _make_meta,
+                    _parse_blocks,
+                    _blocks_to_text,
+                )
             return _not_found_meta(norm)
     # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
