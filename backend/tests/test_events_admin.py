@@ -112,6 +112,73 @@ class TestEventCRUD:
         assert resp.status_code == 200
         assert resp.json()['name'] == 'テストイベント'
 
+    def test_イベント作成_eventsのinsert失敗時は画像保存へ進まず500(self):
+        """イベント本体の INSERT 失敗は 500 となり画像テーブルを呼ばない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event_table: events テーブルの書き込みモック、images_table: event_images テーブルの書き込みモック。
+        event_table = MagicMock()
+        images_table = MagicMock()
+        # 1. events.insert の実行時に例外を発生させ、テーブル別モックを管理用クライアントへ結び付ける。
+        event_table.insert.return_value.execute.side_effect = RuntimeError('events insert failed')
+        # 変数の内容: mock_admin_sb: テーブル別モックを順番に返す管理用Supabaseクライアント。
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = [event_table, images_table]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: POST応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.post('/api/events', json={
+                'name': 'テストイベント',
+                'start_date': '2099-01-01',
+                'location': '東京',
+                'image_urls': ['https://example.com/event.jpg'],
+            })
+
+        # 2. 失敗応答と、イベント INSERT だけが呼ばれたことを確認する。
+        assert resp.status_code == 500
+        mock_admin_sb.table.assert_called_once_with('events')
+        event_table.insert.assert_called_once()
+        event_table.insert.return_value.execute.assert_called_once()
+        images_table.insert.assert_not_called()
+
+    def test_イベント作成_event_imagesのinsert失敗時はイベント登録後に500(self):
+        """画像 INSERT 失敗は 500 となり、イベント本体 INSERT は先に実行されている。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event: イベント INSERT で返す作成済み行、event_table: events モック、images_table: 画像モック。
+        event = _event_data('new-evt')
+        event_table = MagicMock()
+        images_table = MagicMock()
+        # 1. イベント INSERT は成功させ、画像 INSERT の実行だけを失敗させる。
+        event_table.insert.return_value.execute.return_value.data = [event]
+        images_table.insert.return_value.execute.side_effect = RuntimeError('event_images insert failed')
+        # 変数の内容: mock_admin_sb: テーブル別モックを順番に返す管理用Supabaseクライアント。
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = [event_table, images_table]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: POST応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.post('/api/events', json={
+                'name': 'テストイベント',
+                'start_date': '2099-01-01',
+                'location': '東京',
+                'image_urls': ['https://example.com/event.jpg'],
+            })
+
+        # 2. イベントと画像の両方で INSERT を試みたこと、テーブル呼び出し順、500応答を確認する。
+        assert resp.status_code == 500
+        assert [args.args[0] for args in mock_admin_sb.table.call_args_list] == ['events', 'event_images']
+        event_table.insert.assert_called_once()
+        event_table.insert.return_value.execute.assert_called_once()
+        images_table.insert.assert_called_once()
+        images_table.insert.return_value.execute.assert_called_once()
+
     def test_イベント作成_認証なし_401(self):
         """POST /api/events で Authorization ヘッダーがない場合 401 が返る。
 
@@ -174,6 +241,28 @@ class TestEventCRUD:
 
         assert resp.status_code == 200
         assert resp.json() == {'ok': True}
+
+    def test_イベント削除のDB失敗時は500(self):
+        """events.delete の実行失敗は既存API契約どおり HTTP 500 になる。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_admin_sb: DELETE の実行時だけ例外を返す管理用DBモック。
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value.delete.return_value.eq.return_value.execute.side_effect = RuntimeError('events delete failed')
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: DELETE応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.delete('/api/events/evt-1')
+
+        # 1. status=500 と削除クエリの実行を確認し、成功応答にならないことを確かめる。
+        assert resp.status_code == 500
+        mock_admin_sb.table.assert_called_once_with('events')
+        mock_admin_sb.table.return_value.delete.assert_called_once_with()
+        mock_admin_sb.table.return_value.delete.return_value.eq.assert_called_once_with('id', 'evt-1')
+        mock_admin_sb.table.return_value.delete.return_value.eq.return_value.execute.assert_called_once_with()
 
     def test_イベント削除_認証なし_401(self):
         """DELETE /api/events/:id で Authorization ヘッダーがない場合 401 が返る。
