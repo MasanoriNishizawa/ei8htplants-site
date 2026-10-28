@@ -34,7 +34,13 @@ from ..db import admin_supabase, supabase
 from ..utils.cache import TTLCache
 from ..utils.errors import error_summary
 from ..utils.ids import UUID_RE
-from .seo_html import OG_LOCALE, inject_head, json_for_script as _json_for_script, render_head_tags
+from .seo_html import (
+    OG_LOCALE,
+    cleanup_brand_pwa_html,
+    inject_head,
+    json_for_script as _json_for_script,
+    render_head_tags,
+)
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 from .seo_structured_data import (
     DESCRIPTION_MAX_LEN,
@@ -806,23 +812,10 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None, h
     page = inject_head(_read_index(index_path), build_page_meta(path, query, host))
     # 2. ブランド独立ドメインでは古い PWA 登録を解除するスクリプトを加える。
     if host in BRAND_DOMAINS:
-        # 独立前に登録されたPWAのService Workerが、古いei8ht plants画面を表示し続けないよう解除する。
-        page = re.sub(r'<link\s+rel="manifest"[^>]*>', '', page, flags=re.I)
-        page = re.sub(r'<script\s+id="vite-plugin-pwa:register-sw"[^>]*>\s*</script>', '', page, flags=re.I)
-        cleanup_old_pwa = (
-            '<script>(function(){'
-            "if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations()"
-            '.then(function(items){return Promise.all(items.map(function(item){return item.unregister()}))})}'
-            "if('caches' in window){caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key)}))})}"
-            '})();</script>'
-        )
-        page = page.replace('</head>', cleanup_old_pwa + '</head>')
+        # ブランド専用ドメイン向けのPWA後始末を、HTML文字列変換関数へ委譲する。
+        # 変数の内容: site_name: BRAND_DOMAINSで定義したこのブランドの表示名。
         site_name = BRAND_DOMAINS[host][0]
-        page = re.sub(
-            r'(<meta\s+name="apple-mobile-web-app-title"\s+content=")[^"]*("\s*/?>)',
-            lambda match: f'{match.group(1)}{html.escape(site_name, quote=True)}{match.group(2)}',
-            page, flags=re.I,
-        )
+        page = cleanup_brand_pwa_html(page, site_name)
     return page
 
 

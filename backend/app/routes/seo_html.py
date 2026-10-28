@@ -93,3 +93,48 @@ def inject_head(index_html: str, meta: PageMeta) -> str:
     if count:
         return replaced
     return index_html.replace('</head>', tags + '\n  </head>', 1)
+
+
+def cleanup_brand_pwa_html(index_html: str, site_name: str) -> str:
+    """ブランド専用ドメイン向けにHTML内の旧PWA設定を後始末する。
+
+    Args:
+        index_html: PWA関連タグを取り除き、後始末スクリプトを加えるHTML文字列。
+        site_name: Appleのホーム画面タイトルに設定するブランド名。
+
+    Returns:
+        旧PWAの登録とキャッシュを解除する処理を反映したHTML文字列。
+    """
+    # 1. ブランドサイトでは旧PWAマニフェストと自動登録スクリプトを除去する。
+    # 変数の内容: cleaned_html: ブランド向けにPWA登録タグを取り除いたHTML。
+    cleaned_html = re.sub(r'<link\s+rel="manifest"[^>]*>', '', index_html, flags=re.I)
+    cleaned_html = re.sub(
+        r'<script\s+id="vite-plugin-pwa:register-sw"[^>]*>\s*</script>',
+        '',
+        cleaned_html,
+        flags=re.I,
+    )
+
+    # 2. 旧Service Workerとキャッシュを解除するスクリプトをheadへ加える。
+    # 変数の内容: cleanup_script: 登録済みService WorkerとCache Storageを消去するインラインスクリプト。
+    cleanup_script = (
+        '<script>(function(){'
+        "if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations()"
+        '.then(function(items){return Promise.all(items.map(function(item){return item.unregister()}))})}'
+        "if('caches' in window){caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key)}))})}"
+        '})();</script>'
+    )
+    cleaned_html = cleaned_html.replace('</head>', cleanup_script + '</head>')
+
+    # 3. Appleのホーム画面タイトルをブランド名に置き換える。
+    # 変数の内容: escaped_site_name: 属性値へ安全に挿入できるようエスケープしたブランド名。
+    escaped_site_name = html.escape(site_name, quote=True)
+    # 変数の内容: branded_html: ブランド名のタイトルを反映した最終HTML。
+    # 変数の内容: match: Apple向けタイトルmetaタグに一致した正規表現の照合結果。
+    branded_html = re.sub(
+        r'(<meta\s+name="apple-mobile-web-app-title"\s+content=")[^"]*("\s*/?>)',
+        lambda match: f'{match.group(1)}{escaped_site_name}{match.group(2)}',
+        cleaned_html,
+        flags=re.I,
+    )
+    return branded_html

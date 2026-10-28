@@ -1722,6 +1722,43 @@ class TestLegacyBrandRedirects:
         assert 'items.map(function(item){return item.unregister()})' in resp.text
         assert 'caches.delete(key)' in resp.text
 
+    @pytest.mark.parametrize('host,expected_title', [
+        ('habitatoides.com', 'Habitat Oides'),
+        ('huebyei8htplants.com', 'HUE by ei8ht plants'),
+    ])
+    def test_ブランド専用ドメインのappleタイトルは自ブランド名になる(self, db, host, expected_title):
+        """ブランド専用ドメインではApple向けホーム画面タイトルを自ブランド名にする。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            host: 接続元として設定するブランド専用ホスト名。
+            expected_title: apple-mobile-web-app-title に表示するブランド名。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: ブランド専用ドメインでトップページを開いたレスポンス。
+        resp = TestClient(app).get('/', headers={'host': host})
+        assert resp.status_code == 200
+        assert _meta(_head(resp.text), 'name', 'apple-mobile-web-app-title') == expected_title
+
+    def test_本体ドメインのトップHTMLはPWA要素とAppleタイトルを維持し後始末scriptを加えない(self, db):
+        """本体ドメインでは既存のPWA要素とAppleタイトルを保ち、ブランド用後始末を加えない。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: ei8htplants.com でトップページを開いたレスポンス。
+        resp = TestClient(app).get('/', headers={'host': 'ei8htplants.com'})
+        assert resp.status_code == 200
+        head = _head(resp.text)
+        assert _meta(head, 'name', 'apple-mobile-web-app-title') == 'ei8ht Admin'
+        assert re.search(r'<link\s+rel="manifest"\s+href="/manifest\.webmanifest"\s*/?>', head)
+        assert re.search(r'<script\s+id="vite-plugin-pwa:register-sw"\s+src="/registerSW\.js"\s*>', head)
+        assert 'getRegistrations()' not in resp.text
+        assert 'caches.delete(key)' not in resp.text
+
 
 # ---------------------------------------------------------------------------
 # serve_spa のパストラバーサル対策（main.py）
