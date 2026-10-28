@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 
 from .config import SITE_ORIGIN
+from .spa_redirects import resolve_spa_redirect
 from .utils.errors import error_summary
 from .routes import (
     articles,
@@ -242,42 +243,13 @@ if os.path.isdir(DIST):
         host = request.headers.get('host', '').lower().split(':', 1)[0]
         path = full_path.strip('/')
 
-        # 管理画面は ei8htplants.com に集約し、ブランドドメインからは SPA を読み込まずサーバー側で先に転送する。
-        # モバイル Safari でもクライアント側 JavaScript の起動に依存せず管理画面を開けるようにする。
-        if host in seo.BRAND_DOMAINS and (path == 'admin' or path.startswith('admin/')):
-            # 変数の内容: destination: 転送または保存先。
-            destination = f'{SITE_ORIGIN}/{path}'
-            if request.url.query:
-                destination += '?' + request.url.query
-            return RedirectResponse(
-                url=destination,
-                status_code=301,
-                headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
-            )
-
-        # ブランドページの古い URL や別ブランドの URL を、それぞれの正規ドメインへ転送する。
-        moved_pages = {
-            'ei8htplants.com': {
-                'habitatoides': 'https://habitatoides.com/',
-                'habitatoides/workshop': 'https://habitatoides.com/workshop',
-                'hue': 'https://huebyei8htplants.com/',
-                'collaborations': 'https://habitatoides.com/collaborations',
-            },
-            'www.ei8htplants.com': {
-                'habitatoides': 'https://habitatoides.com/',
-                'habitatoides/workshop': 'https://habitatoides.com/workshop',
-                'hue': 'https://huebyei8htplants.com/',
-                'collaborations': 'https://habitatoides.com/collaborations',
-            },
-            'habitatoides.com': {'hue': 'https://huebyei8htplants.com/'},
-            'www.habitatoides.com': {'hue': 'https://huebyei8htplants.com/'},
-            'huebyei8htplants.com': {'habitatoides': 'https://habitatoides.com/'},
-            'www.huebyei8htplants.com': {'habitatoides': 'https://habitatoides.com/'},
-        }
-        destination = moved_pages.get(host, {}).get(path)
+        # 1. ブランド管理画面を先に判定し、その後に旧ブランド URL を判定する。
+        #    モバイル Safari でも JavaScript の起動に依存せず正規 URL へ転送できる。
+        # 変数の内容: destination: 転送対象ならその URL、対象外なら None。
+        destination = resolve_spa_redirect(
+            host, path, request.url.query, SITE_ORIGIN, seo.BRAND_DOMAINS
+        )
         if destination:
-            if request.url.query:
-                destination += '?' + request.url.query
             return RedirectResponse(
                 url=destination,
                 status_code=301,
