@@ -468,6 +468,100 @@ def _json_ld(head: str) -> list:
 # SPA の index.html へのメタ情報の埋め込み（GET /{path}）
 # ---------------------------------------------------------------------------
 
+class TestBrandDomainMeta:
+    """ブランド専用ドメインのメタ情報選択を純関数で固定する。"""
+
+    @pytest.mark.parametrize('site_name,origin,path,title,description,image,canonical', [
+        ('Habitat Oides', 'https://habitatoides.com', '/', 'Habitat Oides', '植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', '/img/habitatOides/habitat_oides_hero.jpg', '/'),
+        ('Habitat Oides', 'https://habitatoides.com', '/workshop', 'Habitat Style Workshop | Habitat Oides', 'ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', '/img/habitatOides/habitat_oides_workshop_main.jpg', '/workshop'),
+        ('Habitat Oides', 'https://habitatoides.com', '/collaborations', 'Collaborations | Habitat Oides', 'Habitat Oides のコラボレーション作品・活動記録。', '/img/habitatOides/habitat_oides_hero.jpg', '/collaborations'),
+        ('Habitat Oides', 'https://habitatoides.com', '/habitatoides', 'Habitat Oides', '植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', '/img/habitatOides/habitat_oides_hero.jpg', '/'),
+        ('Habitat Oides', 'https://habitatoides.com', '/habitatoides/workshop', 'Habitat Style Workshop | Habitat Oides', 'ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', '/img/habitatOides/habitat_oides_workshop_main.jpg', '/workshop'),
+        ('HUE by ei8ht plants', 'https://huebyei8htplants.com', '/', 'HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png', '/'),
+        ('HUE by ei8ht plants', 'https://huebyei8htplants.com', '/hue', 'HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png', '/'),
+        ('HUE by ei8ht plants', 'https://huebyei8htplants.com', '/about', 'HUEについて | HUE by ei8ht plants', '植物を、部屋に置くものとしてだけでなく、日々を一緒に過ごす存在として。HUEは葉の色やかたちに目を向け、暮らしの景色になる一鉢を紹介します。', '/img/logo-hue.png', '/about'),
+        ('HUE by ei8ht plants', 'https://huebyei8htplants.com', '/choose', '一鉢の選び方 | HUE by ei8ht plants', '名前や育て方を調べる前に、まずは心に留まった葉の色やかたちを見つける。HUEの一鉢選びは、そんな小さな好みから始まります。', '/img/logo-hue.png', '/choose'),
+        ('HUE by ei8ht plants', 'https://huebyei8htplants.com', '/living', '植物のある部屋 | HUE by ei8ht plants', '植物を迎えると、目に入る景色や部屋で過ごす時間が少し変わります。飾り方に決まりはありません。好きなものと並べながら、自分の居場所をつくっていきます。', '/img/logo-hue.png', '/living'),
+    ])
+    def test_公開パスと別名パスのタイトル説明画像とcanonicalを返す(
+        self, site_name, origin, path, title, description, image, canonical,
+    ):
+        """各公開パスのブランド情報と別名パスの正規URLを確認する。
+
+        Args:
+            site_name: ブランド識別名。
+            origin: ブランド専用ドメインの origin。
+            path: 公開パスまたは互換用の別名パス。
+            title: 期待するページタイトル。
+            description: 期待するページ説明。
+            image: 期待する画像パス。
+            canonical: 期待する canonical パス。
+
+        Returns:
+            なし。
+        """
+        # 1. ブランドと対象パスから PageMeta を生成する。
+        meta = seo._brand_domain_meta(path, site_name, origin)
+        # 2. 表示情報・絶対URL・公開状態が仕様どおりか確認する。
+        assert meta.title == title
+        assert meta.description == description
+        assert meta.image == f'{origin}{image}'
+        assert meta.url == f'{origin}{canonical}'
+        assert meta.canonical is True
+        assert meta.noindex is False
+        assert meta.has_own_image is True
+        assert meta.site_name == site_name
+
+    @pytest.mark.parametrize('site_name,origin,image', [
+        ('Habitat Oides', 'https://habitatoides.com', '/img/logo-habitatoides.png'),
+        ('HUE by ei8ht plants', 'https://huebyei8htplants.com', '/img/logo-hue.png'),
+    ])
+    def test_未公開パスはnoindexでcanonicalを付けない(self, site_name, origin, image):
+        """未公開パスはブランドの既定値を使い検索対象から外す。
+
+        Args:
+            site_name: ブランド識別名。
+            origin: ブランド専用ドメインの origin。
+            image: ブランドごとの既定ロゴパス。
+
+        Returns:
+            なし。
+        """
+        # 1. 公開一覧にないパスのメタ情報を生成する。
+        meta = seo._brand_domain_meta('/private', site_name, origin)
+        # 2. noindex・canonical 無効・既定説明・ブランド情報を確認する。
+        assert meta.title == site_name
+        assert meta.description == seo.DEFAULT_DESCRIPTION
+        assert meta.image == f'{origin}{image}'
+        assert meta.url == f'{origin}/private'
+        assert meta.noindex is True
+        assert meta.canonical is False
+        assert meta.has_own_image is False
+        assert meta.site_name == site_name
+
+    @pytest.mark.parametrize('hostname,site_name,origin', [
+        ('habitatoides.com', 'Habitat Oides', 'https://habitatoides.com'),
+        ('www.habitatoides.com', 'Habitat Oides', 'https://habitatoides.com'),
+        ('habitatoides.com.evil.example', seo.SITE_NAME, seo.SITE_ORIGIN),
+    ])
+    def test_完全一致するホストだけからブランドを選ぶ(self, hostname, site_name, origin):
+        """ブランドホストの完全一致と偽装ホストの除外を確認する。
+
+        Args:
+            hostname: メタ情報選択に渡すホスト名。
+            site_name: 期待するサイト名。
+            origin: 期待する canonical の origin。
+
+        Returns:
+            なし。
+        """
+        # 1. ホスト名を指定してトップページのメタ情報を選択する。
+        meta = seo.build_page_meta('/', hostname=hostname)
+        # 2. 選択されたブランド名と canonical origin を比較する。
+        assert meta.site_name == site_name
+        assert meta.url == f'{origin}/'
+
+
 @needs_dist
 class TestServeSpaMeta:
     """パスごとに <head> の title・description・canonical・OGP・twitter・JSON-LD が入る。"""
@@ -534,6 +628,33 @@ class TestServeSpaMeta:
         assert _meta(head, 'property', 'og:url') == canonical
         assert _meta(head, 'property', 'og:site_name') == site_name
         assert _meta(head, 'name', 'robots') is None
+
+    @pytest.mark.parametrize('host,site_name,image', [
+        ('habitatoides.com', 'Habitat Oides', 'https://habitatoides.com/img/logo-habitatoides.png'),
+        ('huebyei8htplants.com', 'HUE by ei8ht plants', 'https://huebyei8htplants.com/img/logo-hue.png'),
+    ])
+    def test_ブランド専用ドメインの未公開パスはnoindexでcanonicalなし(self, db, host, site_name, image):
+        """未公開のブランドページでnoindexとcanonical省略をHTML出力まで確認する。
+
+        Args:
+            db: テスト対象が使う Supabase クライアントのモック。
+            host: リクエストに設定するブランド専用ホスト名。
+            site_name: 期待するブランド名。
+            image: 期待するブランド既定のOGP画像URL。
+
+        Returns:
+            なし。
+        """
+        # 1. 公開カタログにないURLをブランド専用ホストで開く。
+        response = TestClient(app).get('/private', headers={'host': host})
+        assert response.status_code == 200
+        # 2. 生成されたHTMLでブランド名・既定画像・noindex・canonical省略を確認する。
+        head = _head(response.text)
+        assert _title(head) == site_name
+        assert _meta(head, 'property', 'og:site_name') == site_name
+        assert _meta(head, 'property', 'og:image') == image
+        assert _meta(head, 'name', 'robots') == 'noindex'
+        assert _canonical(head) is None
 
     @pytest.mark.parametrize('path,title,desc,canonical', [
         ('/', 'ei8ht plants', 'アガベ・塊根植物・灌木などビザールプランツを専門に扱うラインです。', 'https://ei8htplants.com/'),

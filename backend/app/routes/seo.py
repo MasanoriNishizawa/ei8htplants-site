@@ -42,6 +42,7 @@ from .seo_html import (
     render_head_tags,
 )
 from .seo_paths import normalize_legacy_path
+from .seo_brand_meta import resolve_brand_page
 from .seo_robots import build_robots_txt as _build_robots_txt
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 from .seo_structured_data import (
@@ -608,25 +609,9 @@ def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
     Returns:
         注釈に示した形式の応答（PageMeta）。
     """
-    # 1. パスを正規化し、公開ページ一覧からページ固有の情報を探す。
+    # 1. パスを正規化し、純粋なページ解決関数から公開情報を取得する。
     norm = '/' + path.strip('/')
-    pages = {
-        'Habitat Oides': {
-            '/': ('Habitat Oides', '植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', '/img/habitatOides/habitat_oides_hero.jpg'),
-            '/workshop': ('Habitat Style Workshop', 'ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', '/img/habitatOides/habitat_oides_workshop_main.jpg'),
-            '/collaborations': ('Collaborations', 'Habitat Oides のコラボレーション作品・活動記録。', '/img/habitatOides/habitat_oides_hero.jpg'),
-            '/habitatoides': ('Habitat Oides', '植物の生息環境を再現するハビタットスタイルの専門ライン。ワークショップも開催しています。', '/img/habitatOides/habitat_oides_hero.jpg'),
-            '/habitatoides/workshop': ('Habitat Style Workshop', 'ハビタットスタイルのワークショップ。植物の生息環境を意識したレイアウトを自分の手で制作できます。', '/img/habitatOides/habitat_oides_workshop_main.jpg'),
-        },
-        'HUE by ei8ht plants': {
-            '/': ('HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png'),
-            '/hue': ('HUE by ei8ht plants', 'HUE は、色彩と形を楽しむオーナメントプランツのラインです。', '/img/logo-hue.png'),
-            '/about': ('HUEについて', '植物を、部屋に置くものとしてだけでなく、日々を一緒に過ごす存在として。HUEは葉の色やかたちに目を向け、暮らしの景色になる一鉢を紹介します。', '/img/logo-hue.png'),
-            '/choose': ('一鉢の選び方', '名前や育て方を調べる前に、まずは心に留まった葉の色やかたちを見つける。HUEの一鉢選びは、そんな小さな好みから始まります。', '/img/logo-hue.png'),
-            '/living': ('植物のある部屋', '植物を迎えると、目に入る景色や部屋で過ごす時間が少し変わります。飾り方に決まりはありません。好きなものと並べながら、自分の居場所をつくっていきます。', '/img/logo-hue.png'),
-        },
-    }
-    page = pages[site_name].get(norm)
+    page = resolve_brand_page(norm, site_name)
     # 2. 未公開パスは noindex 用の既定メタ情報を返す。
     if page is None:
         # 変数の内容: logo: ブランドロゴの画像パス。
@@ -636,11 +621,13 @@ def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
             url=f'{origin}{quote(norm, safe="/")}', noindex=True, canonical=False, site_name=site_name,
         )
     # 3. 公開ページは正規 URL とブランド情報を組み立てる。
-    title, description, image_path = page
-    canonical_path = '/' if norm in ('/habitatoides', '/hue') else '/workshop' if norm == '/habitatoides/workshop' else norm
     return PageMeta(
-        title=site_name if title == site_name else f'{title} | {site_name}', description=description, image=f'{origin}{image_path}',
-        url=f'{origin}{quote(canonical_path, safe="/")}', has_own_image=True, site_name=site_name,
+        title=site_name if page.title == site_name else f'{page.title} | {site_name}',
+        description=page.description,
+        image=f'{origin}{page.image_path}',
+        url=f'{origin}{quote(page.canonical_path, safe="/")}',
+        has_own_image=True,
+        site_name=site_name,
     )
 
 
