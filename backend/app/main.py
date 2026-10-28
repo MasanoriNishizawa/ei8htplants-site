@@ -13,31 +13,11 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 
 from .config import SITE_ORIGIN
+from .router_registry import register_routers
 from .spa_files import resolve_dist_file_path
 from .spa_redirects import resolve_spa_redirect
 from .utils.errors import error_summary
-from .routes import (
-    articles,
-    chat,
-    chat_logs,
-    chat_qa,
-    collaborations,
-    contact,
-    docs,
-    events,
-    gallery,
-    media_appearances,
-    orders,
-    pot_artists,
-    price_calc_entries,
-    products,
-    reserve,
-    seo,
-    site_assets,
-    shipping,
-    stockists,
-    upload,
-)
+from .routes import seo
 
 # 変数の内容: app: FastAPI アプリケーション、logger: モジュール名を使って記録するロガー。
 logger = logging.getLogger(__name__)
@@ -189,27 +169,9 @@ async def cache_control(request: Request, call_next) -> Response:
     return response
 
 
-app.include_router(events.router, prefix='/api')
-app.include_router(gallery.router, prefix='/api')
-app.include_router(stockists.router, prefix='/api')
-app.include_router(contact.router, prefix='/api')
-app.include_router(reserve.router, prefix='/api')
-app.include_router(collaborations.router, prefix='/api')
-app.include_router(site_assets.router, prefix='/api')
-app.include_router(upload.router, prefix='/api')
-app.include_router(products.router, prefix='/api')
-app.include_router(shipping.router, prefix='/api')
-app.include_router(orders.router, prefix='/api')
-app.include_router(articles.router, prefix='/api')
-app.include_router(pot_artists.router, prefix='/api')
-app.include_router(price_calc_entries.router, prefix='/api')
-app.include_router(media_appearances.router, prefix='/api')
-app.include_router(docs.router, prefix='/api')
-app.include_router(chat.router, prefix='/api')
-app.include_router(chat_qa.router, prefix='/api')
-app.include_router(chat_logs.router, prefix='/api')
-# robots.txt / sitemap.xml。SPA のフォールバック（下の serve_spa）より前に登録して index.html が返らないようにする
-app.include_router(seo.router)
+# 1. API router は従来どおりミドルウェアの後、静的配信と SPA fallback の前に登録する。
+# serve_spa が SEO 設定と HTML 生成に使うため、seo モジュール参照はこの入口に残す。
+register_routers(app)
 
 # 本番: Viteビルド済みSPAを配信
 DIST = os.path.join(os.path.dirname(__file__), '../../frontend/dist')

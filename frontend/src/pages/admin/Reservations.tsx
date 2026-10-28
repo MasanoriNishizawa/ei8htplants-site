@@ -110,6 +110,7 @@ function printReservations(
           // 希望日が同じか、希望日が無くて1日だけのイベントなら、この日の予約とみなす
           const dateMatch = r.preferred_date === date || (!r.preferred_date && dates.length === 1)
           if (!dateMatch) return false
+          // 予約の session_id が現在のセッション ID と一致するかを確認する。
           const directMatch = r.session_id === session.id
           // session_id が null またはセッション再保存後に無効化された場合は preferred_time で照合
           const fallbackMatch =
@@ -447,10 +448,13 @@ export default function AdminReservations() {
     : rows.filter((r) => wsEventIds.has(r.event_id)))
     .slice()
     .sort((a, b) => {
+      // 希望日を先に比較し、同日なら希望時間の昇順で予約を並べる。
       const dateA = a.preferred_date ?? ''
+      // 希望日が未入力の予約は空文字として比較する。
       const dateB = b.preferred_date ?? ''
       if (dateA !== dateB) return dateA < dateB ? -1 : 1
       const timeA = a.preferred_time ?? ''
+      // 希望時間が未入力の予約は空文字として比較する。
       const timeB = b.preferred_time ?? ''
       return timeA < timeB ? -1 : timeA > timeB ? 1 : 0
     })

@@ -31,6 +31,7 @@ function fmtDate(s: string | null): string {
  * @returns 記事詳細の画面（読み込み中・失敗・見つからないときはそれぞれの案内）
  */
 export default function JournalArticle() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // URL の記事 id（/journal/:id）
   const { id } = useParams<{ id: string }>()
@@ -55,6 +56,7 @@ export default function JournalArticle() {
   )
   // 表示する記事（見つからなければ null）と、記事で紹介した商品
   const article = data?.article ?? null
+  // 記事に関連付けられた商品（記事未取得なら空）
   const linkedProducts = data?.linkedProducts ?? []
 
   // 読み込み中

@@ -52,6 +52,7 @@ export default function AdminGallery() {
     setUploading(true)
     setError('')
     try {
+      // 画像をアップロードし、登録フォームに返された URL をセットする。
       const uploaded = await api.upload(file)
       setUrl(uploaded)
     } catch (err) {

@@ -16,6 +16,7 @@ function getYouTubeId(url: string): string | null {
     /youtube\.com\/embed\/([^?]+)/,
   ]
   for (const p of patterns) {
+    // URL 形式ごとの正規表現で動画 ID を取り出し、最初に一致した値を返す。
     const m = url.match(p)
     if (m) return m[1]
   }
@@ -103,6 +104,7 @@ export default function AdminMedia() {
     setSaving(true)
     setError('')
     try {
+      // 入力内容を API に登録し、作成済みデータを一覧へ反映する。
       const created = await api.mediaAppearances.add({
         title: title.trim(),
         youtube_url: youtubeUrl.trim(),

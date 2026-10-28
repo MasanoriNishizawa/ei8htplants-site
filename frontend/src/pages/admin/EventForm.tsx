@@ -45,6 +45,7 @@ export function TimeRangeSelect({ value, onChange, style, id, labelPrefix = '' }
 
   // 外から value が変わったら（編集画面の読み込み・「日ごとに異なる」の切り替えなど）プルダウンもそろえる
   useEffect(() => {
+    // 保存形式の時間帯を開始・終了に分けて、それぞれの選択値へ反映する。
     const [s, e] = parseTimeRange(value)
     setStart(s)
     setEnd(e)
@@ -240,6 +241,7 @@ export default function AdminEventForm() {
     /** ファイルごとの仮の blob URL（fileArray と同じ順） */
     const blobs = fileArray.map((f) => URL.createObjectURL(f))
     setImageUrls((prev) => {
+      // 既存の有効な URL の後ろに今回選択したファイルの仮 URL を追加する。
       const existing = prev.filter(Boolean)
       return [...existing, ...blobs]
     })
@@ -249,8 +251,10 @@ export default function AdminEventForm() {
       /** アップロードした画像の URL（fileArray と同じ順） */
       const uploaded = await Promise.all(fileArray.map((f) => api.upload(f)))
       setImageUrls((prev) => {
+        // 仮 URL を保持した位置に、同じファイル順でサーバー URL を差し替える。
         const result = [...prev]
         blobs.forEach((blob, i) => {
+          // 配列内で該当する仮 URL の位置を探し、アップロード結果で置き換える。
           const idx = result.indexOf(blob)
           if (idx !== -1) result[idx] = uploaded[i]
         })
@@ -337,6 +341,7 @@ export default function AdminEventForm() {
       if (eventId) {
         await api.events.update(eventId, body)
       } else {
+        // 新規イベントを登録し、後続処理と「未保存変更」管理で使う ID を保持する。
         const created = await api.events.create(body)
         eventId = created.id
         createdIdRef.current = created.id

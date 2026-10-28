@@ -25,6 +25,7 @@ function renderWithLinks(line: string) {
     // 末尾の句読点を除いた URL と、除いた句読点
     const url = part.replace(TRAILING_PUNCT, '')
     const trailing = part.slice(url.length)
+    // URL 部分を新しいタブで開くリンク要素にしたもの
     const link = <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{url}</a>
     return trailing ? [link, <span key={`${i}t`}>{trailing}</span>] : [link]
   })
@@ -52,6 +53,7 @@ function MessageText({ text }: { text: string }) {
  * @returns チャットの画面
  */
 export default function Chat() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 利用者と AI のやりとり（先頭の歓迎メッセージは含めない。下の welcome を毎回の表示で先頭に付ける）
   const [messages, setMessages] = useState<Message[]>([])
@@ -76,6 +78,7 @@ export default function Chat() {
   // メッセージ追加時にチャットエリア内を最下部へスクロール（初回ウェルカムメッセージは除く）
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
+    // スクロール位置を調整するチャット表示領域
     const el = chatAreaRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages])

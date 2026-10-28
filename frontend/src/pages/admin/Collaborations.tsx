@@ -112,6 +112,7 @@ export default function AdminCollaborations() {
     setUploading(true)
     setError(null)
     try {
+      // 選択画像をアップロードし、返された URL をフォームへ保存する。
       const uploaded = await api.upload(file)
       setForm((f) => ({ ...f, image_url: uploaded }))
     } catch (err: unknown) {
@@ -140,6 +141,7 @@ export default function AdminCollaborations() {
     setUploadingVideo(true)
     setError(null)
     try {
+      // 選択動画をアップロードし、返された URL をフォームへ保存する。
       const uploaded = await api.uploadVideo(file)
       setForm((f) => ({ ...f, video_url: uploaded }))
     } catch (err: unknown) {

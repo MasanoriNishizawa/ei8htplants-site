@@ -29,6 +29,7 @@ const BRAND_COLORS: Record<string, { bg: string; color: string }> = Object.fromE
  * @returns 取扱店一覧の画面
  */
 export default function Stockists() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 取扱店の一覧（失敗は error に入る）
   const { data, loading, error, reload } = useApi(() => api.stockists.list(), [])

@@ -41,6 +41,7 @@ function excerpt(text: string | null, max = 120): string {
  */
 function fmtDate(s: string | null): string {
   if (!s) return ''
+  // 日付だけの文字列も現地日付として扱った解析結果
   const d = parseLocalDate(s)
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
@@ -50,6 +51,7 @@ function fmtDate(s: string | null): string {
  * @returns 記事一覧の画面
  */
 export default function Journal() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 選んでいるタグ（null はすべて）
   const [activeTag, setActiveTag] = useState<string | null>(null)

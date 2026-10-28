@@ -63,6 +63,7 @@ export default function AdminPotArtists() {
     setSaving(true)
     setError('')
     try {
+      // 登録された作家を一覧へ追加し、入力欄を空に戻す。
       const created = await api.potArtists.add(name)
       setArtists((prev) => [...prev, created])
       setNewName('')

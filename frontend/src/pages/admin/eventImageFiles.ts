@@ -80,7 +80,9 @@ export function collectEventImages(
   /** 表示するグループの一覧 */
   const result: EventImageGroup[] = []
   for (const c of candidates) {
+    // 空 URL と前のグループですでに使われた URL を除外する。
     const items = c.items.filter((item) => {
+      // 空白を除いた値を表示・重複判定に使う。
       const url = item.url.trim()
       if (!url || seen.has(url)) return false
       seen.add(url)
@@ -111,6 +113,7 @@ function extFromUrl(url: string): string | null {
   /** ファイル名の最後の「.」の位置（先頭・末尾にあるときは拡張子なし扱い） */
   const dot = last.lastIndexOf('.')
   if (dot <= 0 || dot === last.length - 1) return null
+  // 最後のピリオドより後ろを拡張子として、小文字へそろえる。
   const ext = last.slice(dot + 1).toLowerCase()
   // 英数字以外を含むものは拡張子とみなさない（例: "photo.v2-final" のような名前）
   return /^[a-z0-9]{1,5}$/.test(ext) ? ext : null
@@ -148,6 +151,7 @@ export async function downloadImage(url: string, eventName: string, index: numbe
   // 1. 画像を取得して blob にする
   const res = await fetch(url)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  // 画像データを Blob にし、ブラウザー保存処理へ渡す。
   const blob = await res.blob()
   // 2. ファイル名を付けて保存させる（オブジェクト URL は共通の関数が少し待ってから解放する）
   saveBlob(blob, buildImageFileName(eventName, index, url, blob.type))

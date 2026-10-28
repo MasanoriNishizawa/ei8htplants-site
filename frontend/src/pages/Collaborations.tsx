@@ -11,6 +11,7 @@ import { parseLocalDate } from '../lib/localDate'
  * @returns コラボレーション一覧の画面
  */
 export default function Collaborations() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 今の表示言語（日付の書式に使う）
   const { lang } = useLang()

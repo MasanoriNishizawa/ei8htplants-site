@@ -382,6 +382,7 @@ export default function AdminEventReservations() {
               {sessions.map((s) => {
                 /** このセッションのキャンセル以外の参加人数の合計（古い session_id は時間ラベルで照合する） */
                 const count = rows.filter((r) => {
+                  // 現在のセッション ID、または無効な ID を持つ古い予約の時間ラベルで照合する。
                   const matches = r.session_id === s.id ||
                     ((!r.session_id || !validSessionIds.has(r.session_id)) && r.preferred_time === s.time_label)
                   return matches && r.status !== 'cancelled'

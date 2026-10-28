@@ -14,9 +14,12 @@ const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'] as const
  * @returns 年・月・日と曜日の番号（0=日曜）。形式が違う・存在しない日付なら null
  */
 function parseYmd(value: string): { y: number; m: number; d: number; wd: number } | null {
+  // 期待する日付形式に一致するかを確かめ、年・月・日を数値として取り出す。
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return null
+  // 曜日計算と表示に使う年月日の数値。
   const y = Number(match[1])
+  // 年の後に続く月と日を数値化する。
   const m = Number(match[2])
   const d = Number(match[3])
   // UTC で作るので、実行環境のタイムゾーンに関係なく同じ日付・曜日になる
@@ -34,6 +37,7 @@ function parseYmd(value: string): { y: number; m: number; d: number; wd: number 
  */
 export function formatJaDate(value: string | null | undefined): string | null {
   if (!value) return null
+  // 日付を検証して分解し、失敗した場合は表示文字列を作らない。
   const p = parseYmd(value)
   if (!p) return null
   return `${p.y}年${p.m}月${p.d}日（${WEEKDAYS_JA[p.wd]}）`
@@ -47,11 +51,15 @@ export function formatJaDate(value: string | null | undefined): string | null {
  */
 export function formatJaDateTime(value: string | null | undefined): string | null {
   if (!value) return null
+  // ISO 形式の日時から日付と時・分の各部分を取得する。
   const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(value)
   if (!match) return null
+  // 日付部分を曜日付きの日本語表記へ変換する。
   const date = formatJaDate(match[1])
   if (!date) return null
+  // 時と分を数値化して範囲を検証し、表示形式へ戻す。
   const hour = Number(match[2])
+  // 分の数値は時刻として有効な範囲かの判定に使う。
   const minute = Number(match[3])
   if (hour > 23 || minute > 59) return null
   return `${date} ${match[2]}:${match[3]}`
@@ -87,7 +95,9 @@ export function isPastDue(due: string | null | undefined, today: string): boolea
  * @returns 今日の日付
  */
 export function localToday(now: Date = new Date()): string {
+  // 端末のローカル年月日を取り出し、月日を2桁にそろえる。
   const y = now.getFullYear()
+  // 月は Date API で 0 始まりのため 1 を加えてから 2 桁化する。
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`

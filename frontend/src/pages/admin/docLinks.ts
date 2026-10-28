@@ -81,6 +81,7 @@ export function docLinkTarget(currentPath: string, href: string): DocLinkTarget 
   // クエリ（?…）は設計書のパスには無いので外して比べる
   const pathPart = safeDecode(rawPath.split('?')[0])
   if (!/\.md$/i.test(pathPart)) return null
+  // 現在の設計書から相対パスを解決し、doc/ の外へ出ないか確認する。
   const path = resolveRelative(currentPath, pathPart)
   if (path === null) return null
   return { path, anchor: safeDecode(rawAnchor) }
@@ -115,8 +116,10 @@ export function processDocLinks(html: string, currentPath: string): string {
   /** 見出しの id のもと → これまでに使った回数 */
   const used = new Map<string, number>()
   root.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
+    // 見出し文字列から ID の基礎を作り、空の見出しは対象外にする。
     const base = headingSlug(h.textContent ?? '')
     if (!base) return
+    // 同じ基礎 ID が何回目かを数え、重複を避ける。
     const count = used.get(base) ?? 0
     used.set(base, count + 1)
     h.id = count === 0 ? base : `${base}-${count}`
@@ -124,6 +127,7 @@ export function processDocLinks(html: string, currentPath: string): string {
 
   // 2. リンク
   root.querySelectorAll('a[href]').forEach((a) => {
+    // href を読み取り、外部・ページ内・設計書内リンクの順で種類を判定する。
     const href = a.getAttribute('href') ?? ''
     if (EXTERNAL_RE.test(href)) {
       // 外部リンクは新しいタブで開く（開いた先から元の画面を操作されないよう noopener）
@@ -136,6 +140,7 @@ export function processDocLinks(html: string, currentPath: string): string {
       a.setAttribute('data-doc-anchor', safeDecode(href.slice(1)))
       return
     }
+    // 設計書内の Markdown リンクなら、管理画面で開くための情報を付与する。
     const target = docLinkTarget(currentPath, href)
     if (target) {
       a.setAttribute('data-doc-path', target.path)

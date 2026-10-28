@@ -9,6 +9,7 @@ const PHOTO_COUNT = 6
  * @returns URL・処理状態・通知を初期化した写真カード状態。
  */
 const emptyPhoto = () => ({ savedUrl: '', draftUrl: '', uploading: false, saving: false, error: '', notice: '' })
+/** 写真1枠の状態（保存済み URL、編集中 URL、処理状況、通知） */
 type PhotoState = ReturnType<typeof emptyPhoto>
 
 // 写真カードのアップロード状態や案内を表示する共通ラベルの見た目
@@ -25,6 +26,7 @@ export default function SiteImages() {
   const [photos, setPhotos] = useState<PhotoState[]>(() => Array.from({ length: PHOTO_COUNT }, emptyPhoto))
   // 写真設定をサーバーから読み込んでいる間は true
   const [loading, setLoading] = useState(true)
+  // 保存値と編集中の値に差があるかを判定し、ページ離脱時の確認に使う。
   const dirty = photos.some(({ savedUrl, draftUrl }) => savedUrl !== draftUrl)
   useUnsavedChanges(dirty)
 
@@ -55,10 +57,12 @@ export default function SiteImages() {
    * @returns 戻り値なし。
    */
   const chooseImage = async (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    // ファイル選択欄の先頭ファイルを取得し、未選択なら処理を終える。
     const file = event.target.files?.[0]
     if (!file) return
     updatePhoto(index, { uploading: true, error: '', notice: '' })
     try {
+      // 画像をアップロードし、サーバーが返した URL を編集値へ反映する。
       const url = await api.upload(file)
       updatePhoto(index, { draftUrl: url })
     } catch (e) {
@@ -75,10 +79,12 @@ export default function SiteImages() {
    * @returns 戻り値なし。
    */
   const save = async (index: number) => {
+    // 対象の写真枠を取り出し、存在する場合だけ保存を続ける。
     const photo = photos[index]
     if (!photo) return
     updatePhoto(index, { saving: true, error: '', notice: '' })
     try {
+      // 1〜6 の枠番号から設定キーを作り、編集中 URL を保存する。
       const result = await api.siteAssets.save(`hue-color-${String(index + 1).padStart(2, '0')}`, photo.draftUrl)
       updatePhoto(index, {
         savedUrl: result.url,

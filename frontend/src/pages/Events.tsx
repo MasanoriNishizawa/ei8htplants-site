@@ -26,6 +26,7 @@ export default function Events() {
   const [workshopFilter, setWorkshopFilter] = useState<boolean | null>(null)
   // 今の表示言語（月の表示に使う）
   const { lang } = useLang()
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
 
   // 今後／過去を切り替えるたびに取り直す。切り替え前の古い応答が後から届いても捨てる（useApi）

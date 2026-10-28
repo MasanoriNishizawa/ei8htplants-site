@@ -10,6 +10,7 @@ import { useHueImages } from '../../sites/hue/useHueImages'
  * @returns HUE ブランドトップの React 要素。
  */
 export default function Hue() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 管理画面から設定した6枚の色写真
   const paletteImages = useHueImages()
@@ -27,10 +28,13 @@ export default function Hue() {
   const storyCounterRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
+    // 動きの設定を適用する HUE トップのルート要素
     const root = homeRef.current
     if (!root) return
 
+    // スクロール表示演出の対象要素
     const revealItems = Array.from(root.querySelectorAll<HTMLElement>('[data-hue-reveal]'))
+    // OS 設定でアニメーションを減らす必要があるか
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     root.classList.add('hue-motion-ready')
 
@@ -40,6 +44,7 @@ export default function Hue() {
       return () => root.classList.remove('hue-motion-ready', 'hue-motion-reduced')
     }
 
+    // 画面に入った要素へ表示済みクラスを付ける監視処理
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return
@@ -55,6 +60,7 @@ export default function Hue() {
      * @returns 0 以上 1 以下に制限した進捗値
      */
     const clamp = (value: number) => Math.min(1, Math.max(0, value))
+    // 予約中のアニメーションフレーム ID（0 は未予約）
     let frame = 0
     /**
      * スクロール位置に応じてヒーローと横移動ストーリーの表示を更新する。
@@ -62,10 +68,14 @@ export default function Hue() {
      */
     const updateScrollMotion = () => {
       frame = 0
+      // 背景進捗を更新するヒーロー要素
       const hero = heroRef.current
+      // 横スクロールの進捗を計算するストーリーセクション
       const story = storyRef.current
+      // 横方向に移動させるストーリー列
       const track = storyTrackRef.current
       if (hero) {
+        // 画面上のヒーロー位置と高さ
         const rect = hero.getBoundingClientRect()
         root.style.setProperty('--hue-hero-progress', clamp(-rect.top / Math.max(1, rect.height)).toFixed(3))
       }
@@ -74,15 +84,20 @@ export default function Hue() {
       if (window.matchMedia('(min-width: 900px)').matches) {
         // 1. 固定ヘッダーを差し引いたストーリー表示領域と、横移動に使うスクロール距離を求める
         const storyTop = window.scrollY + story.getBoundingClientRect().top
+        // CSS で設定された固定ヘッダー高（未設定時は既定値）
         const headerHeight = Number.parseFloat(getComputedStyle(root).getPropertyValue('--brand-site-header-height')) || 82
+        // 固定ヘッダーを除いたストーリーの表示可能な高さ
         const pinHeight = Math.max(1, window.innerHeight - headerHeight)
+        // 横移動の進捗に割り当てる縦スクロール距離
         const travel = Math.max(1, story.offsetHeight - pinHeight)
         // 2. 進捗を横移動距離と進捗バーに反映し、表示中の章番号を更新する
         const progress = clamp((window.scrollY - storyTop) / travel)
+        // ストーリー列を横へ動かす最大距離
         const maxX = Math.max(0, track.scrollWidth - window.innerWidth)
         track.style.transform = `translate3d(${-maxX * progress}px, 0, 0)`
         if (storyProgressRef.current) storyProgressRef.current.style.transform = `scaleX(${progress})`
         if (storyCounterRef.current) {
+          // 進捗に応じて表示する章番号（1〜3）
           const chapter = Math.min(3, Math.round(progress * 2) + 1)
           storyCounterRef.current.textContent = `${String(chapter).padStart(2, '0')} / 03`
         }
@@ -114,6 +129,7 @@ export default function Hue() {
     }
   }, [])
 
+  // トップページの横移動ストーリーで表示する3つの章
   const stories = [
     {
       label: t('光 / 葉', 'LIGHT / LEAF'),
@@ -137,6 +153,7 @@ export default function Hue() {
       caption: t('暮らしになじむ一鉢', 'A PLANT IN ITS PLACE'),
     },
   ]
+  // 下部に並べる HUE 編集ページへのリンク一覧
   const readingLinks = [
     { href: '/about', label: t('HUEについて', 'ABOUT HUE'), title: t('植物と暮らす、HUEのこと。', 'A life with plants, in the HUE way.'), image: paletteImages[1], index: '01' },
     { href: '/choose', label: t('一鉢の選び方', 'CHOOSING A PLANT'), title: t('好き、から始める一鉢選び。', 'Start with what you love.'), image: paletteImages[3], index: '02' },

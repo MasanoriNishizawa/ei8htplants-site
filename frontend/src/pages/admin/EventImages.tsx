@@ -76,6 +76,7 @@ export default function AdminEventImages() {
     // 1. ボタンを保存中にし、前回の失敗表示を消す
     setDownloading((prev) => new Set(prev).add(index))
     setFailed((prev) => {
+      // 今回の再試行対象だけ失敗一覧から外し、他の画像の状態を維持する。
       const next = new Set(prev)
       next.delete(index)
       return next
@@ -88,6 +89,7 @@ export default function AdminEventImages() {
       setFailed((prev) => new Set(prev).add(index))
     } finally {
       setDownloading((prev) => {
+        // 成否にかかわらず、この画像のダウンロード中状態だけを解除する。
         const next = new Set(prev)
         next.delete(index)
         return next

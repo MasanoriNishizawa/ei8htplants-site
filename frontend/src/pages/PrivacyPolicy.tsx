@@ -216,6 +216,7 @@ function renderLine(line: Line, key: number) {
  * @returns プライバシーポリシーの画面
  */
 export default function PrivacyPolicy() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   return (
     <>

@@ -89,6 +89,7 @@ function ImageInput({ value, onChange }: { value: string; onChange: (v: string) 
     if (!file) return
     setUploading(true)
     try {
+      // アップロード先の URL を、フォームの画像 URL として反映する。
       const url = await api.upload(file)
       onChange(url)
     } catch {

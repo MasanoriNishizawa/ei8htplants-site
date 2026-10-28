@@ -197,9 +197,11 @@ export default function AdminArticles() {
     try {
       // 2. 保存
       if (editing === 'new') {
+        // 新規記事を作成し、一覧の先頭へ追加する。
         const a = await api.articles.create(payload)
         setArticles((prev) => [a, ...prev])
       } else if (editing) {
+        // 編集中の記事を更新し、一覧内の同じ ID の行を置き換える。
         const a = await api.articles.update(editing.id, payload)
         setArticles((prev) => prev.map((x) => x.id === a.id ? a : x))
       }
@@ -240,6 +242,7 @@ export default function AdminArticles() {
     setBusyId(a.id)
     setPageError('')
     try {
+      // 公開状態を反転した記事を保存し、一覧へ返却値を反映する。
       const updated = await api.articles.update(a.id, {
         title: a.title,
         content: a.content ?? '',

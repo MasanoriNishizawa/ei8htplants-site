@@ -9,7 +9,9 @@ import { useT } from '../lib/lang'
  * @returns 見つからない旨の案内とトップへのリンク
  */
 export default function NotFound() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
+  // 現在の URL パス（公式サイトとブランドサイトの戻り先判定用）
   const { pathname } = useLocation()
   // 公式サイト内の404は公式ホームへ、それ以外の公開サイトの404はブランドホームへ戻す。
   const homePath = pathname === '/official' || pathname.startsWith('/official/') ? '/official' : '/'

@@ -13,6 +13,7 @@ const SANS = "'Noto Sans JP', sans-serif"
  * @returns 注文確認の画面
  */
 export default function OrderComplete() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // Checkout から navigate で渡された値
   const { state } = useLocation()

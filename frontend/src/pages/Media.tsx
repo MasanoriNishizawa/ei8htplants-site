@@ -21,6 +21,7 @@ function getYouTubeId(url: string): string | null {
     /youtube\.com\/embed\/([^?]+)/,
   ]
   for (const p of patterns) {
+    // 現在の形式で URL から取り出した動画 ID の一致結果
     const m = url.match(p)
     if (m) return m[1]
   }
@@ -117,6 +118,7 @@ function VideoCard({ item }: { item: MediaAppearance }) {
  * @returns メディア出演情報の画面
  */
 export default function Media() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 出演情報の一覧（失敗は error に入り、「まだ登録されていません」とは分けて案内する）
   const { data, loading, error, reload } = useApi(() => api.mediaAppearances.list(), [])

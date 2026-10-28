@@ -25,6 +25,7 @@ const SECTION_LABEL: React.CSSProperties = {
  * @returns ショップの画面
  */
 export default function Shop() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 5 件目以降の記事（バックログ）を開いているか
   const [backlogOpen, setBacklogOpen] = useState(false)

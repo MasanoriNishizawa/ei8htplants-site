@@ -17,6 +17,7 @@ const TOKEN_MAX = 64
  * @returns 予約キャンセルの画面
  */
 export default function CancelReservation() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // URL のクエリ（メールのリンクから来たときは ?id= にキャンセル ID が入っている）
   const [params] = useSearchParams()

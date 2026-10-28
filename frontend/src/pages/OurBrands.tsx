@@ -9,11 +9,13 @@ import { api } from '../lib/api'
  * @returns ei8ht plants グループのブランド一覧ページの React 要素。
  */
 export default function OurBrands() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // HUE のブランドカードに表示する画像 URL。サイト設定から取得する
   const [hueImage, setHueImage] = useState('')
 
   useEffect(() => {
+    // アンマウント後に非同期取得結果を反映しないための有効フラグ
     let active = true
     api.siteAssets.get('hue-color-01')
       .then(({ url }) => { if (active) setHueImage(url) })
@@ -50,6 +52,7 @@ export default function OurBrands() {
         </header>
         <div className="our-brands-grid">
           {BRAND_SHOWCASES.map((brand, index) => {
+            // HUE は管理画面の画像、それ以外はブランド情報に登録された画像
             const image = index === 2 ? hueImage : brand.img
             return (
               <a

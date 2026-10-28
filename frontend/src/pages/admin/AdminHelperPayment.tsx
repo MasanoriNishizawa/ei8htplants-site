@@ -97,6 +97,7 @@ export default function AdminHelperPayment() {
         const entry = helperByYear.get(fy)!
         // 翌年度の月額（年間合計 ÷ 12 を四捨五入）と、開催日の古い順の内訳
         const monthly = Math.round(entry.total / MONTHS_PER_YEAR)
+        // 年度内の開催履歴を日付順に並べ、画面上の明細順を安定させる。
         const sortedEvents = [...entry.events].sort((a, b) => a.date.localeCompare(b.date))
         return (
           <div key={fy} style={{ marginBottom: 36 }}>

@@ -15,6 +15,7 @@ const LINES = [
  * @returns ei8ht plants の植物ライン紹介ページの React 要素。
  */
 export default function Ei8htPlantsPlants() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
 
   return (

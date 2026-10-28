@@ -81,6 +81,7 @@ const rows: { label: string; labelEn: string; value: string | string[]; valueEn:
  * @returns 特定商取引法の表示の画面
  */
 export default function LegalPage() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   return (
     <>

@@ -32,12 +32,17 @@ const DUE_STATUS_ORDER: Record<DueStatus, number> = { overdue: 0, soon: 1, later
  * @returns UTC の 0 時のミリ秒。形式が違う・存在しない日付なら null
  */
 function ymdToUtcMs(value: string): number | null {
+  // YYYY-MM-DD 形式を確認し、UTC の日付生成に使う年月日を取り出す。
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return null
+  // 検証後に Date.UTC へ渡す年月日の数値。
   const y = Number(match[1])
+  // 月と日は UTC の日付生成および実在確認に使う。
   const m = Number(match[2])
   const d = Number(match[3])
+  // UTC の日付を作り、後続の実在日付検証に使うミリ秒値。
   const ms = Date.UTC(y, m - 1, d)
+  // Date.UTC が正規化した年月日を元入力と比較する。
   const dt = new Date(ms)
   // 2月30日などは翌月に繰り上がるので、元の値と一致するかで実在を確かめる
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null
@@ -52,7 +57,9 @@ function ymdToUtcMs(value: string): number | null {
  * @returns to が from の何日後か（前なら負の数）。どちらかが不正なら null
  */
 export function daysBetween(from: string, to: string): number | null {
+  // 両日を UTC の日付へ変換し、変換できない入力は計算対象外にする。
   const a = ymdToUtcMs(from)
+  // 比較先の日付も同じ UTC 基準のミリ秒へ変換する。
   const b = ymdToUtcMs(to)
   if (a === null || b === null) return null
   return Math.round((b - a) / DAY_MS)
@@ -66,6 +73,7 @@ export function daysBetween(from: string, to: string): number | null {
  * @returns 足したあとの日付 "YYYY-MM-DD"。value が不正なら null
  */
 export function addDays(value: string, days: number): string | null {
+  // 元の日付を検証し、UTC のミリ秒へ変換する。
   const ms = ymdToUtcMs(value)
   if (ms === null) return null
   return new Date(ms + days * DAY_MS).toISOString().slice(0, 10)
@@ -79,6 +87,7 @@ export function addDays(value: string, days: number): string | null {
  */
 export function dueStatus(due: string | null | undefined, today: string): DueStatus {
   if (!due) return 'none'
+  // 今日から期限までの日数を求め、期限切れ・直近・それ以降に分類する。
   const diff = daysBetween(today, due)
   if (diff === null) return 'none'
   if (diff < 0) return 'overdue'
@@ -95,6 +104,7 @@ export function dueStatus(due: string | null | undefined, today: string): DueSta
  */
 export function formatDueRemaining(due: string | null | undefined, today: string): string | null {
   if (!due) return null
+  // 今日との差を計算し、残日数または超過日数の文章にする。
   const diff = daysBetween(today, due)
   if (diff === null) return null
   if (diff === 0) return '今日まで'
@@ -129,11 +139,15 @@ export function selectPendingPayments(items: AdminInfoDashboardItem[], today: st
     .filter(isPaymentPending)
     .sort((a, b) => {
       // 1. 期限の状態の順
+      // 期限区分の表示順を数値にして比較する。
       const sa = DUE_STATUS_ORDER[dueStatus(a.booth_fee_due, today)]
+      // 比較対象のイベントについても同じ順序値を求める。
       const sb = DUE_STATUS_ORDER[dueStatus(b.booth_fee_due, today)]
       if (sa !== sb) return sa - sb
       // 2. 期限の早い順（"YYYY-MM-DD" どうしは文字列の大小で日付の前後を比べられる）
+      // 未設定の期限は空文字にし、日付文字列と同じ比較規則で扱う。
       const da = a.booth_fee_due ?? ''
+      // 比較対象イベントの期限。未設定の場合は空文字にそろえる。
       const db = b.booth_fee_due ?? ''
       if (da !== db) return da < db ? -1 : 1
       // 3. 開始日の早い順
@@ -171,9 +185,11 @@ export function selectUpcomingCarryIns(
  * @returns 開催日の表示。開始日が不正なら開始日の文字列をそのまま返す
  */
 export function formatEventPeriod(start: string, end: string | null | undefined): string {
+  // 開始日・終了日を曜日付き表記へ変換し、終了日の有無や年に応じて結合する。
   const startText = formatJaDate(start)
   if (!startText) return start
   if (!end || end === start) return startText
+  // 終了日を同じ曜日付き表記へ変換し、不正なら開始日のみを表示する。
   const endText = formatJaDate(end)
   if (!endText) return startText
   // 同じ年なら終了日の「YYYY年」を省いて短くする

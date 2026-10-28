@@ -91,6 +91,7 @@ export default function Reserve() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'full'>('idle')
   // 送信に失敗したときの文言
   const [errorMsg, setErrorMsg] = useState('')
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 今の表示言語（日付の表示と、確認メールの言語として送る）
   const { lang } = useLang()

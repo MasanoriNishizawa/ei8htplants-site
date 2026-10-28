@@ -166,9 +166,11 @@ export default function AdminProducts() {
     try {
       // 2. 保存
       if (editing === 'new') {
+        // 新規商品の API 登録結果を一覧へ追加する。
         const p = await api.products.create(payload)
         setProducts((prev) => [...prev, p])
       } else if (editing) {
+        // 既存商品の API 更新結果で、一覧の該当商品を差し替える。
         const p = await api.products.update(editing.id, payload)
         setProducts((prev) => prev.map((x) => x.id === p.id ? p : x))
       }
@@ -209,6 +211,7 @@ export default function AdminProducts() {
     setBusyId(p.id)
     setPageError('')
     try {
+      // 公開状態を反転して保存し、返された商品データで一覧を更新する。
       const updated = await api.products.update(p.id, {
         name: p.name, description: p.description, price: p.price, stock: p.stock, image_urls: p.image_urls,
         tags: p.tags ?? [], is_published: !p.is_published, display_order: p.display_order, category: p.category,

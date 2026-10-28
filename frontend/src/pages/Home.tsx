@@ -77,6 +77,7 @@ export default function Home() {
   const [loaded, setLoaded] = useState(false)
   // スマホ幅（767px 以下）なら true
   const [isMobile, setIsMobile] = useState(false)
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
 
   // ブランドストリップの展開挙動をモバイルとデスクトップで切り替えるためにビューポート幅を監視する

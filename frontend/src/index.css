@@ -760,6 +760,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
   }
 }
 
+/* 公式 HOME のヒーロー、ブランド紹介帯、次の行動への導線。写真の上にコピーを重ね、下部に3ブランドを並べる */
 .home-hero { position: relative; isolation: isolate; overflow: hidden; min-height: min(820px, calc(100svh - 64px)); display: flex; align-items: center; padding: 84px 8vw 78px; background: #e7e8dd; }
 .home-hero-photo { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; object-position: center 58%; transform: scale(1.025); transition: transform 2.2s cubic-bezier(.22,1,.36,1); }
 .home-hero.is-loaded .home-hero-photo { transform: scale(1); }
@@ -874,6 +875,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
   .our-brand-card--3 { grid-column: 1 / -1; min-height: 440px; }
 }
 @media (max-width: 767px) {
+  /* 公式 HOME と OUR BRANDS の各セクションをスマートフォン幅に合わせて縦並びへ切り替える */
   .home-hero { min-height: min(790px, calc(100svh - 64px)); align-items: flex-start; padding: 74px 24px 74px; }
   .home-hero-photo { object-position: 57% center; }
   .home-hero-wash { background: linear-gradient(180deg, rgba(236,238,227,.86) 0%, rgba(236,238,227,.58) 46%, rgba(20,25,18,.12) 100%), linear-gradient(90deg, rgba(236,238,227,.35), transparent 90%); }
@@ -1410,6 +1412,7 @@ textarea,
 .hue-motion-ready [data-hue-reveal] { opacity: 0; filter: blur(7px); translate: 0 36px; transition: opacity .85s cubic-bezier(.2,.65,.25,1), filter .85s cubic-bezier(.2,.65,.25,1), translate .85s cubic-bezier(.2,.65,.25,1); }
 .hue-motion-ready [data-hue-reveal].is-inview { opacity: 1; filter: blur(0); translate: 0 0; }
 .hue-motion-ready [data-hue-reveal="photo"] { transition-delay: calc(var(--photo-index) * 75ms); }
+/* HUE のストーリー表示。縦スクロール量に合わせて横方向へパネルを送り、進捗線を更新する */
 .hue-story-scroll { width: 100vw; height: calc((100svh - var(--brand-site-header-height, 82px)) * 3); margin: 0 -9vw; background: #e9e5dc; }
 .hue-story-pin { position: sticky; top: var(--brand-site-header-height, 82px); width: 100vw; height: calc(100svh - var(--brand-site-header-height, 82px)); overflow: hidden; background: #e9e5dc; }
 .hue-story-track { display: flex; width: max-content; height: 100%; will-change: transform; }
@@ -1450,6 +1453,7 @@ textarea,
 .brand-site-header--hue .brand-site-nav a { text-transform: none; letter-spacing: .08em; }
 .brand-site-header--hue .brand-site-nav a,
 .brand-site-header--hue .brand-site-switcher a { font-family: 'Cormorant Garamond', 'Noto Serif JP', serif; font-size: var(--brand-type-navigation); font-weight: 400; }
+/* HUE の読みもの一覧と各読みものページ。写真・見出し・本文を読みものとして配置する */
 .hue-reading { padding: 100px 9vw 116px; background: #f2eee6; }
 .hue-reading-heading { display: grid; grid-template-columns: 1fr .6fr; align-items: end; gap: 8vw; max-width: 1280px; margin: 54px auto 48px; }
 .hue-reading-heading h2 { margin: 0; font: 300 var(--brand-type-display)/1.12 'Cormorant Garamond', 'Noto Serif JP', serif; letter-spacing: -.035em; }
@@ -1505,6 +1509,7 @@ textarea,
 .hue-subpage-follow p { margin: 0; color: #776962; font-size: var(--brand-type-body); }
 .hue-subpage-follow a { color: inherit; font-size: var(--brand-type-navigation); letter-spacing: .1em; text-decoration: none; }
 
+/* ブランド専用サイト全体の中間幅調整。ヘッダーと HUE の読みものページの列幅を詰める */
 @media (max-width: 900px) {
   .brand-site-header { gap: 14px; padding-inline: 20px; }
   .brand-site-switcher { gap: 12px; padding-left: 14px; }
@@ -1515,6 +1520,7 @@ textarea,
   .hue-subpage-copy h1 { font-size: var(--brand-type-display); }
   .hue-subpage-entry { gap: 7vw; }
 }
+/* ブランド専用サイトのスマートフォン表示。ナビを横スクロールにし、各ブランドのセクションを縦に並べる */
 @media (max-width: 680px) {
   .brand-site { --brand-site-header-height: 172px; }
   .brand-site-habitat-oides { --brand-site-header-height: 150px; }
@@ -1587,6 +1593,7 @@ textarea,
   .hue-subpage-follow p { flex: 1 1 calc(100% - 64px); }
 }
 
+/* HUE の横スクロールストーリーを中間幅以下で通常の縦スクロールへ切り替える */
 @media (max-width: 899px) {
   .hue-hero-copy { transform: translate3d(0, calc(var(--hue-hero-progress, 0) * -18px), 0); }
   .hue-hero-art { transform: translate3d(0, calc(var(--hue-hero-progress, 0) * -34px), 0) scale(calc(1 - var(--hue-hero-progress, 0) * .06)); }
@@ -1606,6 +1613,7 @@ textarea,
   .hue-story-footer { display: none; }
 }
 
+/* OS で動きを減らす設定が有効な場合、HUE の表示演出と固定スクロールを止める */
 @media (prefers-reduced-motion: reduce) {
   .hue-motion-ready [data-hue-reveal], .hue-motion-ready [data-hue-reveal].is-inview { opacity: 1; filter: none; translate: none; transition: none; }
   .hue-hero-copy, .hue-hero-art { transform: none; opacity: 1; }
@@ -1615,13 +1623,16 @@ textarea,
   .hue-story-panel { width: 100%; min-height: 500px; flex: auto; }
   .hue-story-footer { display: none; }
 }
+/* HUE の横スクロール用セクションの左右余白をスマートフォン幅に合わせる */
 @media (max-width: 680px) {
   .hue-story-scroll { margin-inline: -24px; }
 }
+/* 動きを減らす設定と中間幅以下が同時に適用される場合、HUE の各パネル間の過剰な高さを外す */
 @media (max-width: 899px) and (prefers-reduced-motion: reduce) {
   .hue-motion-reduced .hue-story-panel { min-height: 0; }
 }
 
+/* ブランド共通のリンク演出を、OS の動きを減らす設定に合わせて無効にする */
 @media (prefers-reduced-motion: reduce) {
   .habitat-button, .brand-site-nav a, .brand-site-switcher a { transition: none; }
 }

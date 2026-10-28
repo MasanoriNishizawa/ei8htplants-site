@@ -67,17 +67,22 @@ const NEXT_PAGE: Record<HueEditorialPageKind, { href: string; ja: string; en: st
  * @returns `page` で指定された HUE 編集ページの React 要素。
  */
 export default function HueEditorialPage({ page }: { page: HueEditorialPageKind }) {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
+  // 管理画面で設定した HUE の6枚の写真
   const images = useHueImages()
   // IntersectionObserver が表示状態を切り替える対象をまとめたページルート
   const pageRef = useRef<HTMLDivElement>(null)
+  // 現在のページ種別に対応する見出し・紹介文・記事データ
   const content = PAGE_COPY[page]
+  // 現在のページから次に読む編集ページ
   const next = NEXT_PAGE[page]
 
   useEffect(() => {
     // 1. アニメーション対象を取得し、表示準備用クラスを付ける
     const root = pageRef.current
     if (!root) return
+    // スクロール表示演出の監視対象要素
     const items = Array.from(root.querySelectorAll<HTMLElement>('[data-hue-reveal]'))
     root.classList.add('hue-motion-ready')
     // 2. 動きを減らす設定または未対応環境では、要素をすぐ表示して監視を登録しない

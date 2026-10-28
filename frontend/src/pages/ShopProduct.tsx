@@ -23,6 +23,7 @@ const SANS = "'Noto Sans JP', sans-serif"
  * @returns 商品詳細の画面（読み込み中・失敗・見つからないときはそれぞれの案内）
  */
 export default function ShopProduct() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // URL の商品 id（/shop/:id）
   const { id } = useParams<{ id: string }>()

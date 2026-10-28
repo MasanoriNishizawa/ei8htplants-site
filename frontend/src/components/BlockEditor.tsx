@@ -121,6 +121,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
       const idx = latest.indexOf(target)
       setUpload(target, null)
       if (idx < 0) return
+      // URL を保存した画像ブロック。アップロード開始時のブロックを置き換える
       const replaced: ImageBlock = { type: 'image', url }
       onChange(latest.map((b, k) => (k === idx ? replaced : b)))
     } catch {

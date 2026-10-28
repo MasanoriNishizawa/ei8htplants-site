@@ -40,6 +40,7 @@ export const TIME_END_OPTIONS = genTimes(12 * 60, 22 * 60)
  * @returns [開始, 終了]。形が合わなければ ['', '']
  */
 export function parseTimeRange(value: string): [string, string] {
+  // 文字列全体が時間帯形式かを確かめ、開始時刻と終了時刻を取り出す。
   const m = value.match(TIME_RANGE_EXACT_RE)
   return m ? [m[1], m[2]] : ['', '']
 }

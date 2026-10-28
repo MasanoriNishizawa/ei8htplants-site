@@ -8,6 +8,7 @@ import { BRAND } from '../../lib/brands'
  * @returns Habitat Oides のブランドトップページの React 要素。
  */
 export default function HabitatOides() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
 
   return (

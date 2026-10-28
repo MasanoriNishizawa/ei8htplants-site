@@ -14,6 +14,7 @@ const SECTIONS = ['about', 'contents', 'flow', 'fee'] as const
  * @returns ワークショップ詳細の画面
  */
 export default function HabitatOidesWorkshop() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
   const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)

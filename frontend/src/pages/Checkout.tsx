@@ -123,10 +123,10 @@ function orderErrorMessage(err: unknown, t: Translate): string {
   const detail = typeof err.detail === 'string' ? err.detail : ''
   // 日本語表示ならサーバーの detail、英語表示なら en を返す（detail が無ければ日本語は ja を使う）
   /**
-   * fromDetail の処理を行う。
+   * サーバーの detail があれば優先し、なければ日本語の案内文を使って表示言語向けの文言を返す。
    * @param ja - 日本語の案内文
    * @param en - 英語の案内文
-   * @returns 戻り値なし。
+   * @returns 現在の表示言語に合わせた案内文。
    */
   const fromDetail = (ja: string, en: string) => t(detail || ja, en)
   // 1. 回数制限・入力チェック
@@ -188,6 +188,7 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
  * @returns 注文手続きの画面（カートが空なら案内とショップへのリンク）
  */
 export default function Checkout() {
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // カートの中身と、注文後に空にする・最新の商品情報で更新する関数
   const { items, clear, syncProducts, remove } = useCart()
@@ -285,7 +286,7 @@ export default function Checkout() {
     script.onload = async () => {
       if (cancelled) return
       try {
-        // 1. 決済オブジェクトを作る
+        // 1. Square の決済オブジェクトを作る
         if (!window.Square) throw new Error('Square SDK not loaded')
         const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID)
         // 2. カード入力欄を作る（画面を離れていたら片付ける）

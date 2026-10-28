@@ -16,6 +16,7 @@ export default function Gallery() {
   const [activeBrand, setActiveBrand] = useState<string | null>(null)
   // 拡大表示している写真の位置（null は閉じている）
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
 
   // サーバーに渡すブランドの値。管理画面のギャラリーは短い表記（HUE）で保存するので、正式名を短い表記に直して絞り込む

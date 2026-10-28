@@ -18,6 +18,7 @@ export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
   // 送信の状態（idle: 入力中、loading: 送信中、done: 送信済み、error: 失敗、limited: 回数制限）
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'limited'>('idle')
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // label と入力欄を結び付ける id の先頭部分
   const uid = useId()

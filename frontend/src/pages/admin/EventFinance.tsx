@@ -131,6 +131,7 @@ export default function EventFinance() {
 
   /** 入力値をもとにリアルタイムで計算した移動費・WS売上・収支・手伝い支払い額など */
   const computed = computeFinances({ event_id: id ?? '', ...form }, event?.has_workshop ?? false)
+  // JSX で個別表示する計算済み金額を、計算結果からまとめて取り出す。
   const { transport, wsSales, wsCost, totalExpense, net, salesShare, wsShare, paymentAmount } = computed
 
   /**

@@ -18,6 +18,7 @@ import { SWIPE_THRESHOLD_PX } from '../lib/constants'
  * @returns どれか 1 つでも印があれば true
  */
 function takeDirtyFlags(keys: (string | null | undefined)[]): boolean {
+  // 対象キーのうち、保存直後の印を見つけたか
   let found = false
   try {
     // 重複を除いて 1 つずつ確かめる（あった印はすべて消す）
@@ -46,6 +47,7 @@ const NO_STORE: RequestInit = { cache: 'no-store' }
 async function fetchEventFresh(id: string): Promise<Event> {
   // 1. URL の値の印
   if (takeDirtyFlags([id])) {
+    // キャッシュを使わずに取り直した最新イベント
     const fresh = await api.events.get(id, NO_STORE)
     // 同じ保存で立った別の表記の印も消しておく（次に開いたときに余計な取り直しをしない）
     takeDirtyFlags([fresh.id, fresh.slug])
@@ -65,6 +67,7 @@ async function fetchEventFresh(id: string): Promise<Event> {
 export default function EventSite() {
   // URL のイベントの id かスラッグ（/events/:id）
   const { id } = useParams<{ id: string }>()
+  // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
   // 今の表示言語（日付の表示に使う）
   const { lang } = useLang()
