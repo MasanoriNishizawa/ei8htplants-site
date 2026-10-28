@@ -162,6 +162,7 @@ def reply_contact(contact_id: str, body: ContactReply, _=Depends(require_auth)) 
     if not RESEND_API_KEY:
         raise HTTPException(500, 'RESEND_API_KEY が設定されていません')
     # 1. 対象のお問い合わせを取得し、返信先のメールアドレスを確かめる。
+    # 変数の内容: row: DB から取得した返信先メールアドレスと名前。
     row = fetch_one_or_404(admin_supabase.table('contacts').select('email, name').eq('id', contact_id))
     # 2. 返信メールを送る。失敗した場合は既読状態を変更せず 500 を返す。
     try:

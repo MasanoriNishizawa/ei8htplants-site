@@ -37,6 +37,7 @@ def get_rate(prefecture: str) -> dict:
     Raises:
         HTTPException(400): 送料の表に無い都道府県の場合
     """
+    # 1. 都道府県の送料を引き、対応表に無い場合は入力エラーを返す。
     # 変数の内容: fee: 手数料または送料。
     fee = RATES.get(prefecture)
     if fee is None:

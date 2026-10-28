@@ -234,6 +234,7 @@ class FakeDB:
 
         戻り値:
             指定されたテーブル名に対応するクエリモックを返す。"""
+        # 1. 指定したテーブル名に対応するクエリモックを返す。
         return _FakeQuery(self, name)
 
 
@@ -261,6 +262,7 @@ class _FakeQuery:
         Returns:
             クエリモック自身。
         """
+        # 1. select の引数を受け取り、クエリモック自身を返す。
         return self
 
     def eq(self, key, value):
@@ -272,6 +274,7 @@ class _FakeQuery:
 
         戻り値:
             eq 条件を記録してクエリモック自身を返す。"""
+        # 1. テーブル行の絞り込み条件を記録し、連鎖呼び出し用に自身を返す。
         self.filters[key] = value
         return self
 
@@ -285,6 +288,7 @@ class _FakeQuery:
         Returns:
             クエリモック自身。
         """
+        # 1. 取得件数の引数を受け取り、クエリモック自身を返す。
         return self
 
     def order(self, *a, **k):
@@ -297,6 +301,7 @@ class _FakeQuery:
         Returns:
             クエリモック自身。
         """
+        # 1. 並び順の引数を受け取り、クエリモック自身を返す。
         return self
 
     def execute(self):
@@ -356,6 +361,7 @@ def _clear_seo_cache():
     Returns:
         なし。
     """
+    # 1. 各テストの前後でメモリキャッシュを空にする。
     seo.clear_cache()
     yield
     seo.clear_cache()
@@ -403,6 +409,7 @@ def _head(text: str) -> str:
     Returns:
         str を返す。
     """
+    # 1. HTML の <head> 部分を返す。
     return text.split('</head>')[0]
 
 
@@ -445,6 +452,7 @@ def _canonical(head: str):
 
     戻り値:
         head 内の canonical link の URL を返す。"""
+    # 1. canonical リンクの URL を抽出し、無ければ None を返す。
     m = re.search(r'<link rel="canonical" href="([^"]*)"', head)
     return html.unescape(m.group(1)) if m else None
 
@@ -458,6 +466,7 @@ def _json_ld(head: str) -> list:
     Returns:
         list を返す。
     """
+    # 1. <script type="application/ld+json"> の中身を JSON として読んだリストを返す。
     return [json.loads(s) for s in re.findall(r'<script type="application/ld\+json">(.*?)</script>', head, flags=re.S)]
 
 
@@ -1674,6 +1683,7 @@ class _QueryRecordingDB(FakeDB):
         Returns:
             クエリ条件を記録するテスト用クエリ。
         """
+        # 1. 記録機能付きのクエリを指定テーブル向けに作る。
         return _QueryRecordingQuery(self, name)
 
 
@@ -2259,6 +2269,7 @@ def _locs(xml: str) -> list:
 
     戻り値:
         サイトマップ XML に含まれる loc URL の一覧を返す。"""
+    # 1. サイトマップ XML から loc 要素の値を抽出する。
     return re.findall(r'<loc>(.*?)</loc>', xml)
 
 
@@ -2691,6 +2702,7 @@ class TestServeSpaPathTraversal:
 
             戻り値:
                 指定属性の呼び出しを記録する spy を作成する。"""
+            # 1. 呼び出しを記録して元の関数を実行するスパイを作る。
             seen.append(path)
             return original(index_path, path, query)
 

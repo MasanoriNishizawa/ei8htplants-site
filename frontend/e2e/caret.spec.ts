@@ -36,6 +36,7 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
   })
 
   test('公開トップページの見出し・段落は user-select が none ではなく文字を選択できる', async ({ page }) => {
+    // 1. 「公開トップページの見出し・段落は user-select が none ではなく文字を選択できる」の期待状態が画面に表示されることを確認する。
     await page.goto('/')
     const heading = page.locator('h1, h2, h3').first()
     await expect(heading).toBeAttached()

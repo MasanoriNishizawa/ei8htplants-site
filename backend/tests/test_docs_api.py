@@ -23,6 +23,7 @@ def _login_as_admin(request):
     Returns:
         なし。
     """
+    # 1. /api/docs はログイン必須のため、TestDocsAuth 以外のテストでは管理者としてログインした扱いにする。
     if request.cls is not None and request.cls.__name__ == 'TestDocsAuth':
         yield
         return

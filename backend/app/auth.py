@@ -49,8 +49,10 @@ def require_auth(authorization: Optional[str] = Header(None)) -> None:
     Returns:
         なし。
     """
+    # 1. Authorization ヘッダーが無い場合は、認証必須の API として 401 を返す。
     if not authorization:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 2. ヘッダーがある場合は共通検証へ渡し、無効なトークンも 401 にする。
     _verify_bearer(authorization)
 
 
@@ -70,7 +72,9 @@ def optional_auth(authorization: Optional[str] = Header(None)) -> bool:
     Raises:
         HTTPException(401): ヘッダーはあるがトークンが無効な場合
     """
+    # 1. ヘッダーが無ければ未ログインとして False を返す。
     if not authorization:
         return False
+    # 2. ヘッダーがある場合だけ検証し、成功したときに True を返す。
     _verify_bearer(authorization)
     return True

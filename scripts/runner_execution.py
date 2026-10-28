@@ -43,6 +43,7 @@ def _print_progress(message: str) -> None:
     Returns:
         戻り値なし。
     """
+    # 1. 進捗を表示し、バッファに残さず端末へすぐ反映する。
     print(message, flush=True)
 
 

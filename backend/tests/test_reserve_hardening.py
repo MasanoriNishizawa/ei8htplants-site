@@ -109,6 +109,7 @@ def _public_sb(event: Optional[dict] = EVENT) -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. 公開用の supabase モック（events の 1 件を返す）を作る。
     if event is None:
         return _db({'events': _table_mock(single_error=not_found_error())})
     return _db({'events': _table_mock(single_data=dict(event))})
@@ -129,6 +130,7 @@ def _post(payload: dict, public_sb: MagicMock, admin_sb: MagicMock, resend: Opti
     Returns:
         応答
     """
+    # 1. POST /api/reserve を呼ぶ。
     with patch('app.routes.reserve.supabase', public_sb), \
          patch('app.routes.reserve.admin_supabase', admin_sb), \
          patch('app.mail.resend', resend or MagicMock()), \
@@ -374,6 +376,7 @@ class TestCancelToken:
         Returns:
             dict を返す。
         """
+        # 1. キャンセル前の予約の行を返す。
         return {'id': 'r1', 'status': 'pending', 'session_id': None, 'event_id': 'event-1',
                 'name': '山田花子', 'email': 'yamada@example.com', 'created_at': '2026-10-01T00:00:00+00:00'}
 
@@ -667,6 +670,7 @@ class TestReservationStatusChange:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスする。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -675,6 +679,7 @@ class TestReservationStatusChange:
         Returns:
             なし。
         """
+        # 1. 認証のバイパスを戻す。
         app.dependency_overrides.pop(require_auth, None)
 
     def _row(self, status: str, session_id: Optional[str] = 'session-1') -> dict:
@@ -687,6 +692,7 @@ class TestReservationStatusChange:
         Returns:
             dict を返す。
         """
+        # 1. 予約の行を返す。
         return {'id': 'r1', 'status': status, 'session_id': session_id, 'event_id': 'event-1',
                 'participants': 2, 'preferred_date': None, 'name': '山田', 'email': 'yamada@example.com'}
 

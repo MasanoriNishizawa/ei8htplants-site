@@ -51,6 +51,7 @@ class TestRequireAuth:
         Returns:
             なし。
         """
+        # 1. テストごとに dependency_overrides をクリアして実際の require_auth を使う。
         app.dependency_overrides.clear()
 
     def teardown_method(self):
@@ -59,6 +60,7 @@ class TestRequireAuth:
         Returns:
             なし。
         """
+        # 1. テスト後に dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def test_Authorizationヘッダーなし_401(self):

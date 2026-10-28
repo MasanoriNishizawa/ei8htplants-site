@@ -27,6 +27,7 @@ def _event_data(event_id: str = 'evt-1', name: str = 'テストイベント') ->
     Returns:
         dict を返す。
     """
+    # 1. テスト用のイベントレコードを生成して返す。
     return {
         'id': event_id,
         'name': name,
@@ -70,6 +71,7 @@ class TestEventCRUD:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -78,6 +80,7 @@ class TestEventCRUD:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットして他のテストに影響しないようにする。
         app.dependency_overrides.clear()
 
     def test_イベント作成成功(self):
@@ -238,6 +241,7 @@ class TestEventFinances:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -246,6 +250,7 @@ class TestEventFinances:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def test_全収支一覧取得成功(self):
@@ -401,6 +406,7 @@ class TestEventSessions:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -409,6 +415,7 @@ class TestEventSessions:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def test_セッション取得成功(self):
@@ -551,6 +558,7 @@ class TestPageContent:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -559,6 +567,7 @@ class TestPageContent:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def test_ページコンテンツ保存成功(self):
@@ -663,6 +672,7 @@ def _make_admin_info_sb(
         Returns:
             指定されたテーブル名に対応するテスト用クエリモックを返す。
         """
+        # 1. テーブル名に応じたモックを返す。
         assert name in tables, f'想定外のテーブルにアクセスした: {name}'
         return tables[name]
 
@@ -682,6 +692,7 @@ def _saved_info(tables: dict) -> dict:
     Returns:
         upsert の1つ目の引数の 'info' の dict
     """
+    # 1. event_admin_info の upsert に渡された管理情報（info）を取り出して返す。
     return tables['event_admin_info'].upsert.call_args.args[0]['info']
 
 
@@ -694,6 +705,7 @@ class TestEventAdminInfo:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -702,6 +714,7 @@ class TestEventAdminInfo:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     # ----- 取得 -----
@@ -1087,6 +1100,7 @@ def _admin_info_secret() -> dict:
     Returns:
         dict を返す。
     """
+    # 1. 公開してはいけない管理情報（搬入・宿泊・出店料・出店要項）のサンプルを返す。
     return {
         'carry_in_time': '2099-01-01T08:30',
         'hotel_name': '秘密のホテル',
@@ -1128,6 +1142,7 @@ class TestPublicApiHidesAdminInfo:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def test_イベント一覧_今後_admin_infoが応答に含まれない(self):

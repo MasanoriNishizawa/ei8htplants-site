@@ -13,6 +13,7 @@ from ..db import admin_supabase, supabase
 router = APIRouter(prefix='/site-assets', tags=['site-assets'])
 
 # 公開ページから変更する画像設定だけを許可する
+# 変数の内容: EDITABLE_KEYS: API 経由で読み書きを許可するサイト画像のキー集合。
 EDITABLE_KEYS = {'hue-color-study'} | {f'hue-color-{index:02d}' for index in range(1, 7)}
 
 
@@ -32,6 +33,7 @@ def _check_key(key: str) -> None:
     Returns:
         なし。
     """
+    # 1. 編集可能なキー一覧に無いキーは、存在しない設定として拒否する。
     if key not in EDITABLE_KEYS:
         raise HTTPException(status_code=404, detail='Site asset not found')
 

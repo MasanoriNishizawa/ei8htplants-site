@@ -67,12 +67,14 @@ class _Query:
         Returns:
             呼び出し名が execute 以外なら、呼び出し履歴を記録したモック自身を返す。
         """
+        # 1. execute 以外のメソッドは、呼ばれた名前を記録して自分を返す。
         if name == 'execute':
             def execute():
                 """設定したエラーまたは結果を返すクエリ実行関数を作る。
 
                 戻り値:
                     設定した PostgREST 例外またはデータを含む応答を返す。"""
+                # 1. 設定したエラーまたは結果を返すクエリ実行関数を作る。
                 if self.error is not None:
                     raise self.error
                 return MagicMock(data=self.data)
@@ -88,6 +90,7 @@ class _Query:
             Returns:
                 連鎖呼び出し用のクエリモック自身。
             """
+            # 1. 呼び出されたクエリメソッドを記録してモックを返す。
             self.calls.append(name)
             return self
         return chain
@@ -616,6 +619,7 @@ class TestSessionLock:
         Returns:
             なし。
         """
+        # 1. 前のテストのロックが残っていないことを確かめる。
         reserve_module._session_locks.clear()
 
     def test_session_lockを抜けると辞書から消える(self):
@@ -708,6 +712,7 @@ def _error_messages(caplog, logger_name: str) -> list[str]:
     Returns:
         list[str] を返す。
     """
+    # 1. 指定のロガーの ERROR のログの文を返す。
     return [r.getMessage() for r in caplog.records if r.name == logger_name and r.levelno >= logging.ERROR]
 
 

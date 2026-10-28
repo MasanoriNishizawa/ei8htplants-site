@@ -83,6 +83,7 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
   })
 
   test('右下のチャットボタンから AI コンシェルジュを開くとタイトルが二重にならない', async ({ page }) => {
+    // 1. 「右下のチャットボタンから AI コンシェルジュを開くとタイトルが二重にならない」の期待状態が画面に表示されることを確認する。
     await page.goto('/official')
     await page.locator('a.chat-fab').click()
     await expect(page).toHaveURL(/\/official\/chat$/)
@@ -117,6 +118,7 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
   })
 
   test('URL を直接開いても管理画面のページが表示される', async ({ page }) => {
+    // 1. 「URL を直接開いても管理画面のページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/events')
     await expect(page.getByRole('complementary').getByRole('link', { name: 'イベント' })).toBeVisible({ timeout: 20000 })
     await expectLoaded(page)

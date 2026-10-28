@@ -37,6 +37,7 @@ def _ev(eid, start, end=None, name=None, location='会場'):
     Returns:
         作成したテスト用レコードの辞書を返す。
     """
+    # 1. テスト用のイベント行を返す。
     return {'id': eid, 'name': name or eid, 'start_date': start, 'end_date': end, 'location': location}
 
 
@@ -88,6 +89,7 @@ class TestAdminInfoDashboard:
 
         戻り値:
             各テストの前に認証依存関係をモックへ差し替える。"""
+        # 1. 各テストの前に認証状態を管理者として設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -95,6 +97,7 @@ class TestAdminInfoDashboard:
 
         戻り値:
             各テスト後に FastAPI の依存関係差し替えを解除する。"""
+        # 1. 各テストの後に認証状態を初期化する。
         app.dependency_overrides.clear()
 
     def _get(self, events, infos, today=TODAY):

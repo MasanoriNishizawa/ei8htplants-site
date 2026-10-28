@@ -56,6 +56,7 @@ def esc(value: Any) -> str:
     Returns:
         エスケープ済みの文字列
     """
+    # 1. None は空文字にし、それ以外は文字列化して HTML 用にエスケープする。
     if value is None:
         return ''
     return html.escape(str(value), quote=True)

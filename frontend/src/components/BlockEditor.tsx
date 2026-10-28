@@ -78,6 +78,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * @returns なし。端の位置ではブロック配列を変更しない
    */
   const move = (i: number, dir: -1 | 1) => {
+    /** 入れ替え処理で元の blocks 配列を変更しないための複製 */
     const next = [...blocks]
     // 入れ替える相手の位置
     const j = i + dir
@@ -93,6 +94,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * @returns なし。追加後のブロック配列を onChange に渡す
    */
   const insert = (afterIdx: number, block: Block) => {
+    /** 挿入処理で元の blocks 配列を変更しないための複製 */
     const next = [...blocks]
     next.splice(afterIdx + 1, 0, block)
     onChange(next)
@@ -117,7 +119,9 @@ export default function BlockEditor({ blocks, onChange }: Props) {
       // 2. アップロード
       const url = await api.upload(file)
       // 3. 最新の blocks の中での今の位置を探し、URL を入れたブロックに差し替える
+      /** アップロード開始後の入力を反映した最新のブロック一覧 */
       const latest = blocksRef.current
+      /** 対象画像ブロックの現在位置（削除済みなら -1） */
       const idx = latest.indexOf(target)
       setUpload(target, null)
       if (idx < 0) return

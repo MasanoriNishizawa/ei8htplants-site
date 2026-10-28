@@ -113,6 +113,7 @@ def _ensure_event_exists(event_id: str) -> None:
     Returns:
         なし。
     """
+    # 1. 管理用 DB でイベントを確認し、未登録なら後続の保存に進ませない。
     if fetch_one_or_none(admin_supabase.table('events').select('id').eq('id', event_id)) is None:
         raise HTTPException(404, _EVENT_NOT_FOUND)
 
@@ -199,6 +200,7 @@ def list_events(past: bool = False) -> list[dict]:
     # 変数の内容: data: イベント一覧の DB 応答データ、result: 過去条件に一致したイベント行の一覧。、today: 過去イベント判定の基準となる日本時間の日付。
     today = today_jst()
     # 1. 開始日順にイベントを取得し、過去かどうかで指定条件に合う行を選ぶ。
+    # 変数の内容: data: 開始日順で取得したイベント行、result: past 条件に一致したイベント行。
     data = supabase.table('events').select('*').order('start_date').execute().data
     result = []
     # 変数の内容: e: 過去条件を判定するイベント行。
@@ -255,16 +257,20 @@ def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
     """
     try:
         # 1. イベントを開始日の昇順で読む（必要な列だけ）
+        # 変数の内容: events: 管理画面の一覧に使うイベント行。
         events = admin_supabase.table('events') \
             .select('id, name, start_date, end_date, location') \
             .order('start_date').execute().data or []
         # 2. 管理情報を全件読み、event_id → info の dict にする（イベントごとに読まず 1 回で済ませる）
+        # 変数の内容: info_rows: event_admin_info から取得した管理情報行。
         info_rows = admin_supabase.table('event_admin_info').select('event_id, info').execute().data or []
+        # 変数の内容: info_map: event_id をキーにしたイベント別管理情報。
         info_map = {
             r.get('event_id'): r.get('info') if isinstance(r.get('info'), dict) else {}
             for r in info_rows
         }
         # 3. 対象のイベントだけ残して、返す形にする
+        # 変数の内容: today: 過去イベントを判定する日本時間の日付、items: API 応答にまとめるイベント一覧。
         today = today_jst()
         items = []
         # 変数の内容: e: 過去条件を判定するイベント行。
@@ -333,6 +339,7 @@ def get_sessions(event_id: str, date: Optional[str] = None) -> list[dict]:
         HTTPException(404): event_id が UUID の形でない場合（DB に渡すと 22P02 で 500 になるため）
         HTTPException(400): date が YYYY-MM-DD の形でない場合
     """
+    # 1. event_id と任意の日付を検証してから、予約人数付きの時間枠を返す。
     if not is_uuid(event_id):
         raise HTTPException(404, _EVENT_NOT_FOUND)
     if date and not _DATE_RE.match(date):
@@ -354,6 +361,7 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
         reserved_count が付加されたセッションレコードのリスト
     """
     # 1. 対象イベントの時間枠を取得し、枠が無ければ空一覧を返す。
+    # 変数の内容: sessions: 表示順で取得した対象イベントの時間枠。
     sessions = admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).order('display_order').execute().data
     if not sessions:
         return []
@@ -364,6 +372,7 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
     time_to_sid = {s['time_label']: s['id'] for s in sessions}
 
     # 2. event_id 単位で予約を取得し、必要なら日付で絞る。
+    # 変数の内容: query: 取消済みを除いた対象イベントの予約検索。
     query = admin_supabase.table('workshop_reservations') \
         .select('session_id, participants, preferred_time') \
         .eq('event_id', event_id) \
@@ -375,6 +384,7 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
     reservations = query.execute().data or []
 
     # 3. session_id または旧予約の preferred_time で照合して人数を集計する。
+    # 変数の内容: count_map: 時間枠 ID ごとの予約済み参加人数。
     count_map: dict[str, int] = {}
     # 変数の内容: r: 参加人数を集計するワークショップ予約レコード。
     for r in reservations:
@@ -412,15 +422,18 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) 
     # 0. イベントがあるか確かめる（無い id で時間枠を作ると外部キー違反で 500 になるため）
     _ensure_event_exists(event_id)
     # 1. 既存の時間枠を読む
+    # 変数の内容: existing: 現在保存済みの時間枠、existing_by_id/label: 既存枠を照合する辞書。
     existing = admin_supabase.table('ws_sessions').select('id, time_label').eq('event_id', event_id).execute().data or []
     existing_by_id = {s['id']: s for s in existing}
     existing_by_label = {s['time_label']: s['id'] for s in existing}
 
     # 2. 送られた順に、既存の枠は更新・新しい枠は作成する
+    # 変数の内容: incoming_ids: 今回の入力に含まれる既存時間枠 ID。
     incoming_ids: set[str] = set()
     # 変数の内容: i: 保存順として使うセッション番号、s: リクエスト内のセッション内容。
     for i, s in enumerate(body.sessions):
         # id が送られてきた場合はそれを優先、なければ time_label で照合
+        # 変数の内容: sid: 入力セッションに対応する既存 ID。対応する枠が無ければ None。
         sid = s.id if s.id and s.id in existing_by_id else existing_by_label.get(s.time_label)
         if sid:
             incoming_ids.add(sid)
@@ -493,6 +506,7 @@ def get_event(event_id: str) -> dict:
         HTTPException(404): イベントが存在しない場合
     """
     # 1. slug で探す
+    # 変数の内容: result: slug 検索の Supabase 応答、data: 応答に含まれるイベント行または未取得を表す値。
     result = supabase.table('events').select('*').eq('slug', event_id).execute()
     data = result.data[0] if result.data else None
     # 2. 無ければ、UUID の形のときだけ id で探す
@@ -543,6 +557,7 @@ def update_event(event_id: str, body: EventBody, _=Depends(require_auth)) -> dic
     # 1. イベントがあるか確かめる（無い id のまま画像を入れると外部キー違反で 500 になるため）
     _ensure_event_exists(event_id)
     # 2. イベントを更新し、画像は全部消してから送られた順に入れ直す
+    # 変数の内容: row: image_urls を除いたイベント更新項目。
     row = body.model_dump(exclude={'image_urls'})
     row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     admin_supabase.table('events').update(row).eq('id', event_id).execute()
@@ -635,10 +650,12 @@ def get_admin_info(event_id: str, _=Depends(require_auth)) -> dict:
     """
     try:
         # 1. 専用テーブルから対象イベントの行を取得する（行が無ければ空のリスト）
+        # 変数の内容: result: event_admin_info の検索結果。
         result = execute_or_404(
             admin_supabase.table('event_admin_info').select('info').eq('event_id', event_id), _EVENT_NOT_FOUND
         )
         # 2. 行があれば中身を返し、無ければ（または中身が null なら）空の dict を返す
+        # 変数の内容: info: DB 応答から取り出したイベント管理情報。
         info = result.data[0].get('info') if result.data else None
         return info if info is not None else {}
     except HTTPException:
@@ -686,6 +703,7 @@ def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_auth))
     """
     try:
         # 1. 対象イベントが存在するか確かめる。無ければ 404 を返す
+        # 変数の内容: exists: 指定されたイベント ID の検索結果。
         exists = execute_or_404(admin_supabase.table('events').select('id').eq('id', event_id), _EVENT_NOT_FOUND)
         if not exists.data:
             raise HTTPException(status_code=404, detail=_EVENT_NOT_FOUND)
@@ -714,6 +732,7 @@ def _save_images(event_id: str, urls: list[str]) -> None:
     Returns:
         なし。
     """
+    # 1. 空の画像一覧は書き込みを省略し、それ以外は入力順で表示順を付けて一括保存する。
     if not urls:
         return
     # 変数の内容: rows: DB から取得した行の一覧。

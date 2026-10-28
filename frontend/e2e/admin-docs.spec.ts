@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test.describe('AdminDocs 設計書ビューア', () => {
   test('設計書ツリーが表示される', async ({ page }) => {
+    // 1. 「設計書ツリーが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/docs')
     await expect(page.getByText('03_PM')).toBeVisible()
     await expect(page.getByText('04_TEST')).toBeVisible()

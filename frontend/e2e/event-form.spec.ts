@@ -11,6 +11,7 @@ function timeSelects(page: Parameters<typeof test>[1] extends (args: { page: inf
 
 test.describe('イベントフォーム 開催時間プルダウン', () => {
   test('新規作成画面に開始・終了のプルダウンが2つ表示される', async ({ page }) => {
+    // 1. 「新規作成画面に開始・終了のプルダウンが2つ表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/events/new')
     await expect(timeSelects(page)).toHaveCount(2)
   })

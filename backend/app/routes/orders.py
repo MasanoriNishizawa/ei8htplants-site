@@ -199,6 +199,7 @@ def _rollback_stock(reserved: list[tuple[str, int]]) -> None:
     Returns:
         なし。
     """
+    # 1. 確保済み在庫を商品ごとに戻し、個別の失敗は記録して残りの復旧を続ける。
     # 変数の内容: pid: 在庫を戻す商品 ID、qty: その商品について元に戻す数量。
     for pid, qty in reserved:
         try:
@@ -223,6 +224,7 @@ def _notify_admin_critical(subject: str, text: str) -> None:
     Returns:
         なし。
     """
+    # 1. 通知先と送信キーがそろう場合だけ管理者へ送り、失敗は重大ログに記録する。
     if not (RESEND_API_KEY and CONTACT_TO_EMAIL):
         return
     try:
@@ -255,6 +257,7 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
         return
     try:
         # 1. 注文番号・商品の行・お届け先を作る
+        # 変数の内容: order_no: 注文の照合番号、items_lines: メールに載せる商品明細、address_parts: 配送先住所の構成要素。
         order_no = _order_no(order['id'])
         items_lines = '\n'.join(
             f'  {product_map[item.product_id]["name"]} × {item.quantity}  '
@@ -262,6 +265,7 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
             for item in body.items
             if item.product_id in product_map
         )
+        # 変数の内容: address_parts: 郵便番号・住所・建物名を順番に並べる配送先住所の要素。
         address_parts = [
             f'〒{body.postal_code}',
             f'{body.prefecture}{body.city}{body.address_line1}',
@@ -321,12 +325,14 @@ def _notify_admin(order: dict, body: OrderBody, product_map: dict) -> None:
         return
     try:
         # 1. 注文番号と商品明細を含む管理者向けメールを組み立てて送る。
+        # 変数の内容: order_no: 注文の照合番号、items_lines: 管理者メールに載せる商品明細。
         order_no = _order_no(order['id'])
         items_lines = '\n'.join(
             f'  {product_map[item.product_id]["name"]} × {item.quantity}'
             for item in body.items
             if item.product_id in product_map
         )
+        # 変数の内容: text: 注文番号・顧客・配送先・商品をまとめた管理者向け通知本文。
         text = (
             f'新しい注文が入りました。\n\n'
             f'注文番号: {order_no}\n'
@@ -363,6 +369,7 @@ def _load_products(body: OrderBody) -> dict[str, dict]:
         HTTPException(409): 在庫が足りない商品がある場合（足りない商品をすべて並べる）
     """
     # 1. 商品をまとめて読む
+    # 変数の内容: product_ids: 注文行の商品 ID、rows: DB から読んだ商品行、product_map: ID で商品行を引ける辞書。
     product_ids = [item.product_id for item in body.items]
     # UUID の形でない商品 ID が混ざると DB が 22P02 を返すので、存在しない商品と同じ 404 にする
     rows = execute_or_404(
@@ -379,6 +386,7 @@ def _load_products(body: OrderBody) -> dict[str, dict]:
         if not p['is_published']:
             raise HTTPException(400, f'この商品は現在購入できません: {p["name"]}')
     # 3. 在庫が足りるか（全商品を一括確認し、不足商品を全て列挙）
+    # 変数の内容: insufficient: 注文数が在庫を上回っている商品の名前。
     insufficient = [
         product_map[item.product_id]['name']
         for item in body.items
@@ -504,6 +512,7 @@ def create_order(body: OrderBody, request: Request) -> dict:
         raise HTTPException(400, f'未対応の都道府県です: {body.prefecture}')
 
     # 2. 商品の確認と在庫の確保
+    # 変数の内容: product_map: 注文対象の商品情報、reserved: 決済失敗時に戻す在庫、subtotal: 商品小計、total: 送料を含む決済額。
     product_map = _load_products(body)
     reserved = _reserve_stock(body, product_map)
     subtotal = sum(product_map[item.product_id]['price'] * item.quantity for item in body.items)
@@ -603,6 +612,7 @@ def _send_shipping_notification(order: dict) -> None:
         return
     try:
         # 1. お届け先と配送情報の行を作る
+        # 変数の内容: order_no: 配送通知に記載する注文番号、address: 配送先の表示文字列。
         order_no = _order_no(order['id'])
         address = f"〒{order['postal_code']} {order['prefecture']}{order['city']}{order['address_line1']}"
         if order.get('address_line2'):
@@ -622,6 +632,7 @@ def _send_shipping_notification(order: dict) -> None:
                 if url_template:
                     tracking_lines += f'  追跡URL: {url_template.format(tracking_number)}\n'
         # 2. 本文を組み立てて送る
+        # 変数の内容: text: 配送先・追跡情報を含む発送通知の本文。
         text = (
             f"{order['customer_name']} 様\n\n"
             'ご注文の商品を発送いたしました。\n\n'
@@ -663,6 +674,7 @@ def update_order_status(order_id: str, body: OrderStatusPatch, _=Depends(require
         HTTPException(404): 注文が存在しない場合
     """
     # 1. ステータスと、発送時だけ使う配送情報を更新内容にまとめる。
+    # 変数の内容: patch: 注文行へ保存するステータス・配送会社・追跡番号。
     patch: dict = {'status': body.status}
     if body.status == 'shipped':
         if body.carrier is not None:
@@ -670,6 +682,7 @@ def update_order_status(order_id: str, body: OrderStatusPatch, _=Depends(require
         if body.tracking_number is not None:
             patch['tracking_number'] = body.tracking_number
     # 2. 対象注文を更新し、存在しない ID は 404 にする。
+    # 変数の内容: updated: 更新後の注文行。
     updated = first_or_404(execute_or_404(admin_supabase.table('orders').update(patch).eq('id', order_id)))
     # 3. 発送済みへの変更なら通知メールを送り、更新後の行を返す。
     if body.status == 'shipped':

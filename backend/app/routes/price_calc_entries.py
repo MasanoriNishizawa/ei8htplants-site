@@ -57,6 +57,7 @@ def add_entry(body: EntryBody, _=Depends(require_auth)) -> dict:
     """
     # 1. 値の無い項目（None）は送らない。DB の既定（NULL）で入るので結果は同じで、
     #    mode の列を足す 021 マイグレーションを実行していない DB でも、mode を省いた登録が通る
+    # 変数の内容: row: DB に挿入する価格計算記録。
     row = body.model_dump(exclude_none=True)
     # 2. 追加して、作成した行を返す
     return admin_supabase.table('price_calc_entries').insert(row).execute().data[0]

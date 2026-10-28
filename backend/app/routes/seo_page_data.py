@@ -49,12 +49,14 @@ def fetch_event(key: str, deps: SeoDataDeps) -> Optional[dict]:
         画像 URL 一覧を ``image_urls`` に持つイベント行。未登録なら None。
     """
     # 1. slug/id ごとの結果をキャッシュから探し、None の負キャッシュも尊重する。
+    # 変数の内容: cache_key: イベント取得結果のキャッシュキー、found/cached: 保存済み結果の有無と値。
     cache_key = ('event', key)
     found, cached = deps.cache.get(cache_key)
     if found:
         return cached
 
     # 2. 公開 DB を slug で検索し、slug が無く UUID 形式なら id でも検索する。
+    # 変数の内容: rows: slug または UUID で取得したイベント行。
     rows = deps.rows(
         deps.public_db.table('events').select(_EVENT_COLUMNS).eq('slug', key).limit(1).execute()
     )
@@ -64,6 +66,7 @@ def fetch_event(key: str, deps: SeoDataDeps) -> Optional[dict]:
         )
 
     # 3. イベントがあれば表示順に画像を読み、公開可能な絶対 URL だけを設定する。
+    # 変数の内容: event: 取得したイベント行、image_rows: 表示順で読んだイベント画像行。
     event = rows[0] if rows else None
     if event is not None:
         image_rows = deps.rows(
@@ -94,17 +97,20 @@ def fetch_article(article_id: str, deps: SeoDataDeps) -> Optional[dict]:
         return None
 
     # 2. 正しい ID はキャッシュを確認し、None の負キャッシュも利用する。
+    # 変数の内容: cache_key: 記事取得結果のキャッシュキー、found/cached: 保存済み結果の有無と値。
     cache_key = ('article', article_id)
     found, cached = deps.cache.get(cache_key)
     if found:
         return cached
 
     # 3. メタ情報に必要な列だけ管理 DB から読み、公開済み条件を必ず付ける。
+    # 変数の内容: rows: 公開済み条件で取得した記事行。
     rows = deps.rows(
         deps.admin_db.table('articles')
         .select('id, title, content, image_urls, published_at, created_at')
         .eq('id', article_id).eq('is_published', True).limit(1).execute()
     )
+    # 変数の内容: article: 取得した公開記事行。未登録または非公開なら None。
     article = rows[0] if rows else None
 
     # 4. 見つかった行または None を保存し、同じ ID の再問い合わせを防ぐ。
@@ -127,17 +133,20 @@ def fetch_product(product_id: str, deps: SeoDataDeps) -> Optional[dict]:
         return None
 
     # 2. 正しい ID はキャッシュを確認し、None の負キャッシュも利用する。
+    # 変数の内容: cache_key: 商品取得結果のキャッシュキー、found/cached: 保存済み結果の有無と値。
     cache_key = ('product', product_id)
     found, cached = deps.cache.get(cache_key)
     if found:
         return cached
 
     # 3. メタ情報に必要な列だけ管理 DB から読み、公開済み条件を必ず付ける。
+    # 変数の内容: rows: 公開済み条件で取得した商品行。
     rows = deps.rows(
         deps.admin_db.table('products')
         .select('id, name, description, image_urls, created_at')
         .eq('id', product_id).eq('is_published', True).limit(1).execute()
     )
+    # 変数の内容: product: 取得した公開商品行。未登録または非公開なら None。
     product = rows[0] if rows else None
 
     # 4. 見つかった行または None を保存し、同じ ID の再問い合わせを防ぐ。

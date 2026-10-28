@@ -64,14 +64,18 @@ export function computeFinances(fin: EventFinances, hasWorkshop: boolean): Compu
   const totalExpense = fin.booth_fee + transport + fin.expressway_toll + fin.accommodation + fin.other_expenses
   // 2. WS 売上・資材費（ワークショップが無いイベントは 0）
   const wsSales = hasWorkshop ? fin.ws_participants * WS_FEE_YEN : 0
+  /** WS の参加人数に応じた材料費（WS が無い場合は 0） */
   const wsCost = hasWorkshop ? fin.ws_participants * WS_MATERIAL_COST_YEN : 0
   // 支払い前の純利益 = 売上 − 支出 − WS 資材費
   const net = fin.sales - totalExpense - wsCost
 
   // 3. 支払いフラグあり: (売上 - WS売上 - 支出) × 20% + WS売上 × 70%。マイナスの場合もそのまま反映する
   if (fin.payment_flag) {
+    /** WS 売上を除いた利益に対する手伝い分の支払い */
     const salesShare = Math.round((fin.sales - wsSales - totalExpense) * HELPER_SALES_SHARE_RATE)
+    /** WS 売上に対する手伝い分の支払い */
     const wsShare = Math.round(wsSales * HELPER_WS_SHARE_RATE)
+    /** 売上利益分と WS 分を合わせた手伝いへの支払い */
     const paymentAmount = salesShare + wsShare
     return { transport, wsSales, wsCost, totalExpense, net: net - paymentAmount, salesShare, wsShare, paymentAmount }
   }

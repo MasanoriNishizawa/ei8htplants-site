@@ -328,6 +328,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
   })
 
   test('URL を直接開いた（遷移元なし）確認画面の「← 戻る」はイベント一覧へ戻る', async ({ page }) => {
+    // 1. 「URL を直接開いた（遷移元なし）確認画面の「← 戻る」はイベント一覧へ戻る」の期待状態が画面に表示されることを確認する。
     await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
     await expect(page.getByRole('link', { name: '← 戻る' })).toHaveAttribute('href', '/admin/events')
   })
@@ -368,6 +369,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
   })
 
   test('管理情報が未入力のイベントの確認画面では「まだ管理情報が登録されていません」が出る', async ({ page }) => {
+    // 1. 「管理情報が未入力のイベントの確認画面では「まだ管理情報が登録されていません」が出る」の期待状態が画面に表示されることを確認する。
     await page.goto(`/admin/events/${EMPTY_EVENT_ID}/admin-info`)
     await expect(page.getByText(/まだ管理情報が登録されていません/)).toBeVisible()
     await expect(viewRow(page, '支払い状況')).toContainText('未入力')
@@ -423,6 +425,7 @@ test.describe('管理情報の確認画面 — スマホ幅（375x812）', () =>
   })
 
   test('編集画面でも横スクロールが出ない', async ({ page }) => {
+    // 1. 「編集画面でも横スクロールが出ない」の期待状態が画面に表示されることを確認する。
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
     await expectNoHorizontalScroll(page)
@@ -431,6 +434,7 @@ test.describe('管理情報の確認画面 — スマホ幅（375x812）', () =>
   })
 
   test('全部未入力の確認画面でも横スクロールが出ない（スクリーンショットも保存）', async ({ page }) => {
+    // 1. 「全部未入力の確認画面でも横スクロールが出ない（スクリーンショットも保存）」の期待状態が画面に表示されることを確認する。
     await page.goto(`/admin/events/${EMPTY_EVENT_ID}/admin-info`)
     await expect(page.getByText(/まだ管理情報が登録されていません/)).toBeVisible()
     await expectNoHorizontalScroll(page)

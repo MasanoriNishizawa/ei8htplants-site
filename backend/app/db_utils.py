@@ -50,6 +50,7 @@ def execute_or_404(query: Any, detail: str = 'Not found') -> Any:
         HTTPException(404): id の形が違う・single() で 0 件の場合
         Exception: 接続の失敗など「見つからない」以外のエラー（そのまま投げ直す）
     """
+    # 1. クエリを実行し、PostgREST の「見つからない」コードだけを 404 に変換する。
     try:
         return query.execute()
     # 変数の内容: e: except で捕捉した処理例外。
@@ -76,6 +77,7 @@ def execute_or_400(query: Any, detail: str = 'Invalid id') -> Any:
         HTTPException(400): id の形が違う（22P02）・外部キー違反（23503）の場合
         Exception: そのほかのエラー（そのまま投げ直す）
     """
+    # 1. 保存クエリを実行し、入力 ID の形式または参照先のエラーだけを 400 に変換する。
     try:
         return query.execute()
     # 変数の内容: e: except で捕捉した処理例外。
@@ -97,6 +99,7 @@ def fetch_one_or_none(query: Any) -> dict | None:
     Raises:
         Exception: 接続の失敗など「見つからない」以外のエラー（そのまま投げ直す）
     """
+    # 1. 単一行を読み、存在しない場合だけ None にして、それ以外の障害は呼び出し元へ返す。
     try:
         # 変数の内容: data: DB応答から取得した単一レコードまたは未取得を示す値。。
         data = query.single().execute().data
@@ -122,6 +125,7 @@ def fetch_one_or_404(query: Any, detail: str = 'Not found') -> dict:
         HTTPException(404): 0 件・id の形が違う場合
         Exception: 接続の失敗など「見つからない」以外のエラー
     """
+    # 1. 共通の単一行取得を呼び、未取得なら指定された 404 を返す。
     # 変数の内容: data: DB応答から取得した単一レコード。。
     data = fetch_one_or_none(query)
     if data is None:
@@ -144,6 +148,7 @@ def first_or_404(result: Any, detail: str = 'Not found') -> dict:
     Raises:
         HTTPException(404): 結果が 0 件の場合
     """
+    # 1. execute() 結果の data が空でないリストかを確かめる。
     # 変数の内容: data: DB応答の先頭レコード。。
     data = getattr(result, 'data', None)
     if not isinstance(data, list) or not data:
@@ -164,6 +169,7 @@ def next_display_order(client: Any, table: str) -> int:
     Returns:
         次の表示順。行が無ければ 0
     """
+    # 1. 表示順の最大値を降順で1件読み、次に使う値を求める。
     # 変数の内容: rows: DB から取得した行の一覧。
     rows = client.table(table).select('display_order').order('display_order', desc=True).limit(1).execute().data
     if isinstance(rows, list) and rows and isinstance(rows[0].get('display_order'), int):

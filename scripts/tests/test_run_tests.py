@@ -164,6 +164,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     tuple[str, str]: 固定の標準出力と標準エラー。"""
+                # 1. 標準出力と標準エラーの固定値を返す。
                 return "標準出力", "標準エラー"
 
             def poll(self):
@@ -171,6 +172,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     int | None: プロセスの終了コード。実行中は None。"""
+                # 1. プロセスが正常終了したコードを返す。
                 return self.returncode
 
             def wait(self, timeout=None):
@@ -181,6 +183,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     int: プロセスの終了コード。"""
+                # 1. 呼び出し側の待機処理へ終了コードを返す。
                 return self.returncode
 
         # 変数の内容: process: 起動した子プロセスのモック。
@@ -228,6 +231,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     なし。"""
+                # 1. 外部コマンドが割り込みを受けた状態を再現する。
                 events.append("communicate")
                 raise KeyboardInterrupt
 
@@ -239,6 +243,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     int: プロセスの終了コード。"""
+                # 1. 一度目はtimeout、次はSIGKILL後の終了コードを返す。
                 events.append(("wait", timeout))
                 if sum(1 for event in events if isinstance(event, tuple) and event[0] == "wait") == 1:
                     raise subprocess.TimeoutExpired(["example"], timeout)
@@ -250,6 +255,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     int | None: プロセスの終了コード。実行中は None。"""
+                # 1. 現在の終了コードを返し、未終了ならNoneを返す。
                 return self.returncode
 
         # 変数の内容: process: 起動した子プロセスのモック。
@@ -264,6 +270,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
             Returns:
                 None: 呼び出し内容を記録し、値は返さない。"""
+            # 1. killpg呼び出しの対象とsignalを順序付きで記録する。
             events.append(("killpg", pid, signum))
 
         with patch.object(run_tests.subprocess, "Popen", return_value=process) as popen:
@@ -300,6 +307,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     なし。"""
+                # 1. 実行中のプロセスが割り込まれたことを示す。
                 events.append("communicate")
                 raise KeyboardInterrupt
 
@@ -311,6 +319,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     int: プロセスの終了コード。"""
+                # 1. leader終了時の待ち時間と結果を記録する。
                 events.append(("leader_wait", timeout))
                 return self.returncode
 
@@ -335,6 +344,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
             Returns:
                 float: 進める前の仮想時刻。"""
+            # 1. 現在時刻を返した後、仮想時計を一秒進める。
             current = clock["now"]
             clock["now"] += 1.0
             return current
@@ -385,6 +395,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     なし。"""
+                # 1. run_processへ割り込み処理を開始させる。
                 events.append(("communicate", clock["now"]))
                 raise KeyboardInterrupt
 
@@ -396,6 +407,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
                 Returns:
                     int: プロセスの終了コード。"""
+                # 1. 最初のleader待ちで4.9秒を使い終了する。
                 events.append(("leader_wait", timeout, clock["now"]))
                 if clock["wait_calls"] == 0:
                     clock["now"] += 4.9
@@ -414,6 +426,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
             Returns:
                 None: 呼び出し内容を記録し、値は返さない。"""
+            # 1. プロセスグループへのsignalと送信時刻を記録する。
             events.append(("killpg", pid, signum, clock["now"]))
 
         def advance_clock(seconds):
@@ -424,6 +437,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
             Returns:
                 None: 仮想時計を進め、値は返さない。"""
+            # 1. sleep時間だけ仮想時計を進め、呼び出し内容を記録する。
             events.append(("sleep", seconds, clock["now"]))
             clock["now"] += seconds
 
@@ -506,6 +520,7 @@ class TestRunnerInterruptLogging(unittest.TestCase):
 
         Returns:
             dict: suite 名と成功時の集計値を含む実行結果。"""
+        # 1. main が先行suiteの成功結果として扱える最小の値を返す。
         return {
             "name": name, "code": 0, "sec": 0.1,
             "passed": 1, "failed": 0, "skipped": 0, "xfail": 0,
@@ -565,6 +580,7 @@ class TestRunnerSelection(unittest.TestCase):
 
         Returns:
             None: 選択結果の各フィールドを検証する。"""
+        # 1. 選択結果の全フィールドを期待値と照合する。
         from scripts.runner_selection import select_tests
 
         selection = select_tests(**args)

@@ -48,6 +48,7 @@ class TTLCache:
             if hit is None:
                 return False, None
             # 2. 期限切れの値は削除し、有効な値だけを返す。
+            # 変数の内容: expires: 保存値の期限時刻、value: キャッシュに保存した値。
             expires, value = hit
             if expires < now:
                 del self._data[key]
@@ -87,5 +88,6 @@ class TTLCache:
         Returns:
             なし。
         """
+        # 1. ロックを取り、キーと値を保持する内部辞書を空にする。
         with self._lock:
             self._data.clear()

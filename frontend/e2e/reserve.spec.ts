@@ -27,6 +27,7 @@ test.describe('Reserve', () => {
 
   // 予約フォームの見出しが表示されることを確認
   test('/official/reserve を開くと「Workshop 予約」の見出しが表示される', async ({ page }) => {
+    // 1. 「/official/reserve を開くと「Workshop 予約」の見出しが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/reserve')
     await expect(page.getByRole('heading', { level: 1, name: 'Workshop 予約' })).toBeVisible()
   })
@@ -45,6 +46,7 @@ test.describe('Reserve', () => {
 
   // 存在しない event_id でもフォームを出さない（モックの GET /api/events/:id は 404）
   test('存在しない event_id で開くと「イベントが見つかりません」が出て予約フォームは出ない', async ({ page }) => {
+    // 1. 「存在しない event_id で開くと「イベントが見つかりません」が出て予約フォームは出ない」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/reserve?event_id=no-such-event')
     await expect(page.getByRole('alert')).toContainText('イベントが見つかりません')
     await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
@@ -52,12 +54,14 @@ test.describe('Reserve', () => {
 
   // イベント ID を指定してアクセスするとイベント情報が表示されることを確認
   test('event_id を指定するとイベント名が表示される', async ({ page }) => {
+    // 1. 「event_id を指定するとイベント名が表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/reserve?event_id=mock-upcoming-1')
     await expect(page.getByText('Green Market 2027').first()).toBeVisible()
   })
 
   // 終了したイベントは受付終了の案内を出す
   test('終了したイベントの event_id で開くと「受付を終了しました」が出て予約ボタンは出ない', async ({ page }) => {
+    // 1. 「終了したイベントの event_id で開くと「受付を終了しました」が出て予約ボタンは出ない」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/reserve?event_id=mock-past-1')
     await expect(page.getByText('受付を終了しました')).toBeVisible()
     await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
@@ -75,6 +79,7 @@ test.describe('Reserve', () => {
 
   // 参加人数の上限（10 名）を確認
   test('時間枠の無いイベントでは参加人数の入力欄の範囲が 1〜10 になる', async ({ page }) => {
+    // 1. 「時間枠の無いイベントでは参加人数の入力欄の範囲が 1〜10 になる」の期待状態が画面に表示されることを確認する。
     await page.goto(`/official/reserve?event_id=${SIMPLE_EVENT_ID}`)
     const participants = page.getByLabel('参加人数')
     await expect(participants).toHaveAttribute('min', '1')

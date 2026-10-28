@@ -141,6 +141,7 @@ function orderErrorMessage(err: unknown, t: Translate): string {
   }
   // 2. カードの決済失敗（Square の説明は英語なので、どちらの言語でも補足として添える）
   if (err.status === 402) {
+    /** 共通の日本語エラーに添える Square の追加説明（既定文と重複する場合は空） */
     const note = detail && detail !== '決済に失敗しました' ? `（${detail}）` : ''
     return t(
       `カードの決済ができませんでした。カード情報をご確認いただくか、別のカードをお試しください。${note}`,
@@ -288,6 +289,7 @@ export default function Checkout() {
       try {
         // 1. Square の決済オブジェクトを作る
         if (!window.Square) throw new Error('Square SDK not loaded')
+        /** この注文のカード入力欄を作る Square Payments インスタンス */
         const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID)
         // 2. カード入力欄を作る（画面を離れていたら片付ける）
         const card = await withTimeout(payments.card({ postalCode: false }), 10000)
@@ -437,6 +439,7 @@ export default function Checkout() {
       const result = await cardRef.current.tokenize()
       // 失敗したら Square の説明（無ければ共通の文）を出して止める
       if (result.status !== 'OK' || !result.token) {
+        /** Square の詳細か共通文言を使うカード入力エラー */
         const msg = result.errors?.map((er) => er.message).join(' ') || t('カード情報が正しくありません。', 'Your card details are invalid.')
         setErrorMsg(msg)
         setStatus('idle')

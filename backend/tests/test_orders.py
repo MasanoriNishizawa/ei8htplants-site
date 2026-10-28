@@ -22,6 +22,7 @@ def _auth_override():
     Returns:
         認証依存関係を差し替える関数を返す。
     """
+    # 1. テスト時に require_auth を無効化するオーバーライド関数。
     return None
 
 

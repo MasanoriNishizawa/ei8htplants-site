@@ -25,6 +25,7 @@ function excerpt(text: string | null, max = 120): string {
   if (!text) return ''
   // 1. 本文をブロックに分け、テキストのブロックだけをつなぐ（見出し・画像は除く）
   const blocks = parseBlocks(text)
+  /** 抜粋に使う本文テキストだけを取り出したブロック一覧 */
   const plain = blocks
     .flatMap((b) => (b.type === 'text' ? [b.value] : []))
     .join(' ')

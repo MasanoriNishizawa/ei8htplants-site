@@ -99,6 +99,7 @@ const HueSite = lazy(() => import('./sites/hue/site'))
  * @returns 転送中の読み込み表示
  */
 function AdminDomainRedirect() {
+  /** 転送後も同じページ位置を保つための現在のパス・クエリ・ハッシュ */
   const { pathname, search, hash } = useLocation()
   useEffect(() => {
     window.location.replace(`https://ei8htplants.com${pathname}${search}${hash}`)
@@ -111,6 +112,7 @@ function AdminDomainRedirect() {
  * @returns 転送先への置換ナビゲーション
  */
 function LegacyOfficialRedirect() {
+  /** `/official` に引き継ぐ転送元のパス・クエリ・ハッシュ */
   const { pathname, search, hash } = useLocation()
   return <Navigate to={`/official${pathname}${search}${hash}`} replace />
 }
@@ -120,6 +122,7 @@ function LegacyOfficialRedirect() {
  * @returns アプリ全体
  */
 export default function App() {
+  /** ブランド専用ドメインか公式サイトかを分ける現在のホスト設定 */
   const site = siteForHost(window.location.hostname)
   return (
     <LangProvider>

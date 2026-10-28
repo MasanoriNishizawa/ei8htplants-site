@@ -107,12 +107,14 @@ def resolve_brand_page(path: str, site_name: str) -> Optional[BrandPage]:
         KeyError: カタログに定義されていないブランド名が指定された場合。
     """
     # 1. 先頭・末尾のスラッシュをそろえ、公開ページ一覧からページ情報を探す。
+    # 変数の内容: normalized_path: カタログ照合用の正規化パス、page: ブランドの公開ページ項目。
     normalized_path = '/' + path.strip('/')
     page = _BRAND_PAGES[site_name].get(normalized_path)
     if page is None:
         return None
 
     # 2. 旧ブランド URL は既存 canonical と同じ正規パスへ変換する。
+    # 変数の内容: title/description/image_path: ページの表示情報、canonical_path: canonical に使う正規パス。
     title, description, image_path = page
     canonical_path = _CANONICAL_PATHS.get(normalized_path, normalized_path)
     return BrandPage(

@@ -24,6 +24,7 @@ function renderWithLinks(line: string) {
     if (!part.startsWith('http')) return [<span key={i}>{part}</span>]
     // 末尾の句読点を除いた URL と、除いた句読点
     const url = part.replace(TRAILING_PUNCT, '')
+    /** URL としてリンクにせず後ろへ表示する末尾の句読点 */
     const trailing = part.slice(url.length)
     // URL 部分を新しいタブで開くリンク要素にしたもの
     const link = <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{url}</a>
@@ -98,6 +99,7 @@ export default function Chat() {
 
     // 2. 利用者のメッセージを足す
     const userMsg: Message = { role: 'user', content: text }
+    /** 送信前の履歴に今回の利用者メッセージを加えた一覧 */
     const next = [...messages, userMsg]
     setMessages(next)
     setInput('')

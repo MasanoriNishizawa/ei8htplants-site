@@ -21,6 +21,7 @@ function parseYmd(value: string): { y: number; m: number; d: number; wd: number 
   const y = Number(match[1])
   // 年の後に続く月と日を数値化する。
   const m = Number(match[2])
+  /** 日付の曜日計算に使う月内の日 */
   const d = Number(match[3])
   // UTC で作るので、実行環境のタイムゾーンに関係なく同じ日付・曜日になる
   const dt = new Date(Date.UTC(y, m - 1, d))
@@ -99,6 +100,7 @@ export function localToday(now: Date = new Date()): string {
   const y = now.getFullYear()
   // 月は Date API で 0 始まりのため 1 を加えてから 2 桁化する。
   const m = String(now.getMonth() + 1).padStart(2, '0')
+  /** 端末のローカル日付から取り出した2桁の日 */
   const d = String(now.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }

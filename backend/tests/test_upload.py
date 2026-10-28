@@ -52,6 +52,7 @@ def _reset_bucket_state():
     Returns:
         なし。
     """
+    # 1. バケットを確認済みかどうかの記録（プロセスで 1 回だけのフラグ）をテストごとに消す。
     upload_module._ensured_buckets.clear()
     upload_module._ensure_failed_logged.clear()
     yield
@@ -110,6 +111,7 @@ class TestUploadImage:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -118,6 +120,7 @@ class TestUploadImage:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def test_画像アップロード成功_URLが返る(self):
@@ -368,6 +371,7 @@ class TestUploadVideo:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -376,6 +380,7 @@ class TestUploadVideo:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def test_動画アップロード成功_URLが返る(self):
@@ -509,6 +514,7 @@ class TestEnsureBucket:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスするよう設定する。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -517,6 +523,7 @@ class TestEnsureBucket:
         Returns:
             なし。
         """
+        # 1. dependency_overrides をリセットする。
         app.dependency_overrides.clear()
 
     def _upload_twice(self, mock_admin_sb: MagicMock) -> list:
@@ -545,6 +552,7 @@ class TestEnsureBucket:
         Returns:
             list を返す。
         """
+        # 1. バケットの確認・作成の失敗の warning ログだけを返す。
         return [
             r for r in caplog.records
             if r.name == 'app.routes.upload' and r.levelno == logging.WARNING

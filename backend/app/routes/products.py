@@ -58,6 +58,7 @@ class ProductBody(BaseModel):
         Raises:
             ValueError: 選べる値でない場合（FastAPI が 422 にする）
         """
+        # 1. 未指定・空欄は None にそろえ、指定値は許可一覧に含まれるか検証する。
         if v is None or v == '':
             return None
         if v not in VALID_CATEGORIES:

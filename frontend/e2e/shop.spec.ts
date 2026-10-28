@@ -2,11 +2,13 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Shop', () => {
   test('商品一覧が表示される', async ({ page }) => {
+    // 1. 「商品一覧が表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/shop')
     await expect(page.getByText('Habitat Style Pot S')).toBeVisible()
   })
 
   test('商品価格が表示される', async ({ page }) => {
+    // 1. 「商品価格が表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/shop')
     await expect(page.getByText(/3,800/)).toBeVisible()
   })

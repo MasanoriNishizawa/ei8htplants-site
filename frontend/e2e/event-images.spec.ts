@@ -210,6 +210,7 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
   })
 
   test('イベント一覧で「画像DL」リンクが画面内に収まり、横スクロールが出ない', async ({ page }) => {
+    // 1. 「イベント一覧で「画像DL」リンクが画面内に収まり、横スクロールが出ない」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/events')
     const row = page.getByText(EVENT_NAME, { exact: true }).locator('../..')
     await expectWithinViewportX(page, row.getByRole('link', { name: '画像DL' }), '画像DLリンク')

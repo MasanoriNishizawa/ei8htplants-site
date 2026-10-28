@@ -33,6 +33,7 @@ def not_found_error() -> PostgrestError:
     Returns:
         code='PGRST116' の例外
     """
+    # 1. single() で 0 件だったときの例外（PGRST116）を返す。
     return PostgrestError('PGRST116', 'JSON object requested, multiple (or no) rows returned')
 
 
@@ -42,6 +43,7 @@ def invalid_uuid_error() -> PostgrestError:
     Returns:
         code='22P02' の例外
     """
+    # 1. uuid 列に UUID でない文字列を渡したときの例外（22P02）を返す。
     return PostgrestError('22P02', 'invalid input syntax for type uuid')
 
 

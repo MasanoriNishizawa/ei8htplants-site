@@ -99,6 +99,7 @@ export function toYmd(d: Date): string {
   const y = d.getFullYear()
   // 月・日を2桁にそろえる
   const m = String(d.getMonth() + 1).padStart(2, '0')
+  /** 年月日に続ける2桁の日 */
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }

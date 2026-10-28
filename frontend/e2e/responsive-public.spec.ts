@@ -46,6 +46,7 @@ async function openCheckoutWithItem(page: Page) {
 
 test.describe('ヘッダーの言語切り替えボタン', () => {
   test('PC 幅（1280px）では言語切り替えボタンが読み上げ対象として 1 つだけ出る', async ({ page }) => {
+    // 1. 「PC 幅（1280px）では言語切り替えボタンが読み上げ対象として 1 つだけ出る」の期待状態が画面に表示されることを確認する。
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto('/official')
     await expect(page.getByRole('banner')).toBeVisible()

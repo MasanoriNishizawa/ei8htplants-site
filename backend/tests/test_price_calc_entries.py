@@ -40,6 +40,7 @@ def _make_sb_mock():
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. admin_supabase の MagicMock を返す。
     return MagicMock()
 
 
@@ -49,6 +50,7 @@ def _auth_override():
     Returns:
         認証依存関係を差し替える関数を返す。
     """
+    # 1. 認証を無効化するオーバーライド関数。テスト時のみ使用する。
     return None
 
 
@@ -292,6 +294,7 @@ def _inserted_row(mock_sb) -> dict:
     Returns:
         dict を返す。
     """
+    # 1. insert に渡された dict を返す（1 回だけ呼ばれていることも確かめる）。
     mock_sb.table.return_value.insert.assert_called_once()
     return mock_sb.table.return_value.insert.call_args.args[0]
 

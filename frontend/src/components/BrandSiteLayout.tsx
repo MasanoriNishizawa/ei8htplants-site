@@ -52,8 +52,10 @@ export default function BrandSiteLayout({ site }: { site: BrandSiteConfig }) {
     // ブランドのロゴとアクセントカラーをブラウザーのタブ表示にも反映する
     const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
     if (icon) icon.href = site.logo
+    /** ホーム画面追加時に使われるタッチアイコン要素 */
     const appleIcon = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')
     if (appleIcon) appleIcon.href = site.logo
+    /** ブラウザーのアドレスバーやタブに適用するテーマ色の要素 */
     const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
     if (themeColor) themeColor.content = site.accent
   }, [site.logo, site.accent])

@@ -38,11 +38,13 @@ test.describe('設計書の ?path=', () => {
   })
 
   test('?path= の URL を直接開くとその設計書が開く', async ({ page }) => {
+    // 1. 「?path= の URL を直接開くとその設計書が開く」の期待状態が画面に表示されることを確認する。
     await page.goto(`/admin/docs?path=${encodeURIComponent(DOC_B)}`)
     await expect(page.getByRole('heading', { level: 1, name: /エージェント設計書/ })).toBeVisible()
   })
 
   test('モックに無いパス（doc/ の外など）を直接開くと本文を出さずにエラーを出す', async ({ page }) => {
+    // 1. 「モックに無いパス（doc/ の外など）を直接開くと本文を出さずにエラーを出す」の期待状態が画面に表示されることを確認する。
     await page.goto(`/admin/docs?path=${encodeURIComponent('../backend/.env')}`)
     await expect(page.getByRole('main').getByRole('alert')).toBeVisible()
     await expect(page.locator('.docs-markdown')).toHaveCount(0)
@@ -70,6 +72,7 @@ test.describe('スマホ幅（375px）の目次', () => {
   })
 
   test('?path= を直接開いたときは目次を閉じた状態で本文を出す', async ({ page }) => {
+    // 1. 「?path= を直接開いたときは目次を閉じた状態で本文を出す」の期待状態が画面に表示されることを確認する。
     await page.goto(`/admin/docs?path=${encodeURIComponent(DOC_A)}`)
     await expect(page.getByRole('heading', { level: 1, name: /マスターテスト計画書/ })).toBeVisible()
     await expect(page.getByRole('button', { name: '目次を開く' })).toBeVisible()

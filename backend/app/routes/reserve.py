@@ -178,7 +178,7 @@ def _sync_reserved_count(session_id: str) -> None:
         なし。
     """
     # 1. キャンセル以外の予約から、対象セッションの参加人数を取得する。
-    # 変数の内容: result: セッションに紐づく予約レコードの DB 応答、、total: 支払総額。
+    # 変数の内容: result: セッションに紐づく予約レコードの DB 応答、total: キャンセル以外の予約人数の合計。
     result = admin_supabase.table('workshop_reservations') \
         .select('participants') \
         .eq('session_id', session_id) \
@@ -198,6 +198,7 @@ def _sync_reserved_count_safely(session_id: Optional[str]) -> None:
     Returns:
         なし。
     """
+    # 1. 同期対象がある場合だけ件数を更新し、失敗はログに残して予約処理を継続する。
     if not session_id:
         return
     try:
@@ -222,6 +223,7 @@ def _session_used_count(event_id: str, session: dict, preferred_date: Optional[s
         入っている人数の合計
     """
     # 1. キャンセル以外の予約を対象イベントで検索し、必要なら予約日も絞る。
+    # 変数の内容: query: 対象イベント・予約日を指定する予約検索。
     query = admin_supabase.table('workshop_reservations') \
         .select('session_id, participants, preferred_time') \
         .eq('event_id', event_id) \
@@ -230,6 +232,7 @@ def _session_used_count(event_id: str, session: dict, preferred_date: Optional[s
         # 変数の内容: query: DB へ渡す検索条件。
         query = query.eq('preferred_date', preferred_date)
     # 2. セッション ID を優先し、古い予約は希望時刻で照合して人数を合計する。
+    # 変数の内容: used: 対象の時間枠に予約済みの参加人数。
     used = 0
     # 変数の内容: r: 使用人数を加算するキャンセル以外の予約レコード。
     for r in query.execute().data or []:
@@ -259,8 +262,10 @@ def _load_session_for_event(session_id: str, event_id: str) -> dict:
         .select('id, event_id, max_participants, time_label')
         .eq('id', session_id)
     )
+    # 1. 取得した時間枠が指定イベントに属するかを検証する。
     if not session or session.get('event_id') != event_id:
         raise HTTPException(400, 'ワークショップの時間枠が正しくありません')
+    # 2. 旧レコードに id が含まれない場合は検索に使った ID を補って返す。
     # 古いデータで id が返らない場合に備え、検索に使った ID を入れておく
     session.setdefault('id', session_id)
     return session
@@ -288,6 +293,7 @@ def _check_reservable(event: dict, preferred_date: Optional[str]) -> None:
     if not preferred_date:
         return
     # 2. 予約日が開催期間（開始日〜最終日）の中にあるか
+    # 変数の内容: start: イベントの開始日。
     start = event.get('start_date') or ''
     if not (start <= preferred_date <= end):
         raise HTTPException(400, '予約日がイベントの開催期間外です')
@@ -319,6 +325,7 @@ def create_reservation(body: ReserveBody, request: Request) -> dict:
     # 1. 回数制限
     reserve_limiter.check(client_ip(request))
     # 2. イベントがあり、予約を受け付けている期間か確かめる
+    # 変数の内容: event_row: 予約期間の検証に使うイベント行、data: DB に保存する予約項目とキャンセルトークン。
     event_row = fetch_one_or_404(
         supabase.table('events').select('start_date, end_date').eq('id', body.event_id),
         'イベントが見つかりません',
@@ -343,6 +350,7 @@ def create_reservation(body: ReserveBody, request: Request) -> dict:
         row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
     _sync_reserved_count_safely(body.session_id)
     # 4. 予約者への受付メール。失敗したら email_failed を立てて管理画面で気づけるようにする
+    # 変数の内容: mail_event: メール本文用のイベント情報、time_label: 表示する時間、update: 送信結果として予約行へ保存する変更。
     mail_event, time_label = _load_mail_context(body.event_id, body.session_id, body.preferred_time)
     update: dict = {}
     try:
@@ -396,6 +404,7 @@ def cancel_by_token(body: CancelBody, request: Request) -> dict:
     # 1. 回数制限
     cancel_limiter.check(client_ip(request))
     # 2. トークンの行を新しい順に読み、未登録とキャンセル済みを区別して返す
+    # 変数の内容: all_rows: キャンセルトークンに一致する予約を作成日時の降順で読んだ DB 応答。
     all_rows = admin_supabase.table('workshop_reservations') \
         .select('id, status, session_id, event_id, name, email, created_at') \
         .eq('cancel_token', body.token) \
@@ -511,6 +520,7 @@ def _load_mail_context(event_id: str, session_id: Optional[str], preferred_time:
         return None, ''
     try:
         # 1. イベント情報を読み、時間枠 ID がある場合は表示名を優先する。
+        # 変数の内容: event: メールに使うイベント情報、time_label: 希望または時間枠から選んだ表示時刻。
         event = fetch_one_or_none(supabase.table('events').select('name, start_date, location').eq('id', event_id))
         time_label = preferred_time or ''
         if session_id:
@@ -577,10 +587,12 @@ def _send_confirmation(body: ReserveBody, cancel_token: str, event: Optional[dic
     if not HABITAT_RESEND_API_KEY or not event:
         return None
     # 1. 言語を決め、その言語の文言を使う
+    # 変数の内容: lang: メール本文の言語、t: 言語別の文言一覧、cancel_url: 予約を取り消すための公開 URL。
     lang = 'en' if body.lang == 'en' else 'ja'
     t = _CONFIRM_TEXTS[lang]
     cancel_url = f'{SITE_ORIGIN}/official/cancel?id={cancel_token}'
     # 2. 予約内容の表を作る（値はすべて _row の中でエスケープされる）
+    # 変数の内容: rows_html: 予約内容をメールの HTML 表にする行。
     rows_html = _row(t['event'], event['name'])
     rows_html += _row(t['date'], event['start_date'])
     rows_html += _row(t['venue'], event['location'])
@@ -596,6 +608,7 @@ def _send_confirmation(body: ReserveBody, cancel_token: str, event: Optional[dic
     if body.note:
         rows_html += _row(t['note'], body.note)
     # 3. 本文（HTML とテキスト）を組み立てる
+    # 変数の内容: content: 予約者へ送る HTML 本文、text: 同じ内容のテキスト本文。
     content = f'''
           <p style="margin:0 0 8px;font-size:16px;color:#333333;">{t['greeting'].format(name=esc(body.name))}</p>
           <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
@@ -621,6 +634,7 @@ def _send_confirmation(body: ReserveBody, cancel_token: str, event: Optional[dic
         f'{t["cancel_text"]}: {cancel_url}\n\nHabitat Oides\n{SITE_ORIGIN}'
     )
     # 4. 送る
+    # 変数の内容: email_id: Resend が発行した送信メール ID。
     email_id = send_mail(HABITAT_RESEND_API_KEY, {
         'from': HABITAT_SENDER,
         'to': [body.email],
@@ -651,6 +665,7 @@ def _send_admin_notification(body: ReserveBody, event: Optional[dict], time_labe
     if not HABITAT_RESEND_API_KEY or not event:
         return
     # 1. 予約内容の表を作る（メールアドレスのリンクだけは自分で組み立ててエスケープする）
+    # 変数の内容: email_link: エスケープ済みメールリンク、rows_html: 管理者通知に載せる予約情報の表。
     email_link = f'<a href="mailto:{esc(body.email)}" style="color:#4a6741;">{esc(body.email)}</a>'
     rows_html = _row('イベント名', event['name'])
     rows_html += _row('開催日', event['start_date'])
@@ -670,6 +685,7 @@ def _send_admin_notification(body: ReserveBody, event: Optional[dict], time_labe
     if body.note:
         rows_html += _row('備考', body.note)
     # 2. 本文を組み立てて送る
+    # 変数の内容: content: 管理者向け HTML 本文、text: 管理者向けテキスト本文。
     content = f'''
       <p style="margin:0 0 24px;font-size:14px;color:#555555;">新しいワークショップ予約が入りました。</p>
       {_rows_table(rows_html)}
@@ -709,6 +725,7 @@ def _send_cancel_confirmation(reservation: dict) -> None:
     if not email:
         return
     # 1. イベントの情報を読む（無くてもメールは送る）
+    # 変数の内容: event_id: 予約に記録されたイベント ID、event: メールに載せるイベント情報。
     event_id = reservation.get('event_id')
     event = None
     if event_id:
@@ -721,6 +738,7 @@ def _send_cancel_confirmation(reservation: dict) -> None:
         # 変数の内容: rows_html: メール本文に挿入する表の行。
         rows_html = _row('イベント名', event['name']) + _row('開催日', event['start_date']) + _row('会場', event['location'])
     # 2. 本文を組み立てて送る
+    # 変数の内容: content: 予約者へ送るキャンセル通知の HTML 本文。
     content = f'''
       <p style="margin:0 0 8px;font-size:16px;color:#333333;">{esc(name)} 様</p>
       <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.8;">
@@ -729,6 +747,7 @@ def _send_cancel_confirmation(reservation: dict) -> None:
       </p>
       {_rows_table(rows_html) if rows_html else ''}
     '''
+    # 変数の内容: text: 同じキャンセル通知のテキスト本文。
     text = f'{name} 様\n\nワークショップのご予約をキャンセルしました。\nまたのご参加をお待ちしております。\n\nHabitat Oides\n{SITE_ORIGIN}'
     send_mail(HABITAT_RESEND_API_KEY, {
         'from': HABITAT_SENDER,
@@ -778,6 +797,7 @@ async def resend_webhook(request: Request) -> dict:
     if not isinstance(payload, dict):
         return {'ok': True}
     # 2. 配信失敗のイベントなら、該当する予約に印を付ける（同期の DB 呼び出しはスレッドプールで行う）
+    # 変数の内容: event_type: Resend が通知したメール配信イベントの種別。
     event_type = payload.get('type', '')
     if event_type in ('email.bounced', 'email.failed'):
         # 変数の内容: data: Resend Webhook の受信データ。、email_id: Resend メール ID。
@@ -808,6 +828,7 @@ def add_walkin(body: WalkInBody) -> dict:
         HTTPException(400): event_id・session_id が UUID の形でない、または存在しない場合
     """
     # 1. 必須のメール欄には配信されないダミー値を設定する（.invalid は実在しないドメイン）。
+    # 変数の内容: dummy_email: 当日参加レコードに必要な配信用途の無いメール値、data: DB に登録する予約情報。
     dummy_email = f'walkin-{uuid.uuid4().hex[:12]}@nomail.invalid'
     data = {
         'event_id': body.event_id,
@@ -821,6 +842,7 @@ def add_walkin(body: WalkInBody) -> dict:
         'cancel_token': _generate_cancel_token(),
     }
     # 2. 予約を確定状態で登録し、3. 時間枠の予約人数を同期して登録行を返す。
+    # 変数の内容: row: 新規登録された当日参加予約行。
     row = execute_or_400(
         admin_supabase.table('workshop_reservations').insert(data), 'イベントまたは時間枠が正しくありません'
     ).data[0]
@@ -890,6 +912,7 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
         )
 
     # 2. キャンセルから戻すときは満席を確かめる（新規予約と同じロックを使う）
+    # 変数の内容: reinstating: 既存のキャンセル済み予約を復帰させるかどうか。
     reinstating = row.get('status') == 'cancelled'
     if reinstating and session_id:
         with _session_lock(session_id):

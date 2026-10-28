@@ -221,6 +221,7 @@ class Message(BaseModel):
         Raises:
             ValueError: 前後の空白を除くと空になる場合
         """
+        # 1. 空白を除いた本文が空なら入力エラーにし、文字があれば元の値を維持する。
         if not v.strip():
             raise ValueError('content must not be blank')
         return v
@@ -248,6 +249,7 @@ class ChatRequest(BaseModel):
         Raises:
             ValueError: 最後のメッセージの role が 'user' でない場合（FastAPI が 422 にする）
         """
+        # 1. 会話末尾の role を確かめ、利用者の質問で終わっている場合だけ通す。
         if self.messages[-1].role != 'user':
             raise ValueError("the last message must have role 'user'")
         return self
@@ -282,12 +284,16 @@ def chat(body: ChatRequest, request: Request) -> dict:
     _check_rate_limit(ip)
 
     # 2. システムプロンプトに、サイトの公開データと有効な Q&A を足す
+    # 変数の内容: client: Gemini API を呼び出すクライアント。
     client = genai.Client(api_key=GEMINI_API_KEY)
+    # 変数の内容: system_prompt: 公開データやQ&Aを追記するシステム指示文。
     system_prompt = SYSTEM_PROMPT
 
     # サイトの公開データ（イベント・商品・記事・取扱店）を注入する
+    # 変数の内容: site_context: DB から組み立てたサイトの公開情報。
     site_context = _build_site_context()
     if site_context:
+        # 変数の内容: system_prompt: 取得できた公開情報を含むシステム指示文。
         system_prompt += f'\n\n{site_context}'
 
     # DBから有効なQ&Aを取得してシステムプロンプトに追記する（テーブル未作成時もエラーにしない）
@@ -308,6 +314,7 @@ def chat(body: ChatRequest, request: Request) -> dict:
         for msg in body.messages[:-1]
     ]
 
+    # 変数の内容: chat_session: 会話履歴とシステム指示を設定した Gemini 会話。
     chat_session = client.chats.create(
         model=MODEL,
         history=history,

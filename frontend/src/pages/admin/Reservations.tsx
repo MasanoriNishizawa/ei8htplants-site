@@ -453,6 +453,7 @@ export default function AdminReservations() {
       // 希望日が未入力の予約は空文字として比較する。
       const dateB = b.preferred_date ?? ''
       if (dateA !== dateB) return dateA < dateB ? -1 : 1
+      /** 希望時間が未入力の予約も同じ順序で比較できるよう空文字にそろえた値 */
       const timeA = a.preferred_time ?? ''
       // 希望時間が未入力の予約は空文字として比較する。
       const timeB = b.preferred_time ?? ''

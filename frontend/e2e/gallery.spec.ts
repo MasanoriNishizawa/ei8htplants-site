@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Gallery', () => {
   test('ギャラリー画像が表示される', async ({ page }) => {
+    // 1. 「ギャラリー画像が表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/gallery')
     await expect(page.locator('img').first()).toBeVisible()
   })

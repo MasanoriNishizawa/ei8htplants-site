@@ -11,6 +11,7 @@ import App from './App.tsx'
  */
 async function prepare() {
   if (import.meta.env.DEV && import.meta.env.VITE_MSW === 'true') {
+    /** 開発時に API リクエストを受ける Service Worker */
     const { worker } = await import('./mocks/browser')
     await worker.start({ onUnhandledRequest: 'bypass' })
   }

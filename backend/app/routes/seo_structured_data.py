@@ -36,6 +36,7 @@ def _truncate(text: str, max_len: int = DESCRIPTION_MAX_LEN) -> str:
     """
     # 変数の内容: normalized: 空白や形式を整えた値。
     normalized = re.sub(r'\s+', ' ', text).strip()
+    # 1. 正規化後の文字列が上限内なら維持し、超える場合だけ省略記号を付けて短縮する。
     if len(normalized) <= max_len:
         return normalized
     return normalized[: max_len - 1] + '…'
@@ -52,6 +53,7 @@ def parse_date(value: Any) -> Optional[date]:
     """
     # 変数の内容: value_text: 文字列へ変換した入力値。
     value_text = _str(value)[:10]
+    # 1. 日付部分を ISO 形式として読み、形式不正なら None にする。
     try:
         return date.fromisoformat(value_text)
     except ValueError:
@@ -69,6 +71,7 @@ def format_date_label(start: Any, end: Any) -> str:
         開催日の文字列。開始日を読めない場合は空文字。
     """
     # 1. 開始日を解析し、必要なら終了日も解析する。
+    # 変数の内容: start_date: ISO 形式から解析した開始日。
     start_date = parse_date(start)
     if start_date is None:
         return ''
@@ -106,6 +109,7 @@ def times_in(text: str, time_pattern: Pattern[str] = _TIME_RE) -> list[str]:
     """
     # 変数の内容: result: 正常な時刻を HH:MM 形式で集める結果リスト。
     result = []
+    # 1. 正規表現で抽出した時・分を範囲検証し、有効な時刻だけを2桁形式で集める。
     # 変数の内容: hour: 抽出した時刻の時、minute: 抽出した時刻の分。
     for hour, minute in time_pattern.findall(text):
         if int(hour) < 24 and int(minute) < 60:
@@ -146,6 +150,7 @@ def event_description(
         hero の文言、concept、開催日と会場の順で採用した説明文。
     """
     # 1. ページ本文から hero と concept の文言を取り出して連結する。
+    # 変数の内容: page_content: イベント本文の辞書、parts: 説明文候補、text: 連結した説明文。
     page_content = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
     hero = page_content.get('hero') if isinstance(page_content.get('hero'), dict) else {}
     parts = [_str(hero.get('tagline')), _str(hero.get('subtitle')), _str(page_content.get('concept'))]

@@ -53,60 +53,70 @@ test.describe('管理画面スモークテスト', () => {
 
   // 商品管理: ページが表示されること
   test('/admin/products — 商品管理ページが表示される', async ({ page }) => {
+    // 1. 「/admin/products — 商品管理ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/products')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // 注文管理: ページが表示されること（GET /api/orders → [] ハンドラー追加済み）
   test('/admin/orders — 注文管理ページが表示される', async ({ page }) => {
+    // 1. 「/admin/orders — 注文管理ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/orders')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // 予約管理: ページが表示されること（GET /api/reserves → [] ハンドラー追加済み）
   test('/admin/reservations — 予約管理ページが表示される', async ({ page }) => {
+    // 1. 「/admin/reservations — 予約管理ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/reservations')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // お問い合わせ一覧: ページが表示されること（GET /api/contacts → [] ハンドラー追加済み）
   test('/admin/contacts — お問い合わせ一覧ページが表示される', async ({ page }) => {
+    // 1. 「/admin/contacts — お問い合わせ一覧ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/contacts')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // 取扱店管理: ページが表示されること
   test('/admin/stockists — 取扱店管理ページが表示される', async ({ page }) => {
+    // 1. 「/admin/stockists — 取扱店管理ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/stockists')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // コラボレーション管理: ページが表示されること
   test('/admin/collaborations — コラボレーション管理ページが表示される', async ({ page }) => {
+    // 1. 「/admin/collaborations — コラボレーション管理ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/collaborations')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // 記事管理: ページが表示されること（GET /api/articles → [] ハンドラー済み）
   test('/admin/articles — 記事管理ページが表示される', async ({ page }) => {
+    // 1. 「/admin/articles — 記事管理ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/articles')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // 収支一覧: ページが表示されること（GET /api/events/finances ハンドラー済み）
   test('/admin/finances — 収支一覧ページが表示される', async ({ page }) => {
+    // 1. 「/admin/finances — 収支一覧ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/finances')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // ワークショップ集計: ページが表示されること
   test('/admin/ws-summary — ワークショップ集計ページが表示される', async ({ page }) => {
+    // 1. 「/admin/ws-summary — ワークショップ集計ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/ws-summary')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
   // 価格計算: ページが表示されること（GET /api/price-calc-entries・/api/pot-artists ハンドラー追加済み）
   test('/admin/price-calc — 価格計算ページが表示される', async ({ page }) => {
+    // 1. 「/admin/price-calc — 価格計算ページが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/price-calc')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })

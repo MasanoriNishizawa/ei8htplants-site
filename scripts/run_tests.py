@@ -77,6 +77,7 @@ def run(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
     Returns:
         (終了コード, 出力（標準出力＋標準エラー）, かかった秒数)
     """
+    # 1. コマンドの実行と中断時の後始末は共通処理へ委ねる。
     return run_process(cmd, cwd)
 
 
@@ -90,6 +91,7 @@ def num(pattern: str, text: str) -> int:
     Returns:
         出力中で最後に一致した数値。未検出時は0。
     """
+    # 1. 数値の抽出規則を共通結果解析モジュールへ委ねる。
     return _parse_number(pattern, text)
 
 
@@ -156,7 +158,10 @@ def run_vitest(targets: list[str] | None = None) -> dict:
     Returns:
         件数・終了コード・診断を含むVitest結果dict。
     """
+    # 1. frontend/を作業場所にして、指定対象または全件のVitestを起動する。
+    # code / out / sec: 終了コード・標準出力と標準エラー・実行秒数。
     code, out, sec = run(["npx", "vitest", "run", *(targets or [])], ROOT / "frontend")
+    # 2. 実行出力をログ共通形式へ変換する。
     return parse_vitest_result(code, out, sec)
 
 
@@ -169,7 +174,10 @@ def run_playwright(targets: list[str] | None = None) -> dict:
     Returns:
         件数・終了コード・診断を含むPlaywright結果dict。
     """
+    # 1. frontend/を作業場所にして、指定対象または全件のPlaywrightを起動する。
+    # code / out / sec: 終了コード・標準出力と標準エラー・実行秒数。
     code, out, sec = run(["npx", "playwright", "test", "--reporter=line", *(targets or [])], ROOT / "frontend")
+    # 2. 実行出力をログ共通形式へ変換する。
     return parse_playwright_result(code, out, sec)
 
 
@@ -280,6 +288,7 @@ def make_entry(results: list[dict], note: str, skipped_suites: list[tuple[str, s
     Returns:
         ログファイルへ追加する Markdown。
     """
+    # 1. 現在のGit情報を付け、ログ記録の整形を専用モジュールへ委ねる。
     return _make_log_entry(results, note, skipped_suites, git_revision=git_info(), targets=targets)
 
 
@@ -292,6 +301,7 @@ def append_log(text: str) -> None:
     Returns:
         戻り値なし。
     """
+    # 1. 共通ログファイルへ新しい記録を追加する。
     _append_log(LOG, text)
 
 

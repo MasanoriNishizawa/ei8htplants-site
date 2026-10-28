@@ -39,6 +39,7 @@ function ymdToUtcMs(value: string): number | null {
   const y = Number(match[1])
   // 月と日は UTC の日付生成および実在確認に使う。
   const m = Number(match[2])
+  /** UTCの日付生成と入力日検証に使う月内の日 */
   const d = Number(match[3])
   // UTC の日付を作り、後続の実在日付検証に使うミリ秒値。
   const ms = Date.UTC(y, m - 1, d)

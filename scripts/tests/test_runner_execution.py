@@ -18,6 +18,7 @@ class TestSuiteExecution(unittest.TestCase):
         Returns:
             suite名と終了コードを持つ結果dict。
         """
+        # 1. suite実行制御で必要な最小フィールドだけを持つ値を返す。
         return {"name": name, "code": code}
 
     def test_suiteを定義順に実行して結果と進捗を同じ順で集める(self):
@@ -67,6 +68,7 @@ class TestSuiteExecution(unittest.TestCase):
 
             Returns:
                 なし。"""
+            # 1. 呼び出しを記録してsuite runner内の中断を発生させる。
             calls.append("中断")
             raise KeyboardInterrupt
 
@@ -107,6 +109,7 @@ class TestSuiteExecution(unittest.TestCase):
                 なし。
                 Args:
                                 _: 進捗関数へ渡される suite 名。"""
+            # 1. runner開始前の進捗通知で中断する。
             raise KeyboardInterrupt
 
         execution = execute_suites(
@@ -171,6 +174,7 @@ class TestSuiteExecution(unittest.TestCase):
 
             Returns:
                 なし。"""
+            # 1. suite実行の中断経路を作る。
             raise KeyboardInterrupt
 
         execution = execute_suites(

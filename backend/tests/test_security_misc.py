@@ -35,6 +35,7 @@ def admin():
     Returns:
         なし。
     """
+    # 1. require_auth を通す（管理者としてログインしている扱い）。
     with as_admin():
         yield
 

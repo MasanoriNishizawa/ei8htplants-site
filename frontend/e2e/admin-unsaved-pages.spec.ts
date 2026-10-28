@@ -112,6 +112,7 @@ test.describe('イベントの編集（EventForm）', () => {
   })
 
   test('読み込み直後（何も入力していない）なら確認なしで移れる', async ({ page }) => {
+    // 1. 「読み込み直後（何も入力していない）なら確認なしで移れる」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/edit')
     await expect(page.locator('#event-name')).toHaveValue('Green Market 2027')
     await expectSidebarFree(page)
@@ -158,6 +159,7 @@ test.describe('イベントの編集（EventForm）', () => {
 
 test.describe('イベントの収支（EventFinance）', () => {
   test('売上を入力したあとサイドメニュー・「← イベント管理」で移ろうとすると確認が出る', async ({ page }) => {
+    // 1. 「売上を入力したあとサイドメニュー・「← イベント管理」で移ろうとすると確認が出る」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/events/mock-past-1/finances')
     const sales = page.getByText('売上', { exact: true }).locator('..').getByRole('textbox')
     await expect(sales).toBeVisible()
@@ -170,6 +172,7 @@ test.describe('イベントの収支（EventFinance）', () => {
   })
 
   test('保存に成功すると確認なしで元の画面へ戻る', async ({ page }) => {
+    // 1. 「保存に成功すると確認なしで元の画面へ戻る」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/events/mock-past-1/finances')
     const sales = page.getByText('売上', { exact: true }).locator('..').getByRole('textbox')
     await sales.fill('12345')
@@ -183,6 +186,7 @@ test.describe('イベントの収支（EventFinance）', () => {
 
 test.describe('イベントページの編集（AdminEventSite）', () => {
   test('入力したあと移ろうとすると確認が出て、保存に成功したあとは確認なしで移れる', async ({ page }) => {
+    // 1. 「入力したあと移ろうとすると確認が出て、保存に成功したあとは確認なしで移れる」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/site')
     const tagline = page.getByLabel('キャッチコピー')
     await expect(tagline).toBeVisible()
@@ -196,6 +200,7 @@ test.describe('イベントページの編集（AdminEventSite）', () => {
 
 test.describe('コラボレーション・鉢作家・メディア出演の追加欄', () => {
   test('コラボレーション: タイトルを入れたら確認が出て、追加に成功したら確認なし', async ({ page }) => {
+    // 1. 「コラボレーション: タイトルを入れたら確認が出て、追加に成功したら確認なし」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/collaborations')
     await page.getByLabel('タイトル').fill('新しいコラボ')
     await expectSidebarBlocked(page)
@@ -205,6 +210,7 @@ test.describe('コラボレーション・鉢作家・メディア出演の追�
   })
 
   test('鉢作家: 名前を入れたら確認が出て、追加に成功したら確認なし', async ({ page }) => {
+    // 1. 「鉢作家: 名前を入れたら確認が出て、追加に成功したら確認なし」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/pot-artists')
     const input = page.getByPlaceholder('鉢作家名を入力')
     await input.fill('山田陶房')
@@ -242,6 +248,7 @@ test.describe('チャットの Q&A（AdminChatQA）', () => {
   })
 
   test('開いただけのフォームは確認なしで移れ、保存に成功したあとも確認なし', async ({ page }) => {
+    // 1. 「開いただけのフォームは確認なしで移れ、保存に成功したあとも確認なし」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/chat-qa')
     await page.getByRole('button', { name: '+ 追加' }).click()
     await expect(page.getByLabel('質問')).toBeVisible()
@@ -255,6 +262,7 @@ test.describe('チャットの Q&A（AdminChatQA）', () => {
 
 test.describe('取扱店（Stockists）', () => {
   test('追加欄に入力すると移るときに確認が出る', async ({ page }) => {
+    // 1. 「追加欄に入力すると移るときに確認が出る」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/stockists')
     await page.getByLabel('店舗名').first().fill('新しいお店')
     await expectSidebarBlocked(page)
@@ -273,6 +281,7 @@ test.describe('取扱店（Stockists）', () => {
   })
 
   test('編集のダイアログを開いただけなら「キャンセル」で確認なしに閉じ、移るときも確認なし', async ({ page }) => {
+    // 1. 「編集のダイアログを開いただけなら「キャンセル」で確認なしに閉じ、移るときも確認なし」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/stockists')
     await page.getByRole('button', { name: '編集' }).first().click()
     let dialogs = 0
@@ -298,6 +307,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
   })
 
   test('何も入れていなければタブを確認なしで切り替えられる', async ({ page }) => {
+    // 1. 「何も入れていなければタブを確認なしで切り替えられる」の期待状態が画面に表示されることを確認する。
     await page.goto('/admin/price-calc')
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })

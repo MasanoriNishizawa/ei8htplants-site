@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Contact フォーム', () => {
   test('初期状態: 送信ボタンが表示される', async ({ page }) => {
+    // 1. 「初期状態: 送信ボタンが表示される」の期待状態が画面に表示されることを確認する。
     await page.goto('/official/contact')
     await expect(page.getByRole('button', { name: '送信する' })).toBeVisible()
   })

@@ -21,6 +21,7 @@ function formatDailyTimes(dailyTimes: Record<string, string> | null | undefined,
   if (entries.every(([, v]) => v === entries[0][1])) return entries[0][1]
   // 日毎に異なる場合は、日本語は「M/D（曜）HH:MM〜HH:MM」、英語は「M/D (Fri) HH:MM〜HH:MM」を改行でつなぐ
   return entries.map(([d, t]) => {
+    /** 時間ラベルの曜日と月日を求める現地日付 */
     const date = parseLocalDate(d)
     // 月/日
     const md = `${date.getMonth() + 1}/${date.getDate()}`

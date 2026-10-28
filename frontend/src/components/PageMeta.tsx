@@ -34,11 +34,16 @@ export default function PageMeta({ title, description, ogImage, ogType = 'websit
   // 現在開いているホストに対応するブランド名と本番 URL を取得する
   const site = siteForHost(window.location.hostname)
   // 1. タイトル・説明文・画像を、指定が無ければ既定の値で決める
+  /** サイト名を末尾に付けたページタイトル */
   const siteName = site.key === 'ei8htplants' ? DEFAULT_SITE : site.brandName
+  /** 指定がなければサイト名だけを使う最終タイトル */
   const fullTitle = title ? (title === siteName ? siteName : `${title} | ${siteName}`) : siteName
+  /** 指定がなければ共通の説明文を使うページ説明 */
   const desc = description ?? DEFAULT_DESC
+  /** 指定画像またはブランドごとの既定ロゴを絶対URLにしたOGP画像 */
   const img = new URL(ogImage ?? (site.key === 'ei8htplants' ? DEFAULT_OG_IMAGE : '/img/logo-' + (site.key === 'hue' ? 'hue' : 'habitatoides') + '.png'), site.origin).href
   // 2. 今のページの本番 URL（クエリは含めない）
+  /** 現在のパスとサイトの本番originから組み立てたcanonical URL */
   const pageUrl = (site.key === 'ei8htplants' ? ORIGIN : site.origin) + window.location.pathname
 
   return (

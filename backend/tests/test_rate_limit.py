@@ -36,6 +36,7 @@ def _post_contact(client: TestClient, payload: dict = CONTACT):
     Returns:
         問い合わせ API のテストレスポンスを返す。
     """
+    # 1. 問い合わせを送る（DB はモック・メールは送らない）。
     with patch('app.routes.contact.admin_supabase', MagicMock()), \
          patch('app.routes.contact.RESEND_API_KEY', ''):
         return client.post('/api/contact', json=payload)

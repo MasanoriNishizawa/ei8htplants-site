@@ -56,6 +56,7 @@ class RateLimiter:
         Returns:
             なし。
         """
+        # 1. 期間外または空の IP 記録を取り除き、最後に掃除した時刻を更新する。
         # 変数の内容: stale: 期限切れとして除去する IP の一覧。
         stale = [ip for ip, times in self.log.items() if not times or now - times[-1] >= self.window]
         # 変数の内容: ip: 処理対象のクライアント IP アドレス。
@@ -83,6 +84,7 @@ class RateLimiter:
             if now - self._last_purge >= self.window:
                 self._purge(now)
             # 2. この IP の記録から window 秒より前のものを除く
+            # 変数の内容: recent: 集計期間内にこの IP で受け付けた時刻。
             recent = [t for t in self.log.get(ip, []) if now - t < self.window]
             # 3. 上限に達していれば 429（記録は増やさない）
             if len(recent) >= self.limit:
@@ -109,6 +111,7 @@ class RateLimiter:
         Returns:
             なし。
         """
+        # 1. ロックを取り、受付記録と掃除時刻を初期状態へ戻す。
         with self._lock:
             self.log.clear()
             # 変数の内容: self._last_purge: 古い IP 記録を最後に整理した時刻。
@@ -134,10 +137,12 @@ def client_ip(request: Request) -> str:
         IP アドレスの文字列。取れないときは 'unknown'
     """
     # 1. Cloudflare が付ける利用者の IP
+    # 変数の内容: cf_ip: Cloudflare が付けた接続元 IP。
     cf_ip = request.headers.get('cf-connecting-ip', '').strip()
     if cf_ip:
         return cf_ip[:MAX_IP_LENGTH]
     # 2. 中継が付ける送り元の一覧（「…, 中継に接続してきた相手」の形）の右端
+    # 変数の内容: forwarded: X-Forwarded-For に含まれる空でない IP 候補。
     forwarded = [part.strip() for part in request.headers.get('x-forwarded-for', '').split(',') if part.strip()]
     if forwarded:
         return forwarded[-1][:MAX_IP_LENGTH]
@@ -164,6 +169,7 @@ def reset_all() -> None:
     Returns:
         なし。
     """
+    # 1. 公開書き込み API ごとの回数制限記録を順に初期化する。
     # 変数の内容: limiter: 対象の回数制限インスタンス。
     for limiter in (contact_limiter, reserve_limiter, cancel_limiter, order_limiter):
         limiter.reset()

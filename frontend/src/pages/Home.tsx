@@ -36,6 +36,7 @@ function articleExcerpt(content: string | null, max = 90): string {
   if (!content) return ''
   // 1. 本文をブロックに分け、テキストのブロックだけをつなぐ（見出し・画像は除く）
   const blocks = parseBlocks(content)
+  /** 抜粋に使うテキストブロックの本文をつないだ文字列 */
   const text = blocks.flatMap((b) => (b.type === 'text' ? [b.value] : [])).join(' ')
   // 2. テキストのブロックが無ければ、元の文字列から「## 見出し」の行を除き、改行を空白にして使う
   const src = text || content.replace(/^## .+$/gm, '').replace(/\n+/g, ' ').trim()
@@ -100,6 +101,7 @@ export default function Home() {
   useEffect(() => {
     // 1. 開催前のイベントを開始日の近い順に並べ、先頭を次回のイベントにする
     api.events.list(false).then((events) => {
+      /** 開催日が近い順に並べ替えたイベント一覧 */
       const sorted = [...events].sort(
         (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
       )
@@ -114,6 +116,7 @@ export default function Home() {
 
   // マウント直後に loaded フラグを立てて、ヒーローのフェードインアニメーションを開始する
   useEffect(() => {
+    /** 初回描画の直後にヒーロー表示状態を切り替える短い遅延 */
     const timer = setTimeout(() => setLoaded(true), 60)
     return () => clearTimeout(timer)
   }, [])

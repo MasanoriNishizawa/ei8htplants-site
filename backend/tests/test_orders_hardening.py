@@ -30,6 +30,7 @@ def _order_with_items(items: list) -> dict:
     Returns:
         注文の入力の dict
     """
+    # 1. 品目だけを差し替えた注文の入力を返す。
     return {**ORDER_REQUEST, 'items': items}
 
 
@@ -48,6 +49,7 @@ def _post_order(payload: dict, mock_sb: MagicMock, mock_http: MagicMock, mock_re
     Returns:
         応答
     """
+    # 1. 注文 API を呼ぶ（DB・Square・メールはすべてモック）。
     with patch('app.routes.orders.admin_supabase', mock_sb), \
          patch('app.routes.orders.http', mock_http), \
          patch('app.mail.resend', mock_resend or MagicMock()), \
@@ -66,6 +68,7 @@ def _rpc_names(mock_sb: MagicMock) -> list[str]:
     Returns:
         list[str] を返す。
     """
+    # 1. 呼ばれた RPC の名前を順に返す。
     return [c.args[0] for c in mock_sb.rpc.call_args_list]
 
 
@@ -322,6 +325,7 @@ class TestOrderStatusLiteral:
         Returns:
             なし。
         """
+        # 1. 認証をバイパスする。
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
@@ -330,6 +334,7 @@ class TestOrderStatusLiteral:
         Returns:
             なし。
         """
+        # 1. 認証のバイパスを戻す。
         app.dependency_overrides.pop(require_auth, None)
 
     @pytest.mark.parametrize('status', ['refunded', 'PAID', '', 'pending'])

@@ -35,6 +35,7 @@ export default function Header() {
   // Brand メニューを含む枠（枠の外へフォーカスが移ったら閉じる判定用）
   // モバイルメニュー本体（Tab のフォーカスをメニューの中で回すため）と、メニューの中の閉じるボタン（開いたときのフォーカス先）
   const mobileNavRef = useRef<HTMLElement>(null)
+  /** メニューを開いたときフォーカスを移す閉じるボタン */
   const menuCloseBtnRef = useRef<HTMLButtonElement>(null)
   // モバイルメニューを閉じた後に開閉ボタンへフォーカスを戻すか（閉じるボタン・Esc・幕で閉じたとき true。リンクでページを移るときは戻さない）
   const returnFocusOnClose = useRef(false)
@@ -116,7 +117,9 @@ export default function Header() {
         /** メニューの中でフォーカスできる要素（先頭は閉じるボタン、最後は言語切り替え） */
         const items = Array.from(mobileNavRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'))
         if (items.length === 0) return
+        /** Tab キーでメニューの外へ出るときの移動先判定に使う最初の要素 */
         const first = items[0]
+        /** Shift+Tab キーでメニューの外へ戻るときの移動先判定に使う最後の要素 */
         const last = items[items.length - 1]
         /** 今フォーカスがメニューの中にあるか */
         const inside = mobileNavRef.current.contains(document.activeElement)

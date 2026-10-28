@@ -160,6 +160,7 @@ def _rows(result: Any) -> list[dict]:
     Returns:
         dict の行だけのリスト。.data がリストでないときは空のリスト
     """
+    # 1. Supabase 応答の data がリストの場合だけ、辞書形式の行を取り出す。
     # 変数の内容: data: 指定テーブルから取得した公開対象レコード一覧。。
     data = getattr(result, 'data', None)
     if not isinstance(data, list):
@@ -177,6 +178,7 @@ def _absolute_url(url: Any) -> Optional[str]:
         絶対 URL。空・blob: など外から見られない URL のときは None
     """
     # 1. 空 URL とブラウザー内だけで使える URL を除外する。
+    # 変数の内容: u: 前後の空白を除いた入力 URL。
     u = _str(url).strip()
     if not u or u.startswith(('blob:', 'data:')):
         return None
@@ -215,6 +217,7 @@ def _parse_blocks(content: Any) -> list[dict]:
     except ValueError:
         pass
     # 2. 読めなければ古いテキスト形式として「## 」行を見出し、それ以外の行を本文にする
+    # 変数の内容: blocks: 旧形式の本文から組み立てる見出し・本文ブロック。
     blocks: list[dict] = []
     # 変数の内容: line: 旧形式の本文を改行で分けた現在行。
     for line in text.split('\n'):
@@ -256,6 +259,7 @@ def _first_image_block_url(blocks: list[dict]) -> Optional[str]:
     Returns:
         最初の画像ブロックの URL。画像ブロックが無ければ None
     """
+    # 1. 画像種別かつ URL を持つ最初のブロックを返し、該当がなければ None にする。
     # 変数の内容: b: JSON 配列から抽出したブロック候補。
     for b in blocks:
         if b.get('type') == 'image' and _str(b.get('url')):
@@ -528,6 +532,7 @@ def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
         注釈に示した形式の応答（PageMeta）。
     """
     # 1. パスを正規化し、純粋なページ解決関数から公開情報を取得する。
+    # 変数の内容: norm: ブランドページ解決に使う先頭slash付きのパス、page: 公開ページカタログから得た情報。
     norm = '/' + path.strip('/')
     page = resolve_brand_page(norm, site_name)
     # 2. 未公開パスは noindex 用の既定メタ情報を返す。
@@ -582,6 +587,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
         # 1. イベントの個別ページ
         if len(segments) == 3 and segments[:2] == ['official', 'events']:
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
+            # 変数の内容: event: slug または UUID で取得した公開イベント行。
             event = _fetch_event(segments[2])
             if event and _str(event.get('name')):
                 # 2. 既存の差し替え可能な関数群を渡し、イベント用メタ情報を生成する。
@@ -597,6 +603,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
         # 2. 記事の個別ページ（タイトルは JournalArticle.tsx と同じ "記事名 | Journal"）
         if len(segments) == 3 and segments[:2] == ['official', 'journal']:
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
+            # 変数の内容: article: ID で取得した公開記事行。
             article = _fetch_article(segments[2])
             if article and _str(article.get('title')):
                 # 2. 既存の差し替え可能な本文・画像関数を渡し、Journal 用メタ情報を生成する。
@@ -613,6 +620,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
         # 3. 商品の個別ページ（ShopProduct.tsx と同じく画像は image_urls の1枚目）
         if len(segments) == 3 and segments[:2] == ['official', 'shop']:
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
+            # 変数の内容: product: ID で取得した公開商品行。
             product = _fetch_product(segments[2])
             if product and _str(product.get('name')):
                 # 2. 既存の差し替え可能な本文関数を渡し、Shop 用メタ情報を生成する。
@@ -631,6 +639,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
         return _make_meta(norm, None, None, None)
 
     # 4. 固定ページ
+    # 変数の内容: page: 正規化済みパスに対応する固定ページSEO情報。
     page = STATIC_PAGES.get(norm)
     if page is not None:
         # 変数の内容: title: ページまたはメールのタイトル。
@@ -669,6 +678,7 @@ def _read_index(index_path: str) -> str:
         OSError: ファイルが無い・読めない場合
     """
     # 1. 更新時刻を調べ、変更が無ければキャッシュした HTML を返す。
+    # 変数の内容: mtime: index.html の最終更新時刻。
     mtime = os.path.getmtime(index_path)
     with _index_lock:
         # 変数の内容: hit: キャッシュ検索の結果。

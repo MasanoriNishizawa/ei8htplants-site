@@ -87,6 +87,7 @@ test.describe('スマホ幅（375px）', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
   test('/legal で横スクロールが出ない', async ({ page }) => {
+    // 1. 「/legal で横スクロールが出ない」の期待状態が画面に表示されることを確認する。
     await page.context().route(/supabase\.co/, (route) => route.abort())
     await page.goto('/official/legal')
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
@@ -94,6 +95,7 @@ test.describe('スマホ幅（375px）', () => {
   })
 
   test('管理画面の商品一覧で、各行の「編集」「削除」が画面の右にはみ出さない', async ({ page }) => {
+    // 1. 「管理画面の商品一覧で、各行の「編集」「削除」が画面の右にはみ出さない」の期待状態が画面に表示されることを確認する。
     await useFakeAdminSession(page)
     await page.goto('/admin/products')
     await expect(page.getByRole('main').getByRole('button', { name: '編集', exact: true }).first()).toBeVisible()
@@ -102,6 +104,7 @@ test.describe('スマホ幅（375px）', () => {
   })
 
   test('管理画面の収支一覧で、各行の「編集」が画面の右にはみ出さない', async ({ page }) => {
+    // 1. 「管理画面の収支一覧で、各行の「編集」が画面の右にはみ出さない」の期待状態が画面に表示されることを確認する。
     await useFakeAdminSession(page)
     await page.goto('/admin/finances')
     await expect(page.getByRole('main').getByRole('link', { name: '編集', exact: true }).first()).toBeVisible()

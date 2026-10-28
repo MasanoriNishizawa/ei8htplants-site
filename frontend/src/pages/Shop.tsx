@@ -43,6 +43,7 @@ export default function Shop() {
   )
   // 商品と記事（取得前・失敗時は空）
   const products: Product[] = data?.[0] ?? []
+  /** まとめて取得した結果の2番目にある記事一覧 */
   const articles: Article[] = data?.[1] ?? []
 
   // 最初から出す最新の 4 記事

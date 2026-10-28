@@ -52,12 +52,14 @@ export default function ShopProduct() {
   // 「カートに追加しました」を 1.6 秒後に戻す（画面を離れたらタイマーを止める）
   useEffect(() => {
     if (!added) return
+    /** 追加完了表示を元に戻すまでのタイマー */
     const timer = setTimeout(() => setAdded(false), 1600)
     return () => clearTimeout(timer)
   }, [added])
 
   // この商品がカートに入っている数と、カート全体の点数（フローティングのカートボタン用）
   const cartQty = items.find((i) => i.product.id === id)?.quantity ?? 0
+  /** 全商品の数量を合算したフローティングカート用の件数 */
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)
 
   /**
@@ -111,7 +113,9 @@ export default function ShopProduct() {
   const allBlocks = parseBlocks(product.description)
   // 最初の画像ブロックを大きな写真に使う（無ければ商品の 1 枚目の画像）
   const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!b.url)
+  /** 商品説明内で先頭に見つかった画像ブロック */
   const heroBlock = allBlocks[heroImgIdx]
+  /** 説明内の画像を優先し、無い場合は商品の代表画像を使うヒーロー画像 URL */
   const heroUrl: string | null = heroBlock?.type === 'image' ? heroBlock.url : (product.image_urls[0] ?? null)
 
   return (

@@ -139,6 +139,7 @@ class TestChatEndpoint:
         Returns:
             なし。
         """
+        # 1. 各テストの前に IP ベースのレート制限ログをリセットする。
         _request_log.clear()
 
     def test_正常なリクエストで200とreplyフィールドが返る(self):
@@ -286,6 +287,7 @@ class TestChatEndpoint:
             Returns:
                 なし。
             """
+            # 1. テーブル名に応じて chat_qa / chat_logs のモックを返す。
             if name == 'chat_qa':
                 return qa_mock
             elif name == 'chat_logs':
@@ -385,6 +387,7 @@ class TestChatEndpoint:
             Returns:
                 なし。
             """
+            # 1. テーブル名に応じてモックを切り替える。
             if name == 'events':
                 return events_mock
             elif name == 'products':
@@ -422,6 +425,7 @@ class TestChatEndpoint:
             Returns:
                 なし。
             """
+            # 1. テーブル名に応じてモックを切り替える。
             if name == 'articles':
                 return articles_mock
             elif name == 'chat_qa':
@@ -494,6 +498,7 @@ class TestChatEndpoint:
             Returns:
                 なし。
             """
+            # 1. テーブル名に応じてモックを切り替える。
             if name == 'articles':
                 return articles_mock
             elif name == 'chat_qa':
@@ -562,6 +567,7 @@ class TestChatEndpoint:
             Returns:
                 なし。
             """
+            # 1. テーブル名に応じてモックを切り替える。
             if name == 'events':
                 return events_mock
             elif name == 'products':
@@ -601,6 +607,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. 各テストの前に回数制限の記録を消す。
         _request_log.clear()
 
     def _assert_rejected(self, payload: dict):

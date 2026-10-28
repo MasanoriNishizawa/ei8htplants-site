@@ -38,6 +38,7 @@ export default function Stockists() {
 
   // エリアごとに分けた取扱店（エリア未設定は「その他」）
   const byArea = stockists.reduce<Record<string, Stockist[]>>((acc, s) => {
+    /** 店舗のエリア。未設定の店舗は「その他」にまとめる */
     const area = s.area ?? t('その他', 'Other')
     ;(acc[area] ??= []).push(s)
     return acc

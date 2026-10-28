@@ -137,6 +137,7 @@ def _norm(filename: str) -> str:
     Returns:
         正規化した SQL 本文
     """
+    # 1. SQL をコメント抜き・空白1つ・大文字にそろえて返す（位置や並び順の確認用）。
     return re.sub(r'\s+', ' ', _read_sql(filename)).upper()
 
 
@@ -151,6 +152,7 @@ def _tx_range(norm: str) -> tuple[int, int]:
     Returns:
         (BEGIN; の位置, COMMIT; の位置)。無ければ -1
     """
+    # 1. トランザクション開始（行頭の BEGIN;）と終了（COMMIT;）の位置を返す。
     return norm.find('BEGIN;'), norm.rfind('COMMIT;')
 
 

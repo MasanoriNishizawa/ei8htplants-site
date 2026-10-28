@@ -67,6 +67,7 @@ def get_tree() -> list[dict]:
         HTTPException(401): ログインしていない場合
         HTTPException(404): doc ディレクトリが存在しない場合
     """
+    # 1. 設計書ルートの存在を確認し、存在する場合だけツリーを構築する。
     if not DOC_ROOT.exists():
         raise HTTPException(status_code=404, detail='doc directory not found')
     return _build_tree(DOC_ROOT, DOC_ROOT)

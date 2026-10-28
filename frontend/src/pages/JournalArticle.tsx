@@ -85,7 +85,9 @@ export default function JournalArticle() {
   const allBlocks = parseBlocks(article.content)
   // 最初の画像ブロックを見出しの大きな写真に使う（無ければ記事の 1 枚目の画像）
   const heroImgIdx = allBlocks.findIndex((b) => b.type === 'image' && !!b.url)
+  /** 見出し画像に使う最初の画像ブロック（無ければ undefined） */
   const heroBlock = allBlocks[heroImgIdx]
+  /** ブロック画像を優先し、無い場合は記事の代表画像を使うヒーロー画像 URL */
   const heroUrl: string | null = heroBlock?.type === 'image' ? heroBlock.url : (article.image_urls[0] ?? null)
   // カートに入っている数量の合計（右下のカートボタン用）
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)

@@ -148,6 +148,7 @@ def _ensure_bucket(bucket: str) -> None:
         # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             # 「already exists」「duplicate」だけを既にある扱いにする（「does not exist」などの失敗を成功とみなさない）
+            # 変数の内容: message: 既存バケットかどうかを判定するために小文字化した例外文。
             message = str(e).lower()
             if 'already exist' in message or 'duplicate' in message:
                 _ensured_buckets.add(bucket)
@@ -173,11 +174,13 @@ def _store(file: UploadFile, kind: _UploadKind) -> dict:
         HTTPException(400): 対応していない種類・中身が申告と違う・大きすぎる場合
     """
     # 1. 申告された種類を確かめ、拡張子を決める
+    # 変数の内容: content_type: アップロード申告の MIME 種別、ext: 対応表から引いたファイル拡張子。
     content_type = file.content_type or ''
     ext = kind.extensions.get(content_type)
     if not ext:
         raise HTTPException(status_code=400, detail=kind.type_error)
     # 2. 上限 + 1 バイトまで読む（大きすぎるファイルを全部メモリに読まない）
+    # 変数の内容: data: サイズとファイル署名を検証するために読み込んだファイル内容。
     data = file.file.read(kind.max_size + 1)
     if len(data) > kind.max_size:
         raise HTTPException(status_code=400, detail=kind.size_error)
@@ -187,6 +190,7 @@ def _store(file: UploadFile, kind: _UploadKind) -> dict:
     # 4. バケットが無ければ作る（プロセスで最初の 1 回だけ）
     _ensure_bucket(kind.bucket)
     # 5. 新しいファイル名で置き、公開 URL を返す
+    # 変数の内容: filename: Storage 内で一意にするファイル名、storage: 対象バケットの Storage クライアント。
     filename = f'{uuid.uuid4()}.{ext}'
     storage = admin_supabase.storage.from_(kind.bucket)
     storage.upload(filename, data, {'contentType': content_type, 'cacheControl': _CACHE_CONTROL_SECONDS})

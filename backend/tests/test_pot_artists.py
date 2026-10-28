@@ -47,6 +47,7 @@ def _make_admin_sb_mock():
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. 管理クライアント（admin_supabase）の MagicMock を返す。
     return MagicMock()
 
 
@@ -56,6 +57,7 @@ def _auth_override():
     Returns:
         認証依存関係を差し替える関数を返す。
     """
+    # 1. 認証を無効化するオーバーライド関数。テスト時のみ使用する。
     return None
 
 
