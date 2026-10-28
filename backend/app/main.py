@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import SITE_ORIGIN
 from .router_registry import register_routers
-from .spa_files import resolve_dist_file_path
+from .spa_files import create_dist_file_response
 from .spa_redirects import resolve_spa_redirect
 from .spa_normalization import normalize_spa_host, normalize_spa_path
 from .utils.errors import error_summary
@@ -245,13 +245,11 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
                 headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
             )
 
-        # 2. 静的ファイル（dist 直下の manifest・sw.js など）があればそのまま返す。
-        #    「..%2F」や「%2Fetc%2F…」のようなパスで dist の外（.env やソースなど）を読まれないよう、
-        #    実際の場所に直してから dist の中にあるときだけ返す（外を指すときは SPA の index.html を返す）
-        # 変数の内容: file_path: dist 内に解決できた場合の静的ファイル実パス。
-        file_path = resolve_dist_file_path(DIST, full_path)
-        if file_path is not None and os.path.isfile(file_path):
-            return FileResponse(file_path)
+        # 2. 安全な dist 内の通常ファイルがあれば返し、それ以外は従来どおり SPA HTML へ進む。
+        # 変数の内容: static_response: 静的ファイルが配信可能な場合の FileResponse。
+        static_response = create_dist_file_response(DIST, full_path)
+        if static_response is not None:
+            return static_response
         # 3. パスに応じたメタ情報を index.html に入れて返す
         try:
             if host in seo.BRAND_DOMAINS:

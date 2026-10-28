@@ -1,7 +1,9 @@
-"""SPA の配信先に使う dist 内ファイルパスを解決する。"""
+"""dist 内の静的ファイルを安全に解決し、配信レスポンスを作成する。"""
 
 import os
 from typing import Optional
+
+from fastapi.responses import FileResponse
 
 
 def resolve_dist_file_path(dist_dir: str, requested_path: str) -> Optional[str]:
@@ -26,3 +28,26 @@ def resolve_dist_file_path(dist_dir: str, requested_path: str) -> Optional[str]:
     if file_path.startswith(dist_real + os.sep):
         return file_path
     return None
+
+
+def create_dist_file_response(dist_dir: str, requested_path: str) -> Optional[FileResponse]:
+    """安全な dist 内の通常ファイルに対する配信レスポンスを作成する。
+
+    Args:
+        dist_dir: 静的ファイルのルートとなる dist ディレクトリ。
+        requested_path: dist を基準に解決するリクエストパス。
+
+    Returns:
+        dist 内に存在する通常ファイルの ``FileResponse``。範囲外、未存在、
+        またはディレクトリを指す場合は ``None``。
+    """
+    # 1. 要求パスを実パスへ解決し、dist の外を指す場合は配信対象から除外する。
+    # 変数の内容: file_path: dist 内に解決できた場合の候補実パス。
+    file_path = resolve_dist_file_path(dist_dir, requested_path)
+    if file_path is None:
+        return None
+
+    # 2. 実在する通常ファイルだけを FileResponse にし、未存在やディレクトリは SPA に委ねる。
+    if not os.path.isfile(file_path):
+        return None
+    return FileResponse(file_path)

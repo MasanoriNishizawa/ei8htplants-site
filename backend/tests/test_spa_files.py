@@ -3,8 +3,9 @@
 import os
 
 import pytest
+from fastapi.responses import FileResponse
 
-from app.spa_files import resolve_dist_file_path
+from app.spa_files import create_dist_file_response, resolve_dist_file_path
 
 
 class TestResolveDistFilePath:
@@ -114,3 +115,90 @@ class TestResolveDistFilePath:
         # 2. 存在確認は呼び出し元の責務なので、解決関数はパスを返すことを確認する。
         assert not os.path.exists(expected_path)
         assert resolve_dist_file_path(str(dist_dir), requested_path) == expected_path
+
+
+class TestCreateDistFileResponse:
+    """dist 内の静的ファイルを返すレスポンス生成の契約を確認する。"""
+
+    def test_dist内の既存ファイルはFileResponseを返す(self, tmp_path):
+        """既存する dist 内ファイルの FileResponse を生成する。
+
+        Args:
+            self: テストクラスのインスタンス。
+            tmp_path: pytest が用意する一時ディレクトリ。
+
+        Returns:
+            なし。
+        """
+        # 1. dist 配下に配信対象の実ファイルを作成する。
+        # 変数の内容: dist_dir: テスト用の静的ファイルルート。
+        dist_dir = tmp_path / 'dist'
+        # 変数の内容: asset_path: dist 内に作る JavaScript ファイルのパス。
+        asset_path = dist_dir / 'assets' / 'app.js'
+        asset_path.parent.mkdir(parents=True)
+        asset_path.write_text('window.app = true;', encoding='utf-8')
+
+        # 2. 相対パスから FileResponse が作られ、実ファイルを指すことを確認する。
+        # 変数の内容: response: 静的ファイル用に作成されたレスポンス。
+        response = create_dist_file_response(str(dist_dir), 'assets/app.js')
+
+        assert isinstance(response, FileResponse)
+        assert response.path == os.path.realpath(asset_path)
+
+    def test_dist内の存在しないファイルはNoneを返す(self, tmp_path):
+        """dist 内でも未作成のファイルには FileResponse を作らない。
+
+        Args:
+            self: テストクラスのインスタンス。
+            tmp_path: pytest が用意する一時ディレクトリ。
+
+        Returns:
+            なし。
+        """
+        # 1. dist を用意し、まだ存在しないファイルの相対パスを指定する。
+        # 変数の内容: dist_dir: 存在しないファイルを解決するテスト用ルート。
+        dist_dir = tmp_path / 'dist'
+        dist_dir.mkdir()
+
+        # 2. HTML へのフォールバックに使える None が返ることを確認する。
+        assert create_dist_file_response(str(dist_dir), 'assets/missing.js') is None
+
+    def test_dist内のディレクトリ指定はNoneを返す(self, tmp_path):
+        """実在するディレクトリをファイルレスポンスとして返さない。
+
+        Args:
+            self: テストクラスのインスタンス。
+            tmp_path: pytest が用意する一時ディレクトリ。
+
+        Returns:
+            なし。
+        """
+        # 1. dist 配下にファイルではなく実在するディレクトリを作成する。
+        # 変数の内容: dist_dir: 実在ディレクトリを置くテスト用ルート。
+        dist_dir = tmp_path / 'dist'
+        (dist_dir / 'assets').mkdir(parents=True)
+
+        # 2. ディレクトリ指定は HTML へのフォールバック用に None となることを確認する。
+        assert create_dist_file_response(str(dist_dir), 'assets') is None
+
+    def test_dist外や親ディレクトリへの移動指定はNoneを返す(self, tmp_path):
+        """dist の外部を指す指定ではレスポンスを生成しない。
+
+        Args:
+            self: テストクラスのインスタンス。
+            tmp_path: pytest が用意する一時ディレクトリ。
+
+        Returns:
+            なし。
+        """
+        # 1. dist の外側に実在ファイルを置き、dist を作成する。
+        # 変数の内容: dist_dir: 外部パスを拒否するテスト用ルート。
+        dist_dir = tmp_path / 'dist'
+        dist_dir.mkdir()
+        # 変数の内容: outside_path: dist の親側に作る外部ファイルのパス。
+        outside_path = tmp_path / 'outside.txt'
+        outside_path.write_text('outside', encoding='utf-8')
+
+        # 2. 相対パスの親移動と外部絶対パスのどちらも None になることを確認する。
+        assert create_dist_file_response(str(dist_dir), '../outside.txt') is None
+        assert create_dist_file_response(str(dist_dir), str(outside_path)) is None
