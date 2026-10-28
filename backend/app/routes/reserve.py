@@ -25,6 +25,7 @@ from ..db_utils import execute_or_400, execute_or_404, fetch_one_or_404, fetch_o
 from ..mail import esc, send_mail
 from ..rate_limit import cancel_limiter, client_ip, reserve_limiter
 from ..services.reservation_mail_content import _html_wrap, _row, _rows_table
+from ..services.reservation_capacity import count_session_reservations
 from ..services.reservation_policy import reservation_date_error
 from ..utils.dates import today_jst
 from ..utils.errors import error_summary
@@ -233,16 +234,10 @@ def _session_used_count(event_id: str, session: dict, preferred_date: Optional[s
     if preferred_date:
         # 変数の内容: query: DB へ渡す検索条件。
         query = query.eq('preferred_date', preferred_date)
-    # 2. セッション ID を優先し、古い予約は希望時刻で照合して人数を合計する。
-    # 変数の内容: used: 対象の時間枠に予約済みの参加人数。
-    used = 0
-    # 変数の内容: r: 使用人数を加算するキャンセル以外の予約レコード。
-    for r in query.execute().data or []:
-        # 変数の内容: sid: 照合対象の時間枠 ID。
-        sid = r.get('session_id')
-        if sid == session['id'] or (not sid and r.get('preferred_time') == session['time_label']):
-            used += r.get('participants') or 1
-    return used
+    # 2. 既存の検索結果を時間枠ごとの純粋な集計関数へ渡す。
+    # 変数の内容: reservations: DB 検索で返ったキャンセル以外の予約行。
+    reservations = query.execute().data or []
+    return count_session_reservations(reservations, session)
 
 
 def _load_session_for_event(session_id: str, event_id: str) -> dict:
