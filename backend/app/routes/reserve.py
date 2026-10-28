@@ -24,7 +24,8 @@ from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_400, execute_or_404, fetch_one_or_404, fetch_one_or_none, first_or_404
 from ..mail import esc, send_mail
 from ..rate_limit import cancel_limiter, client_ip, reserve_limiter
-from ..utils.dates import event_end_date, today_jst
+from ..services.reservation_policy import reservation_date_error
+from ..utils.dates import today_jst
 from ..utils.errors import error_summary
 
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
@@ -284,22 +285,13 @@ def _check_reservable(event: dict, preferred_date: Optional[str]) -> None:
     Returns:
         なし。
     """
-    # 変数の内容: end: 解析対象の終了位置、today: 日付比較の基準となる今日。
+    # 変数の内容: today: 日付比較の基準となる日本時間の今日、detail: 予約不可の理由。
     today = today_jst()
-    # 1. イベントの最終日が日本時間の今日より前なら受付終了
-    end = event_end_date(event)
-    if end < today:
-        raise HTTPException(400, 'このイベントの予約受付は終了しています')
-    if not preferred_date:
-        return
-    # 2. 予約日が開催期間（開始日〜最終日）の中にあるか
-    # 変数の内容: start: イベントの開始日。
-    start = event.get('start_date') or ''
-    if not (start <= preferred_date <= end):
-        raise HTTPException(400, '予約日がイベントの開催期間外です')
-    # 3. 予約日が過ぎていないか
-    if preferred_date < today:
-        raise HTTPException(400, 'この日の予約受付は終了しています')
+    # 1. 純粋な日付ポリシーで予約可否を判定する。
+    detail = reservation_date_error(event, preferred_date, today)
+    # 2. 判定結果が理由を持つ場合だけ、既存と同じ HTTP 400 に変換する。
+    if detail:
+        raise HTTPException(400, detail)
 
 
 @router.post('')
