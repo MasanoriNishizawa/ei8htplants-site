@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 from app import main as app_main
 from app.main import app
 from app.routes import seo
+from app.routes import seo_robots
 
 
 # ---------------------------------------------------------------------------
@@ -1394,6 +1395,86 @@ class TestRobotsTxt:
         resp = TestClient(app).get('/robots.txt', headers={'host': host})
         assert resp.status_code == 200
         assert f'Sitemap: {origin}/sitemap.xml' in resp.text.splitlines()
+
+
+class TestRobotsTxtPureFunctions:
+    """robots.txt のホスト解決と本文生成を行う純関数。"""
+
+    @pytest.mark.parametrize('hostname,origin', [
+        ('habitatoides.com', 'https://habitatoides.com'),
+        ('www.habitatoides.com', 'https://habitatoides.com'),
+        ('huebyei8htplants.com', 'https://huebyei8htplants.com'),
+        ('www.huebyei8htplants.com', 'https://huebyei8htplants.com'),
+        ('WWW.HABITATOIDES.COM:443', 'https://habitatoides.com'),
+    ])
+    def test_許可されたブランドホストはwwwの有無にかかわらず正規sitemapを案内する(self, hostname, origin):
+        """許可されたブランドのホスト名から対応する正規 Sitemap URL を選ぶことを確認する。
+
+        引数:
+            hostname: robots.txt の Sitemap 選択に使う Host 名。
+            origin: 期待するブランドの正規 origin。
+
+        戻り値:
+            なし。
+        """
+        # 変数の内容: text: pure function が生成する robots.txt 本文。
+        text = seo_robots.build_robots_txt(
+            hostname, seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
+        )
+        assert f'Sitemap: {origin}/sitemap.xml' in text.splitlines()
+
+    @pytest.mark.parametrize('hostname', [
+        'unknown.example',
+        'www.habitatoides.com.attacker.example',
+        'habitatoides.com:garbage',
+        'habitatoides.com:443.attacker.example',
+        'habitatoides.com:65536',
+        '',
+    ])
+    def test_未知のホストは本体サイトのsitemapへfallbackする(self, hostname):
+        """許可リストにないホストを Sitemap URL に使わないことを確認する。
+
+        引数:
+            hostname: 許可リストにない Host 名。
+
+        戻り値:
+            なし。
+        """
+        # 変数の内容: text: pure function が生成する robots.txt 本文。
+        text = seo_robots.build_robots_txt(
+            hostname, seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
+        )
+        assert f'Sitemap: {seo.SITE_ORIGIN}/sitemap.xml' in text.splitlines()
+        assert 'Sitemap: https://habitatoides.com/sitemap.xml' not in text.splitlines()
+
+    def test_本文はdirectiveの順序と完全なDisallow一覧を保ちapiを除外せず末尾改行を付ける(self):
+        """robots.txt 本文の directive、拒否対象、API の扱い、末尾改行を確認する。
+
+        戻り値:
+            なし。
+        """
+        # 変数の内容: origin: Sitemap の案内先に使う正規 origin。
+        origin = 'https://habitatoides.com'
+        # 変数の内容: expected_lines: 生成本文に含める行を仕様順に並べた一覧。
+        expected_lines = [
+            'User-agent: *',
+            'Allow: /',
+            *[f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW],
+            '',
+            f'Sitemap: {origin}/sitemap.xml',
+        ]
+
+        # 1. 先頭から Sitemap までの directive と順番を確認する。
+        # 2. 末尾改行と /api を拒否対象に含めない仕様を確認する。
+        text = seo_robots.build_robots_txt(
+            'www.habitatoides.com', seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
+        )
+        assert text == '\n'.join(expected_lines) + '\n'
+        assert [line for line in text.splitlines() if line.startswith('Disallow:')] == [
+            f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW
+        ]
+        assert 'Disallow: /api' not in text.splitlines()
+        assert text.splitlines()[0:2] == ['User-agent: *', 'Allow: /']
 
 
 # ---------------------------------------------------------------------------

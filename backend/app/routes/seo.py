@@ -41,6 +41,7 @@ from .seo_html import (
     json_for_script as _json_for_script,
     render_head_tags,
 )
+from .seo_robots import build_robots_txt as _build_robots_txt
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 from .seo_structured_data import (
     DESCRIPTION_MAX_LEN,
@@ -835,15 +836,12 @@ def robots_txt(request: Request) -> PlainTextResponse:
     Args:
         request: FastAPI に渡す HTTP リクエスト。
     """
-    # 変数の内容: lines: 本文や応答に使う行の一覧。
-    lines = ['User-agent: *', 'Allow: /']
-    lines += [f'Disallow: {p}' for p in ROBOTS_DISALLOW]
-    # 1. ホスト別の sitemap を選び、キャッシュ済み XML があれば再利用する。
-    # 1. リクエストのホストから対象サイトの sitemap origin を選ぶ。
-    host = request.headers.get('host', '').lower().split(':', 1)[0]
-    origin = BRAND_DOMAINS.get(host, ('', SITE_ORIGIN))[1]
-    lines += ['', f'Sitemap: {origin}/sitemap.xml', '']
-    return PlainTextResponse('\n'.join(lines))
+    # 変数の内容: hostname: リクエストヘッダーから取得した Host 値。
+    hostname = request.headers.get('host', '')
+    # 1. robots.txt の純粋な本文生成を呼び出し、text/plain 応答として返す。
+    # 変数の内容: body: robots.txt の directive と Sitemap 行を含む本文。
+    body = _build_robots_txt(hostname, ROBOTS_DISALLOW, BRAND_DOMAINS, SITE_ORIGIN)
+    return PlainTextResponse(body)
 
 
 def _sitemap_url(path: str, lastmod: Any = None, origin: str = SITE_ORIGIN) -> str:
