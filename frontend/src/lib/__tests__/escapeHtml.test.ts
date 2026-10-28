@@ -51,6 +51,31 @@ describe('csvCell', () => {
     expect(csvCell('\rx')).toBe(`"'\rx"`)
   })
 
+  it('FE-CR-01 空白・LF・CR・BOM の後に数式記号が続く値は文字列化される', () => {
+    /** 数式記号の前に置く、入力の先頭で無害化が必要な文字 */
+    const prefixes = [
+      { label: '空白', value: ' ' },
+      { label: 'LF', value: '\n' },
+      { label: 'CR', value: '\r' },
+      { label: 'BOM', value: '\uFEFF' },
+    ]
+    /** 先頭にあると表計算ソフトで式として解釈される可能性がある記号 */
+    const formulaMarkers = ['=', '+', '-', '@']
+
+    // 1. 4種類の接頭文字と数式記号を組み合わせ、16通りの入力を作る。
+    for (const prefix of prefixes) {
+      for (const marker of formulaMarkers) {
+        /** 接頭文字の直後に数式記号と値が続く入力 */
+        const value = `${prefix.value}${marker}1+1`
+        /** csvCell が作る、数式として扱われない引用済みセル */
+        const cell = csvCell(value)
+
+        // 2. 元の接頭文字を残したまま、その前にアポストロフィを追加することを確認する。
+        expect(cell, `${prefix.label} + ${marker}`).toBe(`"'${value}"`)
+      }
+    }
+  })
+
   it('途中に = がある値には「\'」は付かない', () => {
     expect(csvCell('a=b')).toBe('"a=b"')
   })

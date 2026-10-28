@@ -1,107 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { api, type Event, type Reservation, type WsSession } from '../../lib/api'
+import { api, type Event, type WsSession } from '../../lib/api'
 import { STATUS_LABELS, STATUS_COLORS, STATUS_OPTIONS } from '../../lib/reservationConstants'
-import { escapeHtml as esc, csvCell } from '../../lib/escapeHtml'
 import { formatJstDate, todayJst } from '../../lib/localDate'
 import { clickableProps } from './a11y'
 import { failMessage, statusOf } from './errorMessage'
 import { saveBlob } from './saveBlob'
 import { backPathFrom } from '../../lib/navigation'
-
-/** 予約に、セッション ID から引いた時間ラベル（session_time）を足したもの */
-type ReservationWithTime = Reservation & { session_time?: string }
+import { buildReservationPrintHtml, buildReservationsCsv, type ReservationWithTime } from './eventReservationExports'
 
 /** エラーの帯の見た目（画面の上・当日参加のモーダルで共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
   color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px',
   background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0',
-}
-
-/**
- * 印刷用の HTML 文字列を生成する（新規ウィンドウで window.print() を自動実行）
- * 予約者の入力・イベント名・時間ラベル・ステータスはすべて esc（escapeHtml）を通して埋め込む
- * @param event - イベント情報（ヘッダー表示用）
- * @param rows - 印刷対象の予約一覧
- * @returns 印刷用 HTML 文字列
- */
-function buildPrintHtml(event: Event, rows: ReservationWithTime[]): string {
-  /** 開催日の表示（複数日なら「開始 〜 終了」） */
-  const dateRange = event.end_date && event.end_date !== event.start_date
-    ? `${event.start_date} 〜 ${event.end_date}`
-    : event.start_date
-  /** 表の行の HTML（予約1件で1行） */
-  const trs = rows.map((r) => {
-    /** 持ち込みの表示（植物・鉢） */
-    const bring = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
-    return `<tr>
-      <td>${esc(formatJstDate(r.created_at))}</td>
-      <td>${esc(r.name)}</td>
-      <td>${esc(r.preferred_date ?? '-')}</td>
-      <td>${esc(r.session_time ?? r.preferred_time ?? '-')}</td>
-      <td>${esc(r.participants)}</td>
-      <td>${esc(bring || '-')}</td>
-      <td>${esc(r.note ?? '-')}</td>
-      <td>${esc(STATUS_LABELS[r.status] ?? r.status)}</td>
-    </tr>`
-  }).join('')
-  /** 印刷する予約の参加人数の合計（キャンセルも含む） */
-  const totalPeople = rows.reduce((s, r) => s + r.participants, 0)
-  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
-<title>${esc(event.name)} 予約一覧</title>
-<style>
-/* 印刷用予約一覧の本文・タイトル・表見出し・行・合計欄の体裁 */
-body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;padding:16px 20px;color:#1c2417;}
-h1{font-size:15px;font-weight:normal;margin:0 0 3px;}
-p.meta{font-size:10px;color:#666;margin:0 0 14px;}
-table{width:100%;border-collapse:collapse;}
-th{background:#3a4535;color:#fff;padding:6px 8px;text-align:left;font-weight:normal;font-size:10px;letter-spacing:.5px;}
-td{padding:5px 8px;border-bottom:1px solid #e8e8e8;vertical-align:top;}
-tr:nth-child(even) td{background:#f7f7f7;}
-p.total{margin:8px 0 0;font-size:10px;color:#666;}
-</style></head><body>
-<h1>${esc(event.name)} ワークショップ予約一覧</h1>
-<p class="meta">${esc(dateRange)}${event.time ? ' ' + esc(event.time) : ''} / ${esc(event.location)}</p>
-<table><thead><tr>
-  <th>受付日</th><th>お名前</th><th>予約日</th><th>予約時間</th><th>人数</th><th>持込</th><th>備考</th><th>ステータス</th>
-</tr></thead>
-<tbody>${trs}</tbody></table>
-<p class="total">合計 ${rows.length} 件 / ${totalPeople} 名</p>
-<script>window.onload=()=>window.print();</script>
-</body></html>`
-}
-
-/**
- * BOM 付き CSV としてダウンロードする（Excel での文字化けを防ぐため BOM を先頭に付与）
- * 各セルは csvCell で作る（= + - @ などで始まる値が Excel で数式として実行されないよう先頭に ' を付ける）
- * 1. 見出しと各行を CSV の文字列にする
- * 2. BOM を付けて blob にし、共通の saveBlob でダウンロードさせる
- * @param event - ファイル名に使用するイベント情報
- * @param rows - エクスポート対象の予約一覧
- * @returns 戻り値なし。
- */
-function exportCsv(event: Event, rows: ReservationWithTime[]) {
-  // 1. CSV の文字列
-  /** 見出しの行 */
-  const header = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', '人数', '植物持込', '鉢持込', '備考', 'ステータス']
-  /** 予約ごとの行 */
-  const lines = rows.map((r) => [
-    formatJstDate(r.created_at),
-    r.name, r.email, r.phone ?? '',
-    r.preferred_date ?? '',
-    r.session_time ?? r.preferred_time ?? '',
-    String(r.participants),
-    r.bring_plant ? 'あり' : 'なし',
-    r.bring_pot ? 'あり' : 'なし',
-    r.note ?? '', STATUS_LABELS[r.status] ?? r.status,
-  ].map(csvCell).join(','))
-  /** 先頭に付ける BOM（U+FEFF） */
-  const bom = '﻿'
-  /** CSV の全体（改行は CRLF） */
-  const csv = bom + [header.join(','), ...lines].join('\r\n')
-  // 2. ダウンロード（オブジェクト URL は共通の関数が少し待ってから解放する）
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  saveBlob(blob, `reservations_${event.name}_${todayJst()}.csv`)
 }
 
 /**
@@ -151,7 +62,12 @@ export default function AdminEventReservations() {
   /** 当日参加の追加の失敗の文言（モーダルの中に出す） */
   const [walkinError, setWalkinError] = useState('')
 
-  // イベント・セッション・予約を同時取得し、セッション ID から表示時間を解決して rows に付与する
+  /**
+   * イベント・時間枠・予約を取得し、予約にセッション時間を加えて画面状態へ反映する。
+   * 1. 必須のイベントと予約を時間枠と並行して取得する。
+   * 2. セッション ID から時間ラベルを引き、予約一覧に付ける。
+   * 3. 失敗を画面に表示し、処理終了後に読み込み状態を解除する。
+   */
   useEffect(() => {
     if (!id) return
     Promise.all([
@@ -163,10 +79,13 @@ export default function AdminEventReservations() {
       }),
       api.reserve.list(id),
     ]).then(([ev, sess, reservations]) => {
+      /** 取得したイベント情報 */
       setEvent(ev)
+      /** 取得した時間枠の一覧 */
       setSessions(sess)
       /** セッションの id → 時間ラベル */
       const sessionMap = new Map(sess.map((s) => [s.id, s.time_label]))
+      /** 時間枠の表示名を追加した予約一覧 */
       setRows(reservations.map((r) => ({
         ...r,
         session_time: r.session_id ? sessionMap.get(r.session_id) : undefined,
@@ -180,20 +99,25 @@ export default function AdminEventReservations() {
    * 予約のステータスを変更する
    * 画面の値はサーバーが受け付けたあとにだけ書き換える。失敗したら元の値のまま（select も元の値に戻る）にしてエラーを出す
    * （満席で戻せない 409 は専用の文言にする）
+   * 1. 更新中状態と既存エラーをリセットする。
+   * 2. サーバーで更新し、成功時に一覧と詳細表示へ反映する。
+   * 3. 失敗時は画面にエラーを出し、最後に更新中状態を解除する。
    * @param reservationId - 予約の id
    * @param status - 新しいステータス
    * @returns 戻り値なし。
    */
   const updateStatus = async (reservationId: string, status: string) => {
+    // 1. 更新中表示に切り替え、前回のエラーを消す。
     setUpdating(reservationId)
     setPageError('')
     try {
       /** サーバーが更新したあとの予約 */
       const updated = await api.reserve.updateStatus(reservationId, status)
+      // 2. 一覧と開いている詳細の両方にサーバーの値を反映する。
       setRows((prev) => prev.map((r) => r.id === reservationId ? { ...r, ...updated } : r))
       setSelectedRow((prev) => prev?.id === reservationId ? { ...prev, ...updated } : prev)
     } catch (e) {
-      // キャンセルから受付済に戻すとき、時間枠が満席だとサーバーは 409 を返す
+      // 3. 失敗理由に応じた文言を出し、サーバー未更新の表示値を維持する。
       setPageError(statusOf(e) === 409
         ? failMessage('満席のため受付済に戻せません。元の状態のままです', e)
         : failMessage('ステータスの変更に失敗しました。元の状態のままです', e))
@@ -227,13 +151,16 @@ export default function AdminEventReservations() {
   const copyReserveLink = async () => {
     /** 公開サイトの予約ページの URL */
     const url = `https://ei8htplants.com/official/reserve?event_id=${id}`
+    // 1. 以前のコピー失敗 URL を隠してクリップボードへの書き込みを試す。
     setCopyFailedUrl(null)
     try {
       // navigator.clipboard が無い環境では、ここで TypeError になり catch に入る
       await navigator.clipboard.writeText(url)
+      // 2. 成功したら短時間だけ完了表示を出す。
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
+      // 3. 失敗時は手動コピーできるよう URL を画面に表示する。
       setCopyFailedUrl(url)
     }
   }
@@ -277,15 +204,34 @@ export default function AdminEventReservations() {
 
   /**
    *  表示中（絞り込み後）の予約を新しいウィンドウに書き出して印刷する（ポップアップが止められたら何もしない）
+   * 1. 印刷用ウィンドウを開けるか確認する。
+   * 2. 純関数で生成した HTML を書き込み、文書を確定する。
    * @returns 戻り値なし。
    */
   const handlePrint = () => {
     if (!event) return
-    /** 印刷用に開いたウィンドウ */
+    /** 印刷用に開いたウィンドウ。ポップアップが拒否された場合は null */
     const win = window.open('', '_blank')
     if (!win) return
-    win.document.write(buildPrintHtml(event, filtered))
+    // 1. 表示中のイベントと絞り込み済み予約から印刷用 HTML を生成して書き込む。
+    win.document.write(buildReservationPrintHtml(event, filtered))
+    // 2. 書き込みを閉じて、印刷用文書の読み込みと印刷処理を進める。
     win.document.close()
+  }
+
+  /**
+   * 表示中（絞り込み後）の予約 CSV を、従来のファイル名と MIME 型で保存する。
+   * 1. 純関数で CSV を生成する。
+   * 2. Blob を作り、共通の saveBlob でダウンロードさせる。
+   * @param currentEvent - ファイル名に使う対象イベント
+   * @returns 戻り値なし。
+   */
+  const handleExportCsv = (currentEvent: Event) => {
+    /** CSV ファイルにする文字列 */
+    const csv = buildReservationsCsv(filtered)
+    /** ダウンロードする UTF-8 CSV の Blob */
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    saveBlob(blob, `reservations_${currentEvent.name}_${todayJst()}.csv`)
   }
 
   /** キャンセル以外の予約 */
@@ -349,7 +295,7 @@ export default function AdminEventReservations() {
           {rows.length > 0 && (
             <>
               <button onClick={handlePrint} style={btnStyle}>印刷</button>
-              <button onClick={() => event && exportCsv(event, filtered)} style={btnStyle}>CSV</button>
+              <button onClick={() => event && handleExportCsv(event)} style={btnStyle}>CSV</button>
             </>
           )}
         </div>
