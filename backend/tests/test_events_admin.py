@@ -6,7 +6,7 @@ events.py の管理者向けエンドポイントのテスト。
 - テスト後は dependency_overrides を必ずクリアする
 """
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -57,6 +57,44 @@ def _make_public_sb_mock(events_data: list) -> MagicMock:
     # table('event_images').select('*').in_(...).order(...).execute().data
     mock_sb.table.return_value.select.return_value.in_.return_value.order.return_value.execute.return_value.data = []
     return mock_sb
+
+
+def _make_sessions_failure_mocks(existing_sessions: list) -> tuple[MagicMock, MagicMock, MagicMock]:
+    """セッション保存テスト用にイベントとセッションのDBモックを分けて返す。
+
+    Args:
+        existing_sessions: 保存前の ws_sessions.select が返す既存セッション一覧。
+
+    Returns:
+        (Supabase クライアント、events テーブルモック、ws_sessions テーブルモック)。
+    """
+    # 変数の内容: event_id: テスト用のUUID、events_table: 存在確認用テーブル、sessions_table: 保存対象テーブル。
+    event_id = '11111111-1111-1111-1111-111111111111'
+    events_table = MagicMock()
+    sessions_table = MagicMock()
+    # 1. イベント存在確認は成功させ、既存セッションの読み取り結果を指定する。
+    events_table.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {'id': event_id}
+    sessions_table.select.return_value.eq.return_value.execute.return_value.data = existing_sessions
+    # 2. テーブル名に応じたモックを返し、想定外テーブルの使用を失敗させる。
+    tables = {'events': events_table, 'ws_sessions': sessions_table}
+
+    def table_side_effect(name: str):
+        """指定されたテーブルに対応するモックを返す。
+
+        Args:
+            name: Supabase のテーブル名。
+
+        Returns:
+            指定テーブルに対応する MagicMock。
+        """
+        # 1. テストで許可したテーブル名だけを返し、想定外のDBアクセスを検知する。
+        assert name in tables, f'想定外のテーブルにアクセスした: {name}'
+        return tables[name]
+
+    # 変数の内容: mock_admin_sb: テーブル別の応答を返す管理用Supabaseクライアント。
+    mock_admin_sb = MagicMock()
+    mock_admin_sb.table.side_effect = table_side_effect
+    return mock_admin_sb, events_table, sessions_table
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +261,31 @@ class TestEventCRUD:
 
         assert resp.status_code == 200
         assert resp.json()['name'] == '更新後イベント'
+
+    def test_イベント更新_認証なし_401でDB書き込みしない(self):
+        """PUT /api/events/:id は未認証なら401となりDBへ書き込まない。
+
+        Returns:
+            なし。
+        """
+        # 1. 認証をバイパスする設定を解除し、DB呼び出しを記録するモックを用意する。
+        app.dependency_overrides.clear()
+        mock_admin_sb = MagicMock()
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 未認証のまま更新要求を送るAPIクライアント、resp: PUT応答。
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1', json={
+                'name': '更新後イベント',
+                'start_date': '2099-01-01',
+                'location': '大阪',
+                'image_urls': ['https://example.com/event.jpg'],
+            })
+
+        # 2. 未認証応答で終わり、イベントや画像テーブルにアクセスしていないことを確認する。
+        assert resp.status_code == 401
+        mock_admin_sb.table.assert_not_called()
+        app.dependency_overrides[require_auth] = lambda: None
 
     def test_イベント削除成功(self):
         """DELETE /api/events/:id でイベントが削除されて { ok: True } が返る。
@@ -633,6 +696,118 @@ class TestEventSessions:
             })
 
         assert resp.status_code == 200
+
+    def test_既存セッション更新失敗時は500で後続操作をしない(self):
+        """既存セッションの UPDATE 失敗は500となり、後続の削除へ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: session_id: 更新対象ID、mock_admin_sb: DBクライアント、sessions_table: セッションテーブル。
+        session_id = 'session-existing'
+        mock_admin_sb, _, sessions_table = _make_sessions_failure_mocks([
+            {'id': session_id, 'time_label': '10:00'},
+            {'id': 'session-omitted', 'time_label': '11:00'},
+        ])
+        # 1. 最初の既存セッション更新で例外を発生させ、以降の処理を止める。
+        sessions_table.update.return_value.eq.return_value.execute.side_effect = RuntimeError('session update failed')
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: PUT応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
+                'sessions': [{'id': session_id, 'time_label': '10:00', 'max_participants': 8}],
+            })
+
+        # 2. イベント存在確認と更新を行い、insert・deleteには進まないことを確かめる。
+        assert resp.status_code == 500
+        sessions_table.update.assert_called_once()
+        sessions_table.update.return_value.eq.return_value.execute.assert_called_once()
+        sessions_table.insert.assert_not_called()
+        sessions_table.delete.assert_not_called()
+
+    def test_新規セッションinsert失敗時は500(self):
+        """新しいセッションの INSERT 失敗は500となる。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_admin_sb: テーブル別モックを返すDBクライアント、sessions_table: セッションテーブルモック。
+        mock_admin_sb, _, sessions_table = _make_sessions_failure_mocks([])
+        # 1. 新規セッションの INSERT 実行で例外を発生させる。
+        sessions_table.insert.return_value.execute.side_effect = RuntimeError('session insert failed')
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: PUT応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
+                'sessions': [{'time_label': '10:00', 'max_participants': 8}],
+            })
+
+        # 2. 新規INSERTだけが呼ばれ、HTTP 500になることを確認する。
+        assert resp.status_code == 500
+        sessions_table.insert.assert_called_once()
+        sessions_table.insert.return_value.execute.assert_called_once()
+        sessions_table.update.assert_not_called()
+        sessions_table.delete.assert_not_called()
+
+    def test_不要セッションdelete失敗時は先行更新後に500(self):
+        """不要セッションの DELETE 失敗は、先行する既存枠 UPDATE 後に500となる。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: kept_id: 入力に残す既存枠、removed_id: 入力に含めず削除対象にする既存枠。
+        kept_id = 'session-kept'
+        removed_id = 'session-removed'
+        mock_admin_sb, _, sessions_table = _make_sessions_failure_mocks([
+            {'id': kept_id, 'time_label': '10:00'},
+            {'id': removed_id, 'time_label': '11:00'},
+        ])
+        # 1. 既存枠の更新を成功させたあと、不要枠の削除実行で例外を発生させる。
+        sessions_table.delete.return_value.eq.return_value.execute.side_effect = RuntimeError('session delete failed')
+
+        # 変数の内容: readback_spy: 削除失敗後にセッション一覧の読み直しへ進んだかを記録するspy。
+        with patch('app.routes.events.admin_supabase', mock_admin_sb), \
+             patch('app.routes.events._sessions_with_counts') as readback_spy:
+            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: PUT応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
+                'sessions': [{'id': kept_id, 'time_label': '10:00', 'max_participants': 8}],
+            })
+
+        # 2. 更新・削除の順で実行されてから500になることを確認する。
+        assert resp.status_code == 500
+        assert sessions_table.mock_calls.index(call.update().eq().execute()) < sessions_table.mock_calls.index(
+            call.delete().eq().execute()
+        )
+        sessions_table.update.assert_called_once()
+        sessions_table.delete.assert_called_once()
+        sessions_table.delete.return_value.eq.assert_called_once_with('id', removed_id)
+        # 3. 削除実行の失敗でAPIが終了し、最新一覧を読み直さないことを確認する。
+        readback_spy.assert_not_called()
+
+    def test_セッション保存_認証なし_401でDB書き込みしない(self):
+        """PUT /api/events/:id/sessions は未認証なら401となりDBへ書き込まない。
+
+        Returns:
+            なし。
+        """
+        # 1. 認証バイパスを解除し、DBアクセスを検出するモックを用意する。
+        app.dependency_overrides.clear()
+        mock_admin_sb = MagicMock()
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 未認証で保存要求を送るAPIクライアント、resp: PUT応答。
+            client = TestClient(app)
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
+                'sessions': [],
+            })
+
+        # 2. 401で終了し、DB操作のためのテーブル参照自体が無いことを確認する。
+        assert resp.status_code == 401
+        mock_admin_sb.table.assert_not_called()
+        app.dependency_overrides[require_auth] = lambda: None
 
 
 # ---------------------------------------------------------------------------
