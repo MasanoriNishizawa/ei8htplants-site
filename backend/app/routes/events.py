@@ -579,6 +579,7 @@ def delete_event(event_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): id が UUID の形でない場合
     """
+    # 1. 指定 ID の削除を実行し、ID 形式が不正なら 404 にする（対象行が無くても成功応答を返す）。
     execute_or_404(admin_supabase.table('events').delete().eq('id', event_id), _EVENT_NOT_FOUND)
     return {'ok': True}
 
@@ -625,7 +626,7 @@ def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)) -> 
     """
     # 1. 収支をひも付けるイベントの存在を確認する。
     _ensure_event_exists(event_id)
-    # 変数の内容: data: 保存処理へ渡すイベント収支のリクエストデータ。。
+    # 変数の内容: data: 保存処理へ渡すイベント収支のリクエストデータ。
     data = {**body.model_dump(), 'event_id': event_id, 'updated_at': datetime.now(timezone.utc).isoformat()}
     # 2. event_id を競合キーにして作成または更新し、保存行を返す。
     return admin_supabase.table('event_finances').upsert(data, on_conflict='event_id').execute().data[0]

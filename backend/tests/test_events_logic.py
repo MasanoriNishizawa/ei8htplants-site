@@ -19,8 +19,10 @@ def _calc_is_past(start_date: str, end_date=None, today: str = None) -> bool:
     Returns:
         bool を返す。
     """
+    # 1. 終了日があれば終了日、なければ開始日を比較対象に選ぶ。
     # 変数の内容: effective: 過去判定に使う終了日または開始日。
     effective = end_date or start_date
+    # 2. ISO日付として読み取れた場合だけ基準日と比較し、不正値は過去扱いしない。
     try:
         return date.fromisoformat(effective).isoformat() < today
     except Exception:
@@ -164,6 +166,7 @@ def _make_sb_mock(events_data: list, images_data: list = None):
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. イベントとイベント画像の各クエリに対する応答を設定する。
     # 変数の内容: chain: Supabase クエリの呼び出し連鎖モック、images_data: テスト用画像行の一覧、mock_sb: 公開用 Supabase クライアントのモック。
     images_data = images_data or []
     mock_sb = MagicMock()

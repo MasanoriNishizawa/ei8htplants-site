@@ -73,6 +73,7 @@ def _make_storage_mock(public_url: str = 'https://example.com/image.jpg') -> Mag
     Returns:
         admin_supabase のストレージモック
     """
+    # 1. Storage のバケット確認・アップロード・公開URL取得応答を設定する。
     # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
     mock_admin_sb = MagicMock()
     # storage.from_(bucket).upload(...) の設定
@@ -93,6 +94,7 @@ def _uploaded(mock_admin_sb: MagicMock) -> tuple[str, bytes, dict]:
     Returns:
         (ファイル名, 中身, オプションの dict)
     """
+    # 1. upload 呼び出しの引数を取り出して返す。
     # 変数の内容: args: テスト対象関数へ渡す位置引数。
     args = mock_admin_sb.storage.from_.return_value.upload.call_args[0]
     return args[0], args[1], args[2]

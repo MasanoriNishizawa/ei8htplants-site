@@ -99,7 +99,7 @@ class RateLimiter:
                 # 変数の内容: overflow: 上限超過で削除する項目数。
                 overflow = len(self.log) - MAX_TRACKED_IPS
                 if overflow > 0:
-                    # 変数の内容: oldest: 期限が最も早いキャッシュ項目。
+                    # 変数の内容: oldest: 最後に受付記録が追加された時刻が古い IP アドレス。
                     oldest = sorted(self.log, key=lambda k: self.log[k][-1] if self.log[k] else 0.0)[:overflow]
                     # 変数の内容: key: 現在処理する辞書キー。
                     for key in oldest:

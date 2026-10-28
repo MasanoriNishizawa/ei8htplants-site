@@ -106,10 +106,12 @@ def _client_raising(error: Exception | None = None, data: Any = None) -> MagicMo
     Returns:
         supabase クライアントのモック（.query に共通のクエリのモックを入れている）
     """
+    # 1. 指定された例外またはデータを返すクエリ連鎖を構成する。
     # 変数の内容: client: テスト対象の API クライアント、query: DB へ渡す検索条件。
     query = _Query(error, data)
     client = MagicMock()
     # 変数の内容: client.query: 対象オブジェクトに設定するquery属性値、client.table.return_value: モック呼び出しの返却値。
+    # 2. table() と query 属性を同じクエリへ接続し、テスト対象へ返す。
     client.table.return_value = query
     client.query = query
     return client

@@ -90,6 +90,7 @@ def _make_admin_sb_for_get() -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. 注文一覧と関連明細を返す管理DBのクエリ連鎖を設定する。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # table('orders').select('*').eq('id', ...).single().execute().data
@@ -130,6 +131,7 @@ def _make_http_mock_success() -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. Square API の成功レスポンスと決済情報を返す HTTP モックを作る。
     # 変数の内容: mock_http: HTTP 通信のモック。
     mock_http = MagicMock()
     # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値、mock_http.post.return_value.ok: 対象オブジェクトに設定するok属性値、mock_http.post.return_value.status_code: HTTP 例外の応答コード。
@@ -147,6 +149,7 @@ def _make_http_mock_failure() -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. Square API の指定エラー応答を返す HTTP モックを作る。
     # 変数の内容: mock_http: HTTP 通信のモック。
     mock_http = MagicMock()
     # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値、mock_http.post.return_value.ok: 対象オブジェクトに設定するok属性値、mock_http.post.return_value.status_code: HTTP 例外の応答コード。

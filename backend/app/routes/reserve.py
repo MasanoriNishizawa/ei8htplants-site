@@ -24,6 +24,7 @@ from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_400, execute_or_404, fetch_one_or_404, fetch_one_or_none, first_or_404
 from ..mail import esc, send_mail
 from ..rate_limit import cancel_limiter, client_ip, reserve_limiter
+from ..services.reservation_mail_content import _html_wrap, _row, _rows_table
 from ..services.reservation_policy import reservation_date_error
 from ..utils.dates import today_jst
 from ..utils.errors import error_summary
@@ -423,78 +424,6 @@ def cancel_by_token(body: CancelBody, request: Request) -> dict:
     return {'ok': True}
 
 
-def _html_wrap(body_html: str) -> str:
-    """メール本文をHabitat Oidesブランドのレイアウトで包んだHTML文字列を返す。
-
-    Args:
-        body_html: メイン本文のHTML断片（利用者の入力はエスケープ済みであること）
-
-    Returns:
-        完全なHTMLメール文字列
-    """
-    return f'''<!DOCTYPE html>
-<html lang="ja">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f5f5f2;font-family:sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f2;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-        <tr><td style="background:#2d3a24;padding:24px 32px;">
-          <p style="margin:0;color:#ffffff;font-size:18px;letter-spacing:3px;">Habitat Oides</p>
-        </td></tr>
-        <tr><td style="padding:32px;">
-          {body_html}
-        </td></tr>
-        <tr><td style="padding:16px 32px 24px;border-top:1px solid #eeeeee;">
-          <p style="margin:0;font-size:12px;color:#999999;line-height:1.8;">
-            ※ このメールは送信専用です。このメールへの返信はお受けできません。<br>
-            ご不明な点は<a href="{SITE_ORIGIN}/official/contact" style="color:#4a6741;">公式HPお問い合わせ</a>または
-            <a href="mailto:{esc(HABITAT_ADMIN_EMAIL)}" style="color:#4a6741;">{esc(HABITAT_ADMIN_EMAIL)}</a> までご連絡ください。
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>'''
-
-
-def _row(label: str, value: object, raw_html: bool = False) -> str:
-    """メール内の2カラム項目テーブルの1行分のHTMLを生成して返す。
-
-    Args:
-        label: 左カラムに表示するラベル文字列（固定の文言）
-        value: 右カラムに表示する値。既定ではエスケープしてから入れる
-        raw_html: True のとき value を HTML としてそのまま入れる（自分で組み立てたリンクなど）
-
-    Returns:
-        <tr>...</tr> 形式のHTML文字列
-    """
-    # 変数の内容: cell: 対象時間枠のロック管理情報。
-    cell = str(value) if raw_html else esc(value)
-    return (
-        f'<tr>'
-        f'<td style="padding:8px 0;font-size:13px;color:#888888;width:120px;vertical-align:top;">{esc(label)}</td>'
-        f'<td style="padding:8px 0;font-size:14px;color:#333333;vertical-align:top;">{cell}</td>'
-        f'</tr>'
-    )
-
-
-def _rows_table(rows_html: str) -> str:
-    """項目の行（_row の結果をつないだもの）を表で包む。
-
-    Args:
-        rows_html: _row で作った行の HTML
-
-    Returns:
-        <table> の HTML
-    """
-    return (
-        '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eeeeee;">'
-        f'{rows_html}</table>'
-    )
-
-
 def _load_mail_context(event_id: str, session_id: Optional[str], preferred_time: Optional[str]) -> tuple[Optional[dict], str]:
     """メールに書くイベントの情報と時間を読む（受付メールと管理者通知で 1 回だけ読む）。
 
@@ -711,7 +640,7 @@ def _send_cancel_confirmation(reservation: dict) -> None:
     """
     if not HABITAT_RESEND_API_KEY:
         return
-    # 変数の内容: email: 送信先または利用者のメールアドレス、name: 画面やログに表示する名前。
+    # 変数の内容: email: 送信先または利用者のメールアドレス、name: 予約メール本文に表示する予約者名。
     name = reservation.get('name', '')
     email = reservation.get('email', '')
     if not email:

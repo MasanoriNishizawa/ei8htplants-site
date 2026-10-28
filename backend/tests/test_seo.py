@@ -144,6 +144,7 @@ def _event(**over) -> dict:
     Returns:
         イベント情報をまとめた辞書。
     """
+    # 1. 既定のイベント項目を作り、呼び出し元の値で必要な項目を上書きする。
     # 変数の内容: ev: テスト用イベントレコード。
     ev = {
         'id': EVENT_ID,
@@ -170,6 +171,7 @@ def _article(**over) -> dict:
     Returns:
         記事情報をまとめた辞書。
     """
+    # 1. 既定の記事項目を作り、呼び出し元の値で必要な項目を上書きする。
     # 変数の内容: a: テスト対象のレコード。
     a = {
         'id': ARTICLE_ID,
@@ -195,6 +197,7 @@ def _product(**over) -> dict:
     Returns:
         商品情報をまとめた辞書。
     """
+    # 1. 既定の商品項目を作り、呼び出し元の値で必要な項目を上書きする。
     # 変数の内容: p: テストデータの公開商品レコード。
     p = {
         'id': PRODUCT_ID,
@@ -219,8 +222,11 @@ class FakeDB:
         """指定されたテーブルデータ・例外条件を保持するテスト用 Supabase モックを初期化する。
 
         引数:
-            tables: テスト用テーブル名の一覧。
-            errors: テストで例外を発生させるテーブル名の集合。"""
+            tables: テーブル名をキー、返却する行一覧を値とする辞書。
+            errors: テストで例外を発生させるテーブル名の集合。
+
+        戻り値:
+            なし。インスタンスにテスト用データと例外条件を設定する。"""
         # 変数の内容: self.calls: モックの呼び出し履歴、self.errors: テスト用の例外一覧、self.tables: DB モックが返すテーブル別データ。
         self.tables = tables or {}
         self.errors = set(errors or [])
@@ -246,7 +252,10 @@ class _FakeQuery:
 
         引数:
             db: テスト対象が使う Supabase クライアントのモック。
-            name: このクエリモックが参照するテーブル名。"""
+            name: このクエリモックが参照するテーブル名。
+
+        戻り値:
+            なし。クエリモックが参照する DB とテーブル名を保持する。"""
         # 変数の内容: self.db: このクエリが参照する DB モック、self.filters: DB モックへ渡す絞り込み条件、self.name: DB モックのテーブル名。
         self.db = db
         self.name = name
@@ -309,6 +318,7 @@ class _FakeQuery:
 
         戻り値:
             設定した PostgREST 例外またはデータを含む応答を返す。"""
+        # 1. 呼び出しを記録し、エラー条件と絞り込み条件を反映した応答を作る。
         self.db.calls.append((self.name, dict(self.filters)))
         if self.name in self.db.errors:
             raise RuntimeError(f'{self.name} の読み取りに失敗')
@@ -332,6 +342,7 @@ def _default_db(**over) -> FakeDB:
     Returns:
         テスト用データを格納した FakeDB。
     """
+    # 1. テーブル別の既定データを用意し、呼び出し元の指定で上書きする。
     # 変数の内容: tables: テスト用テーブルデータ。
     tables = {
         'events': [_event()],
@@ -424,7 +435,8 @@ def _meta(head: str, attr: str, name: str):
     Returns:
         指定した属性名と値に一致する meta タグの content を返し、見つからない場合は None を返す。
     """
-    # 変数の内容: m: 正規表現の一致結果または対象モデル。
+    # 1. 指定属性に一致するmetaタグを探し、content値をHTMLデコードして返す。
+    # 変数の内容: m: 正規表現の一致結果。該当タグがない場合は None。
     m = re.search(rf'<meta {attr}="{re.escape(name)}" content="([^"]*)"', head)
     return html.unescape(m.group(1)) if m else None
 
@@ -438,6 +450,7 @@ def _title(head: str) -> str:
     Returns:
         str を返す。
     """
+    # 1. title要素を1件だけ抽出し、HTMLデコードしてページタイトルを返す。
     # 変数の内容: titles: 抽出したページタイトルの一覧。
     titles = re.findall(r'<title>(.*?)</title>', head, flags=re.S)
     assert len(titles) == 1, f'<title> が1つではない: {titles}'

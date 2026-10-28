@@ -29,6 +29,7 @@ def _make_genai_mock(reply_text: str = 'テスト返答') -> MagicMock:
     Returns:
         genai モジュールのモック（Client → chats.create → send_message をチェーン設定済み）
     """
+    # 1. Gemini クライアント、チャットセッション、送信応答のモックをつなぐ。
     # 変数の内容: mock_chat_session: チャットセッションのモック、mock_client: 外部クライアントのモック、mock_genai: Gemini クライアントのモック、mock_response: 外部 API 応答のモック。
     mock_genai = MagicMock()
     mock_client = MagicMock()
@@ -50,6 +51,7 @@ def _make_sb_mock() -> MagicMock:
     Returns:
         supabase モジュールのモック
     """
+    # 1. 公開イベント・商品・取扱店の各クエリに空一覧を返す設定を行う。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # table(...).select(...).order(...).execute().data → 空リスト
@@ -67,6 +69,7 @@ def _make_admin_sb_mock() -> MagicMock:
     Returns:
         admin_supabase モジュールのモック
     """
+    # 1. Q&A取得とチャットログ保存に対応する管理DBモックを設定する。
     # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
     mock_admin_sb = MagicMock()
     # chat_qa: table(...).select(...).eq(...).order(...).execute().data → 空リスト
@@ -619,6 +622,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. 不正入力を送信し、422応答とGemini未呼び出しを確認する。
         # 変数の内容: mock_genai: Gemini クライアントのモック、resp: API から返されたレスポンス。
         resp, mock_genai = _post_with_mocks(payload)
         assert resp.status_code == 422

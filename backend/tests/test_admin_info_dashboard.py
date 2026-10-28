@@ -54,6 +54,7 @@ def _make_sb(events, infos):
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. 管理用イベント一覧・詳細クエリに対する応答を Supabase モックへ設定する。
     # 変数の内容: sb: Supabase クライアントまたはそのモック。
     sb = MagicMock()
 

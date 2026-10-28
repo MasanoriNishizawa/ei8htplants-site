@@ -16,6 +16,7 @@ def _simple_mock(data: list, error: Exception = None):
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. クエリ連鎖へ指定された応答データまたは例外を設定する。
     # 変数の内容: execute: クエリ実行を模擬する関数、mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     execute = mock_sb.table.return_value.select.return_value.order.return_value.execute

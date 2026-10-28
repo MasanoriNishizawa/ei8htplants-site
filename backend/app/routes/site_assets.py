@@ -48,9 +48,11 @@ def get_site_asset(key: str) -> dict:
     Returns:
         注釈に示した形式の応答（dict）。
     """
+    # 1. 公開対象として許可されたキーだけを受け付ける。
     _check_key(key)
     # 変数の内容: rows: DB から取得した行の一覧。
     rows = supabase.table('site_assets').select('key,url').eq('key', key).limit(1).execute().data
+    # 2. 登録済み設定を返し、未登録なら空 URL の初期値を返す。
     return rows[0] if rows else {'key': key, 'url': ''}
 
 
@@ -66,7 +68,9 @@ def save_site_asset(key: str, body: SiteAssetBody, _=Depends(require_auth)) -> d
     Returns:
         注釈に示した形式の応答（dict）。
     """
+    # 1. 管理者が指定したキーを許可一覧と照合する。
     _check_key(key)
     # 変数の内容: rows: DB から取得した行の一覧。
     rows = admin_supabase.table('site_assets').upsert({'key': key, 'url': body.url}).execute().data
+    # 2. 保存結果を返し、DB応答に行がない場合は入力値から応答を組み立てる。
     return rows[0] if rows else {'key': key, 'url': body.url}

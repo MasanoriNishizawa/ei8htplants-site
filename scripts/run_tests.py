@@ -190,6 +190,7 @@ def run_pytest(targets: list[str] | None = None) -> dict:
     Returns:
         件数・終了コード・診断を含むpytest結果dict。
     """
+    # 1. バックエンド用の作業場所と利用可能なPython実行環境を選ぶ。
     # backend: pytestを実行するバックエンドの作業ディレクトリ。
     backend = ROOT / "backend"
     if not backend.exists():
@@ -201,6 +202,7 @@ def run_pytest(targets: list[str] | None = None) -> dict:
     # venv_python / python_cmd: backend専用環境があれば優先し、なければ現在のPythonを使う。
     venv_python = backend / ".venv" / "bin" / "python"
     python_cmd = str(venv_python) if venv_python.exists() else sys.executable
+    # 2. pytestを起動し、標準出力と終了コードを共通の結果形式へ変換する。
     code, out, sec = run([python_cmd, "-m", "pytest", "-rfE", *(targets or [])], backend)
     return parse_pytest_result("バックエンド（pytest）", code, out, sec)
 
@@ -264,6 +266,7 @@ def git_info() -> str:
     Returns:
         commit短縮番号。未コミット変更があればその表示も含む。
     """
+    # 1. HEADの短縮番号とテスト実行ログ以外の未コミット変更を取得する。
     # head: 作業中のリビジョン短縮番号。
     head = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True
@@ -273,6 +276,7 @@ def git_info() -> str:
         ["git", "status", "--porcelain", "--", ".", ":!doc/04_TEST/08_テスト実行ログ.md"],
         cwd=ROOT, capture_output=True, text=True
     ).stdout.strip()
+    # 2. 変更状態に応じてコミット番号へ未コミット表示を付ける。
     return f"`{head}`" + ("＋未コミット" if dirty else "")
 
 

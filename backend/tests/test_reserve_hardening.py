@@ -70,6 +70,7 @@ def _table_mock(single_data: Any = None, single_error: Optional[Exception] = Non
     Returns:
         表のモック
     """
+    # 1. 検索・単一取得・更新の各DB応答と呼び出し記録を設定する。
     # 変数の内容: eq: ID 条件を加えるモック関数、t: 現在処理するテスト値。
     t = MagicMock()
     eq = t.select.return_value.eq.return_value
@@ -97,6 +98,7 @@ def _db(tables: dict[str, MagicMock]) -> MagicMock:
     Returns:
         supabase クライアントのモック（table(name) で tables[name] を返す。無ければ空の表）
     """
+    # 1. 公開DBと管理DBへテーブル別クエリモックを割り当てる。
     # 変数の内容: client: テスト対象の API クライアント、default: 既定の設定値。
     client = MagicMock()
     default = _table_mock()
@@ -256,6 +258,7 @@ class TestReservationMailEscape:
         Returns:
             Resend モックに渡されたメール payload の一覧を返す。
         """
+        # 1. 依存DB・メール送信関数を差し替えて予約APIを呼び出す。
         # 変数の内容: resend: Resend メール送信関数のモック、resp: API から返されたレスポンス。
         resend = MagicMock()
         # 変数の内容: resend.Emails.send.return_value: モック呼び出しの返却値。
@@ -365,6 +368,7 @@ class TestCancelToken:
         Returns:
             Resend モックに渡されたメール payload の一覧を返す。
         """
+        # 1. キャンセルトークン照合用DBを設定しキャンセルAPIを呼び出す。
         # 変数の内容: reservations: 取得した予約の一覧。
         reservations = _table_mock(update_data=[{**rows[0], 'status': 'cancelled'}] if rows else [])
         # 変数の内容: reservations.select.return_value.eq.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -644,6 +648,7 @@ class TestReservationFailurePaths:
             Returns:
                 予約 API の HTTP 応答。
             """
+            # 1. スレッド専用クライアントで予約リクエストを送り、応答を保存する。
             start.wait(timeout=5)
             # 変数の内容: client: このworker専用のHTTPクライアント、response: 並列送信した予約API応答。
             client = TestClient(app)
@@ -970,6 +975,7 @@ class TestReservationStatusChange:
         Returns:
             Resend モックに渡されたメール payload の一覧を返す。
         """
+        # 1. 指定された予約API依存を複数まとめて差し替える。
         if row is None:
             # 変数の内容: reservations: 取得した予約の一覧。
             reservations = _table_mock(single_error=not_found_error())

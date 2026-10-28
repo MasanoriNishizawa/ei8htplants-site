@@ -379,7 +379,7 @@ def _load_products(body: OrderBody) -> dict[str, dict]:
     product_map = {p['id']: p for p in rows}
     # 2. 存在しない・非公開の商品が無いか
     for item in body.items:
-        # 変数の内容: p: 注文対象商品の在庫情報。。
+        # 変数の内容: p: 注文対象商品の在庫情報。
         p = product_map.get(item.product_id)
         if not p:
             raise HTTPException(404, '商品が見つかりません')
@@ -421,7 +421,7 @@ def _reserve_stock(body: OrderBody, product_map: dict[str, dict]) -> list[tuple[
                 'p_quantity': item.quantity,
             }).execute().data
             if not ok:
-                # 変数の内容: p: 注文対象商品の在庫情報。。
+                # 変数の内容: p: 注文対象商品の在庫情報。
                 p = product_map[item.product_id]
                 raise HTTPException(409, f'在庫が不足しています: {p["name"]}（他の注文と競合しました）')
             reserved.append((item.product_id, item.quantity))
@@ -449,6 +449,7 @@ def _save_order(body: OrderBody, product_map: dict[str, dict], subtotal: int, sh
     Raises:
         Exception: 保存に失敗した場合（呼び出し元で CRITICAL として扱う）
     """
+    # 1. 支払い済み注文の本体を保存し、生成された注文 ID を受け取る。
     # 変数の内容: order: DB に新規登録した注文レコード。
     order = admin_supabase.table('orders').insert({
         'customer_name': body.customer_name,
@@ -466,6 +467,8 @@ def _save_order(body: OrderBody, product_map: dict[str, dict], subtotal: int, sh
         'status': 'paid',
         'square_payment_id': payment_id,
     }).execute().data[0]
+    # 2. 注文 ID と商品情報を対応付けた注文明細をまとめて保存する。
+    # 変数の内容: item: 注文明細へ変換する注文内の商品 ID と数量。
     admin_supabase.table('order_items').insert([
         {
             'order_id': order['id'],
@@ -591,8 +594,10 @@ def get_order(order_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): 注文が存在しない場合
     """
+    # 1. 指定 ID の注文本体を取得し、存在しなければ 404 にする。
     # 変数の内容: order: 検索で取得した注文レコード、items: 注文 ID に紐づく注文明細一覧。
     order = fetch_one_or_404(admin_supabase.table('orders').select('*').eq('id', order_id))
+    # 2. 注文 ID に紐づく明細を取得し、注文本体へ付けて返す。
     items = admin_supabase.table('order_items').select('*').eq('order_id', order_id).execute().data
     return {**order, 'items': items}
 

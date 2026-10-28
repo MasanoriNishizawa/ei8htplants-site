@@ -329,6 +329,7 @@ class TestClientIp:
         Returns:
             headers と client を持つモック
         """
+        # 1. 指定ヘッダー・接続元を持つリクエストモックを作成して返す。
         # 変数の内容: request: 現在の HTTP リクエスト。
         request = MagicMock()
         # 変数の内容: request.client: テスト用リクエスト接続元、request.headers: テスト用 HTTP リクエストヘッダー。

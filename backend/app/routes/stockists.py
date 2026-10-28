@@ -90,5 +90,6 @@ def delete_stockist(stockist_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): id が UUID の形でない場合
     """
+    # 1. 指定 ID の削除を実行し、ID 形式が不正なら 404 にする（対象行が無くても成功応答を返す）。
     execute_or_404(admin_supabase.table('stockists').delete().eq('id', stockist_id))
     return {'ok': True}

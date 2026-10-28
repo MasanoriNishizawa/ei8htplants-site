@@ -161,7 +161,7 @@ def _rows(result: Any) -> list[dict]:
         dict の行だけのリスト。.data がリストでないときは空のリスト
     """
     # 1. Supabase 応答の data がリストの場合だけ、辞書形式の行を取り出す。
-    # 変数の内容: data: 指定テーブルから取得した公開対象レコード一覧。。
+    # 変数の内容: data: 指定テーブルから取得した公開対象レコード一覧。
     data = getattr(result, 'data', None)
     if not isinstance(data, list):
         return []
@@ -241,12 +241,14 @@ def _blocks_to_text(blocks: list[dict], max_len: int = DESCRIPTION_MAX_LEN) -> s
     Returns:
         text・heading ブロックの文字を空白でつないだ先頭 max_len 文字。無ければ ''
     """
-    # 変数の内容: parts: 後で連結する要素の一覧。
+    # 1. 本文・見出しブロックだけを選び、改行を空白へ置き換える。
+    # 変数の内容: parts: 連結対象となる本文・見出しの文字列一覧。
     parts = [
         _str(b.get('value')).replace('\n', ' ')
         for b in blocks
         if b.get('type') in ('text', 'heading')
     ]
+    # 2. 要素を空白でつないで、指定文字数の範囲を返す。
     return ' '.join(parts)[:max_len]
 
 
@@ -812,6 +814,7 @@ def sitemap_xml(request: Request) -> Response:
     Args:
         request: FastAPI に渡す HTTP リクエスト。
     """
+    # 1. リクエストのホストから対象サイトとキャッシュキーを決める。
     # 変数の内容: cache_key: メモリキャッシュを参照するキー、found: キャッシュに値があるかを示すフラグ、host: リクエスト元のホスト名、origin: URL の起点となる origin、site: ホスト名に対応するサイト設定、site_name: 対象ブランドまたはサイト名、xml: 生成した sitemap XML。
     host = request.headers.get('host', '').lower().split(':', 1)[0]
     site = BRAND_DOMAINS.get(host)

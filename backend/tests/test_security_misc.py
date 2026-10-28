@@ -472,6 +472,7 @@ class TestNextDisplayOrder:
         Returns:
             MagicMock を返す。
         """
+        # 1. 表示順の最大値取得とINSERTの応答をクエリモックへ設定する。
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、mock_sb.table.return_value.select.return_value.order.return_value.limit.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -631,7 +632,8 @@ class TestProductValidation:
         Returns:
             POST リクエストのテストレスポンスを返す。
         """
-        # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 管理DBを差し替え、商品作成APIへPOSTする。
+        # 変数の内容: mock_sb: 管理用 Supabase クライアントのモック。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.insert.return_value.execute.return_value.data = [{'id': 'p1', **body}]

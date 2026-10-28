@@ -14,7 +14,8 @@ def error_summary(e: BaseException) -> str:
     Returns:
         例 'APIError(code=23505)'・'ConnectionError'
     """
-    # 変数の内容: code: DB エラーまたは応答の識別コード、name: 画面やログに表示する名前。
+    # 1. 個人情報を含む例外本文を避けるため、識別コードと例外クラス名だけを取り出す。
+    # 変数の内容: code: 例外に設定されたエラーコードまたはHTTPステータス、name: 例外クラスの名前。
     code: Any = getattr(e, 'code', None) or getattr(e, 'status_code', None)
     name = type(e).__name__
     return f'{name}(code={code})' if code else name

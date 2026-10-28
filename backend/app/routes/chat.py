@@ -135,7 +135,7 @@ def _build_site_context() -> str:
         if rows:
             # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【販売中の商品】']
-            # 変数の内容: p: 販売中の商品レコード。。
+            # 変数の内容: p: 販売中の商品レコード。
             for p in rows:
                 # 変数の内容: cat: 商品カテゴリの表示文字列。
                 cat = f"[{p['category']}] " if p.get('category') else ''

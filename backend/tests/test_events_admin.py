@@ -49,6 +49,7 @@ def _make_public_sb_mock(events_data: list) -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. 公開イベント・画像クエリに対する Supabase モックの返却値を設定する。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # table('events').select('*').eq(...).execute().data
@@ -1121,6 +1122,7 @@ def _make_list_sb_mock(events_data: list) -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. 管理一覧で使う複数テーブルの応答をモックへ登録する。
     # 変数の内容: chain: Supabase クエリの呼び出し連鎖モック、mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     chain = mock_sb.table.return_value

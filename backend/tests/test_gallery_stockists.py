@@ -18,6 +18,7 @@ def _make_gallery_mock(all_data: list, brand_data: list = None):
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. 公開ギャラリー一覧、表示順、ブランド条件のクエリモックを設定する。
     # 変数の内容: brand_data: ブランド指定時に返す画像行、chain: Supabase クエリの呼び出し連鎖モック、mock_sb: 公開用 Supabase クライアントのモック。
     brand_data = brand_data if brand_data is not None else []
     mock_sb = MagicMock()

@@ -101,7 +101,7 @@ def fetch_one_or_none(query: Any) -> dict | None:
     """
     # 1. 単一行を読み、存在しない場合だけ None にして、それ以外の障害は呼び出し元へ返す。
     try:
-        # 変数の内容: data: DB応答から取得した単一レコードまたは未取得を示す値。。
+        # 変数の内容: data: DB応答から取得した単一レコードまたは未取得を示す値。
         data = query.single().execute().data
     # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
@@ -126,7 +126,7 @@ def fetch_one_or_404(query: Any, detail: str = 'Not found') -> dict:
         Exception: 接続の失敗など「見つからない」以外のエラー
     """
     # 1. 共通の単一行取得を呼び、未取得なら指定された 404 を返す。
-    # 変数の内容: data: DB応答から取得した単一レコード。。
+    # 変数の内容: data: DB応答から取得した単一レコード。
     data = fetch_one_or_none(query)
     if data is None:
         raise HTTPException(status_code=404, detail=detail)
@@ -149,7 +149,7 @@ def first_or_404(result: Any, detail: str = 'Not found') -> dict:
         HTTPException(404): 結果が 0 件の場合
     """
     # 1. execute() 結果の data が空でないリストかを確かめる。
-    # 変数の内容: data: DB応答の先頭レコード。。
+    # 変数の内容: data: DB応答の先頭レコード。
     data = getattr(result, 'data', None)
     if not isinstance(data, list) or not data:
         raise HTTPException(status_code=404, detail=detail)

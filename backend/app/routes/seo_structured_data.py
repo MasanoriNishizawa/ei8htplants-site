@@ -193,7 +193,7 @@ def event_json_ld(
     start = parse_date(event.get('start_date'))
     if start is None:
         return None
-    # 変数の内容: daily: 日別の開催時間設定、end: 解析対象の終了位置、end_hhmm: 終了時刻の HH:MM 表記、end_text: 終了時刻の文字列、end_times: 終了時刻の候補一覧、start_hhmm: 開始時刻の HH:MM 表記、start_text: 開始時刻の文字列、start_times: 開始時刻の候補一覧。
+    # 変数の内容: daily: 日別の開催時間設定、end: 解析後の開催終了日、end_hhmm: 終了時刻の HH:MM 表記、end_text: 終了時刻の文字列、end_times: 終了時刻の候補一覧、start_hhmm: 開始時刻の HH:MM 表記、start_text: 開始時刻の文字列、start_times: 開始時刻の候補一覧。
     end = parse_date(event.get('end_date')) or start
     daily = event.get('daily_times') if isinstance(event.get('daily_times'), dict) else {}
     # 1. 開始日・終了日の個別時間帯を優先し、なければイベント共通の時刻を使う。
