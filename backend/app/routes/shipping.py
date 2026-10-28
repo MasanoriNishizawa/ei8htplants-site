@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/shipping', tags=['shipping'])
 
 # 都道府県別送料（円）。実際の送料に合わせて変更してください

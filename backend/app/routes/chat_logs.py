@@ -5,6 +5,7 @@ from ..auth import require_auth
 from ..db import admin_supabase
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/chat-logs', tags=['chat_logs'])
 
 # 一度に返すチャット履歴の最大件数

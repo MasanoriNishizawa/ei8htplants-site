@@ -13,6 +13,7 @@ from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404, next_display_order
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/collaborations', tags=['collaborations'])
 
 
@@ -50,6 +51,7 @@ def add_collaboration(body: CollaborationBody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: コラボレーションの内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した行
@@ -67,6 +69,7 @@ def delete_collaboration(collab_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         collab_id: コラボレーションの ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

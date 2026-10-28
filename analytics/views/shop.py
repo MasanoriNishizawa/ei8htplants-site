@@ -101,12 +101,15 @@ def _stock(products: pd.DataFrame) -> None:
 
     Returns:
         なし。"""
+    # 1. 公開中の商品だけを在庫数の少ない順に並べる。
     st.subheader("在庫")
     # 0件のとき is_published が object 型の空の列になり、そのまま使うと「列の選択」と解釈されるので真偽値にそろえる
     pub = products[products["is_published"].fillna(False).astype(bool)].sort_values("stock")
+    # 2. 対象商品がなければ案内を表示し、一覧表は作らない。
     if pub.empty:
         st.caption("公開中の商品はありません。")
         return
+    # 3. 商品名・カテゴリ・価格・在庫を整形して一覧表示する。
     st.dataframe(
         pd.DataFrame({"商品": pub["name"], "カテゴリ": pub["category"].fillna("—"), "価格": pub["price"], "在庫": pub["stock"]})
         .style.format({"価格": "{:,.0f}円"}),

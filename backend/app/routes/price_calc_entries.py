@@ -12,6 +12,7 @@ from ..db import admin_supabase
 from ..db_utils import execute_or_404
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/price-calc-entries', tags=['price_calc_entries'])
 
 
@@ -51,6 +52,7 @@ def add_entry(body: EntryBody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: 記録の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した行
@@ -69,6 +71,7 @@ def delete_entry(entry_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         entry_id: 記録の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

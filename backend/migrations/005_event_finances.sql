@@ -1,4 +1,4 @@
--- Event finances tracking
+-- イベントごとの売上・出店費用・移動費・その他支出を保存し、管理画面の収支集計に使う。
 CREATE TABLE event_finances (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id uuid NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -18,4 +18,5 @@ CREATE TABLE event_finances (
 );
 
 ALTER TABLE event_finances ENABLE ROW LEVEL SECURITY;
+-- 収支データの読み書きはバックエンドのサービスロールに限定する。
 CREATE POLICY "service_role_all" ON event_finances FOR ALL TO service_role USING (true);

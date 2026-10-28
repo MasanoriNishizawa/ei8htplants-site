@@ -10,6 +10,7 @@ from ..auth import require_auth
 from ..db import admin_supabase, supabase
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/site-assets', tags=['site-assets'])
 
 # 公開ページから変更する画像設定だけを許可する

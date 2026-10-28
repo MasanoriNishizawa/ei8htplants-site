@@ -13,6 +13,7 @@ from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404, first_or_404, next_display_order
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/gallery', tags=['gallery'])
 
 
@@ -60,6 +61,7 @@ def add_image(body: GalleryBody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: 画像の URL・代替テキスト・ブランド
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した行
@@ -78,6 +80,7 @@ def update_image(image_id: str, body: GalleryOrderPatch, _=Depends(require_auth)
     Args:
         image_id: 画像の ID
         body: 新しい表示順
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の行
@@ -95,6 +98,7 @@ def delete_image(image_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         image_id: 画像の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

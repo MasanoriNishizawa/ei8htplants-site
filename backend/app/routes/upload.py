@@ -19,6 +19,7 @@ from ..db import admin_supabase
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/upload', tags=['upload'])
 
 # 画像を置く公開バケット
@@ -205,6 +206,7 @@ def upload_image(file: UploadFile = File(...), _=Depends(require_auth)) -> dict:
 
     Args:
         file: アップロードするファイル（multipart/form-data）
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"url": "<public_url>"} の辞書
@@ -223,6 +225,7 @@ def upload_video(file: UploadFile = File(...), _=Depends(require_auth)) -> dict:
 
     Args:
         file: アップロードする動画ファイル（multipart/form-data）
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"url": "<public_url>"} の辞書

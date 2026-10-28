@@ -104,10 +104,12 @@ def run_tsc() -> dict:
     Returns:
         suite名、終了コード、件数、診断を持つ結果dict。
     """
+    # 1. アプリ本体を含む tsconfig.app.json を指定して型チェックを実行する。
     # frontend/tsconfig.json は files: []（参照をまとめるだけ）なので、アプリのコードを含む tsconfig.app.json を指定する。
     # 指定しないと何も検査せずに成功してしまう
     # code / out / sec: 型チェックの終了コード・出力・経過秒数。
     code, out, sec = run(["npx", "tsc", "--noEmit", "-p", "tsconfig.app.json"], ROOT / "frontend")
+    # 2. 実行結果と出力を共通のテスト結果形式に変換して返す。
     return parse_tsc_result(code, out, sec)
 
 
@@ -248,12 +250,14 @@ def run_runner_tests() -> dict:
     Returns:
         unittestの件数・終了コード・診断を含む結果dict。
     """
+    # 1. テストランナー自身のunittestを置くフォルダから回帰テストを実行する。
     # tests_dir: テストランナー自身のunittestを置くフォルダ。
     tests_dir = ROOT / "scripts" / "tests"
     # code / out / sec: runner回帰テストの終了コード・出力・実行秒数。
     code, out, sec = run(
         [sys.executable, "-m", "unittest", "discover", "-s", str(tests_dir)], ROOT
     )
+    # 2. 件数・終了コード・出力を共通の結果形式に変換する。
     return parse_runner_tests_result(code, out, sec)
 
 

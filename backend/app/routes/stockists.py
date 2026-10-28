@@ -13,6 +13,7 @@ from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404, first_or_404, next_display_order
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/stockists', tags=['stockists'])
 
 
@@ -48,6 +49,7 @@ def add_stockist(body: StockistBody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: 取扱店の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した行
@@ -66,6 +68,7 @@ def update_stockist(stockist_id: str, body: StockistBody, _=Depends(require_auth
     Args:
         stockist_id: 取扱店の ID
         body: 取扱店の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の行
@@ -83,6 +86,7 @@ def delete_stockist(stockist_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         stockist_id: 取扱店の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

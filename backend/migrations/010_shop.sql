@@ -1,4 +1,4 @@
--- Online shop: products, orders, order_items
+-- オンラインショップの商品・注文・注文明細テーブルを作成し、公開読み取りと管理権限を設定する。
 
 CREATE TABLE products (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13,8 +13,10 @@ CREATE TABLE products (
 );
 
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+-- 公開ページには公開済み商品のみを読み取り可能にする。
 CREATE POLICY "public read published products" ON products
     FOR SELECT TO anon USING (is_published = true);
+-- 商品の追加・更新・削除はバックエンドのサービスロールに限定する。
 CREATE POLICY "service manage products" ON products
     FOR ALL TO service_role USING (true);
 
@@ -38,6 +40,7 @@ CREATE TABLE orders (
 );
 
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+-- 注文情報はバックエンドのサービスロールのみが管理する。
 CREATE POLICY "service manage orders" ON orders
     FOR ALL TO service_role USING (true);
 
@@ -52,10 +55,12 @@ CREATE TABLE order_items (
 );
 
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+-- 注文明細はバックエンドのサービスロールのみが管理する。
 CREATE POLICY "service manage order_items" ON order_items
     FOR ALL TO service_role USING (true);
 
 -- 在庫をアトミックに減算する関数。
+-- 引数は対象商品UUIDと減算数。戻り値 true は在庫を確保できたことを示す。
 -- 在庫が足りない場合は false を返すため、アプリ層でロールバック処理を行う。
 CREATE OR REPLACE FUNCTION decrement_stock(p_product_id uuid, p_quantity integer)
 RETURNS boolean

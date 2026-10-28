@@ -14,6 +14,7 @@ from ..db import admin_supabase
 from ..db_utils import execute_or_404, first_or_404
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/chat-qa', tags=['chat_qa'])
 
 
@@ -62,6 +63,7 @@ def add_chat_qa(body: ChatQABody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: Q&A の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した行
@@ -77,6 +79,7 @@ def update_chat_qa(qa_id: str, body: ChatQABody, _=Depends(require_auth)) -> dic
     Args:
         qa_id: Q&A の ID
         body: Q&A の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の行
@@ -94,6 +97,7 @@ def delete_chat_qa(qa_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         qa_id: Q&A の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

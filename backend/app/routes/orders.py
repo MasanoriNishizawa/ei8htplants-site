@@ -40,6 +40,7 @@ from .shipping import RATES
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/orders', tags=['orders'])
 
 # Square の API の接続先（SQUARE_ENVIRONMENT が 'production' なら本番、それ以外はテスト環境）
@@ -587,6 +588,7 @@ def get_order(order_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         order_id: 注文の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         注文の行に 'items'（注文明細のリスト）を加えた dict
@@ -671,6 +673,7 @@ def update_order_status(order_id: str, body: OrderStatusPatch, _=Depends(require
     Args:
         order_id: 更新対象の注文ID
         body: 新しいステータス、および配送会社・追跡番号（shipped の場合のみ使用）
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の注文レコード

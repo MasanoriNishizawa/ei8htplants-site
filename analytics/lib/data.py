@@ -79,12 +79,15 @@ def _credentials() -> tuple[str, str]:
     Raises:
         RuntimeError: 必要な値がないとき
     """
+    # 1. 接続先 URL とサービスキーを環境変数から読み込む。
     # 変数の内容: url: Supabase 接続先 URL を環境変数から取得する。
     url = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
     # 変数の内容: key: データ取得に使う Supabase サービスキーを環境変数から取得する。
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    # 2. 必須値が欠けていれば、設定不足を明示して取得処理を止める。
     if not url or not key:
         raise RuntimeError("環境変数（ローカルでは .env）に NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY がありません")
+    # 3. URL末尾の余分なスラッシュを除き、URLとキーを返す。
     return url.rstrip("/"), key
 
 

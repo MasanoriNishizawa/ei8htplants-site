@@ -19,6 +19,7 @@ from ..utils.errors import error_summary
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/contact', tags=['contact'])
 
 # 名前の最大文字数
@@ -134,6 +135,7 @@ def update_contact(contact_id: str, body: ContactPatch, _=Depends(require_auth))
     Args:
         contact_id: お問い合わせの ID
         body: 既読かどうか
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の行
@@ -151,6 +153,7 @@ def reply_contact(contact_id: str, body: ContactReply, _=Depends(require_auth)) 
     Args:
         contact_id: 返信対象のお問い合わせID
         body: 件名と本文を含む返信内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True} の固定レスポンス

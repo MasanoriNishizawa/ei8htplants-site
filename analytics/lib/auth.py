@@ -155,16 +155,18 @@ def _record_failure() -> None:
 
     Returns:
         なし。"""
+    # 1. 現在時刻とセッションに記録された連続失敗状態を取得する。
     # 変数の内容: now: 現在時刻。ログイン失敗時刻とロック期限の比較に使う。
     now = time.time()
     # 変数の内容: count: セッションに記録された連続ログイン失敗回数。
     count = st.session_state.get(SESSION_FAIL_COUNT, 0)
     # 変数の内容: last: セッションに記録された直近のログイン失敗時刻。
     last = st.session_state.get(SESSION_LAST_FAIL)
-    # ロックが明けたあとなら回数をリセットしてから数える（明けた直後の1回で再ロックしないように）
+    # 2. ロックが明けていたら失敗回数をリセットし、今回の失敗を新しい1回目として数える。
     if count >= MAX_FAILS and last is not None and now - last >= LOCK_SECONDS:
         # 変数の内容: count: セッションに記録された連続ログイン失敗回数。
         count = 0
+    # 3. 更新した連続失敗回数と今回の失敗時刻をセッションへ保存する。
     st.session_state[SESSION_FAIL_COUNT] = count + 1
     st.session_state[SESSION_LAST_FAIL] = now
 

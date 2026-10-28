@@ -29,6 +29,7 @@ def render() -> None:
 
     Returns:
         なし。"""
+    # 1. 集計済みデータを取得し、画面タイトルと計算条件を表示する。
     # 変数の内容: ctx: イベント一覧画面で使う集計済みデータコンテキスト。
     ctx = get_context()
     st.title("イベント収支")
@@ -37,9 +38,11 @@ def render() -> None:
         f"（移動費は往復距離 ÷ {FUEL_EFFICIENCY_KM_PER_L}km/L × ガソリン単価）"
     )
 
+    # 2. 収支データまたは売上実績がなければ案内を表示して終了する。
     if ctx.fin.empty:
         no_data("イベント収支")
         return
+    # 3. 売上確定済みの回を抽出し、集計対象外の件数を案内する。
     # 変数の内容: done: 売上が確定したイベントの行だけを抽出する。
     done = ctx.done.copy()
     # 変数の内容: pending: 全イベント数から確定済み件数を引いた未確定件数。
@@ -49,6 +52,7 @@ def render() -> None:
     if done.empty:
         no_data("売上の入力されたイベント")
         return
+    # 4. グラフ用の一意なイベント名を作り、各集計・内訳・明細を順に表示する。
     # グラフの軸に出す名前。年を入れ、同じ名前が重なるときは連番を付けて、別の回が1本の棒にまとまらないようにする
     done["label"] = event_labels(done["start_date"], done["name"])
 
@@ -69,6 +73,7 @@ def _summary(done: pd.DataFrame) -> None:
 
     Returns:
         なし。"""
+    # 1. 売上実績から中央値・黒字回数・収支率を計算し、4つの指標カードに並べる。
     # 変数の内容: c1, c2, c3, c4: 4分割したイベント概要カードの列配置。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("1回あたりの売上（中央値）", yen(done["sales"].median()))
@@ -113,6 +118,7 @@ def _break_even(done: pd.DataFrame) -> None:
 
     Returns:
         なし。"""
+    # 1. 売上額でイベントを並べ、実売上と損益分岐売上を同じ横軸に描く。
     st.subheader("売上と損益分岐点")
     st.caption("◆ は収支が 0 円になる売上。棒がこれより右にあれば黒字です。")
     # 変数の内容: order: 売上額の昇順で並べた損益分岐比較用イベント。
@@ -204,6 +210,7 @@ def _workshop(done: pd.DataFrame) -> None:
 
     Returns:
         なし。"""
+    # 1. ワークショップ開催有無ごとに回数・平均売上・平均収支を集計して表示する。
     st.subheader("WS ありの回 と なしの回")
     # 変数の内容: ws: ワークショップ開催有無ごとの回数・平均売上集計。
     ws = done.groupby("has_workshop").agg(回数=("event_id", "count"), 平均売上=("sales", "mean"), 平均収支=("net", "mean"))

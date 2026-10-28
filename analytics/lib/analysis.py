@@ -266,6 +266,7 @@ def rfm_table(orders: pd.DataFrame, today: pd.Timestamp) -> pd.DataFrame:
         Returns:
             区分名
         """
+        # 1. 購入頻度と最終購入日の条件から、優良・最近購入・休眠の順に区分を決める。
         if r["frequency"] >= RFM_LOYAL_FREQUENCY and r["recency_days"] <= RFM_RECENT_DAYS:
             return f"優良（直近{RFM_RECENT_DAYS}日・{RFM_LOYAL_FREQUENCY}回以上）"
         if r["recency_days"] <= RFM_RECENT_DAYS:

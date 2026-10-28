@@ -7,6 +7,7 @@ from fastapi.responses import PlainTextResponse
 from ..auth import require_auth
 
 # 設計書の API は管理画面からだけ使うので、ルーター全体でログインを必須にする
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(dependencies=[Depends(require_auth)])
 
 # 設計書のフォルダ（プロジェクトルートの doc/）

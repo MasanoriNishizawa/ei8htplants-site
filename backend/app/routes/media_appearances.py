@@ -14,6 +14,7 @@ from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/media-appearances', tags=['media_appearances'])
 
 
@@ -48,6 +49,7 @@ def add_media_appearance(body: MediaAppearanceBody, _=Depends(require_auth)) -> 
 
     Args:
         body: 出演情報の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した行
@@ -61,6 +63,7 @@ def delete_media_appearance(item_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         item_id: 出演情報の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

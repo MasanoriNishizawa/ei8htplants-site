@@ -23,6 +23,7 @@ from ..utils.ids import is_uuid
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/events', tags=['events'])
 
 
@@ -412,6 +413,7 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) 
     Args:
         event_id: 対象イベントのID
         body: 保存するセッションリスト（id・time_label・max_participants を含む）
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         保存後の最新セッションリスト（reserved_count 付き）
@@ -475,6 +477,7 @@ def save_page_content(event_id: str, body: PageContentBody, _=Depends(require_au
     Args:
         event_id: イベントの ID
         body: ページの内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後のイベント（get_event と同じ形）
@@ -527,6 +530,7 @@ def create_event(body: EventBody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: イベントの内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成したイベント（get_event と同じ形）
@@ -547,6 +551,7 @@ def update_event(event_id: str, body: EventBody, _=Depends(require_auth)) -> dic
     Args:
         event_id: イベントの ID
         body: イベントの内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後のイベント（get_event と同じ形）
@@ -572,6 +577,7 @@ def delete_event(event_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         event_id: イベントの ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}（UUID の形の存在しない id でも同じ。消す対象が無いだけなので成功とする）
@@ -590,6 +596,7 @@ def get_finances(event_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         event_id: イベントの ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         event_finances の行、または {event_id, ...既定値}
@@ -617,6 +624,7 @@ def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)) -> 
     Args:
         event_id: イベントの ID
         body: 収支の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         保存した event_finances の行
@@ -641,6 +649,7 @@ def get_admin_info(event_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         event_id: 対象イベントのUUID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         管理情報の dict。未登録の場合は {}
@@ -694,6 +703,7 @@ def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_auth))
     Args:
         event_id: 対象イベントのUUID
         body: 保存する管理情報（AdminInfoBody スキーマで型を保証）
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

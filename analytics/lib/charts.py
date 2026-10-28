@@ -229,8 +229,10 @@ def monthly_bar(
     Returns:
         棒グラフ（見た目は style で整える）
     """
+    # 1. 共通の棒グラフ部品で月別データを作図し、タイトル・色・補足値を渡す。
     # 変数の内容: fig: 月別の値を月目盛りで表示する Plotly 棒グラフ。
     fig = bar_chart(months, values, hovertemplate, title=title, horizontal=False, customdata=customdata, color=color)
+    # 2. 横軸を年月表示にし、1か月ごとに目盛りを置いて図を返す。
     fig.update_xaxes(tickformat="%Y/%-m", dtick="M1")
     return fig
 

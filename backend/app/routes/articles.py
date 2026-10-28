@@ -14,6 +14,7 @@ from ..db import admin_supabase
 from ..db_utils import execute_or_404, fetch_one_or_404, fetch_one_or_none, first_or_404
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/articles', tags=['articles'])
 
 
@@ -102,6 +103,7 @@ def create_article(body: ArticleBody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: 記事の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した記事の行
@@ -122,6 +124,7 @@ def update_article(article_id: str, body: ArticleBody, _=Depends(require_auth)) 
     Args:
         article_id: 記事の ID
         body: 記事の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の記事の行
@@ -145,6 +148,7 @@ def delete_article(article_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         article_id: 記事の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}

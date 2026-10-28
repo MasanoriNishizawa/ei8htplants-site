@@ -147,10 +147,12 @@ def _daily(report: Report) -> None:
 
     Returns:
         なし。"""
+    # 1. 日別アクセスレポートを取得し、取得できなければこの図の表示を省略する。
     # 変数の内容: daily: 日別アクセスレポート。取得できなければ後続表示を行わない。
     daily = _try_report("日ごとの訪問者数", report, ("date",), ("activeUsers", "screenPageViews"))
     if daily is None:
         return
+    # 2. 日付順に並べ替え、訪問者数とページビューの推移を折れ線図にする。
     # 変数の内容: daily: 日別アクセスレポート。取得できなければ後続表示を行わない。
     daily = daily.sort_values("date")
     # 変数の内容: fig: 日別アクティブユーザー数の推移を描画する Plotly 図。
@@ -159,6 +161,7 @@ def _daily(report: Report) -> None:
         marker=dict(size=8), customdata=daily["screenPageViews"],
         hovertemplate="%{x|%-m/%-d}<br>訪問者 %{y}人<br>%{customdata}PV<extra></extra>",
     ))
+    # 3. 日付・人数の表示形式を整えて画面に描画する。
     fig.update_layout(title="日ごとの訪問者数", showlegend=False)
     fig.update_xaxes(tickformat="%-m/%-d")
     fig.update_yaxes(ticksuffix="人", rangemode="tozero")
@@ -308,6 +311,7 @@ def _setup_guide(problem: str | None) -> None:
 
     Returns:
         なし。"""
+    # 1. 接続設定の問題を警告として示す。
     st.warning(problem or "Google アナリティクスとの接続が設定されていません。")
     st.markdown(
         """
@@ -337,4 +341,5 @@ GA_CREDENTIALS_JSON = '''
 ```
 """
     )
+    # 2. 鍵情報の取り扱い上の注意を、設定手順の下に表示する。
     st.caption("鍵ファイル（とその中身）はパスワードと同じ扱いです。リポジトリに入れたり、人に送ったりしないでください。")

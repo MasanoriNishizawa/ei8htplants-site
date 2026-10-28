@@ -77,6 +77,7 @@ from .seo_structured_data import (
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(tags=['seo'])
 
 # ---------------------------------------------------------------------------
@@ -569,6 +570,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     Args:
         path: リクエストのパス（"/official/events/foo" など。先頭のスラッシュは無くてもよい）
         query: クエリ文字列（/official/events?page=past で "Past Events" にするために使う）
+        hostname: ブランド専用ドメインの判定に使うリクエスト元のホスト名。
 
     Returns:
         PageMeta
@@ -757,6 +759,7 @@ def _sitemap_url(path: str, lastmod: Any = None, origin: str = SITE_ORIGIN) -> s
     Args:
         path: ページのパス（"/official/events/foo" など）
         lastmod: 最終更新日（'YYYY-MM-DD...'）。読めなければ入れない
+        origin: URL に付けるサイトの origin。
 
     Returns:
         <url> 要素の文字列

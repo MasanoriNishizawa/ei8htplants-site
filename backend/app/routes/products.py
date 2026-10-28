@@ -13,6 +13,7 @@ from ..db import admin_supabase
 from ..db_utils import execute_or_404, fetch_one_or_404, first_or_404
 
 # 変数の内容: router: この API 群のルーター。
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/products', tags=['products'])
 
 # 商品のカテゴリーとして選べる値（管理画面の選択肢と同じ）
@@ -129,6 +130,7 @@ def create_product(body: ProductBody, _=Depends(require_auth)) -> dict:
 
     Args:
         body: 商品の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         作成した商品の行
@@ -144,6 +146,7 @@ def update_product(product_id: str, body: ProductBody, _=Depends(require_auth)) 
     Args:
         product_id: 商品の ID
         body: 商品の内容
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の商品の行
@@ -161,6 +164,7 @@ def delete_product(product_id: str, _=Depends(require_auth)) -> dict:
 
     Args:
         product_id: 商品の ID
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         {"ok": True}
@@ -181,6 +185,7 @@ def update_stock(product_id: str, body: StockPatch, _=Depends(require_auth)) -> 
     Args:
         product_id: 商品の ID
         body: 新しい在庫数
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の商品の行

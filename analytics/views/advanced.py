@@ -186,12 +186,14 @@ def _past_label(names: list, dates: list, weights: list) -> str:
     Returns:
         表示用の文字列。過去の回が無ければ空文字
     """
+    # 1. 各過去開催について、開催時期と重みを含むラベルを組み立てる。
     # 変数の内容: parts: 開催実績の表示ラベルを組み立てる文字列要素。
     parts = []
     for name, date, w in zip(names, dates, weights):
         # 開催日が分からない回は時期を「時期不明」と出す
         when = f"{date.year}年{date.month}月" if pd.notna(date) else "時期不明"
         parts.append(f"{name}（{when}・重み{w:.0%}）")
+    # 2. ラベルをスラッシュで連結して返す。
     return " / ".join(parts)
 
 
@@ -297,8 +299,10 @@ def _default_gas_price(done: pd.DataFrame) -> int:
     Returns:
         ガソリン単価（円/L）。実績に 0 より大きい単価が無ければ DEFAULT_GAS_PRICE
     """
+    # 1. 過去の単価を数値へ変換し、正の値だけに絞る。
     # 変数の内容: prices: 過去イベントのガソリン単価を数値化した候補。
     prices = pd.to_numeric(done["gas_price"], errors="coerce")
     # 変数の内容: prices: 過去イベントのガソリン単価を数値化した候補。
     prices = prices[prices > 0]
+    # 2. 有効値があれば中央値を整数で返し、なければ既定値を使う。
     return int(round(prices.median())) if not prices.empty else DEFAULT_GAS_PRICE

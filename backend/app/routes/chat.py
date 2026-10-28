@@ -22,6 +22,7 @@ from ..utils.errors import error_summary
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter()
 
 # 1分間に同じ IP から送れるメッセージの最大数

@@ -33,6 +33,7 @@ from ..utils.errors import error_summary
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
+# main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/reserve', tags=['reserve'])
 
 # 1 件の予約で申し込める最大人数
@@ -772,6 +773,7 @@ def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)) -
 
     Args:
         event_id: 指定するとそのイベントの予約だけにする
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         予約レコードのリスト
@@ -801,6 +803,7 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
     Args:
         reservation_id: 更新対象の予約ID
         body: 新しいステータス値を含むリクエストボディ
+        _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
         更新後の予約レコード
