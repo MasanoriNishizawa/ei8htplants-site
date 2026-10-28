@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
 import { SectionBox } from './AdminInfoParts'
+import EventAdminInfoDateTimeField from './EventAdminInfoDateTimeField'
 import EventGuidelinesImages from './EventGuidelinesImages'
 import { confirmLeaveIfDirty, dirtySnapshotJson, useUnsavedChanges } from './UnsavedChanges'
 
@@ -83,12 +84,6 @@ function splitDateTime(value: string | null | undefined): DateTimeParts {
 
 /** 出店料支払い方法の選択肢 */
 const PAY_METHODS = ['当日現金', '事前振込', 'その他'] as const
-
-/** 時 select の選択肢（06〜22） */
-const HOUR_OPTIONS: string[] = Array.from({ length: 17 }, (_, i) => String(i + 6).padStart(2, '0'))
-
-/** 分 select の選択肢（00〜55、5分刻み） */
-const MINUTE_OPTIONS: string[] = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
 
 /**
  * イベント管理情報（搬入・搬出・宿泊・出店料・出店要項・メモ）を入力・保存するページ
@@ -349,17 +344,6 @@ export default function EventAdminInfo() {
     boxSizing: 'border-box',
   }
 
-  /** 搬入・搬出の時・分 select の見た目。スマホでも押しやすいよう高さを 44px 確保する */
-  const timeSelectStyle: React.CSSProperties = {
-    padding: '10px 8px',
-    minHeight: 44,
-    border: '1px solid #dddde8',
-    borderRadius: 4,
-    fontSize: 15,
-    fontFamily: 'inherit',
-    background: '#ffffff',
-  }
-
   /** 入力欄の上の項目名の見た目 */
   const labelStyle: React.CSSProperties = {
     display: 'block',
@@ -413,96 +397,52 @@ export default function EventAdminInfo() {
         {/* 搬入・搬出 */}
         <SectionBox label="搬入・搬出" hint="日付・時・分をすべて入力した場合のみ保存されます">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* 搬入日時: 日付 input・時 select・分 select を組み合わせる */}
-            <div>
-              <label htmlFor="carry-in-date" style={labelStyle}>搬入日時</label>
-              {/* 狭い幅では日付の下に時・分が折り返す */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <input
-                  id="carry-in-date"
-                  type="date"
-                  style={{ ...inputStyle, flex: '1 1 160px', minWidth: 0 }}
-                  value={carryInDate}
-                  onChange={(e) => {
-                    setCarryInDate(e.target.value)
-                    set('carry_in_time', combineDateTime(e.target.value, carryInHour, carryInMin))
-                  }}
-                />
-                {/* 時・分は折り返しても離れないよう1つのまとまりにする */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '0 0 auto' }}>
-                  <select
-                    aria-label="搬入の時"
-                    style={timeSelectStyle}
-                    value={carryInHour}
-                    onChange={(e) => {
-                      setCarryInHour(e.target.value)
-                      set('carry_in_time', combineDateTime(carryInDate, e.target.value, carryInMin))
-                    }}
-                  >
-                    <option value="">--</option>
-                    {HOUR_OPTIONS.map((h) => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                  <span style={{ fontSize: 15, color: 'var(--c-muted)' }}>:</span>
-                  <select
-                    aria-label="搬入の分"
-                    style={timeSelectStyle}
-                    value={carryInMin}
-                    onChange={(e) => {
-                      setCarryInMin(e.target.value)
-                      set('carry_in_time', combineDateTime(carryInDate, carryInHour, e.target.value))
-                    }}
-                  >
-                    <option value="">--</option>
-                    {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-            {/* 搬出日時: 日付 input・時 select・分 select を組み合わせる */}
-            <div>
-              <label htmlFor="carry-out-date" style={labelStyle}>搬出日時</label>
-              {/* 狭い幅では日付の下に時・分が折り返す */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <input
-                  id="carry-out-date"
-                  type="date"
-                  style={{ ...inputStyle, flex: '1 1 160px', minWidth: 0 }}
-                  value={carryOutDate}
-                  onChange={(e) => {
-                    setCarryOutDate(e.target.value)
-                    set('carry_out_time', combineDateTime(e.target.value, carryOutHour, carryOutMin))
-                  }}
-                />
-                {/* 時・分は折り返しても離れないよう1つのまとまりにする */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '0 0 auto' }}>
-                  <select
-                    aria-label="搬出の時"
-                    style={timeSelectStyle}
-                    value={carryOutHour}
-                    onChange={(e) => {
-                      setCarryOutHour(e.target.value)
-                      set('carry_out_time', combineDateTime(carryOutDate, e.target.value, carryOutMin))
-                    }}
-                  >
-                    <option value="">--</option>
-                    {HOUR_OPTIONS.map((h) => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                  <span style={{ fontSize: 15, color: 'var(--c-muted)' }}>:</span>
-                  <select
-                    aria-label="搬出の分"
-                    style={timeSelectStyle}
-                    value={carryOutMin}
-                    onChange={(e) => {
-                      setCarryOutMin(e.target.value)
-                      set('carry_out_time', combineDateTime(carryOutDate, carryOutHour, e.target.value))
-                    }}
-                  >
-                    <option value="">--</option>
-                    {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
+            <EventAdminInfoDateTimeField
+              id="carry-in-date"
+              label="搬入日時"
+              date={carryInDate}
+              hour={carryInHour}
+              minute={carryInMin}
+              hourLabel="搬入の時"
+              minuteLabel="搬入の分"
+              inputStyle={inputStyle}
+              labelStyle={labelStyle}
+              onDateChange={(value) => {
+                setCarryInDate(value)
+                set('carry_in_time', combineDateTime(value, carryInHour, carryInMin))
+              }}
+              onHourChange={(value) => {
+                setCarryInHour(value)
+                set('carry_in_time', combineDateTime(carryInDate, value, carryInMin))
+              }}
+              onMinuteChange={(value) => {
+                setCarryInMin(value)
+                set('carry_in_time', combineDateTime(carryInDate, carryInHour, value))
+              }}
+            />
+            <EventAdminInfoDateTimeField
+              id="carry-out-date"
+              label="搬出日時"
+              date={carryOutDate}
+              hour={carryOutHour}
+              minute={carryOutMin}
+              hourLabel="搬出の時"
+              minuteLabel="搬出の分"
+              inputStyle={inputStyle}
+              labelStyle={labelStyle}
+              onDateChange={(value) => {
+                setCarryOutDate(value)
+                set('carry_out_time', combineDateTime(value, carryOutHour, carryOutMin))
+              }}
+              onHourChange={(value) => {
+                setCarryOutHour(value)
+                set('carry_out_time', combineDateTime(carryOutDate, value, carryOutMin))
+              }}
+              onMinuteChange={(value) => {
+                setCarryOutMin(value)
+                set('carry_out_time', combineDateTime(carryOutDate, carryOutHour, value))
+              }}
+            />
           </div>
         </SectionBox>
 
