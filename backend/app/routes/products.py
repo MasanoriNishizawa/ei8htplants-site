@@ -88,11 +88,13 @@ def list_products(all: bool = False, is_admin: bool = Depends(optional_auth)) ->
     """
     if all and not is_admin:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 1. 管理者用クライアントで一覧クエリを作る。
     # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('products').select('*').order('display_order')
     if not all:
         # 管理用クライアントは RLS を通らないので、公開中だけの条件をアプリで付ける
         q = q.eq('is_published', True)
+    # 2. 公開条件または全件条件に合う商品を取得して返す。
     return q.execute().data
 
 
@@ -110,11 +112,13 @@ def get_product(product_id: str, is_admin: bool = Depends(optional_auth)) -> dic
     Raises:
         HTTPException(404): 商品が無い・未ログインで非公開の商品を指定した場合
     """
+    # 1. ID で商品を検索し、未ログイン時は公開中の商品に限定する。
     # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('products').select('*').eq('id', product_id)
     if not is_admin:
         # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('is_published', True)
+    # 2. 該当商品を返し、見つからない場合は 404 にする。
     return fetch_one_or_404(q)
 
 
@@ -128,6 +132,7 @@ def create_product(body: ProductBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した商品の行
     """
+    # 1. 入力内容を商品テーブルに登録し、作成行を返す。
     return admin_supabase.table('products').insert(body.model_dump()).execute().data[0]
 
 
@@ -145,6 +150,7 @@ def update_product(product_id: str, body: ProductBody, _=Depends(require_auth)) 
     Raises:
         HTTPException(404): 商品が存在しない場合
     """
+    # 1. ID に一致する商品を更新し、更新行が無ければ 404 にする。
     return first_or_404(execute_or_404(admin_supabase.table('products').update(body.model_dump()).eq('id', product_id)))
 
 
@@ -161,7 +167,9 @@ def delete_product(product_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): id が UUID の形でない場合
     """
+    # 1. ID に一致する商品を削除し、ID の形式が不正なら 404 にする。
     execute_or_404(admin_supabase.table('products').delete().eq('id', product_id))
+    # 2. 削除対象の有無にかかわらず成功応答を返す。
     return {'ok': True}
 
 

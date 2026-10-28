@@ -46,11 +46,13 @@ def list_chat_qa(all: bool = False, is_admin: bool = Depends(optional_auth)) -> 
     """
     if all and not is_admin:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 1. 表示順で並べた Q&A の一覧クエリを作る。
     # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('chat_qa').select('*').order('sort_order')
     if not all:
         # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('enabled', True)
+    # 2. 管理者の全件指定が無ければ有効な回答に絞り、一覧を返す。
     return q.execute().data
 
 
@@ -64,6 +66,7 @@ def add_chat_qa(body: ChatQABody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
+    # 1. 入力内容を登録し、作成した Q&A の行を返す。
     return admin_supabase.table('chat_qa').insert(body.model_dump()).execute().data[0]
 
 
@@ -81,6 +84,7 @@ def update_chat_qa(qa_id: str, body: ChatQABody, _=Depends(require_auth)) -> dic
     Raises:
         HTTPException(404): Q&A が存在しない場合
     """
+    # 1. 指定 ID の Q&A を更新し、対象が無ければ 404 にする。
     return first_or_404(execute_or_404(admin_supabase.table('chat_qa').update(body.model_dump()).eq('id', qa_id)))
 
 

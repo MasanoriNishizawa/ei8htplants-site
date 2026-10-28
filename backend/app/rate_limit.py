@@ -31,7 +31,11 @@ class RateLimiter:
 
         Args:
             limit: window 秒の間に受け付ける最大回数
-            window: 数える期間（秒）"""
+            window: 数える期間（秒）
+
+        Returns:
+            なし。作成した設定をインスタンスに保存する。
+        """
         # window 秒の間に受け付ける最大回数
         self.limit = limit
         # 数える期間（秒）

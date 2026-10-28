@@ -40,6 +40,7 @@ def list_collaborations() -> list[dict]:
     Returns:
         コラボレーションの行のリスト
     """
+    # 1. 表示順で並べたコラボレーション一覧を取得して返す。
     return supabase.table('collaborations').select('*').order('display_order').execute().data
 
 
@@ -53,8 +54,10 @@ def add_collaboration(body: CollaborationBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
+    # 1. 表示順の最大値から、新しい記録の末尾位置を決める。
     # 変数の内容: order: 新しいコラボレーションに割り当てる末尾の表示順。
     order = next_display_order(admin_supabase, 'collaborations')
+    # 2. 入力内容と表示順を登録し、作成した行を返す。
     return admin_supabase.table('collaborations').insert({**body.model_dump(), 'display_order': order}).execute().data[0]
 
 

@@ -432,8 +432,10 @@ def _make_meta(
     Returns:
         PageMeta
     """
+    # 1. 画像 URL を絶対 URL に変換し、指定が無ければ既定画像を使う。
     # 変数の内容: img: 対象画像レコード。
     img = _absolute_url(image) if image else None
+    # 2. タイトル・説明・URLなどの既定値を補い、ページ用メタ情報を作る。
     return PageMeta(
         title=_full_title(title),
         description=description or DEFAULT_DESCRIPTION,
@@ -456,8 +458,10 @@ def _not_found_meta(path: str) -> PageMeta:
     Returns:
         既定値に noindex=True・canonical=False を付けた PageMeta
     """
+    # 1. 共通のメタ情報を作る。
     # 変数の内容: meta: ページの title・description・画像などの SEO 情報。
     meta = _make_meta(path, None, None, None)
+    # 2. ソフト404として検索対象から外し、canonical URL を無効にする。
     # 変数の内容: meta.canonical: 対象オブジェクトに設定するcanonical属性値、meta.noindex: 対象オブジェクトに設定するnoindex属性値。
     meta.noindex = True
     # 変数の内容: meta.canonical: 対象オブジェクトに設定するcanonical属性値。

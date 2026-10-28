@@ -4,90 +4,15 @@ import { api, type EventBody } from '../../lib/api'
 import { failMessage } from './errorMessage'
 import { confirmLeaveIfDirty, useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
 import EventBrandSelector from './EventBrandSelector'
+import EventTimeRangeSelect from './EventTimeRangeSelect'
 import { formatJaMonthDayDow, listDates } from '../../lib/localDate'
 import { WS_DEFAULT_SESSION_CAPACITY } from '../../lib/constants'
-import { TIME_END_OPTIONS, TIME_START_OPTIONS, buildAutoSessions, hasTimeRange, parseTimeRange, type SessionInput } from './eventTime'
+import { buildAutoSessions, hasTimeRange, type SessionInput } from './eventTime'
 
 /** エラーの帯の見た目（読み込み・保存の失敗で共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
   color: '#c0392b', fontSize: 13, margin: 0, padding: '8px 14px',
   background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0',
-}
-
-/**
- * 開始・終了の2つのプルダウンで時間帯を選ぶ部品。両方そろったときだけ「10:00〜17:00」の形で onChange を呼ぶ
- * @param props.value - いまの時間帯の文字列
- * @param props.onChange - 時間帯が変わったときの処理（片方を空にしたら '' を渡す）
- * @param props.style - プルダウンに足す見た目
- * @param props.id - 開始のプルダウンの id（外の label の htmlFor で結び付けるため）
- * @param props.labelPrefix - 読み上げ用のラベルの頭に付ける文字（例: 日ごとの日付）
- * @returns 2つのプルダウン
- * @param value - 対象の値
- * @param onChange - 値の変更を通知する処理
- * @param style - 選択欄に適用するスタイル
- * @param id - 対象の識別子
- * @param labelPrefix - 選択欄のラベルに付ける接頭辞
- */
-export function TimeRangeSelect({ value, onChange, style, id, labelPrefix = '' }: {
-  value: string
-  onChange: (v: string) => void
-  style?: React.CSSProperties
-  id?: string
-  labelPrefix?: string
-}) {
-  /** 最初に受け取った時間帯を開始・終了に分けたもの（state の初期値にだけ使う） */
-  const [parsed] = useState(() => parseTimeRange(value))
-  /** 選んでいる開始時刻 */
-  const [start, setStart] = useState(parsed[0])
-  /** 選んでいる終了時刻 */
-  const [end, setEnd] = useState(parsed[1])
-
-  // 外から value が変わったら（編集画面の読み込み・「日ごとに異なる」の切り替えなど）プルダウンもそろえる
-  useEffect(() => {
-    // 保存形式の時間帯を開始・終了に分けて、それぞれの選択値へ反映する。
-    const [s, e] = parseTimeRange(value)
-    setStart(s)
-    setEnd(e)
-  }, [value])
-
-  /**
-   * 開始時刻を選んだとき
-   * @param s - 選んだ時刻（'' は未選択）
-   * @returns 戻り値なし。
-   */
-  const handleStart = (s: string) => {
-    setStart(s)
-    if (s && end) onChange(`${s}〜${end}`)
-    else if (!s) onChange('')
-  }
-  /**
-   * 終了時刻を選んだとき
-   * @param e - 選んだ時刻（'' は未選択）
-   * @returns 戻り値なし。
-   */
-  const handleEnd = (e: string) => {
-    setEnd(e)
-    if (start && e) onChange(`${start}〜${e}`)
-    else if (!e) onChange('')
-  }
-
-  /** 開始・終了のプルダウンの見た目（props.style で上書きできる） */
-  const selStyle: React.CSSProperties = { flex: 1, padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box', ...style }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      {/* 開始時刻 */}
-      <select id={id} aria-label={`${labelPrefix}開始時刻`} style={selStyle} value={start} onChange={(e) => handleStart(e.target.value)}>
-        <option value="">--</option>
-        {TIME_START_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-      </select>
-      <span style={{ color: 'var(--c-muted)', flexShrink: 0, fontSize: 15 }}>〜</span>
-      {/* 終了時刻 */}
-      <select aria-label={`${labelPrefix}終了時刻`} style={selStyle} value={end} onChange={(e) => handleEnd(e.target.value)}>
-        <option value="">--</option>
-        {TIME_END_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-      </select>
-    </div>
-  )
 }
 
 /**
@@ -461,7 +386,7 @@ export default function AdminEventForm() {
                     {dates.map((d) => (
                       <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span style={{ fontSize: 13, color: 'var(--c-body)', minWidth: 116, flexShrink: 0 }}>{formatJaMonthDayDow(d)}</span>
-                        <TimeRangeSelect
+                        <EventTimeRangeSelect
                           value={dailyTimes[d] ?? ''}
                           onChange={(v) => setDailyTimes((prev) => ({ ...prev, [d]: v }))}
                           style={{ flex: 1 }}
@@ -471,7 +396,7 @@ export default function AdminEventForm() {
                     ))}
                   </div>
                 ) : (
-                  <TimeRangeSelect id="event-time-start" value={form.time} onChange={(v) => set('time', v)} />
+                  <EventTimeRangeSelect id="event-time-start" value={form.time} onChange={(v) => set('time', v)} />
                 )}
               </>
             )

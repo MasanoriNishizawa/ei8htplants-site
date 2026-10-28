@@ -31,14 +31,14 @@ vi.mock('../saveBlob', () => ({ saveBlob: vi.fn(), REVOKE_DELAY_MS: 1000 }))
 /** XSS を試す名前 */
 const XSS_NAME = '<script>window.__printXss = 1</script><img src=x onerror="window.__printXss=2">'
 
-/** WS ありの今後のイベント（1 日だけ） */
+/** WS ありの今後のイベント（1 日だけ。未来日にして終了済み判定に左右されないようにする） */
 const EVENT = {
   id: 'ev-1', slug: 'ev-1', name: 'テスト<b>イベント</b>', start_date: '2099-06-01', end_date: null, time: '10:00〜17:00',
   location: '会場', booth_number: null, address: null, official_url: null, brands: [], has_workshop: true,
   ws_requires_reservation: true, is_past: false, display_order: 1, images: [], page_content: null, daily_times: null,
 } as Event
 
-/** 定員 5 名の時間枠 */
+/** 定員 5 名・予約済み 2 名の時間枠（空き枠表示と人数計算の確認に使う） */
 const SESSION: WsSession = { id: 's-1', event_id: 'ev-1', time_label: '11:00〜12:00', max_participants: 5, reserved_count: 2, display_order: 1 }
 
 /**

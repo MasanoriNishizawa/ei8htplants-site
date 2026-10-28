@@ -38,6 +38,7 @@ def list_stockists() -> list[dict]:
     Returns:
         取扱店の行のリスト
     """
+    # 1. 表示順で並べた取扱店一覧を取得して返す。
     return supabase.table('stockists').select('*').order('display_order').execute().data
 
 
@@ -51,8 +52,10 @@ def add_stockist(body: StockistBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
+    # 1. 表示順の最大値から、新しい取扱店の末尾位置を決める。
     # 変数の内容: order: 新しい取扱店に割り当てる末尾の表示順。
     order = next_display_order(admin_supabase, 'stockists')
+    # 2. 入力内容と表示順を登録し、作成した行を返す。
     return admin_supabase.table('stockists').insert({**body.model_dump(), 'display_order': order}).execute().data[0]
 
 
@@ -70,6 +73,7 @@ def update_stockist(stockist_id: str, body: StockistBody, _=Depends(require_auth
     Raises:
         HTTPException(404): 取扱店が存在しない場合
     """
+    # 1. 指定 ID の取扱店を更新し、対象が無ければ 404 にする。
     return first_or_404(execute_or_404(admin_supabase.table('stockists').update(body.model_dump()).eq('id', stockist_id)))
 
 

@@ -82,11 +82,13 @@ def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
     Returns:
         過去のイベントであれば True。日付として読めないときは False
     """
+    # 1. 終了日（なければ開始日）を ISO 日付として読み、形式不正なら過去扱いしない。
     try:
         # 変数の内容: last_day: イベント開催期間の最終日。
         last_day = date.fromisoformat(end_date or start_date).isoformat()
     except (TypeError, ValueError):
         return False
+    # 2. 開催最終日を日本時間の今日と比較して判定する。
     return last_day < today_jst()
 
 
@@ -467,7 +469,9 @@ def save_page_content(event_id: str, body: PageContentBody, _=Depends(require_au
     Raises:
         HTTPException(404): イベントが存在しない場合
     """
+    # 1. 更新対象のイベントが存在することを確かめる。
     _ensure_event_exists(event_id)
+    # 2. 専用ページの内容を保存し、最新のイベント行を読み直して返す。
     admin_supabase.table('events').update({'page_content': body.page_content}).eq('id', event_id).execute()
     return get_event(event_id)
 
@@ -577,10 +581,13 @@ def get_finances(event_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): id が UUID の形でない場合
     """
+    # 1. 対象イベントの収支を検索する。
     # 変数の内容: result: 収支レコード検索の Supabase 応答。
     result = execute_or_404(admin_supabase.table('event_finances').select('*').eq('event_id', event_id), _EVENT_NOT_FOUND)
     if result.data:
+        # 2. 登録済みの収支があれば、その行を返す。
         return result.data[0]
+    # 3. 未登録なら既定値をイベント ID と組み合わせて返す。
     return {'event_id': event_id, **_FINANCE_DEFAULTS}
 
 
@@ -601,9 +608,11 @@ def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)) -> 
     Raises:
         HTTPException(404): イベントが存在しない場合（無い id で保存すると外部キー違反で 500 になるため先に確かめる）
     """
+    # 1. 収支をひも付けるイベントの存在を確認する。
     _ensure_event_exists(event_id)
     # 変数の内容: data: 保存処理へ渡すイベント収支のリクエストデータ。。
     data = {**body.model_dump(), 'event_id': event_id, 'updated_at': datetime.now(timezone.utc).isoformat()}
+    # 2. event_id を競合キーにして作成または更新し、保存行を返す。
     return admin_supabase.table('event_finances').upsert(data, on_conflict='event_id').execute().data[0]
 
 

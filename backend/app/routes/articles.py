@@ -61,11 +61,14 @@ def list_articles(all: bool = False, is_admin: bool = Depends(optional_auth)) ->
     """
     if all and not is_admin:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 1. 表示順・作成日時で並ぶ記事クエリを作る。
     # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('articles').select('*').order('display_order').order('created_at', desc=True)
     if not all:
+        # 2. 公開記事だけを返す場合は公開条件を加える。
         # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('is_published', True)
+    # 3. 条件に合う記事一覧を取得して返す。
     return q.execute().data
 
 
@@ -83,11 +86,13 @@ def get_article(article_id: str, is_admin: bool = Depends(optional_auth)) -> dic
     Raises:
         HTTPException(404): 記事が無い・未ログインで非公開の記事を指定した場合
     """
+    # 1. ID で記事を検索し、未ログイン時は公開済みの記事に限定する。
     # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('articles').select('*').eq('id', article_id)
     if not is_admin:
         # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('is_published', True)
+    # 2. 該当記事を返し、見つからない場合は 404 にする。
     return fetch_one_or_404(q)
 
 
@@ -101,10 +106,12 @@ def create_article(body: ArticleBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した記事の行
     """
+    # 1. 入力を保存用データに変換する。
     # 変数の内容: payload: DB に保存する値。
     payload = body.model_dump()
     if payload['is_published']:
         payload['published_at'] = _now_iso()
+    # 2. 公開記事には公開日時を設定して保存し、作成行を返す。
     return admin_supabase.table('articles').insert(payload).execute().data[0]
 
 
@@ -122,11 +129,13 @@ def update_article(article_id: str, body: ArticleBody, _=Depends(require_auth)) 
     Raises:
         HTTPException(404): 記事が存在しない場合
     """
+    # 1. 保存済みの公開日時と今回の入力を取得する。
     # 変数の内容: existing: 既に保存されている値、payload: DB に保存する値。
     payload = body.model_dump()
     existing = fetch_one_or_none(admin_supabase.table('articles').select('is_published, published_at').eq('id', article_id))
     if payload['is_published'] and existing and not existing.get('published_at'):
         payload['published_at'] = _now_iso()
+    # 2. 公開状態で公開日時が未設定なら日時を補い、更新後の行を返す。
     return first_or_404(execute_or_404(admin_supabase.table('articles').update(payload).eq('id', article_id)))
 
 

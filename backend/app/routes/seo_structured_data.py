@@ -123,6 +123,7 @@ def event_datetime(day: date, hhmm: Optional[str]) -> str:
     Returns:
         YYYY-MM-DD または YYYY-MM-DDTHH:MM:00+09:00。
     """
+    # 1. 時刻があれば日本時間の日時形式、なければ日付だけの形式を返す。
     if hhmm:
         return f'{day.isoformat()}T{hhmm}:00+09:00'
     return day.isoformat()

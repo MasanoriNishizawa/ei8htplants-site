@@ -8,7 +8,10 @@ import { useHueImages } from '../../sites/hue/useHueImages'
 /** HUE の編集ページ種別。ブランド紹介・一鉢の選び方・植物のある部屋を識別する */
 type HueEditorialPageKind = 'about' | 'choose' | 'living'
 
-// HUE の各編集ページで使う日本語・英語の見出しと本文
+/**
+ * HUE のブランド編集ページに表示する日英コピー・読みもの項目。
+ * `about`・`choose`・`living` のページ種別とキーをそろえ、各項目の画像番号は管理画面の6枚画像に対応する。
+ */
 const PAGE_COPY = {
   about: {
     title: ['HUEについて', 'ABOUT HUE'],

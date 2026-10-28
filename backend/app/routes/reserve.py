@@ -177,12 +177,14 @@ def _sync_reserved_count(session_id: str) -> None:
     Returns:
         なし。
     """
+    # 1. キャンセル以外の予約から、対象セッションの参加人数を取得する。
     # 変数の内容: result: セッションに紐づく予約レコードの DB 応答、、total: 支払総額。
     result = admin_supabase.table('workshop_reservations') \
         .select('participants') \
         .eq('session_id', session_id) \
         .neq('status', 'cancelled') \
         .execute()
+    # 2. 参加人数を合計し、セッションの集計値を上書きする。
     total = sum(r['participants'] for r in (result.data or []))
     admin_supabase.table('ws_sessions').update({'reserved_count': total}).eq('id', session_id).execute()
 
@@ -839,11 +841,13 @@ def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)) -
     Raises:
         HTTPException(404): event_id が UUID の形でない場合
     """
+    # 1. 新着順の予約一覧クエリを作り、イベント指定があれば絞り込む。
     # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('workshop_reservations').select('*').order('created_at', desc=True)
     if event_id:
         # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('event_id', event_id)
+    # 2. クエリを実行し、予約一覧を返す。
     return execute_or_404(q, 'イベントが見つかりません').data
 
 

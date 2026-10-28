@@ -44,11 +44,13 @@ def list_gallery(brand: Optional[str] = None) -> list[dict]:
     Returns:
         画像の行のリスト
     """
+    # 1. 表示順で並べた一覧クエリを作り、ブランド指定があれば絞り込む。
     # 変数の内容: q: DB テーブルに対するクエリ。
     q = supabase.table('gallery_images').select('*').order('display_order')
     if brand:
         # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('brand', brand)
+    # 2. 条件に合う画像一覧を取得して返す。
     return q.execute().data
 
 
@@ -62,8 +64,10 @@ def add_image(body: GalleryBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
+    # 1. 表示順の最大値から、新しい画像の末尾位置を決める。
     # 変数の内容: order: 新しい画像に割り当てる末尾の表示順。
     order = next_display_order(admin_supabase, 'gallery_images')
+    # 2. 入力と表示順を登録し、作成した行を返す。
     return admin_supabase.table('gallery_images').insert({**body.model_dump(), 'display_order': order}).execute().data[0]
 
 
@@ -81,6 +85,7 @@ def update_image(image_id: str, body: GalleryOrderPatch, _=Depends(require_auth)
     Raises:
         HTTPException(404): 画像が存在しない場合
     """
+    # 1. 指定画像の表示順を更新し、対象が無ければ 404 にする。
     return first_or_404(execute_or_404(admin_supabase.table('gallery_images').update(body.model_dump()).eq('id', image_id)))
 
 

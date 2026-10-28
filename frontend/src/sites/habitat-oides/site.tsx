@@ -21,12 +21,32 @@ function HueDomainRedirect() {
   return <PageLoading />
 }
 
-/** Habitat Oides 専用ドメインの表示名・ロゴ・ナビゲーションなどの設定 */
+/**
+ * Habitat Oides 専用ドメインのブランド表示設定。
+ * BrandSiteLayout がヘッダー・フッター・メタ情報を組み立てる際に参照する。
+ */
 export const habitatOidesSite: BrandSiteConfig = {
-  key: 'habitat-oides', name: BRAND.habitatOides.name, descriptor: '植物の景色を仕立てる', descriptorEn: 'Shape a living landscape',
-  origin: 'https://habitatoides.com', logo: BRAND.habitatOides.logo,
-  instagramUrl: BRAND.habitatOides.instagramUrl, instagramHandle: BRAND.habitatOides.instagramHandle,
-  accent: '#304c9b', sections: [
+  /** サイト分岐やブランド固有の CSS クラスに使う識別子 */
+  key: 'habitat-oides',
+  /** ヘッダーやメタ情報に表示するブランド名 */
+  name: BRAND.habitatOides.name,
+  /** 日本語サイトでブランド名の下に表示する説明 */
+  descriptor: '植物の景色を仕立てる',
+  /** 英語サイトでブランド名の下に表示する説明 */
+  descriptorEn: 'Shape a living landscape',
+  /** canonical URL と共有メタ情報に使う専用ドメイン */
+  origin: 'https://habitatoides.com',
+  /** ヘッダーに表示するブランドロゴ */
+  logo: BRAND.habitatOides.logo,
+  /** 共通ヘッダーとフッターに表示する SNS 情報 */
+  instagramUrl: BRAND.habitatOides.instagramUrl,
+  /** Instagram リンクの横に表示するアカウント名 */
+  instagramHandle: BRAND.habitatOides.instagramHandle,
+  /** Habitat Oides のリンクやアクセントに使うテーマ色 */
+  accent: '#304c9b',
+  /** 共通ヘッダーに表示するトップページ内外の案内リンク */
+  sections: [
+    // トップページ内の各セクションと、独立したワークショップ・事例ページへのナビゲーション
     { href: '/#world', label: 'Concept', labelJa: '世界観' },
     { href: '/#workshop', label: 'Workshop', labelJa: 'ワークショップ' },
     { href: '/collaborations', label: 'Collaboration', labelJa: 'コラボレーション' },

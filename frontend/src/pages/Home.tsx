@@ -95,7 +95,7 @@ export default function Home() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // 次回イベント・ギャラリー・商品・記事を並列で取得する。
+  // 1. 次回イベント・ギャラリー・商品・記事を並列で取得する。
   // トップページは失敗したセクションを出さないだけにする（「まだありません」のような誤った案内は出さない）
   useEffect(() => {
     // 1. 開催前のイベントを開始日の近い順に並べ、先頭を次回のイベントにする
@@ -105,9 +105,9 @@ export default function Home() {
       )
       setNextEvent(sorted[0] ?? null)
     }).catch(() => {})
-    // 2. ギャラリー（全ブランド）
+    // 2. ギャラリー（全ブランド）の写真をマーキーに渡す
     api.gallery.list().then(setGallery).catch(() => {})
-    // 3. 商品と記事は先頭から決まった件数だけ
+    // 3. 商品と記事は先頭から決まった件数だけを新着枠に渡す
     api.products.list().then((p) => setProducts(p.slice(0, 4))).catch(() => {})
     api.articles.list().then((a) => setArticles(a.slice(0, 3))).catch(() => {})
   }, [])

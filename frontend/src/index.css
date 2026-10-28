@@ -91,13 +91,16 @@ body {
   background: #f8f7f3;
   border-bottom: 1px solid #e7e4dc;
 }
+/* 左上のブランドロゴとナビ内のロゴ画像: 高さを固定し、縦横比を保って収める */
 .ep-brand-header-logo { display: flex; align-items: center; flex: 0 0 auto; }
 .ep-brand-header-logo img { display: block; width: auto; height: 29px; object-fit: contain; }
+/* PC のナビ: リンクを縦中央に並べ、画面幅に応じた間隔を取る */
 .ep-brand-header-nav {
   display: flex;
   align-items: center;
   gap: clamp(20px, 3vw, 42px);
 }
+/* PC とモバイルメニューのリンク: 共通の書体・文字サイズ・字間にそろえる */
 .ep-brand-header-nav a,
 .ep-brand-header-mobile nav a {
   color: #42453d;
@@ -108,11 +111,13 @@ body {
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* 公式サイトへのリンク: 他のナビ項目と区別する枠線と内側余白 */
 .ep-brand-header-nav .ep-brand-header-official,
 .ep-brand-header-mobile nav .ep-brand-header-official {
   padding: 7px 15px;
   border: 1px solid #b8b8aa;
 }
+/* 言語切り替え: ボタン既定の枠・背景をなくし、小さなテキストリンクとして表示 */
 .ep-brand-header-language {
   padding: 4px 0;
   border: 0;
@@ -123,12 +128,16 @@ body {
   font-size: var(--brand-type-meta);
   letter-spacing: 0.14em;
 }
+/* PC ではモバイル用の開閉メニューを表示しない */
 .ep-brand-header-mobile { display: none; }
 @media (max-width: 768px) {
+  /* スマートフォンではヘッダーを少し低くし、ロゴも縮める */
   .ep-brand-header { height: 58px; }
   .ep-brand-header-logo img { height: 26px; }
+  /* 横並びナビを隠し、開閉式のメニューを有効にする */
   .ep-brand-header-nav { display: none; }
   .ep-brand-header-mobile { display: block; position: relative; }
+  /* モバイルメニューの開閉ラベル: マーカーを消してブランド書体で表示 */
   .ep-brand-header-mobile summary {
     cursor: pointer;
     list-style: none;
@@ -138,7 +147,9 @@ body {
     letter-spacing: 0.14em;
     text-transform: uppercase;
   }
+  /* summary の既定マーカーを Chrome / Safari で隠す */
   .ep-brand-header-mobile summary::-webkit-details-marker { display: none; }
+  /* 開いたメニュー: summary の右下に重ねる縦並びのパネル */
   .ep-brand-header-mobile nav {
     position: absolute;
     top: 34px;
@@ -1511,6 +1522,7 @@ textarea,
 
 /* ブランド専用サイト全体の中間幅調整。ヘッダーと HUE の読みものページの列幅を詰める */
 @media (max-width: 900px) {
+  /* 中間幅の共通ヘッダー: 左右余白とブランド切り替えの間隔を縮める */
   .brand-site-header { gap: 14px; padding-inline: 20px; }
   .brand-site-switcher { gap: 12px; padding-left: 14px; }
   .brand-site-switcher a { font-size: var(--brand-type-navigation); }
@@ -1522,18 +1534,23 @@ textarea,
 }
 /* ブランド専用サイトのスマートフォン表示。ナビを横スクロールにし、各ブランドのセクションを縦に並べる */
 @media (max-width: 680px) {
+  /* モバイルの共通ブランドヘッダー: 高さを確保し、本文の開始位置を合わせる */
   .brand-site { --brand-site-header-height: 172px; }
   .brand-site-habitat-oides { --brand-site-header-height: 150px; }
   .brand-site-main { padding-top: var(--brand-site-header-height); }
+  /* ロゴとブランド名: 1行目に収める小さなモバイル配置 */
   .brand-site-header { min-height: 72px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 8px 16px; }
   .brand-site-wordmark img { width: 38px; height: 38px; }
   .brand-site-wordmark strong { font-size: var(--brand-type-brand-name); }
   .brand-site-wordmark small { font-size: var(--brand-type-meta); }
+  /* ページ内ナビ: 3行目に置いて横スクロール可能にする */
   .brand-site-nav { grid-column: 1 / -1; grid-row: 3; order: 3; justify-content: flex-start; margin: 1px 0 0; overflow-x: auto; gap: 20px; padding: 6px 0 2px; }
   .brand-site-nav a { font-size: var(--brand-type-navigation); }
+  /* ブランド切り替えリンク: 2行目で横スクロールし、各サイトへ移動しやすくする */
   .brand-site-switcher { grid-column: 1 / -1; grid-row: 2; border: 0; padding: 3px 0 0; gap: 14px; justify-content: flex-start; overflow-x: auto; }
   .brand-site-switcher a { font-size: var(--brand-type-navigation); }
   .brand-site-header--hue .brand-site-switcher a { padding: 6px 8px; }
+  /* 言語切り替え: 1行目の右端に置く */
   .brand-site-lang { grid-column: 2; grid-row: 1; justify-self: end; padding: 4px 0 2px 8px; }
   .brand-site-footer-inner { grid-template-columns: 1fr; }
   .brand-site-footer nav { gap: 12px; }

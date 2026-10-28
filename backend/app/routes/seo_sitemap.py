@@ -34,9 +34,11 @@ def sitemap_url(
     Returns:
         XML の `<url>` 要素。
     """
+    # 1. URL を組み立てて XML 用にエスケープし、最終更新日を解析する。
     # 変数の内容: loc: サイトマップ URL の XML 表記、parsed: 変換後の値。
     loc = escape(origin + quote(path, safe='/'), quote=True)
     parsed = parse_date(lastmod)
+    # 2. 日付が有効なら lastmod を付け、無効なら URL だけの要素にする。
     if parsed:
         return f'  <url><loc>{loc}</loc><lastmod>{parsed.isoformat()}</lastmod></url>'
     return f'  <url><loc>{loc}</loc></url>'

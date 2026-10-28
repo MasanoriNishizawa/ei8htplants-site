@@ -39,7 +39,7 @@ export default function Events() {
     setWorkshopFilter(null)
   }, [isPast])
 
-  // 開始日の順に並べたイベント（今後は近い順、過去は新しい順）
+  // 1. 開始日の順に並べたイベント（今後は近い順、過去は新しい順）
   const sorted = useMemo(
     () => [...(data ?? [])].sort((a, b) => {
       // 開始日の差（ミリ秒）
@@ -49,13 +49,13 @@ export default function Events() {
     [data, isPast]
   )
 
-  // 絞り込みの選択肢に出す月（YYYY-MM のキー。並び順は sorted のまま）
+  // 2. 絞り込みの選択肢に出す月（YYYY-MM のキー。並び順は sorted のまま）
   const months = useMemo(
     () => [...new Set(sorted.map((e) => monthKey(e.start_date)))],
     [sorted]
   )
 
-  // 絞り込み後のイベント
+  // 3. 選択中のブランド・月・WS 条件をすべて満たすイベントに絞る
   const filtered = useMemo(() => {
     return sorted.filter((e) => {
       if (brandFilter && !e.brands.includes(brandFilter)) return false
