@@ -14,16 +14,19 @@ OG_LOCALE = 'ja_JP'
 
 
 def json_for_script(data: Any) -> str:
-    """script要素内で安全に使えるJSON文字列にする。
+    """JSON-LDなどの値を、script要素内に安全に埋め込めるJSON文字列へ変換する。
 
     Args:
-        data: テスト対象に渡すデータ。
+        data: JSONとしてシリアライズする値。辞書やリストなど、json.dumpsが扱える値を渡す。
 
     Returns:
-        注釈に示した形式の応答（str）。
+        HTMLのscript要素を早期終了させたり、HTMLとして解釈されたりしないよう、危険な文字を
+        Unicodeエスケープへ置き換えたJSON文字列。
     """
-    # 変数の内容: serialized: script 内へ挿入する JSON 文字列。
+    # 1. 日本語をそのまま残し、空白を省いたJSON文字列へシリアライズする。
+    # 変数の内容: serialized: エスケープ前のJSON文字列。
     serialized = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+    # 2. HTMLタグやscript境界として解釈されうる文字と、JavaScript上の行区切り文字を無害化する。
     return (
         serialized.replace('<', '\\u003c')
         .replace('>', '\\u003e')
@@ -34,17 +37,22 @@ def json_for_script(data: Any) -> str:
 
 
 def render_head_tags(meta: PageMeta) -> str:
-    """PageMetaからheadに追加するメタデータタグを生成する。
+    """ページ情報からtitle・検索用メタ情報・SNS情報・構造化データのタグを生成する。
 
     Args:
-        meta: HTML head に挿入するメタ情報。
+        meta: title、説明文、画像URL、canonical URL、noindex設定、構造化データなど、
+            HTMLのheadに反映するページ情報。
 
     Returns:
-        注釈に示した形式の応答（str）。
+        title、description、設定に応じたcanonical/noindex、OGP、Twitterカード、JSON-LDを
+        改行で連結したHTML文字列。
     """
     # 1. title と description を HTML エスケープし、基本タグを作る。
+    # 変数の内容: escape: タグ属性値や要素内容に使う文字列をHTMLエスケープする関数。
     escape = lambda value: html.escape(value, quote=True)  # noqa: E731
+    # 変数の内容: card: ページ固有画像がある場合は大きな画像カード、ない場合は通常カードの種別。
     card = 'summary_large_image' if meta.has_own_image else 'summary'
+    # 変数の内容: tags: headへ出力するタグを順番に積むリスト。
     tags = [
         f'<title>{escape(meta.title)}</title>',
         f'<meta name="description" content="{escape(meta.description)}" />',
@@ -54,7 +62,7 @@ def render_head_tags(meta: PageMeta) -> str:
         tags.append(f'<link rel="canonical" href="{escape(meta.url)}" />')
     if meta.noindex:
         tags.append('<meta name="robots" content="noindex" />')
-    # 3. OGP の共通タグを追加して head 用の文字列にする。
+    # 3. OGP・Twitterカードの共通タグを追加する。
     tags += [
         '<meta property="og:type" content="website" />',
         f'<meta property="og:title" content="{escape(meta.title)}" />',
@@ -68,30 +76,36 @@ def render_head_tags(meta: PageMeta) -> str:
         f'<meta name="twitter:description" content="{escape(meta.description)}" />',
         f'<meta name="twitter:image" content="{escape(meta.image)}" />',
     ]
-    # 変数の内容: structured_data: structured_data の反復ごとの値。
+    # 4. JSON-LDをscript要素に入れ、すべてのタグをhead用の文字列にまとめる。
+    # 変数の内容: structured_data: meta.json_ldから順に取り出した1件分の構造化データ。
     for structured_data in meta.json_ld:
         tags.append(f'<script type="application/ld+json">{json_for_script(structured_data)}</script>')
     return '\n    '.join(tags)
 
 
 def inject_head(index_html: str, meta: PageMeta) -> str:
-    """既存titleを置き換えるか、無ければhead終端の前にheadタグを挿入する。
+    """HTMLのhead内にページ情報タグを挿入し、既存titleがあればその位置から置き換える。
 
     Args:
-        index_html: HTML の index.html 文字列。
-        meta: HTML head に挿入するメタ情報。
+        index_html: title要素を含む場合がある、ビルド済みindex.html全体の文字列。
+        meta: headへ出力するtitle、説明文、canonical/noindex、OGP、Twitterカード、JSON-LDの情報。
 
     Returns:
-        注釈に示した形式の応答（str）。
+        title要素があれば最初のtitle要素を生成したタグ群に置換したHTML文字列。
+        title要素がなければ、最初の</head>の直前にタグ群を挿入したHTML文字列。
+        </head>もない場合は、入力されたHTML文字列をそのまま返す。
     """
-    # 変数の内容: count: 対象件数、replaced: 置換後の HTML と置換件数、tags: head に出力するメタタグ。
+    # 1. PageMetaから出力タグを作り、既存titleがあれば最初の1件をタグ群へ置き換える。
+    # 変数の内容: tags: headへ挿入または置換するメタデータタグ群。
     tags = render_head_tags(meta)
+    # 変数の内容: replaced: title置換を試みた後のHTML、count: 実際に置換したtitle要素の件数。
     replaced, count = re.subn(
         r'<title>.*?</title>', lambda _match: tags,
         index_html, count=1, flags=re.S | re.I,
     )
     if count:
         return replaced
+    # 2. titleが無いHTMLでは、headの閉じタグがあればその直前にタグ群を挿入する。
     return index_html.replace('</head>', tags + '\n  </head>', 1)
 
 

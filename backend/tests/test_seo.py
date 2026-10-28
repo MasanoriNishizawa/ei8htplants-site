@@ -1752,6 +1752,7 @@ class TestLegacyBrandRedirects:
         # 変数の内容: resp: ei8htplants.com でトップページを開いたレスポンス。
         resp = TestClient(app).get('/', headers={'host': 'ei8htplants.com'})
         assert resp.status_code == 200
+        # 変数の内容: head: レスポンスHTMLから切り出したhead要素。
         head = _head(resp.text)
         assert _meta(head, 'name', 'apple-mobile-web-app-title') == 'ei8ht Admin'
         assert re.search(r'<link\s+rel="manifest"\s+href="/manifest\.webmanifest"\s*/?>', head)

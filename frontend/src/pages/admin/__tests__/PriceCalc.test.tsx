@@ -389,6 +389,7 @@ describe('実生の計算フォーム', () => {
     fireEvent.change(screen.getByPlaceholderText('例: アガベ ポタトルム'), { target: { value: 'ポタトルム' } })
     fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
     fireEvent.change(screen.getByPlaceholderText('例: 5000'), { target: { value: '500' } })
+    /** Habitat Oides の鉢作家を選ぶフォーム欄 */
     const artistSelect = screen.getByRole('combobox')
     await within(artistSelect).findByRole('option', { name: '佐藤窯' })
     fireEvent.change(artistSelect, { target: { value: 'a-2' } })
@@ -420,6 +421,7 @@ describe('実生の計算フォーム', () => {
     /** モック登録を完了させる関数。クリック後、登録中表示を確認してから呼ぶ */
     let finishSave: (() => void) | undefined
     vi.mocked(api.priceCalcEntries.add).mockImplementationOnce((body) => new Promise<PriceCalcEntry>((resolve) => {
+      // 変数の内容: body: 完了後に登録済みレコードへ変換する価格エントリの入力。
       finishSave = () => resolve(toEntry(body))
     }))
     render(<PriceCalc />)

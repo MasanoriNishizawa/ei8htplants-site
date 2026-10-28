@@ -803,6 +803,8 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None, h
         index_path: frontend/dist/index.html のパス
         path: リクエストのパス
         query: クエリ文字列の dict
+        hostname: リクエスト元のホスト名。ポートを除いて小文字化し、独立ブランドドメイン向けの
+            メタ情報とPWA設定を選ぶために使う。
 
     Returns:
         メタ情報入りの HTML 文字列

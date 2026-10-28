@@ -65,11 +65,13 @@ function TabBar<T extends string>({ tabs, current, onSelect, small = false, grou
   const lineWidth = small ? 1 : 2
 
   return (
+    /* タブボタンを横に並べ、下辺の境界線でグループを区切るコンテナ。 */
     <div
       role={groupLabel ? 'group' : undefined} aria-label={groupLabel}
       style={{ display: 'flex', gap: 0, marginBottom: small ? 24 : 16, borderBottom: '1px solid #dddde8' }}
     >
       {tabs.map(({ id, label }) => (
+        /* 選択状態を下線・文字色・太さで示すタブボタンの表示設定。 */
         <button
           key={id} onClick={() => { if (id !== current) onSelect(id) }}
           style={{
@@ -131,14 +133,18 @@ export default function PriceCalc() {
    * @returns 戻り値なし。
    */
   const handleCostRateChange = (v: string) => {
+    // 1. 表示中ブランドの入力値を更新し、タブを切り替えても値を保持する
     setCostRateInputs((prev) => ({ ...prev, [tab]: v }))
+    // 2. 入力値をブラウザに保存し、次回表示時の初期値に使う
     saveCostRateInput(tab, v)
   }
 
-  // 鉢の作家と登録リストを読み込む（失敗したら文言を出し、空のリストと区別できるようにする）
+  // 初期表示時に鉢作家と登録リストを読み込み、失敗時は別々の案内を表示する
   useEffect(() => {
+    // 1. 鉢作家を取得し、成功したら計算フォームの選択肢に反映する
     api.potArtists.list().then(setPotArtists)
       .catch((e: unknown) => setError(failMessage('鉢の作家の読み込みに失敗しました', e)))
+    // 2. 登録済み価格を取得し、成功・失敗にかかわらず読み込み中表示を終了する
     api.priceCalcEntries.list()
       .then(setEntries)
       .catch((e: unknown) => setError(failMessage('登録リストの読み込みに失敗しました', e)))
@@ -151,12 +157,15 @@ export default function PriceCalc() {
    * @returns 登録が終わる Promise（失敗したら reject する）
    */
   const handleRegister = async (data: PriceCalcEntryBody) => {
+    // 1. 前回のエラー表示を消してから登録を開始する
     setError(null)
     try {
+      // 2. API に登録し、返された最新レコードを先頭に追加する
       /** 登録された記録 */
       const entry = await api.priceCalcEntries.add(data)
       setEntries((prev) => [entry, ...prev])
     } catch (e: unknown) {
+      // 3. 失敗理由を画面に表示し、フォーム側が入力値を保持できるよう再送出する
       setError(failMessage('登録に失敗しました', e))
       throw e
     }
@@ -168,24 +177,30 @@ export default function PriceCalc() {
    * @returns 戻り値なし。
    */
   const handleDelete = async (id: string) => {
+    // 1. 利用者が確認した場合だけ削除処理を続ける
     if (!confirm('この登録を削除しますか？')) return
+    // 2. 既存のエラーを消して削除 API を呼び出す
     setError(null)
     try {
       await api.priceCalcEntries.delete(id)
+      // 3. API の削除成功後に、画面上の一覧から対象だけを取り除く
       setEntries((prev) => prev.filter((e) => e.id !== id))
     } catch (e: unknown) {
+      // 4. 削除に失敗した場合は一覧を保ったままエラーを表示する
       setError(failMessage('削除に失敗しました', e))
     }
   }
 
   return (
     <div>
+      {/* 見出しの文字サイズ・太さ・下側の余白を整える設定。 */}
       <h1 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 28px', letterSpacing: 1 }}>
         販売価格計算
       </h1>
 
       {/* 読み込み・登録・削除の失敗 */}
       {error && (
+        /* エラー内容を赤系の文字・背景・境界線と余白で目立たせる設定。 */
         <p role="alert" style={{ color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px', background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0' }}>{error}</p>
       )}
 
@@ -235,7 +250,9 @@ export default function PriceCalc() {
       )}
 
       {/* 登録リスト（全ブランド分。見出しの下の切り替えでブランドを絞り込める） */}
+      {/* 登録リストを計算フォームから余白と区切り線で分けるコンテナ。 */}
       <div style={{ marginTop: 56, paddingTop: 40, borderTop: '2px solid #dddde8' }}>
+        {/* 見出しの文字サイズ・太さ・下側の余白を整える設定。 */}
         <h2 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 20px', letterSpacing: 1 }}>
           登録リスト
         </h2>
@@ -245,6 +262,7 @@ export default function PriceCalc() {
           small groupLabel="登録リストの絞り込み"
         />
         {loadingEntries ? (
+          /* 読み込み中であることを控えめな文字色とサイズで示す設定。 */
           <p style={{ color: '#aaa', fontSize: 14 }}>読み込み中...</p>
         ) : (
           <PriceCalcEntriesList

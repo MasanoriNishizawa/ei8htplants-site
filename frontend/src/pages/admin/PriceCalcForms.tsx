@@ -86,17 +86,20 @@ function PriceDisplay({ recommendedPrice, cost, maxRate, title, showRate = false
   showRate?: boolean
 }) {
   return (
+    /* 推奨価格を背景色・境界線付きのカードとしてまとめるコンテナ。 */
     <div style={{
       background: recommendedPrice ? '#f0f4ee' : '#f5f5f5',
       border: `1px solid ${recommendedPrice ? '#b8d0b0' : '#e0e0e0'}`,
       borderRadius: 6, padding: '16px 20px', maxWidth: 280,
       transition: 'background 0.2s, border-color 0.2s',
     }}>
+      {/* 見出しの文字サイズ・色・字間・下側の余白を整える設定。 */}
       <p style={{ fontSize: 12, color: '#888', margin: '0 0 4px', letterSpacing: 1 }}>
         {/* 見出しの差し替えがあればそれを出す。無ければ目標原価率の見出し
             （目標原価率が正しく入っていないときは率を出さない。推奨価格も「¥ —」になる） */}
         {title ?? (maxRate !== null ? `推奨販売価格（原価率 ${formatRateLabel(maxRate)} 以下）` : '推奨販売価格（目標原価率が未設定）')}
       </p>
+      {/* 推奨価格の金額を大きくし、桁がそろう書体と状態色で表示する設定。 */}
       <p style={{
         fontSize: 26, fontWeight: 600, margin: 0,
         color: recommendedPrice ? '#1c2417' : '#ccc',
@@ -107,6 +110,7 @@ function PriceDisplay({ recommendedPrice, cost, maxRate, title, showRate = false
       {/* 推奨価格での実際の原価率（目標原価率から計算したときは切り上げているので目標以下になる。
           実生は目標原価率を使わないが、元値 ÷ 上代の原価率は出す） */}
       {recommendedPrice !== null && cost !== null && (maxRate !== null || showRate) && (
+        /* 推奨価格に対する原価率を小さく控えめな文字で補足する設定。 */
         <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0', fontVariantNumeric: 'tabular-nums' }}>
           原価率 {formatCostRate(costRate(cost, recommendedPrice), maxRate ?? undefined)}
         </p>
@@ -146,7 +150,9 @@ function CustomPriceField({ value, onChange, recommendedPrice, finalPrice, cost,
   return (
     <div>
       <p style={labelStyle}>{label}</p>
+      {/* 金額記号と入力欄を横並びにし、間隔と縦位置をそろえるコンテナ。 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* 金額入力欄の通貨記号を入力値と区別できる大きさで表示する設定。 */}
         <span style={{ fontSize: 15 }}>¥</span>
         <input
           type="number" min="0" className="num-plain"
@@ -157,12 +163,14 @@ function CustomPriceField({ value, onChange, recommendedPrice, finalPrice, cost,
       </div>
       {/* 任意価格を入れたときは、実際に登録する価格とその原価率を出す（目標を超えたら赤字） */}
       {value && finalPrice !== null && (
+        /* 登録価格と原価率を状態色・余白で補足表示する設定。 */
         <p style={{ fontSize: 12, color: over ? WARN_COLOR : '#3a7c5a', margin: '6px 0 0' }}>
           登録価格: {yenRounded(finalPrice)}{rate !== null && `（原価率 ${formatCostRate(rate, maxRate ?? undefined)}）`}
         </p>
       )}
       {/* 原価率が目標を超えるときの注意（登録はそのままできる） */}
       {value && over && maxRate !== null && (
+        /* 目標原価率を超えたことを赤い文字で知らせる設定。 */
         <p style={{ fontSize: 12, color: WARN_COLOR, margin: '4px 0 0' }}>
           原価率が {formatRateLabel(maxRate)} を超えています
         </p>
@@ -183,6 +191,7 @@ function RegisterButton({ label, disabled, saving, onClick }: {
   label: string; disabled: boolean; saving: boolean; onClick: () => void
 }) {
   return (
+    /* 登録可否と処理中状態を背景色・カーソルで示す登録ボタン。 */
     <button
       onClick={onClick}
       disabled={disabled || saving}
@@ -215,6 +224,7 @@ function PotArtistSelect({ value, onChange, potArtists }: {
   return (
     <div>
       <p style={labelStyle}>鉢作家</p>
+      {/* 鉢作家の選択欄を共通入力欄の寸法にそろえ、選択可能であることを示す設定。 */}
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
         style={{ ...inputStyle, cursor: 'pointer' }}
@@ -282,9 +292,12 @@ export function ProductionCalc({ brand, withPotArtist, plantPlaceholder, potArti
    * @returns 登録が終わる Promise
    */
   const handleRegister = async () => {
+    // 1. 必須値がそろい、登録価格を計算できている場合だけ処理を続ける
     if (!canRegister || !cost || !finalPrice) return
+    // 2. 二重送信を防ぎ、ボタンを登録中の表示にする
     setSaving(true)
     try {
+      // 3. 入力値と計算結果を登録し、成功したらフォームを初期化する
       await onRegister({
         brand,
         plant_name: plantName.trim(),
@@ -295,13 +308,16 @@ export function ProductionCalc({ brand, withPotArtist, plantPlaceholder, potArti
       })
       setPlantName(''); setWholesalePrice(''); setArtistId(''); setCustomPrice('')
     } catch {
+      // 4. エラー表示は親に任せ、失敗時は入力を残して再試行できるようにする
       // 失敗の文言は親（PriceCalc）が出す。入力はやり直せるよう残す
     } finally {
+      // 5. 成否にかかわらず登録中状態を解除する
       setSaving(false)
     }
   }
 
   return (
+    /* 計算フォームの各項目を縦に並べ、項目間の余白をそろえるコンテナ。 */
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
         <p style={labelStyle}>植物名</p>
@@ -314,7 +330,9 @@ export function ProductionCalc({ brand, withPotArtist, plantPlaceholder, potArti
 
       <div>
         <p style={labelStyle}>卸価格</p>
+        {/* 金額記号と入力欄を横並びにし、間隔と縦位置をそろえるコンテナ。 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* 金額入力欄の通貨記号を入力値と区別できる大きさで表示する設定。 */}
           <span style={{ fontSize: 15 }}>¥</span>
           <input
             type="number" min="0" className="num-plain"
@@ -394,9 +412,12 @@ export function Ei8htPlantsPurchaseCalc({ plantPlaceholder, maxRate, onRegister 
    * @returns 登録が終わる Promise
    */
   const handleRegister = async () => {
+    // 1. 必須値と目標原価率が有効で、登録価格を計算できている場合だけ続ける
     if (!canRegister || !cost || !finalPrice) return
+    // 2. 二重送信を防ぎ、ボタンを登録中の表示にする
     setSaving(true)
     try {
+      // 3. ei8ht plants の仕入れ価格を登録し、成功したらフォームを初期化する
       await onRegister({
         brand: 'ei8htplants',
         plant_name: plantName.trim(),
@@ -407,13 +428,16 @@ export function Ei8htPlantsPurchaseCalc({ plantPlaceholder, maxRate, onRegister 
       })
       setPlantName(''); setCustomPrice(''); setPurchasePrice('')
     } catch {
+      // 4. エラー表示は親に任せ、失敗時は入力を残して再試行できるようにする
       // 失敗の文言は親（PriceCalc）が出す。入力はやり直せるよう残す
     } finally {
+      // 5. 成否にかかわらず登録中状態を解除する
       setSaving(false)
     }
   }
 
   return (
+    /* 計算フォームの各項目を縦に並べ、項目間の余白をそろえるコンテナ。 */
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
         <p style={labelStyle}>植物名</p>
@@ -426,7 +450,9 @@ export function Ei8htPlantsPurchaseCalc({ plantPlaceholder, maxRate, onRegister 
 
       <div>
         <p style={labelStyle}>仕入れ値</p>
+        {/* 金額記号と入力欄を横並びにし、間隔と縦位置をそろえるコンテナ。 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* 金額入力欄の通貨記号を入力値と区別できる大きさで表示する設定。 */}
           <span style={{ fontSize: 15 }}>¥</span>
           <input
             type="number" min="0" className="num-plain"
@@ -446,6 +472,7 @@ export function Ei8htPlantsPurchaseCalc({ plantPlaceholder, maxRate, onRegister 
       {/* 仲卸価格（登録する販売価格の半分。任意価格を入れたらその半分。表示だけで保存しない） */}
       <div>
         <p style={labelStyle}>仲卸価格（販売価格の半分）</p>
+        {/* 仲卸価格の金額を太字と桁がそろう書体で表示する設定。 */}
         <p style={{ fontSize: 18, fontWeight: 600, margin: 0, color: finalPrice ? '#1c2417' : '#ccc', fontVariantNumeric: 'tabular-nums' }}>
           {finalPrice ? yenRounded(wholesalePrice(finalPrice)) : '¥ —'}
         </p>
@@ -524,9 +551,12 @@ export function SeedlingCalc({ brand, withPot, plantPlaceholder, potArtists, onR
    * @returns 登録が終わる Promise
    */
   const handleRegister = async () => {
+    // 1. 必須値がそろい、登録価格を計算できている場合だけ処理を続ける
     if (!canRegister || !cost || !finalPrice) return
+    // 2. 二重送信を防ぎ、ボタンを登録中の表示にする
     setSaving(true)
     try {
+      // 3. 種子と鉢の原価・選択内容を登録し、成功したらフォームを初期化する
       await onRegister({
         brand,
         plant_name: plantName.trim(),
@@ -537,13 +567,16 @@ export function SeedlingCalc({ brand, withPot, plantPlaceholder, potArtists, onR
       })
       setPlantName(''); setSeedPrice(''); setPotPrice(''); setArtistId(''); setCustomPrice('')
     } catch {
+      // 4. エラー表示は親に任せ、失敗時は入力を残して再試行できるようにする
       // 失敗の文言は親（PriceCalc）が出す。入力はやり直せるよう残す
     } finally {
+      // 5. 成否にかかわらず登録中状態を解除する
       setSaving(false)
     }
   }
 
   return (
+    /* 計算フォームの各項目を縦に並べ、項目間の余白をそろえるコンテナ。 */
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
         <p style={labelStyle}>植物名</p>
@@ -556,17 +589,21 @@ export function SeedlingCalc({ brand, withPot, plantPlaceholder, potArtists, onR
 
       <div>
         <p style={labelStyle}>種子 {SEEDS_PER_PACK}粒の値段</p>
+        {/* 金額記号と入力欄を横並びにし、間隔と縦位置をそろえるコンテナ。 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* 金額入力欄の通貨記号を入力値と区別できる大きさで表示する設定。 */}
           <span style={{ fontSize: 15 }}>¥</span>
           <input
             type="number" min="0" className="num-plain"
             placeholder="例: 600" value={seedPrice}
             onChange={(e) => setSeedPrice(e.target.value)} style={inputStyle}
           />
+          {/* 種子の粒数補足を小さな灰色文字で折り返さず表示する設定。 */}
           <span style={{ fontSize: 13, color: '#888', whiteSpace: 'nowrap' }}>/ {SEEDS_PER_PACK}粒</span>
         </div>
         {/* 1 粒あたりの値段（種子の値段が入ったときだけ） */}
         {seed !== null && (
+          /* 1粒あたりの原価を小さな灰色文字で補足する設定。 */
           <p style={{ fontSize: 12, color: '#888', margin: '8px 0 0' }}>
             1粒あたり {yenRounded(seed / SEEDS_PER_PACK)}
           </p>
@@ -578,7 +615,9 @@ export function SeedlingCalc({ brand, withPot, plantPlaceholder, potArtists, onR
         <>
           <div>
             <p style={labelStyle}>鉢仕入れ値</p>
+            {/* 金額記号と入力欄を横並びにし、間隔と縦位置をそろえるコンテナ。 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* 金額入力欄の通貨記号を入力値と区別できる大きさで表示する設定。 */}
               <span style={{ fontSize: 15 }}>¥</span>
               <input
                 type="number" min="0" className="num-plain"
@@ -675,9 +714,12 @@ export function PlantPotCalc({ brand, withPotArtist, plantPlaceholder, potArtist
    * @returns 登録が終わる Promise
    */
   const handleRegister = async () => {
+    // 1. 必須値と目標原価率が有効で、登録価格を計算できている場合だけ続ける
     if (!canRegister || !finalPrice) return
+    // 2. 二重送信を防ぎ、ボタンを登録中の表示にする
     setSaving(true)
     try {
+      // 3. 植物と鉢の合計原価・選択内容を登録し、成功したらフォームを初期化する
       await onRegister({
         brand,
         plant_name: plantName.trim(),
@@ -688,13 +730,16 @@ export function PlantPotCalc({ brand, withPotArtist, plantPlaceholder, potArtist
       })
       setPlantName(''); setPlantPrice(''); setPotPrice(''); setArtistId(''); setCustomPrice('')
     } catch {
+      // 4. エラー表示は親に任せ、失敗時は入力を残して再試行できるようにする
       // 失敗の文言は親（PriceCalc）が出す。入力はやり直せるよう残す
     } finally {
+      // 5. 成否にかかわらず登録中状態を解除する
       setSaving(false)
     }
   }
 
   return (
+    /* 計算フォームの各項目を縦に並べ、項目間の余白をそろえるコンテナ。 */
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
         <p style={labelStyle}>植物名</p>
@@ -707,7 +752,9 @@ export function PlantPotCalc({ brand, withPotArtist, plantPlaceholder, potArtist
 
       <div>
         <p style={labelStyle}>植物仕入れ値</p>
+        {/* 金額記号と入力欄を横並びにし、間隔と縦位置をそろえるコンテナ。 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* 金額入力欄の通貨記号を入力値と区別できる大きさで表示する設定。 */}
           <span style={{ fontSize: 15 }}>¥</span>
           <input
             type="number" min="0" className="num-plain"
@@ -719,7 +766,9 @@ export function PlantPotCalc({ brand, withPotArtist, plantPlaceholder, potArtist
 
       <div>
         <p style={labelStyle}>鉢仕入れ値</p>
+        {/* 金額記号と入力欄を横並びにし、間隔と縦位置をそろえるコンテナ。 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* 金額入力欄の通貨記号を入力値と区別できる大きさで表示する設定。 */}
           <span style={{ fontSize: 15 }}>¥</span>
           <input
             type="number" min="0" className="num-plain"
@@ -762,19 +811,24 @@ export function CostRateField({ value, onChange, brand }: { value: string; onCha
   const valid = parseCostRateInput(value) !== null
 
   return (
+    /* 原価率の入力欄と下のフォームとの間隔を確保する外枠。 */
     <div style={{ marginBottom: 28 }}>
       <p style={labelStyle}>目標原価率</p>
+      {/* 原価率の入力欄と単位・補助ボタンを横並びにし、幅に応じて折り返すコンテナ。 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {/* 金額の欄（type="number"）と区別するため、text + inputMode="decimal" にする（スマホでは数字のキーボードが出る） */}
+        {/* 目標原価率の入力欄を短く保ち、無効値のとき境界線を赤くする設定。 */}
         <input
           type="text" inputMode="decimal" aria-label="目標原価率（%）"
           value={value} onChange={(e) => onChange(e.target.value)}
           aria-invalid={!valid}
           style={{ ...inputStyle, maxWidth: 100, borderColor: valid ? '#dddde8' : WARN_COLOR }}
         />
+        {/* 原価率の単位記号を入力値と区別できる大きさで表示する設定。 */}
         <span style={{ fontSize: 15 }}>%</span>
         {/* 既定値と違うときだけ、既定値に戻すボタンを出す（'40.0' のように書き方が違うだけなら同じ率として出さない） */}
         {parseCostRateInput(value) !== DEFAULT_COST_RATES[brand] && (
+          /* 原価率をブランド既定値に戻す補助ボタンの余白と文字を整える設定。 */
           <button
             type="button" onClick={() => onChange(defaultInput)}
             style={{
@@ -788,6 +842,7 @@ export function CostRateField({ value, onChange, brand }: { value: string; onCha
       </div>
       {/* 受け付けない値（空・0 以下・100 より大きい・数でない）のときの案内。推奨価格は出さず、登録もできない */}
       {!valid && (
+        /* 無効な原価率を赤い文字と上余白で説明する設定。 */
         <p style={{ fontSize: 12, color: WARN_COLOR, margin: '6px 0 0' }}>
           0 より大きく 100 以下の数を入れてください
         </p>
