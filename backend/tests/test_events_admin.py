@@ -59,8 +59,8 @@ def _make_public_sb_mock(events_data: list) -> MagicMock:
     return mock_sb
 
 
-def _make_sessions_failure_mocks(existing_sessions: list) -> tuple[MagicMock, MagicMock, MagicMock]:
-    """セッション保存テスト用にイベントとセッションのDBモックを分けて返す。
+def _make_sessions_admin_mocks(existing_sessions: list) -> tuple[MagicMock, MagicMock, MagicMock]:
+    """セッション保存テスト用にイベント・セッション表のDBモックを分けて返す。
 
     Args:
         existing_sessions: 保存前の ws_sessions.select が返す既存セッション一覧。
@@ -68,15 +68,22 @@ def _make_sessions_failure_mocks(existing_sessions: list) -> tuple[MagicMock, Ma
     Returns:
         (Supabase クライアント、events テーブルモック、ws_sessions テーブルモック)。
     """
-    # 変数の内容: event_id: テスト用のUUID、events_table: 存在確認用テーブル、sessions_table: 保存対象テーブル。
+    # 変数の内容: event_id: テスト用UUID、events_table: 存在確認用表、sessions_table: 保存対象表、reservations_table: 予約数取得用表。
     event_id = '11111111-1111-1111-1111-111111111111'
     events_table = MagicMock()
     sessions_table = MagicMock()
+    reservations_table = MagicMock()
     # 1. イベント存在確認は成功させ、既存セッションの読み取り結果を指定する。
     events_table.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {'id': event_id}
     sessions_table.select.return_value.eq.return_value.execute.return_value.data = existing_sessions
+    sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+    reservations_table.select.return_value.eq.return_value.neq.return_value.execute.return_value.data = []
     # 2. テーブル名に応じたモックを返し、想定外テーブルの使用を失敗させる。
-    tables = {'events': events_table, 'ws_sessions': sessions_table}
+    tables = {
+        'events': events_table,
+        'ws_sessions': sessions_table,
+        'workshop_reservations': reservations_table,
+    }
 
     def table_side_effect(name: str):
         """指定されたテーブルに対応するモックを返す。
@@ -261,6 +268,60 @@ class TestEventCRUD:
 
         assert resp.status_code == 200
         assert resp.json()['name'] == '更新後イベント'
+
+    def test_イベント更新_画像をdisplay_order付きで入れ直す(self):
+        """イベント更新後に全画像を削除し、指定順でURLを保存してイベントを返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event: 読み直し行、event_table: 存在確認・更新用、images_table: 画像操作用、mock_admin_sb/mock_sb: 管理・公開DBモック、image_urls: 保存順の画像URL。
+        event = _event_data('evt-1', '更新後イベント')
+        event_table = MagicMock()
+        images_table = MagicMock()
+        mock_admin_sb = MagicMock()
+        mock_sb = _make_public_sb_mock([event])
+        # 1. テーブルごとのモックを関連付け、同一イベント表の存在確認と更新を順番に受け取る。
+        mock_admin_sb.attach_mock(event_table, 'events_table')
+        mock_admin_sb.attach_mock(images_table, 'event_images_table')
+        mock_admin_sb.table.side_effect = [event_table, event_table, images_table, images_table]
+        image_urls = ['https://example.com/first.jpg', 'https://example.com/second.jpg']
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb), \
+             patch('app.routes.events.supabase', mock_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: 更新後のAPI応答。
+            client = TestClient(app)
+            resp = client.put('/api/events/evt-1', json={
+                'name': '更新後イベント',
+                'start_date': '2099-01-01',
+                'location': '大阪',
+                'image_urls': image_urls,
+            })
+
+        # 2. 更新成功と、各DBクエリが execute される順を確認する。
+        assert resp.status_code == 200
+        assert resp.json()['name'] == '更新後イベント'
+        execution_names = [
+            item[0]
+            for item in mock_admin_sb.mock_calls
+            if item[0] in {
+                'events_table.update().eq().execute',
+                'event_images_table.delete().eq().execute',
+                'event_images_table.insert().execute',
+            }
+        ]
+        assert execution_names == [
+            'events_table.update().eq().execute',
+            'event_images_table.delete().eq().execute',
+            'event_images_table.insert().execute',
+        ]
+        event_table.update.return_value.eq.return_value.execute.assert_called_once()
+        images_table.delete.return_value.eq.return_value.execute.assert_called_once()
+        images_table.insert.return_value.execute.assert_called_once()
+        images_table.insert.assert_called_once_with([
+            {'event_id': 'evt-1', 'url': image_urls[0], 'display_order': 0},
+            {'event_id': 'evt-1', 'url': image_urls[1], 'display_order': 1},
+        ])
 
     def test_イベント更新_認証なし_401でDB書き込みしない(self):
         """PUT /api/events/:id は未認証なら401となりDBへ書き込まない。
@@ -697,6 +758,52 @@ class TestEventSessions:
 
         assert resp.status_code == 200
 
+    def test_既存セッションを更新し不要枠を削除して一覧を返す(self):
+        """入力に残る既存枠を更新し、外れた枠を削除して更新後一覧を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event_id: 対象UUID、kept_id/removed_id: 残す/削除する枠ID、saved_session: 読み直し行、mock_admin_sb/sessions_table: DBモック。
+        event_id = '11111111-1111-1111-1111-111111111111'
+        kept_id = 'session-kept'
+        removed_id = 'session-removed'
+        saved_session = {
+            'id': kept_id,
+            'event_id': event_id,
+            'time_label': '10:00',
+            'max_participants': 8,
+            'display_order': 0,
+        }
+        mock_admin_sb, _, sessions_table = _make_sessions_admin_mocks([
+            {'id': kept_id, 'time_label': '10:00'},
+            {'id': removed_id, 'time_label': '11:00'},
+        ])
+        # 1. 保存後の一覧取得が返す更新済み時間枠を設定する。
+        sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [saved_session]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: 保存後のAPI応答。
+            client = TestClient(app)
+            resp = client.put(f'/api/events/{event_id}/sessions', json={
+                'sessions': [{'id': kept_id, 'time_label': '10:00', 'max_participants': 8}],
+            })
+
+        # 2. 既存枠の更新から不要枠の削除へ進み、更新後一覧を返したことを確認する。
+        assert resp.status_code == 200
+        assert resp.json() == [{**saved_session, 'reserved_count': 0}]
+        # 変数の内容: sessions_table.mock_calls: セッション表へのDB呼び出し順。
+        assert sessions_table.mock_calls.index(call.update().eq().execute()) < sessions_table.mock_calls.index(
+            call.delete().eq().execute()
+        )
+        sessions_table.update.assert_called_once_with({
+            'time_label': '10:00',
+            'max_participants': 8,
+            'display_order': 0,
+        })
+        sessions_table.delete.return_value.eq.assert_called_once_with('id', removed_id)
+        sessions_table.insert.assert_not_called()
+
     def test_既存セッション更新失敗時は500で後続操作をしない(self):
         """既存セッションの UPDATE 失敗は500となり、後続の削除へ進まない。
 
@@ -705,7 +812,7 @@ class TestEventSessions:
         """
         # 変数の内容: session_id: 更新対象ID、mock_admin_sb: DBクライアント、sessions_table: セッションテーブル。
         session_id = 'session-existing'
-        mock_admin_sb, _, sessions_table = _make_sessions_failure_mocks([
+        mock_admin_sb, _, sessions_table = _make_sessions_admin_mocks([
             {'id': session_id, 'time_label': '10:00'},
             {'id': 'session-omitted', 'time_label': '11:00'},
         ])
@@ -733,7 +840,7 @@ class TestEventSessions:
             なし。
         """
         # 変数の内容: mock_admin_sb: テーブル別モックを返すDBクライアント、sessions_table: セッションテーブルモック。
-        mock_admin_sb, _, sessions_table = _make_sessions_failure_mocks([])
+        mock_admin_sb, _, sessions_table = _make_sessions_admin_mocks([])
         # 1. 新規セッションの INSERT 実行で例外を発生させる。
         sessions_table.insert.return_value.execute.side_effect = RuntimeError('session insert failed')
 
@@ -760,7 +867,7 @@ class TestEventSessions:
         # 変数の内容: kept_id: 入力に残す既存枠、removed_id: 入力に含めず削除対象にする既存枠。
         kept_id = 'session-kept'
         removed_id = 'session-removed'
-        mock_admin_sb, _, sessions_table = _make_sessions_failure_mocks([
+        mock_admin_sb, _, sessions_table = _make_sessions_admin_mocks([
             {'id': kept_id, 'time_label': '10:00'},
             {'id': removed_id, 'time_label': '11:00'},
         ])
