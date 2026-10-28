@@ -127,6 +127,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload で JPEG をアップロードすると URL が返り、images バケットに置かれる。
         mock_admin_sb = _make_storage_mock('https://example.com/image.jpg')
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -152,6 +153,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload で PNG をアップロードすると URL が返る。
         mock_admin_sb = _make_storage_mock('https://example.com/image.png')
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -171,6 +173,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload で GIF をアップロードすると URL が返り、拡張子は gif になる。
         mock_admin_sb = _make_storage_mock('https://example.com/image.gif')
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -189,6 +192,7 @@ class TestUploadImage:
         Returns:
             なし。
         """
+        # 1. POST /api/upload で Authorization ヘッダーがない場合 401 が返る。
         app.dependency_overrides.clear()
         # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).post(
@@ -204,6 +208,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload で非対応ファイル形式の場合 400 が返り、ストレージには置かない。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -223,6 +228,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload でストレージが例外を投げた場合、一般的な文言の 500 が返り例外の文字列は出ない。
         mock_admin_sb = MagicMock()
         # upload メソッドが例外を投げるよう設定
         mock_admin_sb.storage.from_.return_value.upload.side_effect = Exception('Storage upload failed')
@@ -246,6 +252,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload で WebP もアップロードできる。
         mock_admin_sb = _make_storage_mock('https://example.com/image.webp')
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -265,6 +272,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 申告（image/jpeg）と先頭のバイトが違う（HTML）と 400 になり、公開バケットに置かれないこと。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -285,6 +293,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 画像どうしでも、申告（image/png）と中身（JPEG）が違えば 400 になること。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -303,6 +312,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. ファイル名が evil.html でも、申告が image/png・中身が PNG なら .png で保存されること。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -326,6 +336,7 @@ class TestUploadImage:
             なし。
         """
         # 変数の内容: exact: 完全一致を期待するテスト値、limit: 回数または取得件数の上限、mock_admin_sb: 管理用 Supabase クライアントのモック、over: 既定テストデータへ上書きする値。
+        # 1. 上限（MAX_SIZE）ちょうどは受け付け、1 バイト超えると 400 になること（上限を小さくして確かめる）。
         mock_admin_sb = _make_storage_mock()
         limit = 64
         exact = JPEG_BYTES + b'\x00' * (limit - len(JPEG_BYTES))
@@ -374,6 +385,7 @@ class TestUploadVideo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload/video で MP4 をアップロードすると URL が返り、videos バケットに置かれる。
         mock_admin_sb = _make_storage_mock('https://example.com/video.mp4')
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -394,6 +406,7 @@ class TestUploadVideo:
         Returns:
             なし。
         """
+        # 1. POST /api/upload/video で Authorization ヘッダーがない場合 401 が返る。
         app.dependency_overrides.clear()
         # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).post(
@@ -409,6 +422,7 @@ class TestUploadVideo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload/video で非対応ファイル形式の場合 400 が返る。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -427,6 +441,7 @@ class TestUploadVideo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload/video で QuickTime (MOV。ftyp の無い古い形式) もアップロードでき、拡張子は mov…。
         mock_admin_sb = _make_storage_mock('https://example.com/video.mov')
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -447,6 +462,7 @@ class TestUploadVideo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. POST /api/upload/video で WebM もアップロードでき、拡張子は webm になる。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -466,6 +482,7 @@ class TestUploadVideo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 申告（video/mp4）と中身（JPEG）が違えば 400 になり、ストレージに置かないこと。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -543,6 +560,7 @@ class TestEnsureBucket:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 作成が成功したら以後は呼ばない。2 回のアップロードとも成功し、warning は出ない。
         mock_admin_sb = _make_storage_mock()
         caplog.set_level(logging.INFO, logger='app.routes.upload')
 
@@ -564,6 +582,7 @@ class TestEnsureBucket:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 「already exists」の例外は成功扱い。以後は呼ばず、warning も出ない。
         mock_admin_sb = _make_storage_mock()
         # 変数の内容: mock_admin_sb.storage.create_bucket.side_effect: モック呼び出し時に返す例外または副作用。
         mock_admin_sb.storage.create_bucket.side_effect = Exception('The resource already exists')
@@ -586,6 +605,7 @@ class TestEnsureBucket:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 例外の文言に duplicate を含む場合も成功扱いで、以後は作成を呼ばない。
         mock_admin_sb = _make_storage_mock()
         # 変数の内容: mock_admin_sb.storage.create_bucket.side_effect: モック呼び出し時に返す例外または副作用。
         mock_admin_sb.storage.create_bucket.side_effect = Exception('Duplicate key value violates unique constraint')
@@ -608,6 +628,7 @@ class TestEnsureBucket:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. それ以外の失敗ではアップロードは続ける。次のアップロードでまた作成を試し、warning は 1 回だけ（型名だけで文言は出さない）。
         mock_admin_sb = _make_storage_mock()
         # 変数の内容: mock_admin_sb.storage.create_bucket.side_effect: モック呼び出し時に返す例外または副作用。
         mock_admin_sb.storage.create_bucket.side_effect = PermissionError('secret-detail permission denied')
@@ -661,6 +682,7 @@ class TestEnsureBucket:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. images と videos は別々に記録し、それぞれ最初の 1 回だけ作成を呼ぶ。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
@@ -681,6 +703,7 @@ class TestEnsureBucket:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 中身の確認のあとにバケットを確かめるため、400 のときは作成を呼ばないこと。
         mock_admin_sb = _make_storage_mock()
 
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):

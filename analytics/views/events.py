@@ -87,6 +87,7 @@ def _ranking(done: pd.DataFrame) -> None:
         なし。"""
     # 1. 収支の小さい順に並べた横棒（横棒は下から積まれるので、いちばん上が最も黒字の回になる）
     ranked = done.sort_values("net")
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = go.Figure(go.Bar(
         x=ranked["net"], y=ranked["label"], orientation="h",
         marker_color=[POSITIVE if v >= 0 else NEGATIVE for v in ranked["net"]],
@@ -98,6 +99,7 @@ def _ranking(done: pd.DataFrame) -> None:
     fig.update_layout(title="イベントごとの収支（青＝黒字、赤＝赤字）", showlegend=False)
     # 2. 棒の外に出す金額ラベルが軸の名前や右端にかからないよう、左右に余白を取る
     lo, hi = min(0, ranked["net"].min()), max(0, ranked["net"].max())
+    # 変数の内容: span: グラフの左右端を決める収支額の幅。
     span = hi - lo
     fig.update_xaxes(range=[lo - span * (NET_LABEL_PAD_LEFT if lo < 0 else 0), hi + span * NET_LABEL_PAD_RIGHT])
     st.plotly_chart(style(fig, height=bar_height(len(ranked)), yen_axis="x"), width="stretch")
@@ -148,7 +150,9 @@ def _expenses(done: pd.DataFrame) -> None:
     st.plotly_chart(style(fig, height=bar_height(len(done)), yen_axis="x"), width="stretch")
     # 2. 費目ごとの合計。割合はプラスの費目の合計に対して出す
     totals = pd.Series({k: done[v].sum() for k, v in EXPENSE_COLUMNS.items()}).sort_values(ascending=False)
+    # 変数の内容: positive: 合計が正の支出項目。内訳の割合を計算する対象。
     positive = totals[totals > 0]
+    # 変数の内容: negative: 合計が負の支出項目。内訳割合から除外して注記する対象。
     negative = totals[totals < 0]
     if not positive.empty:
         st.caption("支出合計の内訳：" + "、".join(
@@ -174,11 +178,15 @@ def _brands(done: pd.DataFrame) -> None:
     st.caption("複数ブランドで出店した回は、それぞれのブランドに数えています。")
     # 1. 1回に複数ブランドがあれば行を分けて、ブランドごとに集計する
     exploded = done.explode("brands").dropna(subset=["brands"])
+    # 変数の内容: by_brand: ブランドごとの出店回数・平均売上・平均収支。
     by_brand = exploded.groupby("brands").agg(回数=("event_id", "count"), 平均売上=("sales", "mean"), 平均収支=("net", "mean"))
     # 2. 決まったブランドを決まった順に並べ、BRAND_COLORS に無いブランドも消さずに後ろへ足す
     known = [b for b in BRAND_COLORS if b in by_brand.index]
+    # 変数の内容: others: 既知の色設定がないブランド名。
     others = sorted(b for b in by_brand.index if b not in BRAND_COLORS)
+    # 変数の内容: by_brand: ブランドごとの出店回数・平均売上・平均収支。
     by_brand = by_brand.reindex(known + others).reset_index()
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = go.Figure()
     for metric, color in (("平均売上", SERIES[0]), ("平均収支", SERIES[1])):
         fig.add_bar(x=by_brand["brands"], y=by_brand[metric], name=metric, marker_color=color,

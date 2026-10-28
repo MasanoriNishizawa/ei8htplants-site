@@ -50,6 +50,7 @@ def test_リポジトリ直下のconfig_tomlでエラーの詳細を画面に出
 
     Returns:
         なし。"""
+    # 1. リポジトリ直下のconfig tomlでエラーの詳細を画面に出さない設定になっていることを確認する。
     cfg = _load(CLOUD_CONFIG)
     assert cfg["client"]["showErrorDetails"] == "none"
 
@@ -60,6 +61,7 @@ def test_リポジトリ直下のconfig_tomlにserverの設定が無い():
 
     Returns:
         なし。"""
+    # 1. リポジトリ直下のconfig tomlにserverの設定が無いことを確認する。
     cfg = _load(CLOUD_CONFIG)
     assert "server" not in cfg
     text = CLOUD_CONFIG.read_text(encoding="utf-8")
@@ -72,6 +74,7 @@ def test_リポジトリ直下のconfig_tomlは利用状況を送らない():
 
     Returns:
         なし。"""
+    # 1. リポジトリ直下のconfig tomlは利用状況を送らないことを確認する。
     assert _load(CLOUD_CONFIG)["browser"]["gatherUsageStats"] is False
 
 
@@ -85,6 +88,7 @@ def test_リポジトリ直下とローカル用のconfig_tomlで同じ項目の
 
     Returns:
         なし。"""
+    # 1. リポジトリ直下とローカル用のconfig tomlで同じ項目の設定が一致することを確認する。
     assert _load(CLOUD_CONFIG)[section] == _load(LOCAL_CONFIG)[section]
 
 
@@ -93,6 +97,7 @@ def test_ローカル用のconfig_tomlもエラーの詳細を出さずserverは
 
     Returns:
         なし。"""
+    # 1. ローカル用のconfig tomlもエラーの詳細を出さずserverはlocalhostだけで待ち受けることを確認する。
     cfg = _load(LOCAL_CONFIG)
     assert cfg["client"]["showErrorDetails"] == "none"
     assert cfg["server"]["address"] == "localhost"
@@ -106,6 +111,7 @@ def test_リポジトリ直下のconfig_tomlの項目はStreamlitが知ってい
 
     Returns:
         なし。"""
+    # 1. リポジトリ直下のconfig tomlの項目はStreamlitが知っている設定名だけことを確認する。
     from streamlit import config as st_config
 
     for section, values in _load(CLOUD_CONFIG).items():
@@ -156,6 +162,7 @@ def _call_name(node: ast.AST) -> str | None:
     Returns:
         呼び出しの名前。呼び出しでなければ None
     """
+    # 変数の内容: value: テストケースとして渡す値。
     value = node.value if isinstance(node, (ast.Expr, ast.Assign)) else None
     if not isinstance(value, ast.Call):
         return None
@@ -167,6 +174,7 @@ def test_app_pyでset_optionがlibとviewsのimportより前にある():
 
     Returns:
         なし。"""
+    # 変数の内容: body: API に渡すリクエスト本文。
     body = _app_tree().body
     names = [_call_name(n) for n in body]
     set_option_at = names.index("st.set_option")
@@ -184,6 +192,7 @@ def test_app_pyでload_secrets_into_envがrequire_loginより前に呼ばれる(
 
     Returns:
         なし。"""
+    # 1. app pyでload secrets into envがrequire loginより前に呼ばれることを確認する。
     names = [_call_name(n) for n in _app_tree().body]
     assert "load_secrets_into_env" in names
     assert names.index("load_secrets_into_env") < names.index("require_login")

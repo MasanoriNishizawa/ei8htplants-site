@@ -115,14 +115,18 @@ def compute_finances(fin: dict, has_workshop: bool) -> FinanceResult:
     )
     # 3. WS の売上と資材費（WS を開催したときだけ）
     ws_sales = fin["ws_participants"] * WS_FEE_PER_PERSON if has_workshop else 0
+    # 変数の内容: ws_cost: ワークショップ資材費。
     ws_cost = fin["ws_participants"] * WS_COST_PER_PERSON if has_workshop else 0
+    # 変数の内容: net: 売上から通常支出とWS資材費を差し引いた仮収支。
     net = fin["sales"] - total_expense - ws_cost
     # 4. 手伝い支払いがあるときは、物販利益の20% と WS 売上の70% を収支から引く
     payment = 0
     if fin["payment_flag"]:
+        # 変数の内容: payment: 手伝い支払い額。
         payment = _js_round((fin["sales"] - ws_sales - total_expense) * HELPER_SALES_RATE) + _js_round(
             ws_sales * HELPER_WS_RATE
         )
+        # 変数の内容: net: 費用と手伝い支払いを反映した収支。
         net -= payment
     return {
         "transport": transport,
@@ -163,6 +167,7 @@ def break_even_sales(fin: dict, has_workshop: bool) -> float:
     """
     # 1. 売上を 0 円・10万円にしたときの収支を計算する（丸め誤差を小さくするため差を大きく取る）
     net0 = compute_finances({**fin, "sales": 0}, has_workshop)["net"]
+    # 変数の内容: net1: 基準額の売上を設定した場合の収支。
     net1 = compute_finances({**fin, "sales": BREAK_EVEN_STEP}, has_workshop)["net"]
     # 2. 売上1円あたりの収支の増え方（傾き）から 0 になる売上を出す
     slope = (net1 - net0) / BREAK_EVEN_STEP

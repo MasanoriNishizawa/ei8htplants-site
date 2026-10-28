@@ -38,6 +38,7 @@ def test_本物のsecrets_tomlの場所はanalyticsとリポジトリ直下と�
 
     Returns:
         なし。"""
+    # 1. 本物のsecrets tomlの場所はanalyticsとリポジトリ直下とホームの3か所ことを確認する。
     analytics = Path(__file__).resolve().parents[1]
     assert set(REAL_SECRETS_FILES) == {
         (analytics / ".streamlit" / "secrets.toml").resolve(),
@@ -73,6 +74,7 @@ def test_本物のsecrets_tomlのフォルダを読もうとしても止める(i
 
     Returns:
         なし。"""
+    # 1. 本物のsecrets tomlのフォルダを読もうとしても止めることを確認する。
     folder = str(REAL_SECRETS_FILES[0].parent)
     with pytest.raises(AssertionError):
         Secrets()._parse_file_path(folder)  # noqa: SLF001
@@ -88,6 +90,7 @@ def test_load_secrets_into_envはsecrets_tomlが無い扱いになりFalseを返
 
     Returns:
         なし。"""
+    # 1. load secrets into envはsecrets tomlが無い扱いになりFalseを返すことを確認する。
     assert load_secrets_into_env() is False
     assert isolate_secrets == []
 
@@ -101,6 +104,7 @@ def test_app_pyをAppTestで描いても本物のsecrets_tomlを読まない(iso
 
     Returns:
         なし。"""
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = AppTest.from_file(APP_PATH, default_timeout=30).run()
     assert not at.exception
     # 2. 本物の場所は読もうともしていない
@@ -115,4 +119,5 @@ def test_テストごとにst_secretsは新しく作り直される():
 
     Returns:
         なし。"""
+    # 1. テストごとにst secretsは新しく作り直されることを確認する。
     assert streamlit.secrets._secrets is None  # noqa: SLF001

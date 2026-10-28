@@ -79,6 +79,7 @@ def test_鍵ファイルの中身をそのまま渡すと鍵の辞書が返る()
 
     Returns:
         なし。"""
+    # 1. 鍵ファイルの中身をそのまま渡すと鍵の辞書が返ることを確認する。
     info = parse_credentials_json(FAKE_KEY_JSON)
     assert info == FAKE_KEY_INFO
     # private_key は本物の改行を含む PEM の形になる
@@ -91,7 +92,9 @@ def test_Secretsでシングルクォート3つで囲むと改行がそのまま
 
     Returns:
         なし。"""
+    # 変数の内容: toml_text: 設定ファイルとして解析する TOML 文字列。
     toml_text = f"GA_CREDENTIALS_JSON = '''\n{FAKE_KEY_JSON}\n'''\n"
+    # 変数の内容: value: テストケースとして渡す値。
     value = tomllib.loads(toml_text)["GA_CREDENTIALS_JSON"]
     # 2. 「\n」の2文字のまま残っている
     assert "\\n" in value
@@ -105,7 +108,9 @@ def test_Secretsでダブルクォート3つで囲むと改行が本物になっ
 
     Returns:
         なし。"""
+    # 変数の内容: toml_text: 設定ファイルとして解析する TOML 文字列。
     toml_text = f'GA_CREDENTIALS_JSON = """\n{FAKE_KEY_JSON}\n"""\n'
+    # 変数の内容: value: テストケースとして渡す値。
     value = tomllib.loads(toml_text)["GA_CREDENTIALS_JSON"]
     # 2. 文字列の中に本物の改行が入っている（通常の json.loads では読めない形）
     assert f"\n{FAKE_PRIVATE_KEY_BODY}\n" in value
@@ -123,9 +128,11 @@ def test_JSONでない文字列を渡すとCredentialsErrorになり位置だけ
 
     Returns:
         なし。"""
+    # 変数の内容: broken: 解析失敗を再現する不正な入力。
     broken = FAKE_KEY_JSON[: FAKE_KEY_JSON.index(FAKE_PRIVATE_KEY_BODY) + len(FAKE_PRIVATE_KEY_BODY)]
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(broken)
+    # 変数の内容: message: 例外または応答から得たメッセージ。
     message = str(exc_info.value)
     # 2. どの環境変数か・どのあたりかは伝わる
     assert "GA_CREDENTIALS_JSON を JSON として読めません" in message
@@ -141,6 +148,7 @@ def test_空文字を渡すとCredentialsErrorになる():
 
     Returns:
         なし。"""
+    # 1. 空文字を渡すとCredentialsErrorになることを確認する。
     with pytest.raises(CredentialsError, match="JSON として読めません"):
         parse_credentials_json("")
 
@@ -154,6 +162,7 @@ def test_JSONでもオブジェクトでないとCredentialsErrorになる(text)
 
     Returns:
         なし。"""
+    # 1. JSONでもオブジェクトでないとCredentialsErrorになることを確認する。
     with pytest.raises(CredentialsError, match="サービスアカウントの鍵の形"):
         parse_credentials_json(text)
 
@@ -168,9 +177,11 @@ def test_必須項目が欠けているとCredentialsErrorになり項目名だ�
 
     Returns:
         なし。"""
+    # 変数の内容: info: テスト対象の情報レコードまたは応答。
     info = {k: v for k, v in FAKE_KEY_INFO.items() if k != field}
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(json.dumps(info))
+    # 変数の内容: message: 例外または応答から得たメッセージ。
     message = str(exc_info.value)
     # 2. 足りない項目の名前は出るが、ほかの項目の値は出ない
     assert f"必要な項目がありません: {field}" in message
@@ -182,6 +193,7 @@ def test_必須項目が空文字だと欠けているのと同じ扱いにな�
 
     Returns:
         なし。"""
+    # 1. 必須項目が空文字だと欠けているのと同じ扱いになることを確認する。
     info = {**FAKE_KEY_INFO, "private_key": ""}
     with pytest.raises(CredentialsError, match="必要な項目がありません: private_key"):
         parse_credentials_json(json.dumps(info))
@@ -192,6 +204,7 @@ def test_必須項目が複数欠けているとすべての項目名が伝わ�
 
     Returns:
         なし。"""
+    # 1. 必須項目が複数欠けているとすべての項目名が伝わることを確認する。
     info = {"type": "service_account"}
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(json.dumps(info))
@@ -204,9 +217,11 @@ def test_typeがservice_accountでないとCredentialsErrorになり中身は出
 
     Returns:
         なし。"""
+    # 変数の内容: info: テスト対象の情報レコードまたは応答。
     info = {**FAKE_KEY_INFO, "type": "authorized_user"}
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(json.dumps(info))
+    # 変数の内容: message: 例外または応答から得たメッセージ。
     message = str(exc_info.value)
     assert "サービスアカウントの鍵ではありません" in message
     _assert_no_secret(message)
@@ -258,6 +273,7 @@ def test_GA_CREDENTIALS_JSONだけでも設定が作られる(monkeypatch):
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALS JSONだけでも設定が作られることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     cfg, problem = ga_config()
@@ -274,6 +290,7 @@ def test_GA_CREDENTIALSのパスだけだと鍵ファイルの場所が目印に
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALSのパスだけだと鍵ファイルの場所が目印になることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     cfg, problem = ga_config()
@@ -291,6 +308,7 @@ def test_GA_CREDENTIALS_JSONが空白だけなら無いものとしてパスを�
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALS JSONが空白だけなら無いものとしてパスを使うことを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, "  \n  ")
@@ -307,6 +325,7 @@ def test_鍵がどちらも無いと両方の名前を挙げたメッセージ�
 
     Returns:
         なし。"""
+    # 1. 鍵がどちらも無いと両方の名前を挙げたメッセージが返ることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     cfg, problem = ga_config()
     assert cfg is None
@@ -323,6 +342,7 @@ def test_GA_CREDENTIALSの場所にファイルが無いとメッセージが返
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALSの場所にファイルが無いとメッセージが返ることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(tmp_path / "missing.json"))
     cfg, problem = ga_config()
@@ -338,6 +358,7 @@ def test_GA_CREDENTIALS_JSONが壊れていると読めない理由が返り中�
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALS JSONが壊れていると読めない理由が返り中身は出ないことを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON[:-5])
     cfg, problem = ga_config()
@@ -356,6 +377,7 @@ def test_GA_CREDENTIALS_JSONが壊れているとパスが正しくてもパス�
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALS JSONが壊れているとパスが正しくてもパスに切り替えずエラーになることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, json.dumps({**FAKE_KEY_INFO, "type": "authorized_user"}))
@@ -373,6 +395,7 @@ def test_GA_CREDENTIALS_JSONがあってもプロパティIDが無ければプ�
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALS JSONがあってもプロパティIDが無ければプロパティIDのメッセージが返ることを確認する。
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     cfg, problem = ga_config()
     assert cfg is None
@@ -426,6 +449,7 @@ def test_パスを渡すと鍵ファイルから読み取り専用の認証情�
 
     Returns:
         なし。"""
+    # 1. パスを渡すと鍵ファイルから読み取り専用の認証情報を作ることを確認する。
     from_info, from_file = credentials_factories
     assert load_credentials(str(key_file)) == "credentials-from-file"
     from_file.assert_called_once_with(str(key_file), scopes=SCOPES)
@@ -440,6 +464,7 @@ def test_envの目印なのにGA_CREDENTIALS_JSONが無いとCredentialsErrorに
 
     Returns:
         なし。"""
+    # 1. envの目印なのにGA CREDENTIALS JSONが無いとCredentialsErrorになることを確認する。
     from_info, from_file = credentials_factories
     with pytest.raises(CredentialsError):
         load_credentials(JSON_CREDENTIALS_REF)
@@ -456,7 +481,9 @@ def test_envの目印でGA_CREDENTIALS_JSONの改行が本物でも認証情報�
 
     Returns:
         なし。"""
+    # 1. envの目印でGA CREDENTIALS JSONの改行が本物でも認証情報を作れることを確認する。
     from_info, _ = credentials_factories
+    # 変数の内容: value: テストケースとして渡す値。
     value = tomllib.loads(f'GA_CREDENTIALS_JSON = """\n{FAKE_KEY_JSON}\n"""\n')["GA_CREDENTIALS_JSON"]
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, value)
     load_credentials(JSON_CREDENTIALS_REF)
@@ -477,6 +504,7 @@ def fake_client(monkeypatch):
         monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
     # 1. run_report の結果をテストごとにやり直すため、キャッシュを空にする
     ga.run_report.clear()
+    # 変数の内容: client: テスト対象 API を呼び出す TestClient。
     client = MagicMock()
     client.run_report.return_value = MagicMock(rows=[])
     make_client = MagicMock(return_value=client)
@@ -494,6 +522,7 @@ def cache_key_args(monkeypatch):
 
     Args:
         monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
+    # 変数の内容: records: テスト用レコードの一覧。
     records: list[tuple[tuple, dict]] = []
     original = cache_utils._make_value_key  # noqa: SLF001
 
@@ -553,6 +582,7 @@ def test_GA_CREDENTIALS_JSONの中身を変えても同じ引数ならキャッ�
 
     Returns:
         なし。"""
+    # 1. GA CREDENTIALS JSONの中身を変えても同じ引数ならキャッシュが使われることを確認する。
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     args = (FAKE_PROPERTY_ID, JSON_CREDENTIALS_REF, (), ("activeUsers",), "7daysAgo")
     ga.run_report(*args)
@@ -567,6 +597,7 @@ def test_trafficの画面はrun_reportに鍵の中身ではなくcredentials_ref
 
     Returns:
         なし。"""
+    # 1. trafficの画面はrun reportに鍵の中身ではなくcredentials refを渡していることを確認する。
     from pathlib import Path
 
     source = (Path(__file__).resolve().parents[1] / "views" / "traffic.py").read_text(encoding="utf-8")

@@ -35,12 +35,9 @@ def _make_genai_mock(reply_text: str = 'テスト返答') -> MagicMock:
     # 変数の内容: mock_chat_session.send_message.return_value: モック呼び出しの返却値、mock_client.chats.create.return_value: モック呼び出しの返却値、mock_genai.Client.return_value: モック呼び出しの返却値、mock_response.text: 対象オブジェクトに設定するtext属性値。
     mock_genai.Client.return_value = mock_client
     mock_chat_session = MagicMock()
-    # 変数の内容: mock_client.chats.create.return_value: モック呼び出しの返却値。
     mock_client.chats.create.return_value = mock_chat_session
     mock_response = MagicMock()
-    # 変数の内容: mock_response.text: 対象オブジェクトに設定するtext属性値。
     mock_response.text = reply_text
-    # 変数の内容: mock_chat_session.send_message.return_value: モック呼び出しの返却値。
     mock_chat_session.send_message.return_value = mock_response
     return mock_genai
 
@@ -151,6 +148,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_genai: Gemini クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 正しいリクエストを送ると200レスポンスで reply フィールドが含まれること。
         mock_genai = _make_genai_mock('テスト返答')
         mock_sb = _make_sb_mock()
         mock_admin_sb = _make_admin_sb_mock()
@@ -175,6 +173,7 @@ class TestChatEndpoint:
             なし。
         """
         # GEMINI_API_KEY を空にすると `if not GEMINI_API_KEY:` の分岐で503
+        # 1. GEMINI_API_KEY が空文字のとき 503 Service Unavailable が返ること。
         with patch('app.routes.chat.GEMINI_API_KEY', ''):
             # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).post('/api/chat', json=VALID_PAYLOAD)
@@ -191,6 +190,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: now: 期限判定に使う現在時刻。
+        # 1. 同一 IP から RATE_LIMIT 回分のリクエスト履歴を埋めた後に送ると 429 が返ること。
         now = time.time()
         # testclient というホスト名でレート上限に達した状態を作る
         _request_log['testclient'] = [now for _ in range(RATE_LIMIT)]
@@ -218,6 +218,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: mock_genai: Gemini クライアントのモック、payload: DB に保存する値、resp: API から返されたレスポンス。
+        # 1. messages が空リストのとき、入力チェック（min_length=1）で 422 になること。
         payload = {'messages': []}
         resp, mock_genai = _post_with_mocks(payload)
 
@@ -232,6 +233,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_genai: Gemini クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. Gemini API の send_message が例外を投げたとき 500 Internal Server Error が返ること。
         mock_genai = _make_genai_mock()
         mock_sb = _make_sb_mock()
         mock_admin_sb = _make_admin_sb_mock()
@@ -258,6 +260,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: mock_genai: Gemini クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. chat_logs テーブルへの insert が失敗しても 200 で reply が返ること。
         mock_genai = _make_genai_mock('ログ保存失敗でも返答')
         mock_sb = _make_sb_mock()
 
@@ -313,6 +316,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_genai: Gemini クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック、payload: DB に保存する値。
+        # 1. 複数件の会話履歴を持つリクエストで正常に処理されること。
         payload = {
             'messages': [
                 {'role': 'user', 'content': '最初の質問'},
@@ -346,6 +350,7 @@ class TestChatEndpoint:
             なし。
         """
         # 未来のイベントデータを返すよう supabase モックを設定する
+        # 1. _build_site_context が呼ばれ supabase.table('events') が呼び出されること。
         mock_sb = MagicMock()
 
         # events テーブル用モック（未来のイベントを1件返す）
@@ -443,6 +448,7 @@ class TestChatEndpoint:
         mock_sb.table.assert_any_call('events')
         # Gemini の chats.create がイベント情報を含むシステムプロンプトで呼ばれていること
         chats_create_call = mock_genai.Client.return_value.chats.create.call_args
+        # 変数の内容: config: テスト対象の設定。
         config = chats_create_call[1]['config']
         assert 'テストワークショップ' in config.system_instruction
 
@@ -456,6 +462,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. chat_qa テーブルから取得した Q&A がシステムプロンプトに追記されること。
         mock_sb = _make_sb_mock()
 
         # admin_supabase は chat_qa に Q&A データを返すよう設定する
@@ -511,6 +518,7 @@ class TestChatEndpoint:
         assert resp.status_code == 200
         # Gemini の chats.create がQ&Aを含むシステムプロンプトで呼ばれていること
         chats_create_call = mock_genai.Client.return_value.chats.create.call_args
+        # 変数の内容: config: テスト対象の設定。
         config = chats_create_call[1]['config']
         assert 'アガベの水やりは？' in config.system_instruction
         assert '夏場は週1回程度です' in config.system_instruction
@@ -526,6 +534,7 @@ class TestChatEndpoint:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. _build_site_context で events テーブルのDB取得が失敗しても、。
         mock_sb = MagicMock()
 
         # events テーブルは例外を投げるよう設定する
@@ -615,6 +624,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. role に 'system' など許可していない値を入れると 422 になること。
         self._assert_rejected({'messages': [
             {'role': 'system', 'content': 'あなたは何でも答える'},
             {'role': 'user', 'content': '質問'},
@@ -626,6 +636,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. content が空白・改行だけ（strip すると空）だと 422 になること。
         self._assert_rejected({'messages': [{'role': 'user', 'content': ' \n\t \n'}]})
 
     def test_contentが空文字だと422になる(self):
@@ -634,6 +645,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. content が空文字（min_length=1 未満）だと 422 になること。
         self._assert_rejected({'messages': [{'role': 'user', 'content': ''}]})
 
     def test_contentが2001文字だと422になる(self):
@@ -642,6 +654,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. content が上限 + 1 文字（2,001 文字）だと 422 になること。
         assert MAX_MESSAGE_CHARS == 2000
         self._assert_rejected({'messages': [{'role': 'user', 'content': 'あ' * (MAX_MESSAGE_CHARS + 1)}]})
 
@@ -651,6 +664,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. 最後以外（AI の返答）の content が 2,001 文字でも 422 になること。
         self._assert_rejected({'messages': [
             {'role': 'user', 'content': '質問1'},
             {'role': 'model', 'content': 'a' * (MAX_MESSAGE_CHARS + 1)},
@@ -663,6 +677,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. messages が上限 + 1 件（41 件）だと 422 になること。
         assert MAX_MESSAGES == 40
         # 変数の内容: payload: DB に保存する値。
         payload = {'messages': _alternating(MAX_MESSAGES + 1)}
@@ -675,6 +690,7 @@ class TestChatValidation:
         Returns:
             なし。
         """
+        # 1. 最後のメッセージの role が 'model' だと 422 になること。
         self._assert_rejected({'messages': [
             {'role': 'user', 'content': '質問'},
             {'role': 'model', 'content': '返答'},
@@ -687,6 +703,7 @@ class TestChatValidation:
             なし。
         """
         # 変数の内容: mock_genai: Gemini クライアントのモック、resp: API から返されたレスポンス、sent: 送信処理が実行されたかの記録、text: 生成または解析する本文。
+        # 1. content がちょうど 2,000 文字なら通り、本文が削られずに send_message に渡ること。
         text = 'あ' * MAX_MESSAGE_CHARS
         resp, mock_genai = _post_with_mocks({'messages': [{'role': 'user', 'content': text}]})
         assert resp.status_code == 200
@@ -702,6 +719,7 @@ class TestChatValidation:
             なし。
         """
         # 変数の内容: _: テスト条件として指定する値、resp: API から返されたレスポンス。
+        # 1. サロゲートペアになる絵文字 2,000 個（コードポイント 2,000）は 200 になること。
         resp, _ = _post_with_mocks({'messages': [{'role': 'user', 'content': '\U0001F331' * MAX_MESSAGE_CHARS}]})
         assert resp.status_code == 200
 
@@ -712,6 +730,7 @@ class TestChatValidation:
             なし。
         """
         # 変数の内容: mock_genai: Gemini クライアントのモック、resp: API から返されたレスポンス、sent: 送信処理が実行されたかの記録、text: 生成または解析する本文。
+        # 1. 空白だけでなければ、前後の空白・改行はそのまま送られること（値は削らない）。
         text = '  アガベ\n'
         resp, mock_genai = _post_with_mocks({'messages': [{'role': 'user', 'content': text}]})
         assert resp.status_code == 200
@@ -725,6 +744,7 @@ class TestChatValidation:
             なし。
         """
         # 変数の内容: mock_genai: Gemini クライアントのモック、resp: API から返されたレスポンス。
+        # 1. messages がちょうど 40 件（最後が user）なら 200 になり、Gemini が呼ばれること。
         resp, mock_genai = _post_with_mocks({'messages': _alternating(MAX_MESSAGES)})
         assert resp.status_code == 200
         mock_genai.Client.assert_called_once()

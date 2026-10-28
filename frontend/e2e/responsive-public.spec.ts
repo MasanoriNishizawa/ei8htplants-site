@@ -10,6 +10,7 @@ import { test, expect, type Page } from '@playwright/test'
 /**
  * 横スクロールが出ていないかを確かめる
  * @param page - 対象ページ
+ * @returns なし。横スクロールがないことを検証する。
  */
 async function expectNoHorizontalScroll(page: Page) {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
@@ -35,6 +36,7 @@ async function checkoutColumns(page: Page) {
 /**
  * 商品詳細から 1 つカートに入れて、注文手続きを開く
  * @param page - 対象ページ
+ * @returns なし。商品をカートに入れて注文手続き画面を表示する。
  */
 async function openCheckoutWithItem(page: Page) {
   await page.goto('/official/shop/p-1')
@@ -119,6 +121,7 @@ test.describe('注文手続き（/official/checkout）の列', () => {
   })
 
   test('注文サマリーに商品金額を表示し、都道府県選択後に送料込み合計を更新する', async ({ page }) => {
+    // 1. 商品をカートに入れた状態で注文画面を開き、小計を確認する
     await page.setViewportSize({ width: 1280, height: 900 })
     await openCheckoutWithItem(page)
     const summary = page.locator('.checkout-layout > :nth-child(2)')
@@ -130,6 +133,7 @@ test.describe('注文手続き（/official/checkout）の列', () => {
     await expect(summary.getByText('¥3,800')).toHaveCount(2)
     await expect(summary.getByText('都道府県選択後に確定')).toBeVisible()
 
+    // 2. 配送先を選び、送料と合計金額が更新されることを確認する
     await page.getByLabel('都道府県 *').selectOption('東京都')
     await expect(summary.getByText('送料（東京都）')).toBeVisible()
     await expect(summary.getByText('¥800')).toBeVisible()
@@ -137,11 +141,12 @@ test.describe('注文手続き（/official/checkout）の列', () => {
   })
 
   test('767px でも 1 列、768px では 2 列（サマリーがフォームの右）になる', async ({ page }) => {
+    // 1. 767px 幅で注文画面を開き、1 列配置を確かめる
     await page.setViewportSize({ width: 767, height: 900 })
     await openCheckoutWithItem(page)
     let cols = await checkoutColumns(page)
     expect(cols.summary.y).toBeGreaterThanOrEqual(cols.form.y + cols.form.height)
-    // 768px に広げると 2 列
+    // 2. 768px に広げ、サマリーがフォーム右側へ移ることを確かめる
     await page.setViewportSize({ width: 768, height: 900 })
     cols = await checkoutColumns(page)
     expect(cols.summary.x).toBeGreaterThan(cols.form.x + cols.form.width - 1)

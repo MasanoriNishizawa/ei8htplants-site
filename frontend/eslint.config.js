@@ -16,9 +16,11 @@ export default tseslint.config(
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
+      // ecmaVersion: JavaScript構文の解釈基準。globals: ブラウザAPIを既知の名前として扱う。
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    // plugins: React HooksとFast Refreshの専用ルールを登録する。
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
@@ -38,6 +40,7 @@ export default tseslint.config(
   {
     files: ['**/__tests__/**/*.{ts,tsx}', 'e2e/**/*.ts', 'src/test/**/*.ts', 'src/mocks/**/*.ts', '*.config.ts'],
     languageOptions: {
+      // テスト・設定コードでブラウザとNode双方のグローバルを認識する。
       globals: { ...globals.browser, ...globals.node },
     },
   },

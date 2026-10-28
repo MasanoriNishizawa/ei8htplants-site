@@ -9,6 +9,7 @@ import { test, expect, type Page } from '@playwright/test'
 /**
  * 偽の管理者セッションを入れ、Supabase への通信を遮断する（admin-dashboard.spec.ts と同じ）
  * @param page - 対象ページ（goto より前に呼ぶ）
+ * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
@@ -32,6 +33,7 @@ async function useFakeAdminSession(page: Page) {
 /**
  * 文書全体に横スクロールが出ていないかを確かめる
  * @param page - 対象ページ
+ * @returns なし。横スクロールがないことを検証する。
  */
 async function expectNoHorizontalScroll(page: Page) {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
@@ -45,6 +47,7 @@ async function expectNoHorizontalScroll(page: Page) {
  * ボタン・リンクが画面の左右に収まっているかを確かめる（横にスクロールしなくても押せる）
  * @param page - 対象ページ
  * @param name - ボタン・リンクの名前
+ * @returns なし。指定したボタンとリンクが画面幅に収まることを検証する。
  */
 async function expectAllInsideWidth(page: Page, name: string) {
   const width = page.viewportSize()!.width
@@ -110,7 +113,7 @@ test.describe('ショップのヘッダー（StoreHeader）', () => {
   /**
    * ショップのヘッダーのロゴの幅を返す
    * @param page - 対象ページ
-   * @returns ロゴの幅（px）
+  * @returns ロゴの幅（px）
    */
   async function logoWidth(page: Page): Promise<number> {
     const logo = page.getByRole('banner').getByRole('img', { name: 'ei8ht plants' })
@@ -143,9 +146,11 @@ test.describe('ショップのヘッダー（StoreHeader）', () => {
   })
 
   test('言語切り替えボタンで EN と JA が切り替わる', async ({ page }) => {
+    // 1. 外部通信を遮断してショップを開く
     await page.context().route(/supabase\.co/, (route) => route.abort())
     await page.goto('/official/shop')
     const banner = page.getByRole('banner')
+    // 2. 英語に切り替え、続けて日本語に戻ることを確かめる
     await banner.getByRole('button', { name: 'Switch to English' }).click()
     await expect(banner.getByRole('button', { name: '日本語に切り替える' })).toHaveText('JA')
     await banner.getByRole('button', { name: '日本語に切り替える' }).click()

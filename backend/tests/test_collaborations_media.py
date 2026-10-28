@@ -23,7 +23,6 @@ def _simple_mock(data: list, error: Exception = None):
         # 変数の内容: execute.return_value.data: モックのクエリ応答に含めるデータ、execute.side_effect: モック呼び出し時に返す例外または副作用。
         execute.side_effect = error
     else:
-        # 変数の内容: execute.return_value.data: モックのクエリ応答に含めるデータ。
         execute.return_value.data = data
     return mock_sb
 
@@ -49,6 +48,7 @@ class TestCollaborationsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 全件取得ことを確認する。
         mock_sb = _simple_mock(COLLABS_DATA)
         with patch('app.routes.collaborations.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -65,6 +65,7 @@ class TestCollaborationsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 空一覧ことを確認する。
         mock_sb = _simple_mock([])
         with patch('app.routes.collaborations.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -81,6 +82,7 @@ class TestMediaAppearancesEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 全件取得ことを確認する。
         mock_sb = _simple_mock(MEDIA_DATA)
         with patch('app.routes.media_appearances.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -97,6 +99,7 @@ class TestMediaAppearancesEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 空一覧ことを確認する。
         mock_sb = _simple_mock([])
         with patch('app.routes.media_appearances.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -111,6 +114,7 @@ class TestMediaAppearancesEndpoint:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. DB の例外は一般的な文言の 500 になり、内部の例外の文字列（detail=str(e) だったもの）を返さないこと。
         mock_sb = _simple_mock([], error=Exception('DB connection failed'))
         with patch('app.routes.media_appearances.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -131,6 +135,7 @@ class TestCollaborationsCRUD:
         Returns:
             なし。
         """
+        # 1. POST /api/collaborations でコラボレーションを追加したとき、作成後のレコードが返ること。
         from app.auth import require_auth
 
         # supabase: 件数取得チェーン（select → count）
@@ -140,6 +145,7 @@ class TestCollaborationsCRUD:
 
         # admin_supabase: insert チェーン
         new_collab = {'id': 'c3', 'title': 'Collab C', 'partner_name': None, 'display_order': 2}
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。
         mock_admin_sb = MagicMock()
         # 変数の内容: mock_admin_sb.table.return_value.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_admin_sb.table.return_value.insert.return_value.execute.return_value.data = [new_collab]
@@ -165,6 +171,7 @@ class TestCollaborationsCRUD:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで POST すると 401 が返ること。
         resp = TestClient(app).post('/api/collaborations', json={'title': 'Collab X'})
         assert resp.status_code == 401
 
@@ -174,6 +181,7 @@ class TestCollaborationsCRUD:
         Returns:
             なし。
         """
+        # 1. DELETE /api/collaborations/{id} で削除したとき {"ok": True} が返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
@@ -199,6 +207,7 @@ class TestCollaborationsCRUD:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで DELETE すると 401 が返ること。
         resp = TestClient(app).delete('/api/collaborations/c1')
         assert resp.status_code == 401
 
@@ -212,6 +221,7 @@ class TestMediaAppearancesCRUD:
         Returns:
             なし。
         """
+        # 1. POST /api/media-appearances でレコードを追加したとき、作成後のデータが返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、new_item: 新規作成するテスト項目。
@@ -240,6 +250,7 @@ class TestMediaAppearancesCRUD:
         Returns:
             なし。
         """
+        # 1. admin_supabase.insert が例外を投げたとき 500 が返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
@@ -267,6 +278,7 @@ class TestMediaAppearancesCRUD:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで POST すると 401 が返ること。
         resp = TestClient(app).post(
             '/api/media-appearances',
             json={'title': 'Video X', 'youtube_url': 'https://youtube.com/watch?v=xxx'},
@@ -279,6 +291,7 @@ class TestMediaAppearancesCRUD:
         Returns:
             なし。
         """
+        # 1. DELETE /api/media-appearances/{id} で削除したとき {"ok": True} が返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
@@ -303,6 +316,7 @@ class TestMediaAppearancesCRUD:
         Returns:
             なし。
         """
+        # 1. admin_supabase.delete が例外を投げたとき 500 が返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
@@ -327,5 +341,6 @@ class TestMediaAppearancesCRUD:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで DELETE すると 401 が返ること。
         resp = TestClient(app).delete('/api/media-appearances/m1')
         assert resp.status_code == 401

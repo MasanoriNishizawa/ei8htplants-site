@@ -111,6 +111,7 @@ def test_secrets_tomlが無いとFalseを返し環境変数は変わらない(us
 
     Returns:
         なし。"""
+    # 1. secrets tomlが無いとFalseを返し環境変数は変わらないことを確認する。
     use_secrets_files([str(tmp_path / ".streamlit" / "secrets.toml"), str(tmp_path / "missing" / "secrets.toml")])
     before = dict(os.environ)
     assert load_secrets_into_env() is False
@@ -165,6 +166,7 @@ def test_secrets_tomlの値は同じ名前の環境変数より優先される(u
 
     Returns:
         なし。"""
+    # 1. secrets tomlの値は同じ名前の環境変数より優先されることを確認する。
     monkeypatch.setenv("ANALYTICS_TEST_SECRET_STR", "value-from-shell")
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}"\n', encoding="utf-8")
@@ -182,6 +184,7 @@ def test_2回呼んでもTrueを返し値は変わらない(use_secrets_files, t
 
     Returns:
         なし。"""
+    # 1. 2回呼んでもTrueを返し値は変わらないことを確認する。
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}"\n', encoding="utf-8")
     use_secrets_files([str(path)])
@@ -199,6 +202,7 @@ def test_secrets_tomlの書き方が誤っているとFalseを返し環境変数
 
     Returns:
         なし。"""
+    # 1. secrets tomlの書き方が誤っているとFalseを返し環境変数は変わらないことを確認する。
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}\nBROKEN = \n', encoding="utf-8")
     use_secrets_files([str(path)])
@@ -256,6 +260,7 @@ def test_secrets_tomlを読み取れないとFalseを返しログには例外の
     records = [r for r in caplog.records if r.name == secrets_env.logger.name]
     assert len(records) == 1
     assert records[0].levelno == logging.ERROR
+    # 変数の内容: message: 例外または応答から得たメッセージ。
     message = records[0].getMessage()
     assert message == f"Secrets を読み込めませんでした: {error_type.__name__}"
     # 3. 値・パス・例外のメッセージは出ず、スタックトレースも付けない
@@ -273,6 +278,7 @@ def test_OSError以外の予期しない例外は握りつぶさない(monkeypat
 
     Returns:
         なし。"""
+    # 1. OSError以外の予期しない例外は握りつぶさないことを確認する。
     class _Broken:
         """例外時のテスト用応答を扱うクラス。"""
         def __len__(self) -> int:

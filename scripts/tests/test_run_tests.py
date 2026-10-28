@@ -16,7 +16,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
     """省略・失敗・CLI・プロセス終了の表示を記録する契約を確認する。"""
 
     def test_missing_analytics_venv_is_recorded_as_skip(self):
-        """専用仮想環境がないAnalytics suiteをskip結果にする。"""
+        """専用仮想環境がないAnalytics suiteをskip結果にする。
+
+        Returns:
+            なし。"""
+        # 1. 専用仮想環境がないAnalytics suiteをskip結果にする。
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.object(run_tests, "ROOT", Path(temp_dir)):
                 result = run_tests.run_analytics()
@@ -27,7 +31,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn("analytics/.venv", result["skip_reason"])
 
     def test_log_shows_analytics_skip_reason(self):
-        """Analyticsのskip理由を絞り込み実行のログへ表示する。"""
+        """Analyticsのskip理由を絞り込み実行のログへ表示する。
+
+        Returns:
+            なし。"""
+        # 1. Analyticsのskip理由を絞り込み実行のログへ表示する。
         result = {
             "name": "分析ダッシュボード（pytest）", "code": 0, "sec": 0,
             "passed": 0, "failed": 0, "skipped": 1, "xfail": 0,
@@ -41,7 +49,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn("analytics/.venv がないため実行をスキップ", entry)
 
     def test_全suite実行でanalyticsが省略なら全部成功と表示せず省略を示す(self):
-        """全suite指定でもAnalytics省略を全件成功として表示しない。"""
+        """全suite指定でもAnalytics省略を全件成功として表示しない。
+
+        Returns:
+            なし。"""
+        # 1. 全suite指定でもAnalytics省略を全件成功として表示しない。
         result = {
             "name": "分析ダッシュボード（pytest）", "code": 0, "sec": 0,
             "passed": 0, "failed": 0, "skipped": 1, "xfail": 0,
@@ -57,7 +69,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn("analytics/.venv がないため実行をスキップ", entry)
 
     def test_失敗したテストは失敗判定と失敗名をログに出す(self):
-        """失敗件数があるsuiteの判定と失敗名をログへ表示する。"""
+        """失敗件数があるsuiteの判定と失敗名をログへ表示する。
+
+        Returns:
+            なし。"""
+        # 1. 失敗件数があるsuiteの判定と失敗名をログへ表示する。
         failed_name = "tests/test_example.py::test_失敗するケース"
         result = {
             "name": "バックエンド（pytest）", "code": 1, "sec": 1,
@@ -72,12 +88,17 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn(f"`{failed_name}`", entry)
 
     def test_先行suiteの失敗後に中断した場合は両方を全体判定に出す(self):
-        """中断が先行suiteの失敗を見えなくしない。"""
+        """中断が先行suiteの失敗を見えなくしない。
+
+        Returns:
+            なし。"""
+        # 1. 中断が先行suiteの失敗を見えなくしない。
         failed = {
             "name": "フロントのロジック（Vitest）", "code": 1, "sec": 1,
             "passed": 2, "failed": 1, "skipped": 0, "xfail": 0,
             "failed_names": ["example.test.ts"], "tail": [],
         }
+        # 変数の内容: interrupted: 割り込み後に返す実行結果。
         interrupted = {
             "name": "画面テスト（Playwright）", "code": 130, "sec": 1,
             "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
@@ -91,7 +112,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertIn("| 画面テスト（Playwright） | ⏹ 中断 |", entry)
 
     def test_runner開始前の割り込みをログで区別する(self):
-        """進捗表示中の割り込みを実行開始後の割り込みと混同しない。"""
+        """進捗表示中の割り込みを実行開始後の割り込みと混同しない。
+
+        Returns:
+            なし。"""
+        # 変数の内容: interrupted_before_start: suite 開始前に割り込まれた結果。
         interrupted_before_start = {
             "name": "TypeScript チェック（tsc）", "code": 130, "sec": 0,
             "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
@@ -107,39 +132,62 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertNotIn("状態**：実行中に割り込みを受けました", entry)
 
     def test_runはmonotonic時計で経過時間を測る(self):
-        """外部コマンド時間を壁時計でなく単調時計で測る。"""
+        """外部コマンド時間を壁時計でなく単調時計で測る。
+
+        Returns:
+            なし。"""
+        # 1. 外部コマンド時間を壁時計でなく単調時計で測る。
         process = Mock(returncode=0)
         process.communicate.return_value = ("stdout", "stderr")
         with patch.object(run_tests.time, "monotonic", side_effect=[10.0, 12.5]) as monotonic:
             with patch.object(run_tests.time, "time", side_effect=AssertionError("壁時計を使わないこと")):
                 with patch.object(run_tests.subprocess, "Popen", return_value=process):
+                    # 変数の内容: code: suite の終了コード、output: テスト対象コマンドの標準出力、elapsed: 測定した経過時間。
                     code, output, elapsed = run_tests.run(["example"], Path("."))
 
         self.assertEqual((code, output, elapsed), (0, "stdoutstderr", 2.5))
         self.assertEqual(monotonic.call_count, 2)
 
     def test_runは新しいセッションで起動して正常終了結果を返す(self):
-        """正常終了時の戻り値を保ち、POSIXでは専用セッションで起動する。"""
+        """正常終了時の戻り値を保ち、POSIXでは専用セッションで起動する。
+
+        Returns:
+            なし。"""
+        # 1. 正常終了時の戻り値を保ち、POSIXでは専用セッションで起動する。
         class FakeProcess:
             """Popen の最小限の正常系応答を返す偽物。"""
             pid = 4321
             returncode = 0
 
             def communicate(self):
-                """標準出力と標準エラーの固定値を返す。"""
+                """標準出力と標準エラーの固定値を返す。
+
+                Returns:
+                    tuple[str, str]: 固定の標準出力と標準エラー。"""
                 return "標準出力", "標準エラー"
 
             def poll(self):
-                """プロセスが正常終了したコードを返す。"""
+                """プロセスが正常終了したコードを返す。
+
+                Returns:
+                    int | None: プロセスの終了コード。実行中は None。"""
                 return self.returncode
 
             def wait(self, timeout=None):
-                """呼び出し側の待機処理へ終了コードを返す。"""
+                """呼び出し側の待機処理へ終了コードを返す。
+
+                Args:
+                    timeout: プロセス終了を待つ時間。
+
+                Returns:
+                    int: プロセスの終了コード。"""
                 return self.returncode
 
+        # 変数の内容: process: 起動した子プロセスのモック。
         process = FakeProcess()
         with patch.object(run_tests.subprocess, "Popen", return_value=process) as popen:
             with patch.object(run_tests.time, "monotonic", side_effect=[10.0, 12.5]):
+                # 変数の内容: code: suite の終了コード、output: テスト対象コマンドの標準出力、elapsed: 測定した経過時間。
                 code, output, elapsed = run_tests.run(["example"], Path("."))
 
         self.assertEqual((code, output, elapsed), (0, "標準出力標準エラー", 2.5))
@@ -147,10 +195,14 @@ class TestRunnerSkipLogging(unittest.TestCase):
             self.assertTrue(popen.call_args.kwargs.get("start_new_session"))
 
     def test_runは起動時のOSErrorを127と診断文に変換する(self):
-        """実行ファイルを起動できない場合も呼び出し元へ例外を漏らさない。"""
+        """実行ファイルを起動できない場合も呼び出し元へ例外を漏らさない。
+
+        Returns:
+            なし。"""
         # 1. Popenの起動失敗を作り、互換runnerの戻り値へ変換する。
         with patch.object(run_tests.subprocess, "Popen", side_effect=FileNotFoundError("実行ファイルなし")):
             with patch.object(run_tests.time, "monotonic", side_effect=[20.0, 20.25]):
+                # 変数の内容: code: suite の終了コード、output: テスト対象コマンドの標準出力、elapsed: 測定した経過時間。
                 code, output, elapsed = run_tests.run(["missing"], Path("."))
 
         self.assertEqual(code, 127)
@@ -159,7 +211,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "posix", "POSIX のプロセスグループ終了を検証する")
     def test_runは割り込み時にグループへTERM後KILLを送りleaderを回収して再送出する(self):
-        """TERM猶予中に終了しない子をKILLし、wait/reap 後に割り込みを伝える。"""
+        """TERM猶予中に終了しない子をKILLし、wait/reap 後に割り込みを伝える。
+
+        Returns:
+            なし。"""
+        # 1. TERM猶予中に終了しない子をKILLし、wait/reap 後に割り込みを伝える。
         events = []
 
         class FakeProcess:
@@ -168,12 +224,21 @@ class TestRunnerSkipLogging(unittest.TestCase):
             returncode = None
 
             def communicate(self):
-                """外部コマンドが割り込みを受けた状態を再現する。"""
+                """外部コマンドが割り込みを受けた状態を再現する。
+
+                Returns:
+                    なし。"""
                 events.append("communicate")
                 raise KeyboardInterrupt
 
             def wait(self, timeout=None):
-                """一度目はtimeout、次はSIGKILL後の終了コードを返す。"""
+                """一度目はtimeout、次はSIGKILL後の終了コードを返す。
+
+                Args:
+                    timeout: プロセス終了を待つ時間。
+
+                Returns:
+                    int: プロセスの終了コード。"""
                 events.append(("wait", timeout))
                 if sum(1 for event in events if isinstance(event, tuple) and event[0] == "wait") == 1:
                     raise subprocess.TimeoutExpired(["example"], timeout)
@@ -181,13 +246,24 @@ class TestRunnerSkipLogging(unittest.TestCase):
                 return self.returncode
 
             def poll(self):
-                """現在の終了コードを返し、未終了ならNoneを返す。"""
+                """現在の終了コードを返し、未終了ならNoneを返す。
+
+                Returns:
+                    int | None: プロセスの終了コード。実行中は None。"""
                 return self.returncode
 
+        # 変数の内容: process: 起動した子プロセスのモック。
         process = FakeProcess()
 
         def record_killpg(pid, signum):
-            """killpg呼び出しの対象とsignalを順序付きで記録する。"""
+            """killpg呼び出しの対象とsignalを順序付きで記録する。
+
+            Args:
+                pid: プロセスグループの識別子。
+                signum: 送信するシグナル番号。
+
+            Returns:
+                None: 呼び出し内容を記録し、値は返さない。"""
             events.append(("killpg", pid, signum))
 
         with patch.object(run_tests.subprocess, "Popen", return_value=process) as popen:
@@ -205,8 +281,13 @@ class TestRunnerSkipLogging(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "posix", "POSIX のプロセスグループ終了を検証する")
     def test_leader回収後も残るプロセスグループを期限後にKILLする(self):
-        """leader の wait 成功で後始末を終えず、残存する子孫を期限後に終了する。"""
+        """leader の wait 成功で後始末を終えず、残存する子孫を期限後に終了する。
+
+        Returns:
+            なし。"""
+        # 1. leader の wait 成功で後始末を終えず、残存する子孫を期限後に終了する。
         events = []
+        # 変数の内容: clock: 経過時間計測用の固定時計。
         clock = {"now": 0.0}
 
         class FakeProcess:
@@ -215,25 +296,45 @@ class TestRunnerSkipLogging(unittest.TestCase):
             returncode = 0
 
             def communicate(self):
-                """実行中のプロセスが割り込まれたことを示す。"""
+                """実行中のプロセスが割り込まれたことを示す。
+
+                Returns:
+                    なし。"""
                 events.append("communicate")
                 raise KeyboardInterrupt
 
             def wait(self, timeout=None):
-                """leader終了時の待ち時間と結果を記録する。"""
+                """leader終了時の待ち時間と結果を記録する。
+
+                Args:
+                    timeout: プロセス終了を待つ時間。
+
+                Returns:
+                    int: プロセスの終了コード。"""
                 events.append(("leader_wait", timeout))
                 return self.returncode
 
+        # 変数の内容: process: 起動した子プロセスのモック。
         process = FakeProcess()
 
         def record_group_signal(pid, signum):
-            """グループsignalを記録し、子孫が残る状態を表す。"""
+            """グループsignalを記録し、子孫が残る状態を表す。
+
+            Args:
+                pid: プロセスグループの識別子。
+                signum: 送信するシグナル番号。
+
+            Returns:
+                None: 呼び出し内容を記録し、値は返さない。"""
             events.append(("killpg", pid, signum))
             # signal 0 はグループ内の子孫が猶予期間中ずっと残っていると示す。
             return None
 
         def advance_clock():
-            """現在時刻を返した後、仮想時計を一秒進める。"""
+            """現在時刻を返した後、仮想時計を一秒進める。
+
+            Returns:
+                float: 進める前の仮想時刻。"""
             current = clock["now"]
             clock["now"] += 1.0
             return current
@@ -245,6 +346,7 @@ class TestRunnerSkipLogging(unittest.TestCase):
                         with self.assertRaises(KeyboardInterrupt):
                             run_tests.run(["example"], Path("."))
 
+        # 変数の内容: term_index: TERM 送信時点の記録位置。
         term_index = events.index(("killpg", process.pid, signal.SIGTERM))
         leader_wait_index = next(
             index for index, event in enumerate(events) if isinstance(event, tuple) and event[0] == "leader_wait"
@@ -258,13 +360,19 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertTrue(group_probe_indices, "leader終了後もkillpg(pid, 0)でグループ残存を確認する")
         self.assertGreater(group_probe_indices[0], leader_wait_index)
         self.assertIn(("killpg", process.pid, signal.SIGKILL), events)
+        # 変数の内容: kill_index: KILL 送信時点の記録位置。
         kill_index = events.index(("killpg", process.pid, signal.SIGKILL))
         self.assertGreater(kill_index, group_probe_indices[-1])
 
     @unittest.skipUnless(os.name == "posix", "POSIX のプロセスグループ終了を検証する")
     def test_SIGTERMからleader待ちと残存group待ちの合計猶予は5秒以内(self):
-        """leader待ちに4.9秒かかった後のgroup待ちは残り約0.1秒だけ使う。"""
+        """leader待ちに4.9秒かかった後のgroup待ちは残り約0.1秒だけ使う。
+
+        Returns:
+            なし。"""
+        # 1. leader待ちに4.9秒かかった後のgroup待ちは残り約0.1秒だけ使う。
         events = []
+        # 変数の内容: clock: 経過時間計測用の固定時計。
         clock = {"now": 0.0, "wait_calls": 0}
 
         class FakeProcess:
@@ -273,26 +381,49 @@ class TestRunnerSkipLogging(unittest.TestCase):
             returncode = 0
 
             def communicate(self):
-                """run_processへ割り込み処理を開始させる。"""
+                """run_processへ割り込み処理を開始させる。
+
+                Returns:
+                    なし。"""
                 events.append(("communicate", clock["now"]))
                 raise KeyboardInterrupt
 
             def wait(self, timeout=None):
-                """最初のleader待ちで4.9秒を使い終了する。"""
+                """最初のleader待ちで4.9秒を使い終了する。
+
+                Args:
+                    timeout: プロセス終了を待つ時間。
+
+                Returns:
+                    int: プロセスの終了コード。"""
                 events.append(("leader_wait", timeout, clock["now"]))
                 if clock["wait_calls"] == 0:
                     clock["now"] += 4.9
                 clock["wait_calls"] += 1
                 return self.returncode
 
+        # 変数の内容: process: 起動した子プロセスのモック。
         process = FakeProcess()
 
         def record_group_signal(pid, signum):
-            """プロセスグループへのsignalと送信時刻を記録する。"""
+            """プロセスグループへのsignalと送信時刻を記録する。
+
+            Args:
+                pid: プロセスグループの識別子。
+                signum: 送信するシグナル番号。
+
+            Returns:
+                None: 呼び出し内容を記録し、値は返さない。"""
             events.append(("killpg", pid, signum, clock["now"]))
 
         def advance_clock(seconds):
-            """sleep時間だけ仮想時計を進め、呼び出し内容を記録する。"""
+            """sleep時間だけ仮想時計を進め、呼び出し内容を記録する。
+
+            Args:
+                seconds: 固定時計を進める秒数。
+
+            Returns:
+                None: 仮想時計を進め、値は返さない。"""
             events.append(("sleep", seconds, clock["now"]))
             clock["now"] += seconds
 
@@ -311,7 +442,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertLessEqual(kill_time - term_time, 5.05)
 
     def test_append_logはmarker直下へ新しい記録を先頭追記して既存記録を保つ(self):
-        """新しいログをmarker直下へ先頭追加し、過去の記録を保持する。"""
+        """新しいログをmarker直下へ先頭追加し、過去の記録を保持する。
+
+        Returns:
+            なし。"""
+        # 1. 新しいログをmarker直下へ先頭追加し、過去の記録を保持する。
         marker = run_tests.MARKER
         with tempfile.TemporaryDirectory() as temp_dir:
             log_path = Path(temp_dir) / "test-log.md"
@@ -334,7 +469,11 @@ class TestRunnerSkipLogging(unittest.TestCase):
         self.assertLess(previous_position, old_position)
 
     def test_no_e2e_conflicts_with_e2e_target_before_running(self):
-        """矛盾したE2E指定をsuite開始前に終了コード2で拒否する。"""
+        """矛盾したE2E指定をsuite開始前に終了コード2で拒否する。
+
+        Returns:
+            なし。"""
+        # 1. 矛盾したE2E指定をsuite開始前に終了コード2で拒否する。
         repo_root = Path(__file__).resolve().parents[2]
         result = subprocess.run(
             [
@@ -360,7 +499,13 @@ class TestRunnerInterruptLogging(unittest.TestCase):
     """suite 実行中の割り込みを終了結果とログへ残す契約を確認する。"""
 
     def _successful_result(self, name):
-        """main が先行suiteの成功結果として扱える最小の値を返す。"""
+        """main が先行suiteの成功結果として扱える最小の値を返す。
+
+        Args:
+            name: 結果に記録する suite 名。
+
+        Returns:
+            dict: suite 名と成功時の集計値を含む実行結果。"""
         return {
             "name": name, "code": 0, "sec": 0.1,
             "passed": 1, "failed": 0, "skipped": 0, "xfail": 0,
@@ -368,7 +513,11 @@ class TestRunnerInterruptLogging(unittest.TestCase):
         }
 
     def test_suite中断時はログ保存後に130を返し残りを未実行として記録する(self):
-        """Vitest 中断・後続3 suiteの未実行・中断判定をログで区別する。"""
+        """Vitest 中断・後続3 suiteの未実行・中断判定をログで区別する。
+
+        Returns:
+            なし。"""
+        # 1. Vitest 中断・後続3 suiteの未実行・中断判定をログで区別する。
         with tempfile.TemporaryDirectory() as temp_dir:
             log_path = Path(temp_dir) / "test-log.md"
             with patch.object(run_tests, "LOG", log_path), \
@@ -408,7 +557,14 @@ class TestRunnerSelection(unittest.TestCase):
     """CLI のテスト枠選択を独立関数の契約として確認する。"""
 
     def assert_selection(self, args, expected):
-        """選択結果の全フィールドを期待値と照合する。"""
+        """選択結果の全フィールドを期待値と照合する。
+
+        Args:
+            args: 検証する CLI 引数または期待する引数一覧。
+            expected: 照合する suite 選択結果。
+
+        Returns:
+            None: 選択結果の各フィールドを検証する。"""
         from scripts.runner_selection import select_tests
 
         selection = select_tests(**args)
@@ -416,7 +572,11 @@ class TestRunnerSelection(unittest.TestCase):
             self.assertEqual(getattr(selection, field), value, field)
 
     def test_オプションなしは全件実行(self):
-        """selector指定なしでは全optional suiteを実行対象にする。"""
+        """selector指定なしでは全optional suiteを実行対象にする。
+
+        Returns:
+            なし。"""
+        # 1. selector指定なしでは全optional suiteを実行対象にする。
         self.assert_selection(
             {"vitest_targets": None, "e2e_targets": None, "pytest_targets": None, "analytics": False, "no_e2e": False},
             {"narrowed": False, "partial": False, "targets": None,
@@ -425,7 +585,11 @@ class TestRunnerSelection(unittest.TestCase):
         )
 
     def test_no_e2eのみはPlaywright以外を全件実行(self):
-        """no-e2eだけならVitest・Backend・Analyticsを実行する。"""
+        """no-e2eだけならVitest・Backend・Analyticsを実行する。
+
+        Returns:
+            なし。"""
+        # 1. no-e2eだけならVitest・Backend・Analyticsを実行する。
         self.assert_selection(
             {"vitest_targets": None, "e2e_targets": None, "pytest_targets": None, "analytics": False, "no_e2e": True},
             {"narrowed": False, "partial": True,
@@ -435,7 +599,11 @@ class TestRunnerSelection(unittest.TestCase):
         )
 
     def test_vitest単独指定(self):
-        """Vitestの対象ファイル指定でVitestだけを絞って実行する。"""
+        """Vitestの対象ファイル指定でVitestだけを絞って実行する。
+
+        Returns:
+            なし。"""
+        # 1. Vitestの対象ファイル指定でVitestだけを絞って実行する。
         self.assert_selection(
             {"vitest_targets": ["src/example.test.ts"], "e2e_targets": None, "pytest_targets": None, "analytics": False, "no_e2e": False},
             {"narrowed": True, "partial": True, "targets": ["Vitest: src/example.test.ts"],
@@ -444,7 +612,11 @@ class TestRunnerSelection(unittest.TestCase):
         )
 
     def test_e2e単独指定(self):
-        """Playwrightの対象ファイル指定でE2Eだけを絞って実行する。"""
+        """Playwrightの対象ファイル指定でE2Eだけを絞って実行する。
+
+        Returns:
+            なし。"""
+        # 1. Playwrightの対象ファイル指定でE2Eだけを絞って実行する。
         self.assert_selection(
             {"vitest_targets": None, "e2e_targets": ["e2e/example.spec.ts"], "pytest_targets": None, "analytics": False, "no_e2e": False},
             {"narrowed": True, "partial": True, "targets": ["Playwright: e2e/example.spec.ts"],
@@ -453,7 +625,11 @@ class TestRunnerSelection(unittest.TestCase):
         )
 
     def test_pytest単独指定(self):
-        """Backend pytestの対象指定でBackendだけを絞って実行する。"""
+        """Backend pytestの対象指定でBackendだけを絞って実行する。
+
+        Returns:
+            なし。"""
+        # 1. Backend pytestの対象指定でBackendだけを絞って実行する。
         self.assert_selection(
             {"vitest_targets": None, "e2e_targets": None, "pytest_targets": ["tests/test_example.py"], "analytics": False, "no_e2e": False},
             {"narrowed": True, "partial": True, "targets": ["pytest: tests/test_example.py"],
@@ -462,7 +638,11 @@ class TestRunnerSelection(unittest.TestCase):
         )
 
     def test_analytics単独指定(self):
-        """Analytics追加指定で分析suiteだけを実行する。"""
+        """Analytics追加指定で分析suiteだけを実行する。
+
+        Returns:
+            なし。"""
+        # 1. Analytics追加指定で分析suiteだけを実行する。
         self.assert_selection(
             {"vitest_targets": None, "e2e_targets": None, "pytest_targets": None, "analytics": True, "no_e2e": False},
             {"narrowed": True, "partial": True, "targets": ["分析ダッシュボード: tests"],
@@ -471,7 +651,11 @@ class TestRunnerSelection(unittest.TestCase):
         )
 
     def test_複数selector併用(self):
-        """複数selectorとAnalytics指定を併用して4 suiteを実行する。"""
+        """複数selectorとAnalytics指定を併用して4 suiteを実行する。
+
+        Returns:
+            なし。"""
+        # 1. 複数selectorとAnalytics指定を併用して4 suiteを実行する。
         self.assert_selection(
             {"vitest_targets": ["src/example.test.ts"], "e2e_targets": ["e2e/example.spec.ts"], "pytest_targets": ["tests/test_example.py"], "analytics": True, "no_e2e": False},
             {"narrowed": True, "partial": True,
@@ -481,7 +665,11 @@ class TestRunnerSelection(unittest.TestCase):
         )
 
     def test_selectorとno_e2e併用(self):
-        """selectorとno-e2e併用時に指定suiteを保ちE2Eを省略する。"""
+        """selectorとno-e2e併用時に指定suiteを保ちE2Eを省略する。
+
+        Returns:
+            なし。"""
+        # 1. selectorとno-e2e併用時に指定suiteを保ちE2Eを省略する。
         self.assert_selection(
             {"vitest_targets": ["src/example.test.ts"], "e2e_targets": None, "pytest_targets": ["tests/test_example.py"], "analytics": False, "no_e2e": True},
             {"narrowed": True, "partial": True, "targets": ["Vitest: src/example.test.ts", "pytest: tests/test_example.py"],

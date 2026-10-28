@@ -8,6 +8,7 @@ import { test, expect, type Page } from '@playwright/test'
 /**
  * 偽の管理者セッションを入れ、Supabase への通信を遮断する
  * @param page - 対象ページ（goto より前に呼ぶ）
+ * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
 async function useFakeAdminSession(page: Page) {
   // 1. Supabase（認証・DB）への通信をすべて遮断する
@@ -114,6 +115,11 @@ test('搬入・搬出を保存すると確認画面に日時・金額が表示�
 
   // 5. 確認画面に、保存した日時（曜日つき）と金額（3桁区切り）が表示される
   //    各値はラベルの次の要素に出るため、ラベルの親（行）の文字で確かめる
+  /**
+   * 確認画面で指定したラベルがある行の Locator を取得する
+   * @param label - 行内で表示される項目名
+   * @returns 指定項目を含む行の Locator
+   */
   const row = (label: string) => page.getByText(label, { exact: true }).last().locator('..')
   await expect(row('搬入日時')).toContainText('2099年11月14日（土） 08:30')
   await expect(row('搬出日時')).toContainText('2099年11月15日（日） 17:05')

@@ -110,6 +110,7 @@ class TestCreateReservation:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 必須フィールドをすべて含むリクエストで予約が作成されること。
         mock_sb = _make_supabase_mock()
         mock_admin_sb = _make_admin_sb_for_create()
 
@@ -134,6 +135,7 @@ class TestCreateReservation:
             なし。
         """
         # 必須フィールドをすべて省略した不正なボディ
+        # 1. event_id・name・email が欠けたリクエストで 422 が返ること。
         resp = TestClient(app).post('/api/reserve', json={})
         assert resp.status_code == 422
 
@@ -144,6 +146,7 @@ class TestCreateReservation:
             なし。
         """
         # 変数の内容: req: テスト対象の HTTP リクエスト、resp: API から返されたレスポンス。
+        # 1. email フィールドが Email 形式でないとき 422 が返ること。
         req = {**RESERVE_REQUEST, 'email': 'not-an-email'}
         resp = TestClient(app).post('/api/reserve', json=req)
         assert resp.status_code == 422
@@ -155,6 +158,7 @@ class TestCreateReservation:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック、past_event: 過去イベントのテストデータ。
+        # 1. 終了済みイベント（end_date が過去）への予約で 400 が返ること。
         past_event = {**FUTURE_EVENT, 'start_date': '2020-01-01', 'end_date': '2020-01-02'}
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -176,6 +180,7 @@ class TestCreateReservation:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 存在しないイベントIDへの予約で 404 が返ること。
         mock_sb = MagicMock()
         # イベントが見つからない場合（data=None）
         mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
@@ -198,6 +203,7 @@ class TestCreateReservation:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. _send_confirmation が例外を投げても予約レコードが返ること。
         mock_sb = _make_supabase_mock()
         mock_admin_sb = _make_admin_sb_for_create()
         mock_resend = MagicMock()
@@ -240,6 +246,7 @@ class TestCancelReservation:
         # キャンセル後の予約（status = 'cancelled'）
         cancelled_row = {**pending_row, 'status': 'cancelled'}
 
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。
         mock_admin_sb = MagicMock()
         # 1. トークン検索: table('workshop_reservations').select(...).eq(...).order(...).execute().data
         mock_admin_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [pending_row]
@@ -268,6 +275,7 @@ class TestCancelReservation:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 存在しないキャンセルトークンで 404 が返ること。
         mock_admin_sb = MagicMock()
         # トークンが存在しない（空リスト）
         mock_admin_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
@@ -286,6 +294,7 @@ class TestCancelReservation:
             なし。
         """
         # 変数の内容: cancelled_row: キャンセル済み予約のテスト行、mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. すでにキャンセル済みの予約トークンを使うと 400 が返ること。
         cancelled_row = {
             'id': 'reservation-1',
             'status': 'cancelled',
@@ -317,6 +326,7 @@ class TestListReservations:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 認証済みリクエストで全予約リストが 200 で返ること。
         mock_admin_sb = MagicMock()
         # table('workshop_reservations').select('*').order(...).execute().data
         mock_admin_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = [SAMPLE_RESERVATION]
@@ -343,6 +353,7 @@ class TestListReservations:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. ?event_id=xxx を指定すると eq 条件つきでクエリが実行されること。
         mock_admin_sb = MagicMock()
         # event_id 絞り込み: .order(...).eq('event_id', ...).execute().data
         mock_admin_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.return_value.data = [SAMPLE_RESERVATION]
@@ -367,5 +378,6 @@ class TestListReservations:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで 401 が返ること。
         resp = TestClient(app).get('/api/reserves')
         assert resp.status_code == 401

@@ -38,6 +38,9 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
         "--analytics", action="store_true",
         help="絞った実行で、分析ダッシュボードのテストも流す",
     )
+    # --note: 実行ログに記録する変更内容。--no-log: ログファイルへの書き込みを止める。
+    # --vitest / --e2e / --pytest: 各suiteへ渡す対象ファイルの一覧。
+    # --analytics: 絞り込み時に分析suiteを含める指定。--no-e2e: Playwrightを省く指定。
     # args: CLIから受け取った実行範囲・ログ設定を保持する解析結果。
     args = parser.parse_args(argv)
 

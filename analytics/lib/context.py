@@ -142,6 +142,7 @@ def get_context(use_year_filter: bool = True) -> Context:
     """
     # 1. 本番データを読み込む（キャッシュあり）。読めなければ画面にエラーを出して止める
     try:
+        # 変数の内容: raw: 各テーブルの元データを保持する辞書。
         raw = load_all()
     except Exception as e:  # 接続・設定エラーをまとめて受けて画面で知らせる
         st.error(f"データを読み込めませんでした：{type(e).__name__}")
@@ -150,21 +151,29 @@ def get_context(use_year_filter: bool = True) -> Context:
             "ネットワークの接続を確認してください。"
         )
         st.stop()
+    # 変数の内容: today: 日本時間の今日の日付（時刻・タイムゾーンなし）。
     today = pd.Timestamp.now(tz="Asia/Tokyo").tz_localize(None).normalize()
 
     # 2. 収支と予約の分析用の表を作る（計算結果はキャッシュする）
     fin_all = _finance_table(raw["events"], raw["event_finances"])
+    # 変数の内容: res_all: 全期間のワークショップ予約分析表。
     res_all = _reservation_table(raw["workshop_reservations"], raw["ws_sessions"], raw["events"])
+    # 変数の内容: fin, res, label: 全期間の収支表・予約表と、期間選択欄に表示する初期ラベル。
     fin, res, label = fin_all, res_all, ALL_YEARS
 
     # 3. サイドバーで会計年度を選び、選んだ年度で絞り込む（データにある年度だけを選択肢にする）
     if use_year_filter:
+        # 変数の内容: years: イベント開催日から得た会計年度の新しい順の一覧。
         years = sorted(set(fiscal_years(pd.to_datetime(raw["events"]["start_date"])).dropna().astype(int)),
                        reverse=True)
+        # 変数の内容: label: サイドバーで選ばれた会計年度の表示名。
         label = _select_year(years)
         if label != ALL_YEARS:
+            # 変数の内容: fy: 選択された表示名に対応する会計年度の西暦。
             fy = years[[_year_name(y) for y in years].index(label)]
+            # 変数の内容: fin: 選択された会計年度のイベント収支表。
             fin = fin_all[fin_all["fiscal_year"] == fy]
+            # 変数の内容: res: 選択された会計年度のワークショップ予約表。
             res = res_all[fiscal_years(pd.to_datetime(res_all["start_date"])) == fy]
 
     # 4. 売上の実績がある回だけの表も作っておく（多くの画面で使う）

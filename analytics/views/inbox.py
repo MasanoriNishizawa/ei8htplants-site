@@ -21,11 +21,14 @@ def render() -> None:
 
     # 1. 問い合わせ
     contacts = ctx.raw["contacts"]
+    # 変数の内容: c1, c2: 問い合わせと記事の指標・グラフを横並びにする画面列。
     c1, c2 = st.columns(2)
     c1.metric("問い合わせ（累計）", f"{len(contacts)}件")
     c2.metric("未読", f"{int((~contacts['is_read'].fillna(False).astype(bool)).sum())}件")
     if len(contacts):
+        # 変数の内容: monthly: 問い合わせを月ごとに数えた系列。
         monthly = to_month(contacts["created_at"]).value_counts().sort_index()
+        # 変数の内容: fig: 画面に表示する Plotly グラフ。
         fig = monthly_bar(monthly.index, monthly.values, "%{x|%Y年%-m月}<br>%{y}件<extra></extra>",
                           title="月ごとの問い合わせ件数")
         fig.update_yaxes(ticksuffix="件", dtick=1)
@@ -33,21 +36,26 @@ def render() -> None:
 
     # 2. ジャーナル記事
     st.subheader("ジャーナル記事")
+    # 変数の内容: articles: 記事テーブルから読み込んだ公開状態・タグ・公開日時。
     articles = ctx.raw["articles"]
     if articles.empty:
         st.info("記事はまだありません。記事を公開すると、月ごとの投稿数とタグの内訳が表示されます。")
         return
+    # 変数の内容: pub: 公開中の記事または商品に絞ったデータ。
     pub = articles[articles["is_published"].fillna(False).astype(bool)]
+    # 変数の内容: c1, c2: 問い合わせと記事の指標・グラフを横並びにする画面列。
     c1, c2 = st.columns(2)
     c1.metric("公開中の記事", f"{len(pub)}本")
     c2.metric("下書き", f"{len(articles) - len(pub)}本")
     # 3. 月ごとの公開本数（公開日が無い記事は作成日で数える）
     when = to_month(pub["published_at"].fillna(pub["created_at"])).value_counts().sort_index()
     if len(when):
+        # 変数の内容: fig: 画面に表示する Plotly グラフ。
         fig = monthly_bar(when.index, when.values, "%{x|%Y年%-m月}<br>%{y}本<extra></extra>", title="月ごとの公開本数")
         st.plotly_chart(style(fig, height=MONTHLY_HEIGHT, yen_axis=None), width="stretch")
     # 4. よく使われているタグ（上位 TOP_N）
     tags = pub.explode("tags")["tags"].dropna().value_counts().sort_values().tail(TOP_N)
     if len(tags):
+        # 変数の内容: fig: 画面に表示する Plotly グラフ。
         fig = bar_chart(tags.values, tags.index, "%{y}<br>%{x}本<extra></extra>", title="よく使われているタグ")
         st.plotly_chart(style(fig, height=bar_height(len(tags), minimum=240), yen_axis=None), width="stretch")

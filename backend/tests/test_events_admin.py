@@ -87,6 +87,7 @@ class TestEventCRUD:
             なし。
         """
         # 変数の内容: event: 処理対象のイベント、mock_admin_sb: 管理用 Supabase クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 作成用のイベントデータを組み立て、POST /api/events へ送信する。
         event = _event_data('new-evt')
         mock_admin_sb = MagicMock()
         mock_sb = _make_public_sb_mock([event])
@@ -114,6 +115,7 @@ class TestEventCRUD:
             なし。
         """
         # 認証バイパスをクリアして実際の require_auth を使う
+        # 1. 認証バイパスを解除し、Authorization ヘッダーなしで POST /api/events を送る。
         app.dependency_overrides.clear()
 
         # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
@@ -133,6 +135,7 @@ class TestEventCRUD:
             なし。
         """
         # 変数の内容: event: 処理対象のイベント、mock_admin_sb: 管理用 Supabase クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 更新後のイベントデータを組み立て、PUT /api/events/:id へ送信する。
         event = _event_data('evt-1', '更新後イベント')
         mock_admin_sb = MagicMock()
         mock_sb = _make_public_sb_mock([event])
@@ -157,6 +160,7 @@ class TestEventCRUD:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 管理用DBモックを差し替え、DELETE /api/events/:id を送信する。
         mock_admin_sb = MagicMock()
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -173,6 +177,7 @@ class TestEventCRUD:
         Returns:
             なし。
         """
+        # 1. 認証バイパスを解除し、Authorization ヘッダーなしで削除要求を送る。
         app.dependency_overrides.clear()
         # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
         client = TestClient(app)
@@ -188,6 +193,7 @@ class TestEventCRUD:
             なし。
         """
         # 変数の内容: event: 処理対象のイベント、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 公開用DBモックに対象イベントを設定し、そのIDで取得要求を送る。
         event = _event_data('evt-1')
         mock_sb = _make_public_sb_mock([event])
 
@@ -206,6 +212,7 @@ class TestEventCRUD:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 公開用DBモックを空にし、存在しないIDで取得要求を送る。
         mock_sb = _make_public_sb_mock([])
         # id 検索でも空を返すよう設定（slug→id の両方が空）
         mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
@@ -248,6 +255,7 @@ class TestEventFinances:
             なし。
         """
         # 変数の内容: finances_list: イベント収支一覧の API 応答、mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 管理用DBモックに複数の収支行を設定し、一覧を取得する。
         finances_list = [
             {'id': 'fin-1', 'event_id': 'evt-1', 'sales': 50000},
             {'id': 'fin-2', 'event_id': 'evt-2', 'sales': 30000},
@@ -273,6 +281,7 @@ class TestEventFinances:
         Returns:
             なし。
         """
+        # 1. 認証バイパスを解除し、Authorization ヘッダーなしで一覧を要求する。
         app.dependency_overrides.clear()
         # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
         client = TestClient(app)
@@ -287,6 +296,7 @@ class TestEventFinances:
             なし。
         """
         # 変数の内容: finance: 対象イベントの収支データ、mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 対象イベントの収支行を管理用DBモックに設定して取得する。
         finance = {'id': 'fin-1', 'event_id': 'evt-1', 'sales': 80000, 'booth_fee': 10000}
         mock_admin_sb = MagicMock()
         # 変数の内容: mock_admin_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -307,6 +317,7 @@ class TestEventFinances:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 収支行が存在しない応答を管理用DBモックに設定して取得する。
         mock_admin_sb = MagicMock()
         # 変数の内容: mock_admin_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_admin_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
@@ -361,6 +372,7 @@ class TestEventFinances:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、updated: 更新後の DB レコード。
+        # 1. 既存行を持つDBモックへ収支データを送信し、upsert結果を受け取る。
         updated = {'id': 'fin-1', 'event_id': 'evt-1', 'sales': 120000}
         mock_admin_sb = MagicMock()
         # 変数の内容: mock_admin_sb.table.return_value.upsert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -406,6 +418,7 @@ class TestEventSessions:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、sessions: 対象となる予約時間枠の一覧。
+        # 1. セッションと予約数をDBモックへ設定し、対象イベントの一覧を取得する。
         sessions = [
             {'id': 'ses-1', 'event_id': 'evt-1', 'time_label': '10:00', 'max_participants': 5},
             {'id': 'ses-2', 'event_id': 'evt-1', 'time_label': '14:00', 'max_participants': 5},
@@ -454,6 +467,7 @@ class TestEventSessions:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. セッションがない状態をDBモックに設定し、対象イベントの一覧を取得する。
         mock_admin_sb = MagicMock()
         # 変数の内容: mock_admin_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_admin_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
@@ -473,6 +487,7 @@ class TestEventSessions:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. セッション情報を送信し、保存後の一覧応答を受け取る。
         mock_admin_sb = MagicMock()
 
         # 既存セッションなし（新規挿入になる）
@@ -553,6 +568,7 @@ class TestPageContent:
             なし。
         """
         # 変数の内容: event: 処理対象のイベント、mock_admin_sb: 管理用 Supabase クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. ページコンテンツを更新要求として送り、更新後のイベント応答を受け取る。
         event = _event_data('evt-1')
         mock_admin_sb = MagicMock()
         mock_sb = _make_public_sb_mock([event])
@@ -574,6 +590,7 @@ class TestPageContent:
         Returns:
             なし。
         """
+        # 1. 認証バイパスを解除し、Authorization ヘッダーなしで更新要求を送る。
         app.dependency_overrides.clear()
         # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
         client = TestClient(app)
@@ -619,7 +636,6 @@ def _make_admin_info_sb(
         # 変数の内容: exists_exec.return_value.data: モックのクエリ応答に含めるデータ、exists_exec.side_effect: モック呼び出し時に返す例外または副作用。
         exists_exec.side_effect = exists_exc
     else:
-        # 変数の内容: exists_exec.return_value.data: モックのクエリ応答に含めるデータ。
         exists_exec.return_value.data = [{'id': 'evt-1'}] if event_rows is None else event_rows
     # 3. event_admin_info: 取得の select('info').eq('event_id', ...).execute()
     select_exec = info_tbl.select.return_value.eq.return_value.execute
@@ -627,7 +643,6 @@ def _make_admin_info_sb(
         # 変数の内容: select_exec.return_value.data: モックのクエリ応答に含めるデータ、select_exec.side_effect: モック呼び出し時に返す例外または副作用。
         select_exec.side_effect = select_exc
     else:
-        # 変数の内容: select_exec.return_value.data: モックのクエリ応答に含めるデータ。
         select_exec.return_value.data = [] if info_rows is None else info_rows
     # 4. event_admin_info: 保存の upsert(...).execute()
     upsert_exec = info_tbl.upsert.return_value.execute
@@ -635,7 +650,6 @@ def _make_admin_info_sb(
         # 変数の内容: upsert_exec.return_value.data: モックのクエリ応答に含めるデータ、upsert_exec.side_effect: モック呼び出し時に返す例外または副作用。
         upsert_exec.side_effect = upsert_exc
     else:
-        # 変数の内容: upsert_exec.return_value.data: モックのクエリ応答に含めるデータ。
         upsert_exec.return_value.data = [{'event_id': 'evt-1'}]
     # 5. テーブル名に応じてモックを返す（想定外のテーブル名はテスト失敗にする）
     tables = {'events': events_tbl, 'event_admin_info': info_tbl}
@@ -700,6 +714,7 @@ class TestEventAdminInfo:
         """
         # 1. event_admin_info に管理情報の行があるようにモックする
         admin_info = {'carry_in_time': '9:00', 'hotel_name': 'テストホテル', 'booth_fee': 30000}
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。
         mock_admin_sb, tables = _make_admin_info_sb(info_rows=[{'info': admin_info}])
 
         # 2. エンドポイントを呼んでレスポンスを検証する
@@ -799,6 +814,7 @@ class TestEventAdminInfo:
             'guidelines_text': '要項',
             'guidelines_image_urls': ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png'],
         }
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。
         mock_admin_sb, _ = _make_admin_info_sb(info_rows=[{'info': admin_info}])
 
         # 2. 取得して中身を確認する
@@ -873,6 +889,7 @@ class TestEventAdminInfo:
         # 3. upsert の引数を確認する
         upsert = tables['event_admin_info'].upsert
         upsert.assert_called_once()
+        # 変数の内容: row: 処理対象のデータ行。
         row = upsert.call_args.args[0]
         assert set(row.keys()) == {'event_id', 'info', 'updated_at'}
         assert row['event_id'] == 'evt-1'
@@ -936,6 +953,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、tables: テスト用テーブルデータ。
+        # 1. PUT /api/events/:id/admin-info で events の存在確認が例外を投げると 500 になり、upsert は呼ばれない。
         mock_admin_sb, tables = _make_admin_info_sb(exists_exc=Exception('DB connection error'))
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -1004,6 +1022,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、tables: テスト用テーブルデータ。
+        # 1. PUT /api/events/:id/admin-info で guidelines_image_urls=[] を送ると [] で保存される…。
         mock_admin_sb, tables = _make_admin_info_sb()
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -1024,6 +1043,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、tables: テスト用テーブルデータ。
+        # 1. PUT /api/events/:id/admin-info で guidelines_image_urls に文字列を送ると 422 になり …。
         mock_admin_sb, tables = _make_admin_info_sb()
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -1118,6 +1138,7 @@ class TestPublicApiHidesAdminInfo:
         """
         # 1. admin_info 入りの今後のイベントを DB モックに入れる
         row = {**_event_data('evt-1'), 'admin_info': _admin_info_secret()}
+        # 変数の内容: mock_sb: Supabase クライアントを置き換えるテスト用モック。
         mock_sb = _make_list_sb_mock([row])
 
         # 2. 一覧を取得する
@@ -1144,6 +1165,7 @@ class TestPublicApiHidesAdminInfo:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、row: DB から取得した単一レコード。
+        # 1. GET /api/events?past=true でも admin_info キーが無い。
         row = {**_event_data('evt-1'), 'start_date': '2000-01-01', 'admin_info': _admin_info_secret()}
         mock_sb = _make_list_sb_mock([row])
 
@@ -1165,6 +1187,7 @@ class TestPublicApiHidesAdminInfo:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、rows: DB から取得した行の一覧。
+        # 1. GET /api/events で admin_info が None の行・キー自体が無い行が混じっても 200 で返る。
         rows = [
             {**_event_data('evt-1'), 'admin_info': None},
             {**_event_data('evt-2')},
@@ -1188,6 +1211,7 @@ class TestPublicApiHidesAdminInfo:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、row: DB から取得した単一レコード。
+        # 1. GET /api/events/{id} で DB の行に admin_info があっても応答に admin_info キーが無い。
         row = {**_event_data('evt-1'), 'admin_info': _admin_info_secret()}
         mock_sb = _make_public_sb_mock([row])
 
@@ -1209,6 +1233,7 @@ class TestPublicApiHidesAdminInfo:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、row: DB から取得した単一レコード。
+        # 1. GET /api/events/{slug} でも admin_info キーが無い。
         row = {**_event_data('evt-1'), 'slug': 'spring-market', 'admin_info': _admin_info_secret()}
         mock_sb = _make_public_sb_mock([row])
 
@@ -1225,6 +1250,7 @@ class TestPublicApiHidesAdminInfo:
         Returns:
             なし。
         """
+        # 1. GET /api/events/{id}/admin-info（認証付き）は出店要項を含む admin_info をそのまま返す（デグレ確認）。
         app.dependency_overrides[require_auth] = lambda: None
         # 管理情報は専用テーブル event_admin_info の info 列から読む
         mock_admin_sb, _ = _make_admin_info_sb(info_rows=[{'info': _admin_info_secret()}])

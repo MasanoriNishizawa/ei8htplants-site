@@ -32,6 +32,7 @@ def test_compute_finances_matches_admin_formula():
 
     Returns:
         なし。"""
+    # 1. 管理画面の computeFinances と同じ値になること（手計算と比較）。
     r = compute_finances(FIN, has_workshop=True)
     # 移動費 = 110×2÷10×160 = 3520、支出 = 4000+3520 = 7520
     assert r["transport"] == 3520
@@ -49,6 +50,7 @@ def test_compute_finances_without_workshop_ignores_participants():
 
     Returns:
         なし。"""
+    # 1. WS を開催していないイベントでは参加人数を計算に使わないこと。
     r = compute_finances({**FIN, "payment_flag": False}, has_workshop=False)
     assert r["ws_cost"] == 0 and r["payment"] == 0
     assert r["net"] == 33900 - 7520
@@ -60,6 +62,7 @@ def test_rounding_matches_javascript():
     Returns:
         なし。"""
     # 移動費 = 1×2÷10×165 = 33.0、手伝い = (5 − 0 − (33+0))×0.2 = −5.6 → −6
+    # 1. .5 の丸めが JavaScript の Math.round と同じ（正の方向へ）になること。
     r = compute_finances({**FIN, "sales": 5, "booth_fee": 0, "distance": 1, "gas_price": 165, "ws_participants": 0},
                          has_workshop=False)
     assert r["payment"] == -6
@@ -79,7 +82,9 @@ def test_break_even_gives_zero_net(payment_flag, has_ws):
 
     Returns:
         なし。"""
+    # 1. 損益分岐の売上を入れると収支がほぼ 0 円になること。
     fin = {**FIN, "payment_flag": payment_flag}
+    # 変数の内容: be: 損益分岐点の計算結果。
     be = break_even_sales(fin, has_ws)
     assert abs(compute_finances({**fin, "sales": be}, has_ws)["net"]) <= 1
 
@@ -89,6 +94,7 @@ def test_fiscal_year_starts_in_april():
 
     Returns:
         なし。"""
+    # 1. 会計年度は4月始まりであること。
     assert fiscal_year(pd.Timestamp("2026-03-31")) == 2025
     assert fiscal_year(pd.Timestamp("2026-04-01")) == 2026
 
@@ -115,7 +121,9 @@ def test_build_event_finance_table_marks_unentered_sales():
 
     Returns:
         なし。"""
+    # 1. 売上 0 円の回は has_result=False になり、日数が正しく数えられること。
     fin = pd.DataFrame([{**FIN, "event_id": "e1"}, {**FIN, "event_id": "e3", "sales": 0}])
+    # 変数の内容: t: テスト時刻または時間軸の値。
     t = build_event_finance_table(_events(), fin)
     assert list(t["has_result"]) == [True, False]
     assert t.loc[0, "days"] == 2
@@ -127,17 +135,20 @@ def test_forecast_needs_enough_results_and_counts_remaining():
 
     Returns:
         なし。"""
+    # 1. 実績が少ないときは予測しないこと、十分あれば残り回数を足して見込みを出すこと。
     events = pd.DataFrame({
         "id": [f"e{i}" for i in range(7)],
         "start_date": pd.to_datetime(["2026-04-10", "2026-05-10", "2026-06-10", "2026-07-10", "2026-08-10",
                                       "2026-11-01", "2027-02-01"]),
     })
+    # 変数の内容: fin: 計算に渡す売上・費用の入力値。
     fin = pd.DataFrame({
         "event_id": [f"e{i}" for i in range(5)],
         "sales": [10000, 20000, 30000, 40000, 50000],
         "has_result": True,
         "fiscal_year": 2026,
     })
+    # 変数の内容: today: 日付計算で固定する今日。
     today = pd.Timestamp("2026-10-16")
     assert forecast_fiscal_year(fin.head(4), events, today) is None
     fc = forecast_fiscal_year(fin, events, today, n_boot=2000)
@@ -151,6 +162,7 @@ def test_fit_linear_recovers_line():
 
     Returns:
         なし。"""
+    # 1. きれいな直線のデータから傾きと切片を正しく求めること。
     fit = fit_linear(pd.Series([1, 2, 3, 4]), pd.Series([12, 14, 16, 18]))
     assert fit["slope"] == pytest.approx(2) and fit["intercept"] == pytest.approx(10) and fit["r2"] == pytest.approx(1)
     assert fit_linear(pd.Series([1, 1, 1]), pd.Series([1, 2, 3])) is None
@@ -161,6 +173,7 @@ def test_hash_email_is_stable_and_normalized():
 
     Returns:
         なし。"""
+    # 1. 同じメールアドレスは大文字小文字・空白に関係なく同じ識別子になり、元の文字列を含まないこと。
     assert hash_email(" Foo@Example.com ") == hash_email("foo@example.com")
     assert "example" not in hash_email("foo@example.com")
     assert hash_email(None) is None
@@ -171,6 +184,7 @@ def test_repeat_summary_and_rfm():
 
     Returns:
         なし。"""
+    # 1. リピーターの数え方と RFM の区分が正しいこと。
     orders = pd.DataFrame({
         "id": ["o1", "o2", "o3"],
         "customer_key": ["a", "a", "b"],
@@ -178,6 +192,7 @@ def test_repeat_summary_and_rfm():
         "created_at": pd.to_datetime(["2026-09-01", "2026-10-01", "2026-01-01"]).tz_localize("Asia/Tokyo"),
     })
     assert repeat_summary(orders) == {"customers": 2, "repeaters": 1, "repeat_rate": 0.5}
+    # 変数の内容: rfm: RFM 分析関数の返却結果。
     rfm = rfm_table(orders, pd.Timestamp("2026-10-16", tz="Asia/Tokyo")).set_index("customer_key")
     assert rfm.loc["a", "frequency"] == 2 and rfm.loc["a", "monetary"] == 3000
     assert rfm.loc["a", "segment"].startswith("優良")
@@ -189,7 +204,9 @@ def test_co_purchase_pairs_counts_each_order_once():
 
     Returns:
         なし。"""
+    # 1. 同じ注文の中の商品の組み合わせを1回として数えること。
     items = pd.DataFrame({"order_id": ["o1", "o1", "o1", "o2", "o2"], "product_name": ["鉢", "土", "鉢", "鉢", "土"]})
+    # 変数の内容: pairs: テストで照合する値の組み合わせ。
     pairs = co_purchase_pairs(items)
     assert pairs.iloc[0].to_dict() == {"商品A": "土", "商品B": "鉢", "同時購入回数": 2}
 
@@ -199,7 +216,9 @@ def test_session_fill_rates_excludes_cancelled():
 
     Returns:
         なし。"""
+    # 1. 時間枠の埋まり具合にキャンセルを含めないこと。
     sessions = pd.DataFrame({"id": ["s1"], "event_id": ["e1"], "time_label": ["11:00"], "max_participants": [4]})
+    # 変数の内容: res: テスト対象処理が返した応答または結果。
     res = pd.DataFrame({"session_id": ["s1", "s1"], "participants": [2, 1], "is_cancelled": [False, True]})
     fill = session_fill_rates(res, sessions, _events())
     assert fill.iloc[0]["booked"] == 2 and fill.iloc[0]["fill_rate"] == 0.5
@@ -221,6 +240,7 @@ def test_ga_config_reports_missing_and_wrong_values(monkeypatch, tmp_path):
 
     Returns:
         なし。"""
+    # 1. 接続設定の不足・取り違えを、わかる理由つきで返すこと。
     key = tmp_path / "key.json"
     key.write_text("{}")
     monkeypatch.delenv("GA_PROPERTY_ID", raising=False)
@@ -243,10 +263,13 @@ def test_response_to_frame_converts_types():
 
     Returns:
         なし。"""
+    # 1. Data API の応答を、数値・日付に変換した表にすること。
     row = lambda d, m: SimpleNamespace(  # noqa: E731
         dimension_values=[SimpleNamespace(value=v) for v in d], metric_values=[SimpleNamespace(value=v) for v in m]
     )
+    # 変数の内容: resp: テスト対象 API の HTTP 応答。
     resp = SimpleNamespace(rows=[row(["20261016"], ["12", "30"]), row(["20261017"], ["3", "4.5"])])
+    # 変数の内容: df: 分析対象の Pandas DataFrame。
     df = response_to_frame(resp, ["date"], ["activeUsers", "screenPageViews"])
     assert df["date"].iloc[0] == pd.Timestamp("2026-10-16")
     assert df["activeUsers"].tolist() == [12, 3] and df["screenPageViews"].tolist() == [30, 4.5]
@@ -258,6 +281,7 @@ def test_label_paths_names_pages_events_and_products():
 
     Returns:
         なし。"""
+    # 1. 固定ページは日本語名、イベント・商品の詳細は名前にし、わからないパスはそのまま返すこと。
     events = pd.DataFrame({"id": ["e1", "e2"], "slug": ["kagoen-autumn", None], "name": ["花郷園 秋 ", "叢宴"]})
     products = pd.DataFrame({"id": ["p1"], "name": ["EG-90L"]})
     paths = pd.Series(["/", "/reserve?event=e1", "/events/kagoen-autumn", "/events/e2", "/shop/p1", "/events/zzz", "/foo/"])

@@ -61,6 +61,7 @@ def _summary(res: pd.DataFrame, active: pd.DataFrame) -> None:
         なし。"""
     # 1. リピーターは「異なるイベントで予約した数」で数える（同じイベントの2枠は1回）
     rep = repeat_summary(active, unit="event_id")
+    # 変数の内容: c1〜c4: 予約件数・人数・キャンセル率・リピーター数を並べる画面列。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("予約件数（キャンセル含む）", f"{len(res)}件")
     c2.metric("予約人数（キャンセル除く）", f"{int(active['participants'].sum())}人")
@@ -91,6 +92,7 @@ def _by_event(active: pd.DataFrame) -> None:
     # 2. 横棒は下から積まれるので、開催日の古い順に渡すと新しいイベントが上に来る。
     #    軸の名前には年を入れ、同じ名前が残るときは連番を付ける
     labels = event_labels(by_event["start_date"], by_event["event_name"], WS_EVENT_LABEL_LENGTH)
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = bar_chart(
         by_event["participants"], labels, "%{customdata}<br>%{x}人<extra></extra>",
         title="イベントごとの予約人数", text=by_event["participants"].astype(int).astype(str) + "人",
@@ -113,18 +115,26 @@ def _fill_rates(ctx: Context, res: pd.DataFrame) -> None:
     st.subheader("時間枠の埋まり具合")
     # 1. 選んだ期間に予約のあるイベントの時間枠だけを残す（同じ名前のイベントを取り違えないよう event_id で絞る）
     fill = session_fill_rates(res, ctx.raw["ws_sessions"], ctx.raw["events"])
+    # 変数の内容: fill: 選択期間内イベントの時間枠別予約充足データ。
     fill = fill[fill["event_id"].isin(set(res["event_id"].dropna()))]
     if fill.empty:
         st.caption("時間枠を設定したイベントがありません。")
         return
     # 2. イベント（行）× 時間枠（列）の表にする。行は開催日の古い順（ヒートマップでは下から上へ並ぶ）
     events = fill.drop_duplicates("event_id").sort_values("start_date")
+    # 変数の内容: order: ヒートマップのイベント行を開催日の順に並べる識別子。
     order = list(events["event_id"])
+    # 変数の内容: names: イベント識別子からヒートマップに表示するラベルへの対応表。
     names = dict(zip(order, event_labels(events["start_date"], events["event_name"])))
+    # 変数の内容: pivot: イベント×時間枠の予約充足率。
     pivot = fill.pivot_table(index="event_id", columns="time_label", values="fill_rate", aggfunc="mean")
+    # 変数の内容: booked: イベント×時間枠ごとに合計した予約人数。
     booked = fill.pivot_table(index="event_id", columns="time_label", values="booked", aggfunc="sum")
+    # 変数の内容: cap: イベント×時間枠の定員。
     cap = fill.pivot_table(index="event_id", columns="time_label", values="max_participants", aggfunc="sum")
+    # 変数の内容: pivot, booked, cap: 開催日順にそろえた充足率・予約人数・定員の表。
     pivot, booked, cap = (t.reindex(order) for t in (pivot, booked, cap))
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = go.Figure(go.Heatmap(
         z=pivot.values, x=pivot.columns, y=[names[i] for i in pivot.index], zmin=0, zmax=1,
         colorscale=SEQUENTIAL_SCALE,
@@ -153,7 +163,9 @@ def _lead_time(active: pd.DataFrame) -> None:
     st.subheader("予約のタイミング")
     # 1. 日数が分かる予約のうち、予約日が参加日より後のものを除く
     known = active["lead_days"].dropna()
+    # 変数の内容: lead: 参加日より前に予約された記録のリード日数。
     lead = known[known >= 0]
+    # 変数の内容: excluded: 予約日が参加日より後のため分析から除外した件数。
     excluded = len(known) - len(lead)
     if len(lead) == 0:
         st.caption("参加日の情報がありません。")
@@ -186,6 +198,7 @@ def _booking_time(active: pd.DataFrame) -> None:
     st.subheader("予約が入った曜日と時間帯")
     # 1. 曜日 × HOUR_BIN 時間ごとの件数を数える（予約の無い枠も 0 として並べる）
     t = active["created_at"]
+    # 変数の内容: grid: 曜日×時間帯ごとの予約件数。
     grid = pd.crosstab(t.dt.dayofweek, t.dt.hour // HOUR_BIN * HOUR_BIN).reindex(
         index=range(len(WEEKDAY_LABELS)), columns=range(0, 24, HOUR_BIN), fill_value=0
     )

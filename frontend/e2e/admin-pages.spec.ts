@@ -14,11 +14,13 @@ test.describe('管理画面スモークテスト', () => {
   })
 
   test('/admin — スマートフォン幅でも開けてメニューから移動できる', async ({ page }) => {
+    // 1. スマートフォン幅でダッシュボードを開き、メニューを展開する
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/admin')
     await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'メニューを開く' })).toBeVisible()
 
+    // 2. ドロワーからギャラリーへ移動し、遷移先の表示を確かめる
     await page.getByRole('button', { name: 'メニューを開く' }).click()
     await expect(page.locator('.admin-sidebar')).toBeVisible()
     await page.locator('.admin-sidebar').getByRole('link', { name: 'ギャラリー', exact: true }).click()

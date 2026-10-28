@@ -36,6 +36,7 @@ class TestMigration016EventAdminInfo:
             なし。
         """
         # 変数の内容: norm: 正規化したパスまたは文字列、sql: マイグレーションで実行された SQL 文。
+        # 1. event_admin_info を event_id（events 参照・削除連動）主キー・info jsonb・updated_at で作る。
         sql = _read_sql('016_event_admin_info.sql')
         norm = re.sub(r'\s+', ' ', sql).upper()
         assert 'CREATE TABLE IF NOT EXISTS EVENT_ADMIN_INFO' in norm
@@ -50,6 +51,7 @@ class TestMigration016EventAdminInfo:
             なし。
         """
         # 変数の内容: norm: 正規化したパスまたは文字列。
+        # 1. event_admin_info に ENABLE ROW LEVEL SECURITY がかかっている。
         norm = re.sub(r'\s+', ' ', _read_sql('016_event_admin_info.sql')).upper()
         assert 'ALTER TABLE EVENT_ADMIN_INFO ENABLE ROW LEVEL SECURITY' in norm
 
@@ -79,6 +81,7 @@ class TestMigration016EventAdminInfo:
             なし。
         """
         # 変数の内容: norm: 正規化したパスまたは文字列。
+        # 1. events.admin_info を event_admin_info に写し、既にある行は上書きしない（ON CONFLICT DO NOT…。
         norm = re.sub(r'\s+', ' ', _read_sql('016_event_admin_info.sql')).upper()
         assert 'INSERT INTO EVENT_ADMIN_INFO (EVENT_ID, INFO)' in norm
         assert 'ON CONFLICT (EVENT_ID) DO NOTHING' in norm
@@ -90,6 +93,7 @@ class TestMigration016EventAdminInfo:
             なし。
         """
         # 変数の内容: norm: 正規化したパスまたは文字列。
+        # 1. 016 は今の本番を壊さないよう events.admin_info を削除しない（削除は 017）。
         norm = re.sub(r'\s+', ' ', _read_sql('016_event_admin_info.sql')).upper()
         assert 'DROP COLUMN' not in norm
 
@@ -104,6 +108,7 @@ class TestMigration017DropEventsAdminInfo:
             なし。
         """
         # 変数の内容: norm: 正規化したパスまたは文字列。
+        # 1. events テーブルの admin_info 列を DROP COLUMN IF EXISTS で削除する。
         norm = re.sub(r'\s+', ' ', _read_sql('017_drop_events_admin_info.sql')).upper()
         assert 'ALTER TABLE EVENTS DROP COLUMN IF EXISTS ADMIN_INFO' in norm
 
@@ -114,6 +119,7 @@ class TestMigration017DropEventsAdminInfo:
             なし。
         """
         # 変数の内容: drop_pos: 削除対象の位置、insert_pos: 新しい値を挿入する位置、norm: 正規化したパスまたは文字列。
+        # 1. 017 は列の削除より前に、未移行の管理情報を上書きせずに写す。
         norm = re.sub(r'\s+', ' ', _read_sql('017_drop_events_admin_info.sql')).upper()
         insert_pos = norm.find('INSERT INTO EVENT_ADMIN_INFO')
         drop_pos = norm.find('DROP COLUMN IF EXISTS ADMIN_INFO')
@@ -174,6 +180,7 @@ class TestMigration016Safety:
             なし。
         """
         # 変数の内容: body: リクエスト本文、m: 正規表現の一致結果または対象モデル、norm: 正規化したパスまたは文字列。
+        # 1. trg_sync_event_admin_info が AFTER INSERT OR UPDATE OF admin_info ON even…。
         norm = _norm('016_event_admin_info.sql')
         m = re.search(r'CREATE TRIGGER TRG_SYNC_EVENT_ADMIN_INFO ([^;]*);', norm)
         assert m, 'トリガー trg_sync_event_admin_info を作っていない'
@@ -212,6 +219,7 @@ class TestMigration016Safety:
             なし。
         """
         # 変数の内容: begin: トランザクション開始 SQL、commit: トランザクション確定 SQL、norm: 正規化したパスまたは文字列。
+        # 1. テーブル作成からトリガー作成までが BEGIN; 〜 COMMIT; の中にある。
         norm = _norm('016_event_admin_info.sql')
         begin, commit = _tx_range(norm)
         assert begin != -1 and commit != -1 and begin < commit
@@ -231,6 +239,7 @@ class TestMigration016Safety:
         Returns:
             なし。
         """
+        # 1. NOTIFY pgrst, 'reload schema' がある。
         assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('016_event_admin_info.sql')
 
 
@@ -244,6 +253,7 @@ class TestMigration017Safety:
             なし。
         """
         # 変数の内容: drop_col: 削除対象カラムの SQL、drop_fn: 削除対象関数の SQL、drop_trg: 削除対象トリガーの SQL、norm: 正規化したパスまたは文字列。
+        # 1. DROP TRIGGER / DROP FUNCTION（IF EXISTS）が DROP COLUMN より前にある。
         norm = _norm('017_drop_events_admin_info.sql')
         drop_trg = norm.find('DROP TRIGGER IF EXISTS TRG_SYNC_EVENT_ADMIN_INFO ON EVENTS')
         drop_fn = norm.find('DROP FUNCTION IF EXISTS SYNC_EVENT_ADMIN_INFO_FROM_EVENTS()')
@@ -261,6 +271,7 @@ class TestMigration017Safety:
             なし。
         """
         # 変数の内容: drop_col: 削除対象カラムの SQL、drop_trg: 削除対象トリガーの SQL、insert_pos: 新しい値を挿入する位置、norm: 正規化したパスまたは文字列。
+        # 1. INSERT INTO event_admin_info（DO NOTHING）がトリガー削除の後・DROP COLUMN の前にある。
         norm = _norm('017_drop_events_admin_info.sql')
         drop_trg = norm.find('DROP TRIGGER IF EXISTS TRG_SYNC_EVENT_ADMIN_INFO')
         insert_pos = norm.find('INSERT INTO EVENT_ADMIN_INFO')
@@ -275,6 +286,7 @@ class TestMigration017Safety:
             なし。
         """
         # 変数の内容: begin: トランザクション開始 SQL、commit: トランザクション確定 SQL、norm: 正規化したパスまたは文字列。
+        # 1. トリガー削除・再写し・列削除がすべて BEGIN; 〜 COMMIT; の中にある。
         norm = _norm('017_drop_events_admin_info.sql')
         begin, commit = _tx_range(norm)
         assert begin != -1 and commit != -1 and begin < commit
@@ -293,6 +305,7 @@ class TestMigration017Safety:
         Returns:
             なし。
         """
+        # 1. NOTIFY pgrst, 'reload schema' がある。
         assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('017_drop_events_admin_info.sql')
 
 
@@ -324,6 +337,7 @@ class TestMigration018GrantServiceRole:
             なし。
         """
         # 変数の内容: norm: 正規化したパスまたは文字列。
+        # 1. 未ログイン（anon）・ログイン済み（authenticated）・public への GRANT が無い。
         norm = _norm('018_grant_event_admin_info.sql')
         assert not re.search(r'\bGRANT\b[^;]*\bTO\b[^;]*\b(ANON|AUTHENTICATED|PUBLIC)\b', norm)
 
@@ -333,4 +347,5 @@ class TestMigration018GrantServiceRole:
         Returns:
             なし。
         """
+        # 1. NOTIFY pgrst, 'reload schema' がある。
         assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('018_grant_event_admin_info.sql')

@@ -88,7 +88,9 @@ def render() -> None:
         _setup_guide(problem)
         return
 
+    # 変数の内容: period: 画面で選択されたアクセス解析の期間名。
     period = st.segmented_control("期間", list(PERIODS), default=DEFAULT_PERIOD, key="ga_period") or DEFAULT_PERIOD
+    # 変数の内容: start: GA レポートの開始日。；days: 選択期間の日数。
     start, days = PERIODS[period]
 
     def report(
@@ -109,6 +111,7 @@ def render() -> None:
 
     # 2. 1本目（まとめの数字）が取れなければ、設定の問題とみなして画面全体で知らせる
     try:
+        # 変数の内容: totals: 期間全体の訪問者数などをまとめた GA レポート。
         totals = report((), ("activeUsers", "sessions", "screenPageViews", "averageSessionDuration"))
     except Exception as e:  # 権限不足・ID 違いなどをまとめて受けて画面で知らせる
         st.error(f"Google アナリティクスのデータを読み込めませんでした：{type(e).__name__}")
@@ -120,6 +123,7 @@ def render() -> None:
     if t["screenPageViews"] == 0:
         st.info("この期間のデータはまだありません。タグを入れてから反映まで 1〜2 日かかることがあります。")
         return
+    # 変数の内容: c1〜c4: アクセス解析の主要指標を並べる画面列。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("訪問者数", f"{int(t['activeUsers']):,}人")
     c2.metric("訪問回数", f"{int(t['sessions']):,}回")
@@ -128,6 +132,7 @@ def render() -> None:
 
     # 4. 2本目以降の表は、取れなかったものだけ「表示できません」と出して続ける
     _daily(report)
+    # 変数の内容: pages: ページ別の閲覧数・訪問者数を含む GA レポート。
     pages = _pages(ctx, report)
     _sources(report)
     _devices_and_regions(report)
@@ -178,7 +183,9 @@ def _pages(ctx, report: Report) -> pd.DataFrame | None:
         return None
     # 1. パスを名前に置き換え、同じ名前（クエリ違いなど）はまとめる
     pages["page"] = label_paths(pages["pagePath"], ctx.raw["events"], ctx.raw["products"])
+    # 変数の内容: top: ページ名ごとに閲覧数と訪問者数を合算した表。
     top = pages.groupby("page", as_index=False)[["screenPageViews", "activeUsers"]].sum()
+    # 変数の内容: top: ページ名ごとに閲覧数と訪問者数を合算した表。
     top = top.sort_values("screenPageViews").tail(TOP_N)
     # 2. 横棒で表示する
     fig = bar_chart(
@@ -203,17 +210,23 @@ def _sources(report: Report) -> None:
     c1, c2 = st.columns(2)
     # 1. 流入の種類（GA のチャネル名を日本語にする）
     with c1:
+        # 変数の内容: ch: GA のチャネル別訪問回数。
         ch = _try_report("流入の種類", report, ("sessionDefaultChannelGroup",), ("sessions",), "sessions")
         if ch is not None:
             ch["name"] = ch["sessionDefaultChannelGroup"].map(lambda c: CHANNELS.get(c, c))
+            # 変数の内容: ch: GA のチャネル別訪問回数。
             ch = ch.sort_values("sessions")
+            # 変数の内容: fig: 画面に表示する Plotly グラフ。
             fig = bar_chart(ch["sessions"], ch["name"], "%{y}<br>%{x}回<extra></extra>", title="流入の種類（訪問回数）")
             st.plotly_chart(style(fig, height=HALF_CHART_HEIGHT, yen_axis=None), width="stretch")
     # 2. 参照元（上位 TOP_SOURCES）
     with c2:
+        # 変数の内容: src: GA の参照元別訪問回数。
         src = _try_report("参照元", report, ("sessionSource",), ("sessions",), "sessions", TOP_SOURCES)
         if src is not None:
+            # 変数の内容: src: GA の参照元別訪問回数。
             src = src.sort_values("sessions")
+            # 変数の内容: fig: 画面に表示する Plotly グラフ。
             fig = bar_chart(src["sessions"], src["sessionSource"], "%{y}<br>%{x}回<extra></extra>",
                             title=f"参照元（上位{TOP_SOURCES}）")
             st.plotly_chart(style(fig, height=HALF_CHART_HEIGHT, yen_axis=None), width="stretch")
@@ -232,18 +245,24 @@ def _devices_and_regions(report: Report) -> None:
     # 1. 端末ごとの訪問者の割合
     with c1:
         st.subheader("端末")
+        # 変数の内容: dev: GA の端末別訪問者数。
         dev = _try_report("端末", report, ("deviceCategory",), ("activeUsers",), "activeUsers")
         if dev is not None:
+            # 変数の内容: total_users: 端末別訪問者数の合計。
             total_users = dev["activeUsers"].sum()
             for _, r in dev.iterrows():
+                # 変数の内容: share: 全訪問者に対する現在の端末の訪問者割合。
                 share = r["activeUsers"] / total_users if total_users else 0
                 st.metric(DEVICES.get(r["deviceCategory"], r["deviceCategory"]), f"{share:.0%}",
                           help=f"{int(r['activeUsers'])}人")
     # 2. 地域ごとの訪問者数
     with c2:
+        # 変数の内容: reg: GA の地域別訪問者数。
         reg = _try_report("地域", report, ("region",), ("activeUsers",), "activeUsers", TOP_SOURCES)
         if reg is not None:
+            # 変数の内容: reg: GA の地域別訪問者数。
             reg = reg.sort_values("activeUsers")
+            # 変数の内容: fig: 画面に表示する Plotly グラフ。
             fig = bar_chart(reg["activeUsers"], reg["region"], "%{y}<br>%{x}人<extra></extra>",
                             title=f"地域（上位{TOP_SOURCES}）")
             st.plotly_chart(style(fig, height=HALF_CHART_HEIGHT, yen_axis=None), width="stretch")
@@ -267,9 +286,13 @@ def _reservation_rate(ctx, pages: pd.DataFrame | None, days: int) -> None:
     reserve_pv = int(pages.loc[pages["pagePath"].str.split("?").str[0] == RESERVE_PATH, "screenPageViews"].sum())
     # 2. 同じ期間に入った予約のうち、キャンセルされていないものを数える
     raw = ctx.raw["workshop_reservations"]
+    # 変数の内容: res: キャンセル状態を除外したワークショップ予約。
     res = raw[raw["status"] != CANCELLED]
+    # 変数の内容: since: 選択期間の開始日時。
     since = ctx.today - pd.Timedelta(days=days)
+    # 変数の内容: booked: 選択期間内に作成された有効予約件数。
     booked = int((res["created_at"].dt.tz_localize(None) >= since).sum()) if not res.empty else 0
+    # 変数の内容: c1〜c3: 予約ページPV・予約件数・予約率を並べる画面列。
     c1, c2, c3 = st.columns(3)
     c1.metric("予約ページの PV", f"{reserve_pv:,}PV")
     c2.metric("同じ期間の予約件数（キャンセル除く）", f"{booked}件")

@@ -26,6 +26,7 @@ const EVENT_NAME = 'Habitat Exhibition 2026'
  * 横スクロールが出ていないことを確かめる
  * ページ全体（documentElement）と、管理画面のスクロール領域（main 要素。overflowY: auto のため横にもはみ出しうる）の両方を見る
  * @param page - 対象ページ
+ * @returns なし。横スクロールがないことを検証する。
  */
 async function expectNoHorizontalScroll(page: Page) {
   const sizes = await page.evaluate(() => {
@@ -48,6 +49,7 @@ async function expectNoHorizontalScroll(page: Page) {
  * @param page - 対象ページ
  * @param locator - 対象の要素
  * @param label - 失敗時のメッセージに出す要素名
+ * @returns なし。要素が画面の横幅内に収まることを検証する。
  */
 async function expectWithinViewportX(page: Page, locator: Locator, label: string) {
   await locator.scrollIntoViewIfNeeded()
@@ -261,6 +263,11 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
       const file = page.locator('main input[type="file"]')
       await expect(checkbox).toHaveCount(1)
       await expect(file).toHaveCount(1)
+      /**
+       * 対象要素の computed font-size を取得する
+       * @param loc - 調べる入力要素の Locator
+       * @returns CSS で計算された font-size の値
+       */
       const fontSize = (loc: Locator) => loc.evaluate((el) => getComputedStyle(el).fontSize)
       const mobile = { checkbox: await fontSize(checkbox), file: await fontSize(file) }
       // デスクトップ幅に広げても値が変わらない＝スマホ用ルールが当たっていない
@@ -279,6 +286,11 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
       await expect(page.getByLabel('要項の文章')).toBeVisible()
 
       // 1. 画面のインライン指定の値のまま（要項の文章 14px・日付 15px・時の select 15px）
+      /**
+       * 対象要素の computed font-size を取得する
+       * @param loc - 調べる入力要素の Locator
+       * @returns CSS で計算された font-size の値
+       */
       const fontSize = (loc: Locator) => loc.evaluate((el) => getComputedStyle(el).fontSize)
       expect(await fontSize(page.getByLabel('要項の文章'))).toBe('14px')
       expect(await fontSize(page.locator('main input[type="date"]').first())).toBe('15px')

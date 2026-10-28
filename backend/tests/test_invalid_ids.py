@@ -47,7 +47,10 @@ class _Query:
 
         Args:
             error: execute() で投げる例外（None なら投げない）
-            data: execute() の結果の .data"""
+            data: execute() の結果の .data
+
+        Returns:
+            なし。"""
         # execute() で投げる例外
         self.error = error
         # execute() の結果の .data
@@ -105,7 +108,6 @@ def _client_raising(error: Exception | None = None, data: Any = None) -> MagicMo
     client = MagicMock()
     # 変数の内容: client.query: 対象オブジェクトに設定するquery属性値、client.table.return_value: モック呼び出しの返却値。
     client.table.return_value = query
-    # 変数の内容: client.query: 対象オブジェクトに設定するquery属性値。
     client.query = query
     return client
 
@@ -127,6 +129,7 @@ class TestDbUtils:
         Returns:
             なし。
         """
+        # 1. 0 件（PGRST116）・UUID の形でない（22P02）は見つからない扱いになること。
         assert db_utils.is_not_found_error(PostgrestError(code)) is True
 
     @pytest.mark.parametrize('error', [PostgrestError('23503'), PostgrestError('42501'), ValueError('x'), Exception()])
@@ -139,6 +142,7 @@ class TestDbUtils:
         Returns:
             なし。
         """
+        # 1. 外部キー違反・権限・コードの無い例外は見つからない扱いにしないこと。
         assert db_utils.is_not_found_error(error) is False
 
     def test_execute_or_404は成功すれば結果をそのまま返す(self):
@@ -148,6 +152,7 @@ class TestDbUtils:
             なし。
         """
         # 変数の内容: query: DB へ渡す検索条件。
+        # 1. execute() の戻り値を返すこと。
         query = MagicMock()
         assert db_utils.execute_or_404(query) is query.execute.return_value
 
@@ -162,6 +167,7 @@ class TestDbUtils:
             なし。
         """
         # 変数の内容: query: DB へ渡す検索条件。
+        # 1. 22P02・PGRST116 は指定の文言の 404 になること。
         query = MagicMock()
         # 変数の内容: query.execute.side_effect: モック呼び出し時に返す例外または副作用。
         query.execute.side_effect = error
@@ -178,6 +184,7 @@ class TestDbUtils:
             なし。
         """
         # 変数の内容: query: DB へ渡す検索条件。
+        # 1. 接続の失敗などは 404 にせず、元の例外を投げ直すこと。
         query = MagicMock()
         # 変数の内容: query.execute.side_effect: モック呼び出し時に返す例外または副作用。
         query.execute.side_effect = ConnectionError('down')
@@ -195,6 +202,7 @@ class TestDbUtils:
             なし。
         """
         # 変数の内容: query: DB へ渡す検索条件。
+        # 1. UUID の形でない・参照先が無い入力は指定の文言の 400 になること。
         query = MagicMock()
         # 変数の内容: query.execute.side_effect: モック呼び出し時に返す例外または副作用。
         query.execute.side_effect = PostgrestError(code)
@@ -211,6 +219,7 @@ class TestDbUtils:
             なし。
         """
         # 変数の内容: query: DB へ渡す検索条件。
+        # 1. 400 にするのは 22P02・23503 だけで、ほかはそのまま投げ直すこと。
         query = MagicMock()
         # 変数の内容: query.execute.side_effect: モック呼び出し時に返す例外または副作用。
         query.execute.side_effect = not_found_error()
@@ -224,6 +233,7 @@ class TestDbUtils:
             なし。
         """
         # 変数の内容: query: DB へ渡す検索条件。
+        # 1. execute() の戻り値を返すこと。
         query = MagicMock()
         assert db_utils.execute_or_400(query) is query.execute.return_value
 
@@ -259,6 +269,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. 先にイベントを確かめるので、更新・画像の削除・insert を呼ばずに 404 になること。
         sb = _events_sb_missing()
         with as_admin(), patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -285,6 +296,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. 収支・時間枠・ページの保存も先にイベントを確かめ、無ければ 404 で書き込まないこと。
         sb = _events_sb_missing()
         with as_admin(), patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -301,6 +313,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. single() が 22P02 を投げても 404 になること。
         sb = MagicMock()
         # 変数の内容: sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect = invalid_uuid_error()
@@ -316,6 +329,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. GET /api/events/abc/sessions は DB に渡さず 404 になること。
         sb = MagicMock()
         with patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -334,6 +348,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. ?date= が YYYY-MM-DD の形でなければ 400 になること。
         sb = MagicMock()
         with patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -348,6 +363,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. delete().eq() が 22P02 を投げたら 404 になること。
         sb = _client_raising(invalid_uuid_error())
         with as_admin(), patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -361,6 +377,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. 消す対象が無いだけなので {ok: true} を返すこと。
         sb = _client_raising(data=[])
         with as_admin(), patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -385,6 +402,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. finances・admin-info の GET と admin-info の PUT で 22P02 なら 404 になること。
         sb = _client_raising(invalid_uuid_error())
         with as_admin(), patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
@@ -400,6 +418,7 @@ class TestEventsNotFound:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. PUT /events/abc/finances は存在確認の single() が 22P02 なら 404 になること。
         sb = MagicMock()
         # 変数の内容: sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect = invalid_uuid_error()
@@ -471,6 +490,7 @@ class TestRoutesInvalidId:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. 22P02 を 500 にせず 404 にすること。
         sb = _client_raising(invalid_uuid_error())
         with as_admin(), patch(f'app.routes.{module}.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -491,6 +511,7 @@ class TestRoutesInvalidId:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. 消す対象が無いだけなので {ok: true} を返すこと。
         sb = _client_raising(data=[])
         with as_admin(), patch(f'app.routes.{module}.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -512,6 +533,7 @@ class TestRoutesInvalidId:
             なし。
         """
         # どの読み書きも 0 件を返す（記事・注文などが先に single() で読む 1 件も空になり、見つからない扱いになる）
+        # 1. 更新の対象が 0 件（data が空）なら 404 になること。
         sb = _client_raising(data=[])
         with as_admin(), patch(f'app.routes.{module}.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -525,6 +547,7 @@ class TestRoutesInvalidId:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. GET /api/reserves?event_id=abc で 22P02 なら 404 になること。
         sb = _client_raising(invalid_uuid_error())
         with as_admin(), patch('app.routes.reserve.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -546,6 +569,7 @@ class TestOrderAndWalkin:
             なし。
         """
         # 変数の内容: http: HTTP クライアントのモック、payload: DB に保存する値、sb: Supabase クライアントまたはそのモック。
+        # 1. 商品の読み取り（.in_）が 22P02 なら「商品が見つかりません」の 404 になり、Square を呼ばないこと。
         sb = _client_raising(invalid_uuid_error())
         http = _make_http_mock_success()
         payload = {**ORDER_REQUEST, 'items': [{'product_id': 'not-a-uuid', 'quantity': 1}]}
@@ -570,6 +594,7 @@ class TestOrderAndWalkin:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. 存在しない・UUID の形でない event_id・session_id は 400 になること。
         sb = _client_raising(PostgrestError(code))
         with as_admin(), patch('app.routes.reserve.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -599,6 +624,7 @@ class TestSessionLock:
         Returns:
             なし。
         """
+        # 1. with の中では辞書にあり、抜けると消えること。
         with reserve_module._session_lock('session-1'):
             assert 'session-1' in reserve_module._session_locks
         assert reserve_module._session_locks == {}
@@ -609,15 +635,16 @@ class TestSessionLock:
         Returns:
             なし。
         """
-        # 変数の内容: entry: 処理対象の一覧項目。
+        # 変数の内容: entry: セッションロックの利用者数を持つ管理オブジェクト。
+        # 1. 同じ時間枠を 2 つの処理が使うとき、両方が抜けるまで消えないこと（別のロックを作らない）。
         entry = reserve_module._LockEntry()
         reserve_module._session_locks['s'] = entry
-        # 変数の内容: entry.users: 認証 API が返すユーザー。
+        # 変数の内容: entry.users: このセッションロックを利用中の処理数。
         entry.users = 1  # もう 1 つの処理が使っている状態
         with reserve_module._session_lock('s'):
             assert reserve_module._session_locks['s'] is entry
         assert reserve_module._session_locks['s'] is entry
-        # 変数の内容: entry.users: 認証 API が返すユーザー。
+        # 変数の内容: entry.users: このセッションロックを利用中の処理数。
         entry.users = 0
 
     def test_with_の中で例外が起きても辞書から消える(self):
@@ -626,6 +653,7 @@ class TestSessionLock:
         Returns:
             なし。
         """
+        # 1. 例外で抜けたときも使う数が戻り、辞書から消えること。
         with pytest.raises(RuntimeError):
             with reserve_module._session_lock('session-2'):
                 raise RuntimeError('x')
@@ -638,6 +666,7 @@ class TestSessionLock:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 予約の作成でロックを使ったあと、_session_locks が空に戻ること。
         reservations = _table_mock()
         admin_sb = _db({'ws_sessions': _table_mock(single_data=dict(SESSION)), 'workshop_reservations': reservations})
         resp = _post({**BASE_REQUEST, 'session_id': 'session-1'}, _public_sb(), admin_sb)
@@ -652,6 +681,7 @@ class TestSessionLock:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、reservations: 取得した予約の一覧。
+        # 1. 時間枠が見つからないときは、ロックを取る前に 400 になること。
         reservations = _table_mock()
         admin_sb = _db({'ws_sessions': _table_mock(single_error=not_found_error()), 'workshop_reservations': reservations})
         # 変数の内容: spy: 元関数の呼び出しを記録するテスト用スパイ。
@@ -690,6 +720,7 @@ class TestErrorSummaryLogs:
         Returns:
             なし。
         """
+        # 1. コードがあれば「型名(code=…)」、無ければ型名だけになり、例外の文字列は入らないこと。
         assert error_summary(PostgrestError('23505', SECRET)) == 'PostgrestError(code=23505)'
         assert error_summary(ValueError(SECRET)) == 'ValueError'
         assert SECRET not in error_summary(Exception(SECRET))
@@ -701,6 +732,7 @@ class TestErrorSummaryLogs:
             なし。
         """
         # 変数の内容: e: 処理中に発生した例外。
+        # 1. code が無く status_code がある例外（HTTP の失敗など）はそれを使うこと。
         e = Exception(SECRET)
         # 変数の内容: e.status_code: HTTP 例外の応答コード。
         e.status_code = 503  # type: ignore[attr-defined]
@@ -715,6 +747,7 @@ class TestErrorSummaryLogs:
         Returns:
             なし。
         """
+        # 1. チャットの前置き（イベントなど）の読み取りに失敗しても、ログは型名とコードだけで、返事は返ること。
         from tests.test_chat import VALID_PAYLOAD, _make_admin_sb_mock, _make_genai_mock
         caplog.set_level(logging.ERROR, logger='app.routes.chat')
         with patch('app.routes.chat.genai', _make_genai_mock()), \
@@ -738,6 +771,7 @@ class TestErrorSummaryLogs:
         Returns:
             なし。
         """
+        # 1. sitemap.xml の読み取りに失敗しても固定ページだけで返し、ログは型名とコードだけであること。
         seo.clear_cache()
         caplog.set_level(logging.ERROR, logger='app.routes.seo')
         # 変数の内容: failing: 失敗するよう設定した処理のモック。
@@ -762,6 +796,7 @@ class TestErrorSummaryLogs:
         Returns:
             なし。
         """
+        # 1. serve_spa でメタ情報の埋め込みに失敗しても index.html を返し、ログは型名だけであること。
         from app import main as app_main
         import os
         if not os.path.isfile(os.path.join(app_main.DIST, 'index.html')):

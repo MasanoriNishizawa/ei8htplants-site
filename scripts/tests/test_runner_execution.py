@@ -21,10 +21,17 @@ class TestSuiteExecution(unittest.TestCase):
         return {"name": name, "code": code}
 
     def test_suiteを定義順に実行して結果と進捗を同じ順で集める(self):
-        """正常終了したsuiteの順序と各結果を保ち、進捗を通知する。"""
+        """正常終了したsuiteの順序と各結果を保ち、進捗を通知する。
+
+        Returns:
+            なし。"""
+        # 変数の内容: calls: テスト中に呼ばれた処理の順序。
         calls: list[str] = []
+        # 変数の内容: progress: suite の進捗通知一覧。
         progress: list[str] = []
+        # 変数の内容: first_result: 先頭 suite の実行結果。
         first_result = self._result("先頭")
+        # 変数の内容: second_result: 後続 suite の実行結果。
         second_result = self._result("次")
 
         # 1. suiteごとのrunnerが呼び出し順を記録し、それぞれの結果を返す。
@@ -43,17 +50,27 @@ class TestSuiteExecution(unittest.TestCase):
         self.assertFalse(execution.interrupted)
 
     def test_suite中断時は中断結果と後続suiteの未実行理由を記録する(self):
-        """中断suiteをcode 130で残し、後続runnerを呼ばず未実行として記録する。"""
+        """中断suiteをcode 130で残し、後続runnerを呼ばず未実行として記録する。
+
+        Returns:
+            なし。"""
+        # 変数の内容: calls: テスト中に呼ばれた処理の順序。
         calls: list[str] = []
+        # 変数の内容: first_result: 先頭 suite の実行結果。
         first_result = self._result("先行")
+        # 変数の内容: later_runner: 後続 suite の呼び出しを記録するモック。
         later_runner = Mock(side_effect=lambda: calls.append("後続"))
 
         # 1. 2番目のrunnerだけが割り込み、3番目は呼び出し検証用の偽物にする。
         def interrupt_runner() -> dict:
-            """現在のsuiteとしてKeyboardInterruptを発生させる。"""
+            """現在のsuiteとしてKeyboardInterruptを発生させる。
+
+            Returns:
+                なし。"""
             calls.append("中断")
             raise KeyboardInterrupt
 
+        # 変数の内容: suites: 順序を検証する suite 定義一覧。
         suites = [
             SuiteSpec("先行", "先行を実行中…", lambda: (calls.append("先行"), first_result)[1]),
             SuiteSpec("中断", "中断対象を実行中…", interrupt_runner),
@@ -73,12 +90,23 @@ class TestSuiteExecution(unittest.TestCase):
         self.assertTrue(execution.interrupted)
 
     def test進捗表示中の中断はsuite未開始として区別する(self):
-        """進捗通知が中断されたときrunner未実行を結果に明示する。"""
+        """進捗通知が中断されたときrunner未実行を結果に明示する。
+
+        Returns:
+            なし。"""
         runner = Mock(return_value=self._result("対象"))
 
         # 1. 進捗通知だけが割り込み、runnerは呼ばれない条件を作る。
         def interrupt_progress(_: str) -> None:
-            """進捗表示の中断経路を作る。"""
+            """進捗表示の中断経路を作る。
+
+            Args:
+                _: 進捗関数へ渡される suite 名。
+
+            Returns:
+                なし。
+                Args:
+                                _: 進捗関数へ渡される suite 名。"""
             raise KeyboardInterrupt
 
         execution = execute_suites(
@@ -94,7 +122,10 @@ class TestSuiteExecution(unittest.TestCase):
         self.assertIn("suiteは開始されませんでした", execution.results[0]["tail"][0])
 
     def testsuite失敗後も後続suiteを実行する(self):
-        """suiteの失敗結果を収集しても後続runnerを止めない。"""
+        """suiteの失敗結果を収集しても後続runnerを止めない。
+
+        Returns:
+            なし。"""
         calls: list[str] = []
         failed = self._result("失敗", code=1)
         succeeded = self._result("後続")
@@ -111,7 +142,10 @@ class TestSuiteExecution(unittest.TestCase):
         self.assertFalse(execution.interrupted)
 
     def test事前に省略されたsuiteを実行中も同じ順序と理由で維持する(self):
-        """初期省略情報を実行制御による省略情報で置き換えない。"""
+        """初期省略情報を実行制御による省略情報で置き換えない。
+
+        Returns:
+            なし。"""
         initially_skipped = [
             ("画面テスト", "省略（--no-e2e）"),
             ("分析", "省略（関連なし）"),
@@ -125,12 +159,18 @@ class TestSuiteExecution(unittest.TestCase):
         self.assertFalse(execution.interrupted)
 
     def test中断時も事前省略情報の後ろに未実行suiteを追加する(self):
-        """初期省略の内容・順番を保ち、中断後のsuiteだけ末尾へ足す。"""
+        """初期省略の内容・順番を保ち、中断後のsuiteだけ末尾へ足す。
+
+        Returns:
+            なし。"""
         initially_skipped = [("先に省略", "省略（関連なし）")]
 
         # 1. 最初のsuiteを中断し、後続suiteは未実行として記録する。
         def interrupt_runner() -> dict:
-            """suite実行の中断経路を作る。"""
+            """suite実行の中断経路を作る。
+
+            Returns:
+                なし。"""
             raise KeyboardInterrupt
 
         execution = execute_suites(

@@ -2,9 +2,12 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+# JST: 実行ログの日時表示に使う日本標準時。
 JST = timezone(timedelta(hours=9))
+# MARKER: ログ本文を挿入する位置を示す固定目印。
 MARKER = "<!-- 実行結果はこの下に新しい順で追加される（scripts/run_tests.py が書き込む。手で書き換えない） -->"
 
+# HEADER: 新規ログの初期内容と、表示ルールの説明。
 HEADER = f"""# テスト実行ログ
 
 **プロジェクト：** ei8htplants-site
@@ -44,9 +47,11 @@ def make_entry(
         ログファイルへ追加する Markdown。
     """
     # 1. 失敗と省略を分けて判定し、部分実行やスキップを全件成功と表示しない。
+    # interrupted / failed_results / has_skips: 表示する総合判定に使う状態フラグ。
     interrupted = any(r.get("interrupted", False) for r in results)
     failed_results = any(r["code"] != 0 or r["failed"] != 0 for r in results if not r.get("interrupted", False))
     has_skips = bool(skipped_suites) or any(r["skipped"] > 0 for r in results)
+    # elapsed / timestamp: suite時間の合計とJSTへそろえた記録日時。
     elapsed = sum(r["sec"] for r in results)
     timestamp = (now or datetime.now(JST)).astimezone(JST).strftime("%Y-%m-%d %H:%M")
     if interrupted and failed_results:
@@ -62,6 +67,7 @@ def make_entry(
     else:
         verdict = "✅ 全部成功"
 
+    # lines: 1件分のMarkdownを順に組み立て、最後に改行で連結する。
     lines = [
         f"### {timestamp}　{verdict}",
         "",
@@ -79,6 +85,7 @@ def make_entry(
     ]
     for result in results:
         # 3. 実行したテスト枠の行でも、省略があれば成功と誤読されない表示にする。
+        # good / judgment: 中断・省略・失敗を優先してsuite単位の表示を決める。
         good = result["code"] == 0 and result["failed"] == 0 and result["skipped"] == 0
         if result.get("interrupted", False):
             judgment = "⏹ 中断"
@@ -92,6 +99,7 @@ def make_entry(
     for result in results:
         if result.get("skip_reason"):
             lines += ["", f"- **省略理由**：{result['name']} — {result['skip_reason']}"]
+    # failed_names: ログへ表示するsuite名と個々の失敗名の組。
     failed_names = [(result["name"], name) for result in results for name in result["failed_names"]]
     if failed_names:
         truncated = [r for r in results if r["failed"] > len(r["failed_names"]) and r["failed_names"]]
@@ -124,12 +132,14 @@ def append_log(log_path: Path, text: str) -> None:
         戻り値なし。
     """
     # 1. ファイルがなければ共通ヘッダーで作り、既存ログも現行の判定表示の説明へそろえる。
+    # current: 既存ログ。ファイルが無い場合は共通ヘッダーから開始する。
     current = log_path.read_text(encoding="utf-8") if log_path.exists() else HEADER
     if MARKER in current:
         _, rest = current.split(MARKER, 1)
         current = HEADER + rest.lstrip("\n")
     else:
         current = HEADER + current
+    # head / rest: 目印の前後へ分け、新しい記録をheadとrestの間に挿入する。
     head, rest = current.split(MARKER, 1)
     # 2. 最新の記録を目印の直下へ置き、古い記録はその後ろに保つ。
     log_path.write_text(head + MARKER + "\n\n" + text + rest.lstrip("\n"), encoding="utf-8")

@@ -60,6 +60,7 @@ class TestDocsAuth:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしの GET /api/docs/tree は 401 になり、ファイル名の一覧を返さないこと。
         resp = client.get('/api/docs/tree')
         assert resp.status_code == 401
         assert 'TEST' not in resp.text
@@ -71,6 +72,7 @@ class TestDocsAuth:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしの GET /api/docs/content は 401 になり、設計書の本文を返さないこと。
         resp = client.get('/api/docs/content?path=04_TEST/01_マスターテスト計画書.md')
         assert resp.status_code == 401
         assert not resp.text.lstrip().startswith('#')
@@ -82,6 +84,7 @@ class TestDocsAuth:
             なし。
         """
         # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
+        # 1. Supabase がトークンを無効と判定したときも 401 になること。
         mock_auth_sb = MagicMock()
         # 変数の内容: mock_auth_sb.auth.get_user.return_value: モック呼び出しの返却値。
         mock_auth_sb.auth.get_user.return_value = MagicMock(user=None)
@@ -102,6 +105,7 @@ class TestDocsTree:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. ツリーが200を返すことを確認する。
         resp = client.get('/api/docs/tree')
         assert resp.status_code == 200
 
@@ -111,6 +115,7 @@ class TestDocsTree:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス、tree: 設計書ファイルのツリー。
+        # 1. ツリーに必須フィールドが含まれることを確認する。
         resp = client.get('/api/docs/tree')
         tree = resp.json()
         assert isinstance(tree, list)
@@ -127,6 +132,7 @@ class TestDocsTree:
         戻り値:
             なし。"""
         # 変数の内容: names: テストで扱う名前の一覧、resp: API から返されたレスポンス。
+        # 1. テストディレクトリが存在することを確認する。
         resp = client.get('/api/docs/tree')
         names = [n['name'] for n in resp.json()]
         assert any('TEST' in n for n in names), '04_TEST ディレクトリが見つからない'
@@ -137,6 +143,7 @@ class TestDocsTree:
         戻り値:
             なし。"""
         # 変数の内容: names: テストで扱う名前の一覧、resp: API から返されたレスポンス。
+        # 1. PMディレクトリが存在することを確認する。
         resp = client.get('/api/docs/tree')
         names = [n['name'] for n in resp.json()]
         assert any('PM' in n for n in names), '03_PM ディレクトリが見つからない'
@@ -150,6 +157,7 @@ class TestDocsContent:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. マスターテスト計画書が取得できることを確認する。
         resp = client.get('/api/docs/content?path=04_TEST/01_マスターテスト計画書.md')
         assert resp.status_code == 200
         assert resp.text.strip().startswith('#')
@@ -161,6 +169,7 @@ class TestDocsContent:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 存在しないファイルは404ことを確認する。
         resp = client.get('/api/docs/content?path=nonexistent.md')
         assert resp.status_code == 404
 
@@ -170,6 +179,7 @@ class TestDocsContent:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. ディレクトリトラバーサルは拒否されることを確認する。
         resp = client.get('/api/docs/content?path=../backend/app/main.py')
         assert resp.status_code in (400, 404)
 
@@ -179,6 +189,7 @@ class TestDocsContent:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. mdでないファイルは拒否されることを確認する。
         resp = client.get('/api/docs/content?path=../frontend/package.json')
         assert resp.status_code in (400, 404)
 
@@ -191,6 +202,7 @@ class TestAllDocsValid:
         戻り値:
             なし。"""
         # 変数の内容: files: 対象ファイルの一覧、tree_resp: 設計書ツリー API の応答。
+        # 1. 全設計書ファイルが取得可能ことを確認する。
         tree_resp = client.get('/api/docs/tree')
         files = _collect_files(tree_resp.json())
         assert len(files) > 0, '設計書ファイルが1件もない'
@@ -206,6 +218,7 @@ class TestAllDocsValid:
         戻り値:
             なし。"""
         # 変数の内容: files: 対象ファイルの一覧、tree_resp: 設計書ツリー API の応答。
+        # 1. 全設計書がH1見出しで始まることを確認する。
         tree_resp = client.get('/api/docs/tree')
         files = _collect_files(tree_resp.json())
         # 変数の内容: path: 現在処理するファイルまたは URL パス。
@@ -221,6 +234,7 @@ class TestAllDocsValid:
         戻り値:
             なし。"""
         # 変数の内容: files: 対象ファイルの一覧、tree_resp: 設計書ツリー API の応答。
+        # 1. 全設計書が空でないことを確認する。
         tree_resp = client.get('/api/docs/tree')
         files = _collect_files(tree_resp.json())
         # 変数の内容: path: 現在処理するファイルまたは URL パス。

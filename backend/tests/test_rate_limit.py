@@ -51,6 +51,7 @@ class TestRateLimiterUnit:
             なし。
         """
         # 変数の内容: limiter: 回数制限インスタンス。
+        # 1. limit 回までは通り、limit+1 回目は 429。429 になった回は記録に加えないこと。
         limiter = RateLimiter(3, 60)
         # 変数の内容: _: 繰り返し回数だけを使うための未使用値。
         for _ in range(3):
@@ -69,6 +70,7 @@ class TestRateLimiterUnit:
             なし。
         """
         # 変数の内容: limiter: 回数制限インスタンス。
+        # 1. 最初の記録から window 秒たつと、また受け付けること（境界: window 秒ちょうどで通る）。
         limiter = RateLimiter(2, 60)
         with patch('app.rate_limit.time.time', return_value=1000.0):
             limiter.check('ip')
@@ -85,6 +87,7 @@ class TestRateLimiterUnit:
             なし。
         """
         # 変数の内容: limiter: 回数制限インスタンス。
+        # 1. ある IP が上限に達しても、別の IP は通ること。
         limiter = RateLimiter(1, 60)
         limiter.check('a')
         with pytest.raises(HTTPException):
@@ -98,6 +101,7 @@ class TestRateLimiterUnit:
             なし。
         """
         # 変数の内容: limiter: 回数制限インスタンス。
+        # 1. window 秒より前の記録しか無い IP は、次の確認のときに記録から消えること（記録が増え続けない）。
         limiter = RateLimiter(5, 60)
         with patch('app.rate_limit.time.time', return_value=1000.0):
             limiter.check('old')
@@ -113,6 +117,7 @@ class TestRateLimiterUnit:
             なし。
         """
         # 変数の内容: limiter: 対象の回数制限インスタンス。
+        # 1. reset_all() で 4 つの回数制限の記録が消えること。
         for limiter in (rate_limit.contact_limiter, rate_limit.reserve_limiter,
                         rate_limit.cancel_limiter, rate_limit.order_limiter):
             limiter.check('x')
@@ -128,6 +133,7 @@ class TestRateLimiterUnit:
         Returns:
             なし。
         """
+        # 1. PUBLIC_WRITE_LIMIT=5・PUBLIC_WRITE_WINDOW=60 であること。
         assert PUBLIC_WRITE_LIMIT == 5
         assert PUBLIC_WRITE_WINDOW == 60
 
@@ -142,6 +148,7 @@ class TestContactRateLimit:
             なし。
         """
         # 変数の内容: client: テスト対象の API クライアント。
+        # 1. 同じ IP から 5 回は 200、6 回目は 429 で DB に保存しないこと。
         client = TestClient(app)
         # 変数の内容: _: 繰り返し回数だけを使うための未使用値。
         for _ in range(5):
@@ -162,6 +169,7 @@ class TestContactRateLimit:
             なし。
         """
         # 変数の内容: client: テスト対象の API クライアント。
+        # 1. 422 になった送信を 10 回しても数えず、そのあと正しい送信が 5 回通ること。
         client = TestClient(app)
         # 変数の内容: _: 繰り返し回数だけを使うための未使用値。
         for _ in range(10):
@@ -178,6 +186,7 @@ class TestContactRateLimit:
             なし。
         """
         # 変数の内容: client: テスト対象の API クライアント。
+        # 1. 5 回送ったあと、60 秒たてば 6 回目も通ること。
         client = TestClient(app)
         with patch('app.rate_limit.time.time', return_value=10_000.0):
             # 変数の内容: _: 繰り返し回数だけを使うための未使用値。
@@ -198,6 +207,7 @@ class TestOtherPublicWriteRateLimits:
             なし。
         """
         # 変数の内容: body: リクエスト本文、client: テスト対象の API クライアント、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 予約を 5 回（イベント無しの 404 も数える）送ると 6 回目は 429。問い合わせはその後も通ること。
         client = TestClient(app)
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
@@ -219,6 +229,7 @@ class TestOtherPublicWriteRateLimits:
             なし。
         """
         # 変数の内容: client: テスト対象の API クライアント、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 存在しないトークンで 5 回（404）試すと、6 回目は 429（トークンの総当たり対策）。
         client = TestClient(app)
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -234,6 +245,7 @@ class TestOtherPublicWriteRateLimits:
         Returns:
             なし。
         """
+        # 1. 注文を 5 回（商品無しの 404）送ると 6 回目は 429 で、商品の読み取りも決済もしないこと。
         from tests.test_orders import ORDER_REQUEST
         # 変数の内容: client: テスト対象の API クライアント、mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック。
         client = TestClient(app)
@@ -259,6 +271,7 @@ class TestOtherPublicWriteRateLimits:
         Returns:
             なし。
         """
+        # 1. 数量 0 の注文（422）を何度送っても数えず、429 にならないこと。
         from tests.test_orders import ORDER_REQUEST
         # 変数の内容: bad: 不正な入力値、client: テスト対象の API クライアント、codes: 期待する応答コード一覧。
         client = TestClient(app)
@@ -278,6 +291,7 @@ class TestChatRateLimit:
             なし。
         """
         # 変数の内容: codes: 期待する応答コード一覧、mock_genai: Gemini クライアントのモック、resp: API から返されたレスポンス。
+        # 1. 同じ IP から 10 回は 200、11 回目は 429 になり Gemini を呼ばないこと。
         codes = [post_chat(CHAT_PAYLOAD)[0].status_code for _ in range(10)]
         resp, mock_genai = post_chat(CHAT_PAYLOAD)
         assert codes == [200] * 10
@@ -291,6 +305,7 @@ class TestChatRateLimit:
             なし。
         """
         # 変数の内容: client: テスト対象の API クライアント。
+        # 1. 問い合わせを 5 回送って上限にしても、チャットは通ること。
         client = TestClient(app)
         # 変数の内容: _: 繰り返し回数だけを使うための未使用値。
         for _ in range(5):
@@ -317,7 +332,6 @@ class TestClientIp:
         request = MagicMock()
         # 変数の内容: request.client: テスト用リクエスト接続元、request.headers: テスト用 HTTP リクエストヘッダー。
         request.headers = {k.lower(): v for k, v in (headers or {}).items()}
-        # 変数の内容: request.client: テスト用リクエスト接続元。
         request.client = MagicMock(host=host) if host is not None else None
         return request
 
@@ -328,6 +342,7 @@ class TestClientIp:
             なし。
         """
         # 変数の内容: req: テスト対象の HTTP リクエスト。
+        # 1. Cloudflare の CF-Connecting-IP を最初に使うこと。
         req = self._request({'CF-Connecting-IP': '203.0.113.5', 'X-Forwarded-For': '198.51.100.7, 10.0.0.2'})
         assert rate_limit.client_ip(req) == '203.0.113.5'
 
@@ -337,6 +352,7 @@ class TestClientIp:
         Returns:
             なし。
         """
+        # 1. 値の前後の空白を除いて使うこと。
         assert rate_limit.client_ip(self._request({'CF-Connecting-IP': '  203.0.113.5  '})) == '203.0.113.5'
 
     def test_CF_Connecting_IPが無ければX_Forwarded_Forの右端を使う(self):
@@ -346,6 +362,7 @@ class TestClientIp:
             なし。
         """
         # 変数の内容: req: テスト対象の HTTP リクエスト。
+        # 1. 「利用者が書ける値, …, 中継に接続してきた相手」の右端（Render が付け足した値）を空白を除いて使うこと。
         req = self._request({'X-Forwarded-For': ' 198.51.100.7 , 10.0.0.2, 10.0.0.3 '})
         assert rate_limit.client_ip(req) == '10.0.0.3'
 
@@ -356,6 +373,7 @@ class TestClientIp:
             なし。
         """
         # 変数の内容: req: テスト対象の HTTP リクエスト。
+        # 1. 利用者が先頭に偽の IP を書いても、中継が右端に付けた本物の IP で数えること（先頭は使わない）。
         req = self._request({'X-Forwarded-For': '1.2.3.4, 203.0.113.9'})
         assert rate_limit.client_ip(req) == '203.0.113.9'
 
@@ -365,6 +383,7 @@ class TestClientIp:
         Returns:
             なし。
         """
+        # 1. 末尾が空（「a, b, 」）でも、空の要素を除いた右端を使うこと。
         assert rate_limit.client_ip(self._request({'X-Forwarded-For': '198.51.100.7, 203.0.113.9, , '})) == '203.0.113.9'
         assert rate_limit.client_ip(self._request({'X-Forwarded-For': ' , 10.0.0.2'})) == '10.0.0.2'
 
@@ -375,6 +394,7 @@ class TestClientIp:
             なし。
         """
         # 変数の内容: req: テスト対象の HTTP リクエスト。
+        # 1. 空白だけの CF-Connecting-IP は無いものとして次を見ること。
         req = self._request({'CF-Connecting-IP': '   ', 'X-Forwarded-For': '198.51.100.7'})
         assert rate_limit.client_ip(req) == '198.51.100.7'
 
@@ -384,6 +404,7 @@ class TestClientIp:
         Returns:
             なし。
         """
+        # 1. ヘッダーが無いとき（ローカル実行・テスト）は接続してきた相手の IP を使うこと。
         assert rate_limit.client_ip(self._request()) == '10.0.0.1'
 
     def test_X_Forwarded_Forが空の要素だけならclient_hostを使う(self):
@@ -392,6 +413,7 @@ class TestClientIp:
         Returns:
             なし。
         """
+        # 1. 「 , , 」のように値が 1 つも無いときは client.host を使うこと。
         assert rate_limit.client_ip(self._request({'X-Forwarded-For': ' , , '})) == '10.0.0.1'
 
     def test_CF_Connecting_IPはMAX_IP_LENGTH文字で切る(self):
@@ -400,6 +422,7 @@ class TestClientIp:
         Returns:
             なし。
         """
+        # 1. 長すぎる値は 64 文字までにして記録すること（記録が大きくならないようにする）。
         assert rate_limit.MAX_IP_LENGTH == 64
         assert rate_limit.client_ip(self._request({'CF-Connecting-IP': 'a' * 100})) == 'a' * 64
 
@@ -409,6 +432,7 @@ class TestClientIp:
         Returns:
             なし。
         """
+        # 1. X-Forwarded-For の右端の値も 64 文字までに切ること。ちょうど 64 文字はそのまま。
         assert rate_limit.client_ip(self._request({'X-Forwarded-For': 'x, ' + 'b' * 70})) == 'b' * 64
         assert rate_limit.client_ip(self._request({'X-Forwarded-For': 'c' * 64})) == 'c' * 64
 
@@ -418,6 +442,7 @@ class TestClientIp:
         Returns:
             なし。
         """
+        # 1. request.client が無いときは 'unknown' を返すこと。
         assert rate_limit.client_ip(self._request(host=None)) == 'unknown'
 
     def test_実際のAPIでもCF_Connecting_IPごとに回数を数える(self):
@@ -471,6 +496,7 @@ class TestMaxTrackedIps:
         Returns:
             なし。
         """
+        # 1. 期限切れ（window 秒より前）の記録を掃除して上限内に収まれば、期限内の IP は捨てないこと。
         monkeypatch.setattr(rate_limit, 'MAX_TRACKED_IPS', 2)
         # ip-old は 0 秒、ip-b は 100 秒、ip-c は 101 秒に受け付け（window は 60 秒）
         clock = iter([0.0, 100.0, 101.0])
@@ -492,6 +518,7 @@ class TestMaxTrackedIps:
         Returns:
             なし。
         """
+        # 1. 記録する IP の数が上限と同じなら捨てないこと（境界）。
         monkeypatch.setattr(rate_limit, 'MAX_TRACKED_IPS', 3)
         # 変数の内容: limiter: 回数制限インスタンス。
         limiter = RateLimiter(limit=5, window=60)

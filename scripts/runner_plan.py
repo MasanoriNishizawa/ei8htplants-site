@@ -54,6 +54,7 @@ def build_suite_plan(
         実行順に並べたsuite仕様の一覧。
     """
     # 1. 型チェック・本番build・runner回帰テストは、部分実行でも先頭で必ず実行する。
+    # suites: 必須suiteを既定の実行順で保持し、選択suiteを後ろへ追加する計画。
     suites = [
         SuiteSpec("TypeScript チェック（tsc）", "TypeScript チェック中…", runners.tsc),
         SuiteSpec("本番ビルド（tsc -b ＋ vite build）", "本番ビルドを確認中…", runners.build),
@@ -61,6 +62,7 @@ def build_suite_plan(
     ]
 
     # 2. 選択されたsuiteだけを既存順序で追加し、対象引数は実行関数へ固定する。
+    # lambdaの引数を束ねることで、suite実行時に指定済みの対象一覧を渡す。
     if selection.run_vitest:
         suites.append(SuiteSpec(
             "フロントのロジック（Vitest）", "Vitest（フロントロジック）を実行中…",

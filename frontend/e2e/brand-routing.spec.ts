@@ -20,9 +20,10 @@ test.describe('ブランドサイトと公式サイトのルーティング', ()
   })
 
   test('公式サイトの Brands メニューを押すと OUR BRANDS ページへ遷移する', async ({ page }) => {
+    // 1. 公式サイトの HOME を開き、Brands メニューを選ぶ
     await page.goto('/official')
     await page.getByRole('link', { name: 'Brands', exact: true }).click()
-
+    // 2. OUR BRANDS の URL とページ見出しに遷移することを確認する
     await expect(page).toHaveURL(/\/official\/brands$/)
     await expect(page.getByRole('heading', { name: /Our Brands\./ })).toBeVisible()
   })

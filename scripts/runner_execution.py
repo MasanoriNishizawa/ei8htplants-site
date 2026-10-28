@@ -67,6 +67,8 @@ def execute_suites(
 
     # 1. 指定された順でsuiteを実行し、失敗結果があっても次のsuiteへ進む。
     for index, suite in enumerate(suites):
+        # index: 中断した場合に未実行として記録する後続suiteの開始位置。
+        # suite: 現在実行するsuite名・進捗文・runner関数をまとめた仕様。
         suite_started = time.monotonic()
         try:
             print_progress(suite.progress)
@@ -85,9 +87,10 @@ def execute_suites(
             break
 
         try:
+            # 3. suite固有のrunnerを呼び出し、返された集計結果を順番に追加する。
             results.append(suite.runner())
         except KeyboardInterrupt:
-            # 3. 実行開始後の中断を記録し、後続suiteは呼び出さない。
+            # 4. 実行開始後の中断を記録し、後続suiteは呼び出さない。
             interrupted = True
             results.append({
                 "name": suite.name, "code": 130, "sec": time.monotonic() - suite_started,

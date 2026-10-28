@@ -40,6 +40,7 @@ def _response(status: int, body=None, json_error: bool = False) -> MagicMock:
     Returns:
         応答のモック
     """
+    # 変数の内容: res: テスト対象処理が返した応答または結果。
     res = MagicMock()
     res.status_code = status
     if json_error:
@@ -58,6 +59,7 @@ def post(monkeypatch):
 
     Returns:
         requests.post のモック応答を返す。"""
+    # 変数の内容: mock: 対象依存処理を置き換えるモック。
     mock = MagicMock(return_value=_response(200, {"access_token": "tok-xyz", "user": {"email": EMAIL}}))
     monkeypatch.setattr(requests, "post", mock)
     return mock
@@ -74,6 +76,7 @@ def test_authenticate_200でメールアドレスがあれば成功しSupabase�
 
     Returns:
         なし。"""
+    # 1. authenticate 200でメールアドレスがあれば成功しSupabaseが返したメールを返すことを確認する。
     post.return_value = _response(200, {"access_token": "tok", "user": {"email": "Owner@Example.com"}})
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (True, "Owner@Example.com")
 
@@ -88,6 +91,7 @@ def test_authenticate_200以外のステータスはすべて資格情報エラ�
 
     Returns:
         なし。"""
+    # 1. authenticate 200以外のステータスはすべて資格情報エラーのメッセージになることを確認する。
     post.return_value = _response(status, {"error": "invalid_grant", "error_description": "Invalid login credentials"})
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (False, MSG_BAD_CREDENTIALS)
     assert MSG_BAD_CREDENTIALS == "メールアドレスまたはパスワードが違います。"
@@ -112,6 +116,7 @@ def test_authenticate_200でも応答にメールアドレスが無ければ失�
 
     Returns:
         なし。"""
+    # 1. authenticate 200でも応答にメールアドレスが無ければ失敗になることを確認する。
     post.return_value = _response(200, body)
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (False, MSG_BAD_CREDENTIALS)
 
@@ -124,6 +129,7 @@ def test_authenticate_200でも応答がJSONでなければ失敗になる(post)
 
     Returns:
         なし。"""
+    # 1. authenticate 200でも応答がJSONでなければ失敗になることを確認する。
     post.return_value = _response(200, json_error=True)
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (False, MSG_BAD_CREDENTIALS)
 
@@ -145,6 +151,7 @@ def test_authenticate_タイムアウトや接続エラーは通信エラーの�
 
     Returns:
         なし。"""
+    # 1. authenticate タイムアウトや接続エラーは通信エラーのメッセージになり資格情報エラーと区別されることを確認する。
     post.side_effect = exc
     ok, msg = authenticate(EMAIL, PASSWORD, URL, ANON)
     assert ok is False
@@ -184,6 +191,7 @@ def test_authenticate_URLの末尾にスラッシュがあっても二重にな�
 
     Returns:
         なし。"""
+    # 1. authenticate URLの末尾にスラッシュがあっても二重にならないことを確認する。
     authenticate(EMAIL, PASSWORD, URL + "/", ANON)
     assert post.call_args.args[0] == f"{URL}/auth/v1/token"
 
@@ -197,6 +205,7 @@ def test_authenticate_service_roleキーではなく渡されたanonキーだけ
 
     Returns:
         なし。"""
+    # 1. authenticate service roleキーではなく渡されたanonキーだけを使うことを確認する。
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "fake-service-role-should-not-be-used")
     authenticate(EMAIL, PASSWORD, URL, ANON)
     headers = post.call_args.kwargs["headers"]
@@ -227,6 +236,7 @@ def test_authenticate_パスワードとトークンは戻り値にもログに�
         なし。"""
     setup(post)
     with caplog.at_level(logging.DEBUG):
+        # 変数の内容: result: authenticate が返した認証結果（機密値が含まれないことを検証する値）。
         result = authenticate(EMAIL, PASSWORD, URL, ANON)
     # 1. 戻り値にパスワード・トークンが含まれない
     assert PASSWORD not in str(result)
@@ -246,6 +256,7 @@ def test_authenticate_通信エラーのログには例外の種類だけが残�
 
     Returns:
         なし。"""
+    # 1. authenticate 通信エラーのログには例外の種類だけが残ることを確認する。
     post.side_effect = requests.ConnectionError("detail-should-not-appear")
     with caplog.at_level(logging.ERROR):
         authenticate(EMAIL, PASSWORD, URL, ANON)
@@ -265,6 +276,7 @@ def test_is_allowed_許可リストが未設定や空なら誰でも許可され
 
     Returns:
         なし。"""
+    # 1. is allowed 許可リストが未設定や空なら誰でも許可されることを確認する。
     assert is_allowed("anyone@example.com", allowed_env) is True
 
 
@@ -273,6 +285,7 @@ def test_is_allowed_許可リストにあるメールは許可され無いメー
 
     Returns:
         なし。"""
+    # 1. is allowed 許可リストにあるメールは許可され無いメールは拒否されることを確認する。
     env = "a@example.com,b@example.com"
     assert is_allowed("a@example.com", env) is True
     assert is_allowed("b@example.com", env) is True
@@ -284,6 +297,7 @@ def test_is_allowed_大文字小文字を無視して比較する():
 
     Returns:
         なし。"""
+    # 1. is allowed 大文字小文字を無視して比較することを確認する。
     assert is_allowed("Admin@Example.COM", "admin@example.com") is True
     assert is_allowed("admin@example.com", "ADMIN@EXAMPLE.COM") is True
 
@@ -293,6 +307,7 @@ def test_is_allowed_リスト側とメール側の前後の空白を除いて比
 
     Returns:
         なし。"""
+    # 1. is allowed リスト側とメール側の前後の空白を除いて比較することを確認する。
     env = "  a@example.com ,\tb@example.com  , "
     assert is_allowed("a@example.com", env) is True
     assert is_allowed("b@example.com", env) is True
@@ -304,6 +319,7 @@ def test_is_allowed_部分一致では許可しない():
 
     Returns:
         なし。"""
+    # 1. is allowed 部分一致では許可しないことを確認する。
     env = "admin@example.com"
     assert is_allowed("admin@example.co", env) is False
     assert is_allowed("xadmin@example.com", env) is False
@@ -315,6 +331,7 @@ def test_is_allowed_空の要素が混ざっていても空文字のメールは
 
     Returns:
         なし。"""
+    # 1. is allowed 空の要素が混ざっていても空文字のメールは許可されないことを確認する。
     assert is_allowed("", "a@example.com, ,") is False
 
 
@@ -328,6 +345,7 @@ def test_is_locked_定数は5回と60秒():
 
     Returns:
         なし。"""
+    # 1. is locked 定数は5回と60秒ことを確認する。
     assert MAX_FAILS == 5
     assert LOCK_SECONDS == 60
 
@@ -341,6 +359,7 @@ def test_is_locked_失敗が5回未満ならロックしない(count):
 
     Returns:
         なし。"""
+    # 1. is locked 失敗が5回未満ならロックしないことを確認する。
     assert is_locked(count, NOW, NOW) is False
 
 
@@ -353,6 +372,7 @@ def test_is_locked_失敗が5回以上で直後ならロックする(count):
 
     Returns:
         なし。"""
+    # 1. is locked 失敗が5回以上で直後ならロックすることを確認する。
     assert is_locked(count, NOW, NOW) is True
 
 
@@ -361,6 +381,7 @@ def test_is_locked_5回目の失敗から59_9秒ではまだロック中():
 
     Returns:
         なし。"""
+    # 1. is locked 5回目の失敗から59 9秒ではまだロック中ことを確認する。
     assert is_locked(5, NOW, NOW + 59.9) is True
 
 
@@ -369,6 +390,7 @@ def test_is_locked_5回目の失敗からちょうど60秒でロックが解け�
 
     Returns:
         なし。"""
+    # 1. is locked 5回目の失敗からちょうど60秒でロックが解けることを確認する。
     assert is_locked(5, NOW, NOW + 60) is False
 
 
@@ -377,6 +399,7 @@ def test_is_locked_60秒を過ぎればロックしない():
 
     Returns:
         なし。"""
+    # 1. is locked 60秒を過ぎればロックしないことを確認する。
     assert is_locked(5, NOW, NOW + 61) is False
 
 
@@ -385,4 +408,5 @@ def test_is_locked_最後の失敗時刻がNoneならロックしない():
 
     Returns:
         なし。"""
+    # 1. is locked 最後の失敗時刻がNoneならロックしないことを確認する。
     assert is_locked(5, None, NOW) is False

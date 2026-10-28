@@ -40,6 +40,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 全必須フィールドが揃ったリクエストで 200 と {"ok": True} が返ること。
         mock_sb = _make_sb_mock()
 
         # resend モジュールをモックしてメール送信を抑制する
@@ -61,6 +62,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 送信時に admin_supabase.table('contacts').insert が呼ばれること。
         mock_sb = _make_sb_mock()
         mock_resend = MagicMock()
 
@@ -81,6 +83,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. RESEND_API_KEY が設定されているときは resend.Emails.send が呼ばれること。
         mock_sb = _make_sb_mock()
         mock_resend = MagicMock()
 
@@ -102,6 +105,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. name フィールドが欠けると 422 バリデーションエラーが返ること。
         mock_sb = _make_sb_mock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb):
@@ -120,6 +124,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. email フィールドが欠けると 422 バリデーションエラーが返ること。
         mock_sb = _make_sb_mock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb):
@@ -138,6 +143,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. message フィールドが欠けると 422 バリデーションエラーが返ること。
         mock_sb = _make_sb_mock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb):
@@ -156,6 +162,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. email が正しい形式でない場合 422 バリデーションエラーが返ること。
         mock_sb = _make_sb_mock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb):
@@ -178,6 +185,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. RESEND_API_KEY と CONTACT_TO_EMAIL が設定されているとき、。
         mock_sb = _make_sb_mock()
         mock_resend = MagicMock()
         # 管理者通知メール送信時に例外を投げる（1回目の Emails.send が失敗）
@@ -204,6 +212,7 @@ class TestSendContact:
             なし。
         """
         # 変数の内容: mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 自動返信メールの送信が失敗しても 200 で {"ok": True} が返ること。
         mock_sb = _make_sb_mock()
         mock_resend = MagicMock()
         # 自動返信メール送信時に例外を投げる
@@ -231,6 +240,7 @@ class TestListContacts:
         Returns:
             なし。
         """
+        # 1. 管理者認証を通過したとき一覧が返ること。
         from app.auth import require_auth
 
         # 変数の内容: contacts_data: お問い合わせ一覧 API のテスト行、mock_sb: 公開用 Supabase クライアントのモック。
@@ -264,6 +274,7 @@ class TestListContacts:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで 401 が返ること。
         resp = TestClient(app).get('/api/contacts')
         assert resp.status_code == 401
 
@@ -277,6 +288,7 @@ class TestUpdateContact:
         Returns:
             なし。
         """
+        # 1. is_read を True に更新したとき、更新後のレコードが返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、updated_record: 更新後のテストレコード。
@@ -306,6 +318,7 @@ class TestUpdateContact:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで 401 が返ること。
         resp = TestClient(app).patch('/api/contacts/c1', json={'is_read': True})
         assert resp.status_code == 401
 
@@ -319,6 +332,7 @@ class TestReplyContact:
         Returns:
             なし。
         """
+        # 1. RESEND_API_KEY が未設定のとき 500 が返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
@@ -344,6 +358,7 @@ class TestReplyContact:
         Returns:
             なし。
         """
+        # 1. 指定 ID のお問い合わせが存在しないとき 404 が返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
@@ -373,6 +388,7 @@ class TestReplyContact:
         Returns:
             なし。
         """
+        # 1. 返信メール送信に成功したとき 200 で {"ok": True} が返ること。
         from app.auth import require_auth
 
         # 変数の内容: contact_row: DB から取得したお問い合わせレコード、mock_sb: 公開用 Supabase クライアントのモック。
@@ -409,6 +425,7 @@ class TestReplyContact:
         Returns:
             なし。
         """
+        # 1. resend.Emails.send が例外を投げたとき 500 が返ること。
         from app.auth import require_auth
 
         # 変数の内容: contact_row: DB から取得したお問い合わせレコード、mock_sb: 公開用 Supabase クライアントのモック。
@@ -444,6 +461,7 @@ class TestReplyContact:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで 401 が返ること。
         resp = TestClient(app).post(
             '/api/contacts/c1/reply',
             json={'subject': '件名', 'body': '内容'},

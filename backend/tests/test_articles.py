@@ -66,6 +66,7 @@ class TestListArticles:
             なし。
         """
         # 変数の内容: chain: Supabase クエリの呼び出し連鎖モック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. ?all 未指定のとき is_published=True の記事のみ返ること。
         mock_sb = _make_sb_mock()
         # supabase.table().select().order().order().eq().execute().data のチェーン
         chain = mock_sb.table.return_value.select.return_value.order.return_value.order.return_value
@@ -92,6 +93,7 @@ class TestListArticles:
             なし。
         """
         # 変数の内容: chain: Supabase クエリの呼び出し連鎖モック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 管理者としてログインして ?all=true を指定すると、非公開も含む全件が返り is_published で絞らないこと。
         mock_sb = _make_sb_mock()
         chain = mock_sb.table.return_value.select.return_value.order.return_value.order.return_value
         # all=true では eq を呼ばずそのまま execute する
@@ -114,6 +116,7 @@ class TestListArticles:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. Authorization ヘッダーなしで ?all=true を指定すると 401 になり、非公開の記事が漏れないこと。
         mock_sb = _make_sb_mock()
 
         with patch('app.routes.articles.admin_supabase', mock_sb):
@@ -130,6 +133,7 @@ class TestListArticles:
             なし。
         """
         # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
+        # 1. Authorization ヘッダーがあってもトークンが無効なら 401（期限切れに気づけるよう未ログイン扱いにしない）。
         mock_auth_sb = MagicMock()
         # 変数の内容: mock_auth_sb.auth.get_user.side_effect: モック呼び出し時に返す例外または副作用。
         mock_auth_sb.auth.get_user.side_effect = Exception('invalid token')
@@ -147,6 +151,7 @@ class TestListArticles:
             なし。
         """
         # 変数の内容: chain: Supabase クエリの呼び出し連鎖モック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. DBが空のとき空配列が返ること。
         mock_sb = _make_sb_mock()
         chain = mock_sb.table.return_value.select.return_value.order.return_value.order.return_value
         # 変数の内容: chain.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -170,6 +175,7 @@ class TestGetArticle:
             なし。
         """
         # 変数の内容: eq_id: 対象 ID で絞り込むモック条件、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 未ログインで公開済みの記事の ID を指定すると、is_published=True で絞った上で記事が返ること。
         mock_sb = _make_sb_mock()
         # 未ログイン: table().select().eq('id').eq('is_published', True).single().execute().data
         eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
@@ -191,6 +197,7 @@ class TestGetArticle:
             なし。
         """
         # 変数の内容: eq_id: 対象 ID で絞り込むモック条件、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 存在しない ID（single() が PGRST116 を投げる）を指定すると 404 が返ること。
         mock_sb = _make_sb_mock()
         eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
         # 変数の内容: eq_id.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
@@ -209,6 +216,7 @@ class TestGetArticle:
             なし。
         """
         # 変数の内容: eq_id: 対象 ID で絞り込むモック条件、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 非公開の記事は公開で絞ると 0 件（PGRST116）になるため、未ログインでは 404 が返り下書きが漏れないこと。
         mock_sb = _make_sb_mock()
         eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
         # 公開で絞った結果は 0 件
@@ -230,6 +238,7 @@ class TestGetArticle:
             なし。
         """
         # 変数の内容: eq_id: 対象 ID で絞り込むモック条件、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 管理者としてログインしていれば is_published で絞らず、非公開の記事も返ること。
         mock_sb = _make_sb_mock()
         eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
         # 変数の内容: eq_id.single.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -289,6 +298,7 @@ class TestUpdateArticle:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 既存レコードの更新ができ、更新後レコードが返ること。
         mock_sb = _make_sb_mock()
         # 既存レコード取得チェーン（is_published, published_at の確認用）
         mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {
@@ -327,6 +337,7 @@ class TestDeleteArticle:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 削除に成功すると {"ok": True} が返ること。
         mock_sb = _make_sb_mock()
 
         app.dependency_overrides[require_auth] = _auth_override

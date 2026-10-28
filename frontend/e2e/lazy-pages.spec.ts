@@ -18,6 +18,7 @@ function collectPageErrors(page: Page): string[] {
 /**
  * ページの読み込み中の表示（PageLoading）が残っていないことを確かめる
  * @param page - 対象ページ
+ * @returns なし。読み込み中表示が消え、ページが表示されたことを検証する。
  */
 async function expectLoaded(page: Page) {
   await expect(page.getByRole('status').filter({ hasText: /読み込み中\.\.\.|Loading\.\.\./ })).toHaveCount(0)
@@ -26,6 +27,7 @@ async function expectLoaded(page: Page) {
 /**
  * 横スクロールが出ていないかを確かめる
  * @param page - 対象ページ
+ * @returns なし。横スクロールがないことを検証する。
  */
 async function expectNoHorizontalScroll(page: Page) {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
@@ -49,9 +51,11 @@ const HEADER_STEPS: { link: string; path: RegExp; title: string }[] = [
 
 test.describe('画面ごとの読み込みにしたあとの公開ページの移動', () => {
   test('トップからヘッダーのリンクで主要ページを順に開くと、それぞれのページが表示される', async ({ page }) => {
+    // 1. 公開 HOME から各ヘッダーリンクを順にたどる
     const errors = collectPageErrors(page)
     await page.goto('/official')
     await expect(page.getByRole('navigation').first()).toBeVisible({ timeout: 20000 })
+    // 2. 各リンクの URL・タイトル・読み込み完了・共通ナビを順に確かめる
     for (const step of HEADER_STEPS) {
       await page.getByRole('navigation').first().getByRole('link', { name: step.link, exact: true }).click()
       await expect(page).toHaveURL(step.path)
@@ -64,6 +68,7 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
   })
 
   test('ヘッダーの Shop から Journal・Shop へ移っても表示される（StoreLayout）', async ({ page }) => {
+    // 1. Shop を開いた後、Journal へ移動する
     const errors = collectPageErrors(page)
     await page.goto('/official')
     await page.getByRole('link', { name: 'Shop', exact: true }).first().click()
@@ -71,6 +76,7 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     await expect(page).toHaveTitle('Shop | ei8ht plants', { timeout: 15000 })
     await page.getByRole('link', { name: 'Journal', exact: true }).first().click()
     await expect(page).toHaveURL(/\/official\/journal$/)
+    // 2. 両ページで URL・タイトル・読み込み完了を確認する
     await expect(page).toHaveTitle('Journal | ei8ht plants', { timeout: 15000 })
     await expectLoaded(page)
     expect(errors).toEqual([])
@@ -84,8 +90,10 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
   })
 
   test('ブラウザの戻る・進むでも前のページが表示される', async ({ page }) => {
+    // 1. ギャラリーを開いて履歴の起点を作る
     await page.goto('/official/gallery')
     await expect(page).toHaveTitle('Gallery | ei8ht plants', { timeout: 20000 })
+    // 2. 戻る・進むの各操作で URL とページタイトルが対応することを確認する
     await page.getByRole('navigation').first().getByRole('link', { name: 'Concept', exact: true }).click()
     await expect(page).toHaveTitle('Concept | ei8ht plants', { timeout: 15000 })
     await page.goBack()

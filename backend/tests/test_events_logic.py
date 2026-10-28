@@ -37,6 +37,7 @@ class TestCalcIsPast:
 
         戻り値:
             なし。"""
+        # 1. 過去の開始日ことを確認する。
         assert _calc_is_past('2025-09-01', today=self.TODAY) is True
 
     def test_今日は過去でない(self):
@@ -44,6 +45,7 @@ class TestCalcIsPast:
 
         戻り値:
             なし。"""
+        # 1. 今日は過去でないことを確認する。
         assert _calc_is_past('2025-10-08', today=self.TODAY) is False
 
     def test_未来の開始日(self):
@@ -51,6 +53,7 @@ class TestCalcIsPast:
 
         戻り値:
             なし。"""
+        # 1. 未来の開始日ことを確認する。
         assert _calc_is_past('2025-11-01', today=self.TODAY) is False
 
     def test_end_date優先(self):
@@ -59,6 +62,7 @@ class TestCalcIsPast:
 
         戻り値:
             なし。"""
+        # 1. end date優先ことを確認する。
         assert _calc_is_past('2025-09-01', end_date='2025-10-10', today=self.TODAY) is False
 
     def test_end_dateが過去なら過去(self):
@@ -66,6 +70,7 @@ class TestCalcIsPast:
 
         戻り値:
             なし。"""
+        # 1. end dateが過去なら過去ことを確認する。
         assert _calc_is_past('2025-09-01', end_date='2025-09-30', today=self.TODAY) is True
 
     def test_不正な日付は過去でない(self):
@@ -73,6 +78,7 @@ class TestCalcIsPast:
 
         戻り値:
             なし。"""
+        # 1. 不正な日付は過去でないことを確認する。
         assert _calc_is_past('not-a-date', today=self.TODAY) is False
 
 
@@ -89,6 +95,7 @@ class TestFinanceBody:
         戻り値:
             なし。"""
         # 変数の内容: body: リクエスト本文。
+        # 1. デフォルト値ことを確認する。
         body = FinanceBody()
         assert body.sales == 0
         assert body.payment_flag is False
@@ -102,6 +109,7 @@ class TestFinanceBody:
         戻り値:
             なし。"""
         # 変数の内容: body: リクエスト本文。
+        # 1. 空文字列はそのまま保持ことを確認する。
         body = FinanceBody(other_expenses_note='', notes='')
         assert body.other_expenses_note == ''
         assert body.notes == ''
@@ -112,6 +120,7 @@ class TestFinanceBody:
         戻り値:
             なし。"""
         # 変数の内容: body: リクエスト本文。
+        # 1. 正常値ことを確認する。
         body = FinanceBody(
             sales=100000,
             booth_fee=20000,
@@ -130,6 +139,7 @@ class TestFinanceBody:
         戻り値:
             なし。"""
         # 変数の内容: body: リクエスト本文。
+        # 1. ws payment doneことを確認する。
         body = FinanceBody(ws_payment_done=True)
         assert body.ws_payment_done is True
 
@@ -173,6 +183,7 @@ class TestEventsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. イベント一覧 空ことを確認する。
         mock_sb = _make_sb_mock([])
         with patch('app.routes.events.supabase', mock_sb):
             # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
@@ -187,6 +198,7 @@ class TestEventsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: events: 取得したイベントの一覧、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. イベント一覧 過去イベント除外ことを確認する。
         events = [
             {'id': '1', 'name': 'Past', 'start_date': '2020-01-01', 'end_date': None},
             {'id': '2', 'name': 'Future', 'start_date': '2099-01-01', 'end_date': None},
@@ -208,6 +220,7 @@ class TestEventsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: events: 取得したイベントの一覧、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. イベント一覧 過去イベント取得ことを確認する。
         events = [
             {'id': '1', 'name': 'Past', 'start_date': '2020-01-01', 'end_date': None},
             {'id': '2', 'name': 'Future', 'start_date': '2099-01-01', 'end_date': None},
@@ -230,6 +243,7 @@ class TestEventsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: events: 取得したイベントの一覧、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. イベント一覧 end dateで過去判定ことを確認する。
         events = [
             {'id': '1', 'name': 'EndedEvent', 'start_date': '2099-01-01', 'end_date': '2020-01-01'},
         ]

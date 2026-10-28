@@ -69,6 +69,7 @@ class TestListPotArtists:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 鉢作家が存在するとき配列が返ること。
         mock_sb = _make_public_sb_mock([ARTIST_1, ARTIST_2])
 
         with patch('app.routes.pot_artists.supabase', mock_sb):
@@ -88,6 +89,7 @@ class TestListPotArtists:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 鉢作家が0件のとき空配列が返ること。
         mock_sb = _make_public_sb_mock([])
 
         with patch('app.routes.pot_artists.supabase', mock_sb):
@@ -104,6 +106,7 @@ class TestListPotArtists:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 一覧取得は認証不要でアクセスできること。
         mock_sb = _make_public_sb_mock([ARTIST_1])
 
         with patch('app.routes.pot_artists.supabase', mock_sb):
@@ -120,6 +123,7 @@ class TestListPotArtists:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 返却されるオブジェクトに name フィールドが含まれること。
         mock_sb = _make_public_sb_mock([ARTIST_1])
 
         with patch('app.routes.pot_artists.supabase', mock_sb):
@@ -169,6 +173,7 @@ class TestAddPotArtist:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. name フィールドが欠けると 422 バリデーションエラーが返ること。
         mock_admin_sb = _make_admin_sb_mock()
 
         app.dependency_overrides[require_auth] = _auth_override
@@ -188,6 +193,7 @@ class TestAddPotArtist:
             なし。
         """
         # require_auth をオーバーライドせず本来の認証チェックを走らせる
+        # 1. Authorization ヘッダーなしで作成しようとすると 401 が返ること。
         resp = TestClient(app).post('/api/pot-artists', json={'name': 'テスト'})
         assert resp.status_code == 401
 
@@ -202,6 +208,7 @@ class TestDeletePotArtist:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 削除に成功すると {"ok": True} が返ること。
         mock_admin_sb = _make_admin_sb_mock()
 
         app.dependency_overrides[require_auth] = _auth_override
@@ -222,5 +229,6 @@ class TestDeletePotArtist:
             なし。
         """
         # require_auth をオーバーライドせず本来の認証チェックを走らせる
+        # 1. Authorization ヘッダーなしで削除しようとすると 401 が返ること。
         resp = TestClient(app).delete('/api/pot-artists/art1')
         assert resp.status_code == 401

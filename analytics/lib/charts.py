@@ -180,7 +180,9 @@ def bar_chart(
     # 2. 値のラベルを棒の外に出すときは、ラベルが切れないように値の軸の範囲を広げる
     if text is not None:
         fig.update_traces(text=text, textposition="outside", cliponaxis=False)
+        # 変数の内容: values: 棒グラフの値を数値型にそろえた系列。
         values = pd.Series(x if horizontal else y, dtype=float)
+        # 変数の内容: top: 棒の最大値。
         top = float(values.max()) if len(values) else 0.0
         if top > 0:
             if horizontal:
@@ -266,10 +268,12 @@ def unique_labels(labels: Sequence[str]) -> list[str]:
     for label in labels:
         # 1. その文字列が何回目かを数える
         seen[label] = seen.get(label, 0) + 1
+        # 変数の内容: candidate: 重複を避けるために付ける表示ラベル候補。
         candidate = label if seen[label] == 1 else f"{label}（{seen[label]}）"
         # 2. 連番を付けた結果が別の項目名と重なるときは、さらに番号を進める
         while candidate in out:
             seen[label] += 1
+            # 変数の内容: candidate: 重複を避けるために付ける表示ラベル候補。
             candidate = f"{label}（{seen[label]}）"
         out.append(candidate)
     return out

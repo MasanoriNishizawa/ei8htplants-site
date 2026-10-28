@@ -72,17 +72,13 @@ def _table_mock(single_data: Any = None, single_error: Optional[Exception] = Non
         # 変数の内容: eq.single.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、eq.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         eq.single.return_value.execute.side_effect = single_error
     else:
-        # 変数の内容: eq.single.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         eq.single.return_value.execute.return_value.data = single_data
     # 人数の集計（eq('event_id').neq('status', 'cancelled')[.eq('preferred_date')]）
     neq = eq.neq.return_value
     # 変数の内容: neq.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、neq.execute.return_value.data: モックのクエリ応答に含めるデータ、t.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、t.update.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
     neq.execute.return_value.data = list_data or []
-    # 変数の内容: neq.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
     neq.eq.return_value.execute.return_value.data = list_data or []
-    # 変数の内容: t.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
     t.insert.return_value.execute.return_value.data = insert_data if insert_data is not None else [dict(SAVED_ROW)]
-    # 変数の内容: t.update.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
     t.update.return_value.eq.return_value.execute.return_value.data = update_data if update_data is not None else [dict(SAVED_ROW)]
     return t
 
@@ -160,6 +156,7 @@ class TestParticipantsValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、public_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. 人数が 0・負・11 以上なら 422 になり、DB を読まず保存もしないこと。
         public_sb = _public_sb()
         admin_sb = _db({})
 
@@ -176,6 +173,7 @@ class TestParticipantsValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 定員 5・予約済み 5 の時間枠に人数 -1 で予約すると、5 + (-1) <= 5 で通ってしまわず 422 になること。
         reservations = _table_mock(list_data=[{'session_id': 'session-1', 'participants': 5, 'preferred_time': None}])
         admin_sb = _db({'ws_sessions': _table_mock(single_data=dict(SESSION)), 'workshop_reservations': reservations})
 
@@ -195,6 +193,7 @@ class TestParticipantsValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 人数 1 と 10（上限ちょうど）は 200 で保存されること。
         reservations = _table_mock()
         admin_sb = _db({'workshop_reservations': reservations})
 
@@ -214,6 +213,7 @@ class TestParticipantsValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. 管理画面の当日参加も人数 1〜10。範囲外は 422 で保存しないこと。
         admin_sb = _db({})
         app.dependency_overrides[require_auth] = lambda: None
         try:
@@ -263,6 +263,7 @@ class TestReservationMailEscape:
             なし。
         """
         # 変数の内容: mails: モックが記録した送信メール一覧。
+        # 1. 名前の <script> と備考の <img onerror> は、どちらのメールの HTML でもタグとして入らず実体参照になること。
         mails = self._send({**BASE_REQUEST, 'name': self.SCRIPT_NAME, 'note': self.IMG_NOTE})
 
         # 受付メール（予約者宛て）と管理者通知の 2 通
@@ -284,6 +285,7 @@ class TestReservationMailEscape:
             なし。
         """
         # 変数の内容: event: 処理対象のイベント、mails: モックが記録した送信メール一覧。
+        # 1. DB から読んだイベント名・会場も HTML に入れる前にエスケープされること。
         event = {**EVENT, 'name': '<b>ws</b>', 'location': '"><a href="https://evil.example">x</a>'}
         mails = self._send(BASE_REQUEST, event)
 
@@ -300,6 +302,7 @@ class TestReservationMailEscape:
             なし。
         """
         # 変数の内容: admin_html: 管理画面用 HTML テストデータ、mails: モックが記録した送信メール一覧。
+        # 1. 電話番号・希望の時間（時間枠なしの予約）に入れたタグも管理者通知でエスケープされること。
         mails = self._send({**BASE_REQUEST, 'phone': '<i>090</i>', 'preferred_time': '<u>10時</u>'})
 
         admin_html = mails[1]['html']
@@ -315,6 +318,7 @@ class TestReservationMailEscape:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、row: DB から取得した単一レコード。
+        # 1. キャンセルの確認メールでも予約者の名前はエスケープされること。
         row = {'id': 'r1', 'status': 'pending', 'session_id': None, 'event_id': 'event-1',
                'name': self.SCRIPT_NAME, 'email': 'hanako@example.com', 'created_at': '2026-10-01T00:00:00+00:00'}
         reservations = _table_mock(update_data=[{**row, 'status': 'cancelled'}])
@@ -380,6 +384,7 @@ class TestCancelToken:
             なし。
         """
         # 変数の内容: _: テスト条件として指定する値、resp: API から返されたレスポンス。
+        # 1. 応答は {"ok": true} だけで、名前・メールアドレス・予約 ID を返さないこと。
         resp, _ = self._cancel('12345678', [self._row()])
 
         assert resp.status_code == 200
@@ -399,6 +404,7 @@ class TestCancelToken:
             なし。
         """
         # 変数の内容: reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 古い 8 桁の数字のトークンも、token_urlsafe(16) の約 22 文字のトークンもキャンセルできること。
         resp, reservations = self._cancel(token, [self._row()])
 
         assert resp.status_code == 200
@@ -412,6 +418,7 @@ class TestCancelToken:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック。
+        # 1. トークンは 64 文字まで。65 文字は 422 になり DB を読まないこと。
         admin_sb = _db({})
         with patch('app.routes.reserve.admin_supabase', admin_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -427,6 +434,7 @@ class TestCancelToken:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 空文字のトークンは 422 になること。
         resp = TestClient(app).post('/api/reserve/cancel', json={'token': ''})
         assert resp.status_code == 422
 
@@ -437,6 +445,7 @@ class TestCancelToken:
             なし。
         """
         # 変数の内容: tokens: 認証トークンの一覧。
+        # 1. 予約を作るとき保存するキャンセルトークンは URL に使える 20 文字以上の文字列で、毎回違うこと。
         tokens = []
         # 変数の内容: _: 繰り返し回数だけを使うための未使用値。
         for _ in range(2):
@@ -460,6 +469,7 @@ class TestCancelToken:
             なし。
         """
         # 変数の内容: reservations: 取得した予約の一覧。
+        # 1. 管理画面の当日参加で作る予約のトークンも 20 文字以上になること。
         reservations = _table_mock()
         app.dependency_overrides[require_auth] = lambda: None
         try:
@@ -487,6 +497,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、other: 比較対象となる別の値、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 時間枠の event_id が予約するイベントと違えば 400 になり、保存しないこと。
         reservations = _table_mock()
         other = {**SESSION, 'event_id': 'event-other'}
         admin_sb = _db({'ws_sessions': _table_mock(single_data=other), 'workshop_reservations': reservations})
@@ -504,6 +515,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 時間枠が見つからない（PGRST116）ときは 400 になり、保存しないこと。
         reservations = _table_mock()
         admin_sb = _db({'ws_sessions': _table_mock(single_error=not_found_error()), 'workshop_reservations': reservations})
 
@@ -519,6 +531,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. そのイベントの時間枠で、予約済み 3 + 2 名 <= 定員 5 なら 200 で保存されること。
         reservations = _table_mock(list_data=[{'session_id': 'session-1', 'participants': 3, 'preferred_time': None}])
         admin_sb = _db({'ws_sessions': _table_mock(single_data=dict(SESSION)), 'workshop_reservations': reservations})
 
@@ -534,6 +547,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 予約済み 4 + 2 名 > 定員 5 なら 409 になり、保存しないこと。
         reservations = _table_mock(list_data=[{'session_id': 'session-1', 'participants': 4, 'preferred_time': None}])
         admin_sb = _db({'ws_sessions': _table_mock(single_data=dict(SESSION)), 'workshop_reservations': reservations})
 
@@ -553,6 +567,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 予約日が開始日より前・最終日より後なら 400（開催期間外）になること。
         reservations = _table_mock()
 
         resp = _post({**BASE_REQUEST, 'preferred_date': preferred_date}, _public_sb(),
@@ -569,6 +584,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 開催中のイベントで、今日より前の日（10/21）を予約日にすると 400 になること。
         reservations = _table_mock()
 
         resp = _post({**BASE_REQUEST, 'preferred_date': '2026-10-21'}, _public_sb(), _db({'workshop_reservations': reservations}))
@@ -588,6 +604,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 予約日が今日（境界）・最終日（境界）なら 200 で保存されること。
         reservations = _table_mock()
 
         resp = _post({**BASE_REQUEST, 'preferred_date': preferred_date}, _public_sb(), _db({'workshop_reservations': reservations}))
@@ -602,6 +619,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: last_day: イベント開催期間の最終日、past: 過去イベントを選ぶかどうか、r1: 最初の API 応答、r2: 次の API 応答。
+        # 1. イベントの最終日が今日より前なら受付終了（400）、今日が最終日ならまだ受け付けること（日本時間で判定）。
         past = {**EVENT, 'end_date': '2026-10-21'}
         last_day = {**EVENT, 'end_date': TODAY}
 
@@ -618,6 +636,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 予約日が YYYY-MM-DD の形でなければ 422 になること。
         resp = _post({**BASE_REQUEST, 'preferred_date': '2026/10/22'}, _public_sb(), _db({}))
         assert resp.status_code == 422
 
@@ -628,6 +647,7 @@ class TestSessionAndDateValidation:
             なし。
         """
         # 変数の内容: reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. イベントが見つからない（PGRST116）ときは 404 になること。
         reservations = _table_mock()
         resp = _post(BASE_REQUEST, _public_sb(None), _db({'workshop_reservations': reservations}))
         assert resp.status_code == 404
@@ -709,6 +729,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 今と同じステータス（cancelled → cancelled）なら更新せず、メールも送らず今の行を返すこと。
         resp, reservations, resend = self._patch(self._row('cancelled'), 'cancelled')
 
         assert resp.status_code == 200
@@ -723,6 +744,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. pending → cancelled ではキャンセルのメールが予約者に 1 通だけ送られること。
         resp, reservations, resend = self._patch(self._row('pending'), 'cancelled')
 
         assert resp.status_code == 200
@@ -737,6 +759,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. cancelled → pending で、時間枠に 4 名入っている（4 + 2 > 定員 5）なら 409 になり更新しないこと。
         resp, reservations, resend = self._patch(self._row('cancelled'), 'pending', used=4)
 
         assert resp.status_code == 409
@@ -750,6 +773,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. cancelled → confirmed で 3 + 2 <= 5 なら更新され、メールは送らないこと（メールはキャンセルに変えたときだけ）。
         resp, reservations, resend = self._patch(self._row('cancelled'), 'confirmed', used=3)
 
         assert resp.status_code == 200
@@ -763,6 +787,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: _: テスト条件として指定する値、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. session_id が無い予約は満席の確認をせずに戻せること。
         resp, reservations, _ = self._patch(self._row('cancelled', session_id=None), 'pending', used=100)
 
         assert resp.status_code == 200
@@ -775,6 +800,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: _: テスト条件として指定する値、resend: Resend メール送信関数のモック、resp: API から返されたレスポンス。
+        # 1. キャンセル以外への変更ではメールを送らないこと。
         resp, _, resend = self._patch(self._row('pending'), 'confirmed')
 
         assert resp.status_code == 200
@@ -791,6 +817,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: _: テスト条件として指定する値、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. pending|confirmed|cancelled 以外は 422 になること。
         resp, reservations, _ = self._patch(self._row('pending'), status)
 
         assert resp.status_code == 422
@@ -803,6 +830,7 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
+        # 1. 予約が見つからない（PGRST116）ときは 404 になること。
         resp, reservations, resend = self._patch(None, 'cancelled')
 
         assert resp.status_code == 404

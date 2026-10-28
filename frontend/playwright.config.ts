@@ -6,11 +6,13 @@ export default defineConfig({
   // テストのファイルを置くフォルダ
   testDir: './e2e',
   // テストは 1 つずつ順に動かす（同じ開発サーバーとモックを使うため）
+  // fullyParallel: 同じモック・開発サーバーを共有するため、テストファイルを並列化しない。
   fullyParallel: false,
   // CI では test.only の消し忘れをエラーにする
   forbidOnly: !!process.env.CI,
   // CI でだけ、失敗したテストを 1 回やり直す
   retries: process.env.CI ? 1 : 0,
+  // workers: 同時に動かすworker数を1つに固定する。
   workers: 1,
   // 結果を 1 行ずつ表示する
   reporter: 'list',

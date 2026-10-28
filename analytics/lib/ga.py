@@ -94,6 +94,7 @@ def parse_credentials_json(text: str) -> dict:
     """
     # 1. JSON として読む。読めないときは位置だけを伝える（中身は出さない。元の例外もつなげない）
     try:
+        # 変数の内容: info: JSON から読み取ったサービスアカウント設定。
         info = json.loads(text, strict=False)
     except json.JSONDecodeError as e:
         raise CredentialsError(
@@ -106,6 +107,7 @@ def parse_credentials_json(text: str) -> dict:
     # 3. 種類と必要な項目があるか（足りない項目の名前だけを伝える）
     if info.get("type", "service_account") != "service_account":
         raise CredentialsError(f"{CREDENTIALS_JSON_ENV} はサービスアカウントの鍵ではありません（type が service_account でない）。")
+    # 変数の内容: missing: 設定に不足している必須項目名。
     missing = [k for k in REQUIRED_KEY_FIELDS if not info.get(k)]
     if missing:
         raise CredentialsError(f"{CREDENTIALS_JSON_ENV} に必要な項目がありません: {', '.join(missing)}")
@@ -120,7 +122,9 @@ def ga_config() -> tuple[GaConfig | None, str | None]:
     """
     # 1. プロパティ ID は数字だけ（測定 ID「G-…」と取り違えやすいので確認する）
     pid = os.getenv("GA_PROPERTY_ID", "").strip()
+    # 変数の内容: cred: サービスアカウント鍵ファイルの場所。
     cred = os.getenv("GA_CREDENTIALS", "").strip()
+    # 変数の内容: cred_json: 環境変数に設定された鍵 JSON。
     cred_json = os.getenv(CREDENTIALS_JSON_ENV, "").strip()
     if not pid:
         return None, "GA_PROPERTY_ID が設定されていません（ローカルは .env、公開時は Secrets に入れてください）。"
@@ -141,6 +145,7 @@ def ga_config() -> tuple[GaConfig | None, str | None]:
             "GA の鍵が設定されていません。GA_CREDENTIALS（鍵ファイルの場所）または "
             "GA_CREDENTIALS_JSON（鍵の中身）を設定してください。"
         )
+    # 変数の内容: path: 展開後の鍵ファイルのパス。
     path = Path(cred).expanduser()
     if not path.is_file():
         return None, "GA_CREDENTIALS に書いた場所に鍵ファイルが見つかりません。"
@@ -165,6 +170,7 @@ def load_credentials(credentials_ref: str):
 
     # 1. GA_CREDENTIALS_JSON 方式なら、環境変数の中身を辞書にして使う
     if credentials_ref == JSON_CREDENTIALS_REF:
+        # 変数の内容: info: JSON から読み取ったサービスアカウント設定。
         info = parse_credentials_json(os.getenv(CREDENTIALS_JSON_ENV, ""))
         return service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
     # 2. それ以外は鍵ファイルの場所として読む
@@ -201,6 +207,7 @@ def response_to_frame(response, dimensions: list[str], metrics: list[str]) -> pd
         [d.value for d in r.dimension_values] + [m.value for m in r.metric_values]
         for r in response.rows
     ]
+    # 変数の内容: df: GA 応答のディメンション・指標を列にした DataFrame。
     df = pd.DataFrame(rows, columns=dimensions + metrics)
     # 2. 指標は数値、日付は日付型にする
     for m in metrics:
@@ -281,6 +288,7 @@ def label_paths(paths: pd.Series, events: pd.DataFrame, products: pd.DataFrame) 
         event_names.update(zip(events["id"].astype(str), events["name"]))
         if "slug" in events.columns:
             event_names.update({str(k): v for k, v in zip(events["slug"], events["name"]) if isinstance(k, str) and k})
+    # 変数の内容: product_names: 商品 ID から商品名を引く対応表。
     product_names = dict(zip(products["id"].astype(str), products["name"])) if not products.empty else {}
 
     def one(path: str) -> str:
@@ -299,6 +307,7 @@ def label_paths(paths: pd.Series, events: pd.DataFrame, products: pd.DataFrame) 
         # 3. 詳細ページは ID から名前を引く
         for prefix, names, kind in (("/events/", event_names, "イベント"), ("/shop/", product_names, "商品")):
             if p.startswith(prefix):
+                # 変数の内容: key: 詳細ページのパスから切り出したイベントまたは商品識別子。
                 key = p[len(prefix):]
                 return f"{kind}：{names[key].strip()}" if key in names else p
         return p

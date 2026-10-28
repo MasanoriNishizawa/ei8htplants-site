@@ -17,6 +17,7 @@ const CLOSE_MESSAGE = '保存していない変更があります。破棄して
 /**
  * 偽の管理者セッションを入れ、Supabase への通信を遮断する（admin-dashboard.spec.ts と同じ）
  * @param page - 対象ページ（goto より前に呼ぶ）
+ * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
@@ -55,6 +56,7 @@ function dismissNextDialog(page: Page): Promise<string> {
 /**
  * サイドメニューで「ダッシュボード」へ移ろうとし、確認が出てキャンセルすると今の画面に残ることを確かめる
  * @param page - 対象ページ
+ * @returns なし。確認ダイアログをキャンセルした後も現在の画面に留まることを検証する。
  */
 async function expectSidebarBlocked(page: Page) {
   const url = page.url()
@@ -67,9 +69,15 @@ async function expectSidebarBlocked(page: Page) {
 /**
  * 確認が出ずにサイドメニューで「ダッシュボード」へ移れることを確かめる
  * @param page - 対象ページ
+ * @returns なし。確認ダイアログなしでダッシュボードへ移動できることを検証する。
  */
 async function expectSidebarFree(page: Page) {
   let dialogs = 0
+  /**
+   * ダイアログの発生数を記録し、検証を続けるために閉じる
+   * @param d - 発生したブラウザーの確認ダイアログ
+   * @returns ダイアログを閉じる処理の Promise
+   */
   const onDialog = async (d: { dismiss: () => Promise<void> }) => { dialogs += 1; await d.dismiss() }
   page.on('dialog', onDialog)
   await page.getByRole('complementary').getByRole('link', { name: 'ダッシュボード' }).click()
@@ -110,11 +118,13 @@ test.describe('イベントの編集（EventForm）', () => {
   })
 
   test('画面の「キャンセル」でも確認が出て、キャンセルすると残る', async ({ page }) => {
+    // 1. イベント編集フォームを変更し、画面内のキャンセル操作を行う
     await page.goto('/admin/events/mock-upcoming-1/edit')
     // 読み込みが終わってから入力する（読み込み前に入れると、読み込んだ値で上書きされる）
     await expect(page.locator('#event-name')).toHaveValue('Green Market 2027')
     await page.locator('#event-name').fill('書きかけ')
     const dialog = dismissNextDialog(page)
+    // 2. 確認ダイアログの文言と編集画面に留まることを確認する
     await page.getByRole('button', { name: 'キャンセル' }).click()
     expect(await dialog).toBe(LEAVE_MESSAGE)
     await expect(page).toHaveURL(/\/edit$/)
@@ -132,12 +142,14 @@ test.describe('イベントの編集（EventForm）', () => {
   })
 
   test('保存に成功すると確認なしでイベント一覧へ移る', async ({ page }) => {
+    // 1. イベント名を変更して保存する
     await page.goto('/admin/events/mock-upcoming-1/edit')
     // 読み込みが終わってから入力する（読み込み前に入れると、読み込んだ値で上書きされる）
     await expect(page.locator('#event-name')).toHaveValue('Green Market 2027')
     await page.locator('#event-name').fill('Green Market 2027 改')
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
+    // 2. 一覧へ遷移し、破棄確認が出なかったことを確かめる
     await page.getByRole('button', { name: '保存する' }).click()
     await expect(page).toHaveURL(/\/admin\/events$/)
     expect(dialogs).toBe(0)
@@ -204,10 +216,12 @@ test.describe('コラボレーション・鉢作家・メディア出演の追�
   })
 
   test('メディア出演: タイトルを入れたら確認が出て、追加に成功したら確認なし', async ({ page }) => {
+    // 1. メディア出演の追加フォームにタイトルと動画 URL を入力する
     await page.goto('/admin/media')
     await page.locator('#media-title').fill('テレビ出演')
     await expectSidebarBlocked(page)
     await page.locator('#media-youtube-url').fill('https://www.youtube.com/watch?v=abcdefghijk')
+    // 2. 登録後にフォームが初期化され、未保存確認なしで移動できることを確かめる
     await page.locator('form button[type="submit"]').click()
     await expect(page.locator('#media-title')).toHaveValue('')
     await expectSidebarFree(page)
@@ -293,6 +307,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
   })
 
   test('HUE のタブで植物仕入れ値を入れると、移るときもタブを切り替えるときも確認が出る（キャンセルで HUE のまま残る）', async ({ page }) => {
+    // 1. HUE の仕入れフォームを開き、植物仕入れ値を入力する
     await page.goto('/admin/price-calc')
     await brandTab(page, 'HUE').click()
     // 初期は「生産」なので、2 段目の「仕入れ」に切り替える
@@ -302,6 +317,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(page.getByRole('combobox')).toHaveCount(0)
     const plantPrice = page.getByPlaceholder('例: 3000')
     await plantPrice.fill('1000')
+    // 2. 画面移動を試みて確認をキャンセルし、入力が保持されることを確認する
     await expectSidebarBlocked(page)
     const dialog = dismissNextDialog(page)
     await brandTab(page, 'ei8ht plants').click()
@@ -312,6 +328,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
   })
 
   test('HUE で登録すると登録リストに HUE の行が出て（植物名の下の 2 行目は無い）、そのあとは確認なしで移れる', async ({ page }) => {
+    // 1. HUE の仕入れフォームで植物名・原価・鉢代を入力し、推奨価格を確認する
     await page.goto('/admin/price-calc')
     await brandTab(page, 'HUE').click()
     // 初期は「生産」なので、2 段目の「仕入れ」に切り替える
@@ -321,6 +338,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await page.getByPlaceholder('例: 5000').fill('500')
     // 原価 1,500 円 → 推奨価格 ¥3,800（1,500 ÷ 0.4 = 3,750 を 100 円単位で切り上げ。原価率 39.5%）
     await expect(page.getByText('原価率 39.5%')).toBeVisible()
+    // 2. 推奨販売価格で登録し、リスト行のブランド・種類・価格を確認する
     await page.getByRole('button', { name: /^登録\s+¥3,800$/ }).click()
     // 登録リストの行（ブランドは HUE、元値 ¥1,500、販売価格 ¥3,800、2 行目の「量産鉢」は無い）
     const row = page.getByRole('row').filter({ hasText: 'オベサ E2E' })
@@ -344,6 +362,11 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(page.getByText('推奨販売価格（原価率 35% 以下）')).toBeVisible()
     // 1. 率だけなら確認なしでタブを切り替えられ、率は残る
     let dialogs = 0
+    /**
+     * ダイアログの発生数を記録し、確認なしで切り替わるかの検証を続けるため閉じる
+     * @param d - 発生したブラウザーの確認ダイアログ
+     * @returns ダイアログを閉じる処理の Promise
+     */
     const onDialog = async (d: { dismiss: () => Promise<void> }) => { dialogs += 1; await d.dismiss() }
     page.on('dialog', onDialog)
     await brandTab(page, 'HUE').click()
@@ -370,6 +393,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
   })
 
   test('生産（初期）で卸価格を入れて「仕入れ」を押すと確認が出て、キャンセルすると生産のまま入力が残る', async ({ page }) => {
+    // 1. 生産フォームに卸価格を入力し、販売価格が2倍で表示されることを確認する
     await page.goto('/admin/price-calc')
     await expect(page.getByText('販売価格（卸価格の 2 倍）')).toBeVisible()
     await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveCount(0)
@@ -377,6 +401,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await wholesale.fill('1500')
     await expect(page.getByText('¥3,000', { exact: true })).toBeVisible()
     await expectSidebarBlocked(page)
+    // 2. 仕入れへの切り替え確認をキャンセルし、生産フォームと入力値が残ることを確認する
     const dialog = dismissNextDialog(page)
     await page.getByRole('button', { name: '仕入れ' }).click()
     expect(await dialog).toBe(LEAVE_MESSAGE)
@@ -407,12 +432,14 @@ test.describe('販売価格計算（PriceCalc）', () => {
   })
 
   test('HUE の生産で登録すると登録リストに卸価格と 2 倍の販売価格の行が出て、そのあとは確認なしで仕入れに切り替えられる', async ({ page }) => {
+    // 1. HUE の生産フォームに植物名と卸価格を入力し、登録する
     await page.goto('/admin/price-calc')
     await brandTab(page, 'HUE').click()
     await expect(page.getByRole('combobox')).toHaveCount(0)
     await page.getByPlaceholder('例: ユーフォルビア オベサ').fill('オベサ 生産 E2E')
     await page.getByPlaceholder('例: 1500').fill('735')
     await page.getByRole('button', { name: /^登録\s+¥1,470$/ }).click()
+    // 2. 登録行のブランド・種類・卸価格・販売価格を確認する
     const row = page.getByRole('row').filter({ hasText: 'オベサ 生産 E2E' })
     await expect(row).toBeVisible()
     // ブランドの列は 1 行目がブランド名、2 行目が種類（生産）
@@ -422,6 +449,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(row.getByRole('cell').first()).toHaveText('オベサ 生産 E2E')
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
+    // 3. 入力変更の確認なしで仕入れへ切り替えられることを確認する
     await page.getByRole('button', { name: '仕入れ' }).click()
     await expect(page.getByPlaceholder('例: 3000')).toBeVisible()
     expect(dialogs).toBe(0)

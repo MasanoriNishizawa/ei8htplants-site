@@ -56,6 +56,7 @@ class TestInternalErrorMessage:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. GET /api/pot-artists で DB が例外を投げても、応答は一般的な文言だけで例外の文字列は出ない（ログには残る）。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.table.return_value.select.return_value.order.return_value.execute.side_effect = Exception(SECRET_TEXT)
@@ -89,6 +90,7 @@ class TestInternalErrorMessage:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. pot_artists・media・price_calc の追加で DB が例外を投げても、detail に str(e) を入れず一般的な文言…。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.insert.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.table.return_value.insert.return_value.execute.side_effect = Exception(SECRET_TEXT)
@@ -117,6 +119,7 @@ class TestInternalErrorMessage:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 500 の応答にも Referrer-Policy・nosniff などのヘッダーが付くこと（ミドルウェアの順番）。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.table.return_value.select.return_value.order.return_value.execute.side_effect = Exception('x')
@@ -137,6 +140,7 @@ class TestInternalErrorMessage:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. ルートが意図して返す 4xx（例: 404 の文言）はミドルウェアで書き換えられないこと。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
@@ -176,6 +180,7 @@ class TestSecurityHeaders:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. X-XSS-Protection は付けず、Referrer-Policy は strict-origin-when-cross-origin …。
         resp = self._get_gallery()
 
         assert resp.status_code == 200
@@ -189,6 +194,7 @@ class TestSecurityHeaders:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Strict-Transport-Security・X-Content-Type-Options・X-Frame-Options は付くこと。
         resp = self._get_gallery()
 
         assert resp.headers['Strict-Transport-Security'] == 'max-age=31536000'
@@ -202,6 +208,7 @@ class TestSecurityHeaders:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. GET /api/events/{id}/sessions は予約のたびに変わるので、公開の GET でも no-store（CDN も no-…。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
@@ -221,6 +228,7 @@ class TestSecurityHeaders:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 空き状況以外の公開 GET（ギャラリー）は公開キャッシュ（s-maxage=300）のままであること。
         resp = self._get_gallery()
 
         assert resp.headers['Cache-Control'] == 'public, s-maxage=300, max-age=60'
@@ -232,6 +240,7 @@ class TestSecurityHeaders:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 公開 GET でも 404 などのエラー応答は no-store になること。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
@@ -288,6 +297,7 @@ class TestNotFound:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. update の結果が 0 件（存在しない id）なら、data[0] の IndexError による 500 ではなく 404 になること。
         mock_sb = _update_returns_empty()
         # articles の更新は先に既存の行を読む（無い = PGRST116）
         mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect = not_found_error()
@@ -314,6 +324,7 @@ class TestNotFound:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. GET /api/orders/{id} で single() が PGRST116（0 件）・22P02（UUID でない）を投げたら 404…。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect = error
@@ -334,6 +345,7 @@ class TestNotFound:
             なし。
         """
         # 変数の内容: mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 返信の宛先が見つからない（PGRST116）なら 404 で、メールは送らないこと。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect = not_found_error()
@@ -355,6 +367,7 @@ class TestNotFound:
             なし。
         """
         # 変数の内容: eq_id: 対象 ID で絞り込むモック条件、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 接続の失敗など、コードが PGRST116・22P02 以外の例外は 404 に変えず 500（一般的な文言）になること。
         mock_sb = MagicMock()
         eq_id = mock_sb.table.return_value.select.return_value.eq.return_value
         # 変数の内容: eq_id.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
@@ -382,6 +395,7 @@ class TestEventIdLookup:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. slug で見つからず、UUID の形でもなければ id 列を検索せず（22P02 を起こさず）404 になること。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
@@ -402,6 +416,7 @@ class TestEventIdLookup:
             なし。
         """
         # 変数の内容: eq: ID 条件を加えるモック関数、event_id: 対象のイベント ID、mock_admin: 管理者認証のモック、mock_sb: 公開用 Supabase クライアントのモック、row: DB から取得した単一レコード。
+        # 1. UUID の形の文字列なら slug → id の順に検索し、id で見つかったイベントを返すこと。
         event_id = '123e4567-e89b-12d3-a456-426614174000'
         row = {'id': event_id, 'name': 'イベント', 'start_date': '2099-01-01', 'end_date': None}
         mock_sb = MagicMock()
@@ -409,7 +424,6 @@ class TestEventIdLookup:
         # 変数の内容: eq.side_effect: モック呼び出し時に返す例外または副作用、mock_admin.table.return_value.select.return_value.in_.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         eq.side_effect = lambda col, val: MagicMock(**{'execute.return_value.data': [dict(row)] if col == 'id' else []})
         mock_admin = MagicMock()
-        # 変数の内容: mock_admin.table.return_value.select.return_value.in_.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_admin.table.return_value.select.return_value.in_.return_value.order.return_value.execute.return_value.data = []
 
         with patch('app.routes.events.supabase', mock_sb), patch('app.routes.events.admin_supabase', mock_admin):
@@ -437,6 +451,7 @@ class TestEventIdLookup:
         Returns:
             なし。
         """
+        # 1. is_uuid はハイフン区切りの UUID の形（大文字小文字どちらも）のときだけ True。
         assert is_uuid(value) is expected
 
 
@@ -460,7 +475,6 @@ class TestNextDisplayOrder:
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、mock_sb.table.return_value.select.return_value.order.return_value.limit.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.order.return_value.limit.return_value.execute.return_value.data = rows
-        # 変数の内容: mock_sb.table.return_value.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.insert.return_value.execute.return_value.data = [{'id': 'new'}]
         return mock_sb
 
@@ -474,6 +488,7 @@ class TestNextDisplayOrder:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 表示順 0,1,7 の 3 件（件数 3）でも、新しい画像は 8 番で追加されること（既存と重ならない）。
         mock_sb = self._max_mock([{'display_order': 7}])
 
         with patch('app.routes.gallery.admin_supabase', mock_sb):
@@ -490,6 +505,7 @@ class TestNextDisplayOrder:
         Returns:
             なし。
         """
+        # 1. 表に行が無ければ 0 を返すこと。
         assert next_display_order(self._max_mock([]), 'stockists') == 0
 
     def test_display_orderが数値でない行しか無いときは0番になる(self):
@@ -498,6 +514,7 @@ class TestNextDisplayOrder:
         Returns:
             なし。
         """
+        # 1. 最大の行の display_order が None なら 0 を返すこと。
         assert next_display_order(self._max_mock([{'display_order': None}]), 'collaborations') == 0
 
 
@@ -533,6 +550,7 @@ class TestContactLength:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. 上限ちょうどは 200 で保存されること。
         resp, mock_sb = self._post('名' * 100, 'あ' * 5000)
         assert resp.status_code == 200
         mock_sb.table.return_value.insert.assert_called_once()
@@ -544,6 +562,7 @@ class TestContactLength:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. 名前が 101 文字なら 422 で保存しないこと。
         resp, mock_sb = self._post('名' * 101, '本文')
         assert resp.status_code == 422
         mock_sb.table.assert_not_called()
@@ -555,6 +574,7 @@ class TestContactLength:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. 本文が 5001 文字なら 422 で保存しないこと。
         resp, mock_sb = self._post('名前', 'あ' * 5001)
         assert resp.status_code == 422
         mock_sb.table.assert_not_called()
@@ -565,6 +585,7 @@ class TestContactLength:
         Returns:
             なし。
         """
+        # 1. 名前・本文が空文字なら 422 になること。
         assert self._post('', '本文')[0].status_code == 422
         assert self._post('名前', '')[0].status_code == 422
 
@@ -575,6 +596,7 @@ class TestContactLength:
             なし。
         """
         # 変数の内容: mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 自動返信（送信者宛て）には本文を入れない（第三者に任意の文章を届ける踏み台にさせない）。
         mock_sb = MagicMock()
         mock_resend = MagicMock()
         with patch('app.routes.contact.admin_supabase', mock_sb), \
@@ -624,6 +646,7 @@ class TestProductValidation:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. VALID_CATEGORIES に無いカテゴリーは 422 で保存しないこと。
         resp, mock_sb = self._post({'name': 'x', 'price': 100, 'category': '<script>'})
         assert resp.status_code == 422
         mock_sb.table.assert_not_called()
@@ -635,6 +658,7 @@ class TestProductValidation:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. VALID_CATEGORIES のカテゴリーは 200 で保存されること。
         resp, mock_sb = self._post({'name': 'x', 'price': 100, 'category': '塊根植物'})
         assert resp.status_code == 200
         assert mock_sb.table.return_value.insert.call_args.args[0]['category'] == '塊根植物'
@@ -646,6 +670,7 @@ class TestProductValidation:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. カテゴリーの空文字は None（未設定）として保存されること。
         resp, mock_sb = self._post({'name': 'x', 'price': 100, 'category': ''})
         assert resp.status_code == 200
         assert mock_sb.table.return_value.insert.call_args.args[0]['category'] is None
@@ -661,6 +686,7 @@ class TestProductValidation:
             なし。
         """
         # 変数の内容: base: 相対パス計算の基準ディレクトリ。
+        # 1. 価格・在庫が -1 なら 422、0 なら 200 になること。
         base = {'name': 'x', 'price': 100, 'stock': 1}
         assert self._post({**base, field: -1})[0].status_code == 422
         assert self._post({**base, field: 0})[0].status_code == 200
@@ -672,6 +698,7 @@ class TestProductValidation:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. PATCH /api/products/{id}/stock で -1 は 422 になり、DB を更新しないこと。
         mock_sb = MagicMock()
         with patch('app.routes.products.admin_supabase', mock_sb), as_admin():
             # 変数の内容: resp: API から返されたレスポンス。
@@ -694,6 +721,7 @@ class TestCommonParts:
             なし。
         """
         # 変数の内容: q: DB テーブルに対するクエリ。
+        # 1. PGRST116・22P02 は None、それ以外のコードの例外はそのまま投げること。
         q = MagicMock()
         # 変数の内容: q.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         q.single.return_value.execute.side_effect = not_found_error()
@@ -713,6 +741,7 @@ class TestCommonParts:
             なし。
         """
         # 変数の内容: q: DB テーブルに対するクエリ。
+        # 1. 見つからなければ detail に指定の文言を入れた 404 を投げること。
         q = MagicMock()
         # 変数の内容: q.single.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         q.single.return_value.execute.return_value.data = None
@@ -729,6 +758,7 @@ class TestCommonParts:
             なし。
         """
         # 変数の内容: data: 現在処理するテストデータ。
+        # 1. execute() の data が空のリスト・None なら 404、行があれば先頭を返すこと。
         for data in ([], None):
             # 変数の内容: e: except で捕捉した処理例外。
             with pytest.raises(HTTPException) as e:
@@ -743,6 +773,7 @@ class TestCommonParts:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. ヘッダーが無ければ未ログイン（False）、有効なトークンなら True を返すこと。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.auth.get_user.return_value: モック呼び出しの返却値。
         mock_sb.auth.get_user.return_value = MagicMock(user={'id': 'u1'})
@@ -762,6 +793,7 @@ class TestCommonParts:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. ヘッダーがあるのにトークンが無効・形が違うときは 401 を投げる（未ログイン扱いにしない）。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.auth.get_user.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.auth.get_user.side_effect = Exception('invalid')
@@ -777,6 +809,7 @@ class TestCommonParts:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. Supabase の SDK が例外を投げても 500 ではなく 401 になること。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.auth.get_user.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.auth.get_user.side_effect = RuntimeError('network')
@@ -791,6 +824,7 @@ class TestCommonParts:
         Returns:
             なし。
         """
+        # 1. ログ用の要約は「型名(code=…)」だけで、例外の文字列（個人情報を含みうる）を入れないこと。
         assert error_summary(PostgrestError('23505', SECRET_TEXT)) == 'PostgrestError(code=23505)'
         assert error_summary(ValueError(SECRET_TEXT)) == 'ValueError'
         assert 'secret' not in error_summary(RuntimeError(SECRET_TEXT))
@@ -809,6 +843,7 @@ class TestMailParts:
         Returns:
             なし。
         """
+        # 1. send_mail は resend.api_key に渡したキーを設定してから送り、dict・オブジェクトどちらの戻り値からも ID を返すこと。
         from app import mail
         # 変数の内容: mock_resend: Resend メール送信のモック、seen_keys: 確認済みのキー集合。
         mock_resend = MagicMock()
@@ -830,6 +865,7 @@ class TestMailParts:
         Returns:
             なし。
         """
+        # 1. Resend の例外は呼び出し元で扱うため、send_mail は握りつぶさないこと。
         from app import mail
         # 変数の内容: mock_resend: Resend メール送信のモック。
         mock_resend = MagicMock()
@@ -853,5 +889,6 @@ class TestMailParts:
         Returns:
             なし。
         """
+        # 1. esc は < > & " ' を実体参照にし、None は空文字・数値は文字列にすること。
         from app.mail import esc
         assert esc(value) == expected

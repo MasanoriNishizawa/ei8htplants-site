@@ -8,22 +8,28 @@ test.describe('AdminDocs 設計書ビューア', () => {
   })
 
   test('ファイルを選択するとマークダウンが H1 見出しとしてレンダリングされる', async ({ page }) => {
+    // 1. 設計書ビューアを開き、テスト計画書のフォルダーを選ぶ
     await page.goto('/admin/docs')
     await page.getByText('04_TEST').click()
+    // 2. ファイルを選び、本文が H1 見出しとして表示されることを確認する
     await page.getByText('01_マスターテスト計画書').click()
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   })
 
   test('テーブルがレンダリングされる', async ({ page }) => {
+    // 1. テーブルを含む設計書を開く
     await page.goto('/admin/docs')
     await page.getByText('04_TEST').click()
+    // 2. 本文内にテーブルが描画されることを確認する
     await page.getByText('01_マスターテスト計画書').click()
     await expect(page.locator('table').first()).toBeVisible()
   })
 
   test('コードブロックがレンダリングされる', async ({ page }) => {
+    // 1. コードブロックを含む設計書を開く
     await page.goto('/admin/docs')
     await page.getByText('03_PM').click()
+    // 2. 本文内にコードブロックが描画されることを確認する
     await page.getByText('05_エージェント設計書').click()
     await expect(page.locator('pre').first()).toBeVisible()
   })

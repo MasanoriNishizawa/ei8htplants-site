@@ -133,9 +133,7 @@ def _make_http_mock_success() -> MagicMock:
     mock_http = MagicMock()
     # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値、mock_http.post.return_value.ok: 対象オブジェクトに設定するok属性値、mock_http.post.return_value.status_code: HTTP 例外の応答コード。
     mock_http.post.return_value.ok = True
-    # 変数の内容: mock_http.post.return_value.status_code: HTTP 例外の応答コード。
     mock_http.post.return_value.status_code = 200
-    # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値。
     mock_http.post.return_value.json.return_value = {
         'payment': {'id': 'test-payment-id', 'status': 'COMPLETED'}
     }
@@ -152,9 +150,7 @@ def _make_http_mock_failure() -> MagicMock:
     mock_http = MagicMock()
     # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値、mock_http.post.return_value.ok: 対象オブジェクトに設定するok属性値、mock_http.post.return_value.status_code: HTTP 例外の応答コード。
     mock_http.post.return_value.ok = False
-    # 変数の内容: mock_http.post.return_value.status_code: HTTP 例外の応答コード。
     mock_http.post.return_value.status_code = 402
-    # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値。
     mock_http.post.return_value.json.return_value = {
         'errors': [{'detail': '決済に失敗しました'}]
     }
@@ -171,6 +167,7 @@ class TestListOrders:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 認証済みリクエストで全注文リストが 200 で返ること。
         mock_sb = _make_admin_sb_for_list()
 
         app.dependency_overrides[require_auth] = _auth_override
@@ -195,6 +192,7 @@ class TestListOrders:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで 401 が返ること。
         resp = TestClient(app).get('/api/orders')
         assert resp.status_code == 401
 
@@ -209,6 +207,7 @@ class TestGetOrder:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 存在する注文 ID で注文情報と明細リストが返ること。
         mock_sb = _make_admin_sb_for_get()
 
         app.dependency_overrides[require_auth] = _auth_override
@@ -233,6 +232,7 @@ class TestGetOrder:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 存在しない注文 ID を指定したとき 404 が返ること。
         mock_sb = MagicMock()
         # data = None で注文が存在しないことを表現
         mock_sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
@@ -263,6 +263,7 @@ class TestCreateOrder:
             なし。
         """
         # 変数の内容: mock_http: HTTP 通信のモック、mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 全条件を満たすリクエストで注文が作成され order_id が返ること。
         mock_sb = _make_admin_sb_for_create(stock=5)
         mock_http = _make_http_mock_success()
         mock_resend = MagicMock()
@@ -288,6 +289,7 @@ class TestCreateOrder:
         Returns:
             なし。
         """
+        # 1. SQUARE_ACCESS_TOKEN が未設定のとき 500 が返ること。
         with patch('app.routes.orders.SQUARE_ACCESS_TOKEN', ''):
             # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).post('/api/orders', json=ORDER_REQUEST)
@@ -303,7 +305,9 @@ class TestCreateOrder:
             なし。
         """
         # stock=0 で在庫不足を再現
+        # 1. 在庫が注文数量を下回るとき 409 Conflict が返ること。
         mock_sb = _make_admin_sb_for_create(stock=0)
+        # 変数の内容: mock_http: 外部 HTTP 通信を置き換えるモック。
         mock_http = _make_http_mock_success()
 
         with patch('app.routes.orders.admin_supabase', mock_sb), \
@@ -325,6 +329,7 @@ class TestCreateOrder:
             なし。
         """
         # 変数の内容: mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. Square API がエラーを返したとき 402 Payment Required が返ること。
         mock_sb = _make_admin_sb_for_create(stock=5)
         mock_http = _make_http_mock_failure()
 
@@ -344,6 +349,7 @@ class TestCreateOrder:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、req: テスト対象の HTTP リクエスト。
+        # 1. RATES に含まれない都道府県を指定したとき 400 が返ること。
         req = {**ORDER_REQUEST, 'prefecture': '未対応県'}
         mock_sb = _make_admin_sb_for_create()
 
@@ -361,6 +367,7 @@ class TestCreateOrder:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. products に存在しない product_id を指定したとき 404 が返ること。
         mock_sb = MagicMock()
         # 商品が見つからない（空リスト）
         mock_sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data = []
@@ -383,6 +390,7 @@ class TestUpdateOrderStatus:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、updated_order: 更新後の注文レコード。
+        # 1. 正しいリクエストで注文ステータスが更新され更新後レコードが返ること。
         updated_order = {**SAMPLE_ORDER, 'status': 'shipped'}
         mock_sb = MagicMock()
         # table('orders').update(...).eq('id', ...).execute().data[0]
@@ -412,6 +420,7 @@ class TestUpdateOrderStatus:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、updated_order: 更新後の注文レコード。
+        # 1. status を 'paid' に変更できること。
         updated_order = {**SAMPLE_ORDER, 'status': 'paid'}
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。

@@ -12,7 +12,9 @@ test.describe('Shop', () => {
   })
 
   test('商品をクリックすると詳細ページに遷移する', async ({ page }) => {
+    // 1. 商品一覧から商品詳細へ移動する
     await page.goto('/official/shop')
+    // 2. 詳細 URL と商品見出しが表示されることを確かめる
     await page.getByText('Habitat Style Pot S').first().click()
     await expect(page).toHaveURL(/\/official\/shop\//)
     await expect(page.getByRole('heading', { name: 'Habitat Style Pot S' })).toBeVisible()

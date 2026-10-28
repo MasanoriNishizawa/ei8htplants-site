@@ -24,7 +24,6 @@ def _make_gallery_mock(all_data: list, brand_data: list = None):
     chain = mock_sb.table.return_value.select.return_value.order.return_value
     # 変数の内容: chain.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、chain.execute.return_value.data: モックのクエリ応答に含めるデータ。
     chain.execute.return_value.data = all_data
-    # 変数の内容: chain.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
     chain.eq.return_value.execute.return_value.data = brand_data
     return mock_sb
 
@@ -68,6 +67,7 @@ class TestGalleryEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 全件取得ことを確認する。
         mock_sb = _make_gallery_mock(GALLERY_DATA)
         with patch('app.routes.gallery.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -83,6 +83,7 @@ class TestGalleryEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. brand指定でフィルタリングことを確認する。
         mock_sb = _make_gallery_mock(GALLERY_DATA, brand_data=HUE_DATA)
         with patch('app.routes.gallery.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -100,6 +101,7 @@ class TestGalleryEndpoint:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. brand='' は falsy なのでフィルタなし全件取得になる。
         mock_sb = _make_gallery_mock(GALLERY_DATA)
         with patch('app.routes.gallery.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -113,6 +115,7 @@ class TestGalleryEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 空一覧ことを確認する。
         mock_sb = _make_gallery_mock([])
         with patch('app.routes.gallery.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -129,6 +132,7 @@ class TestStockistsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 全件取得ことを確認する。
         mock_sb = _make_stockists_mock(STOCKISTS_DATA)
         with patch('app.routes.stockists.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
@@ -145,6 +149,7 @@ class TestStockistsEndpoint:
         戻り値:
             なし。"""
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 空一覧ことを確認する。
         mock_sb = _make_stockists_mock([])
         with patch('app.routes.stockists.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。

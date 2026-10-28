@@ -116,6 +116,7 @@ def _ts(today: pd.Timestamp, offset: int, hour: int = 10) -> str:
     Returns:
         日時の文字列
     """
+    # 変数の内容: t: テスト時刻または時間軸の値。
     t = (today + pd.Timedelta(days=offset, hours=hour)).tz_localize("Asia/Tokyo").tz_convert("UTC")
     return t.isoformat()
 
@@ -134,6 +135,7 @@ def _finance(event_id: str, sales: int, booth_fee: int = 5000, distance: int = 3
     Returns:
         event_finances の行
     """
+    # 変数の内容: row: 処理対象のデータ行。
     row = {
         "event_id": event_id, "sales": sales, "booth_fee": booth_fee, "distance": distance, "gas_price": 170,
         "expressway_toll": 0, "accommodation": 0, "ws_participants": ws, "payment_flag": True, "other_expenses": 0,
@@ -155,6 +157,7 @@ def normal_rows() -> dict[str, list[dict]]:
     Returns:
         テーブル名 → 行のリスト
     """
+    # 変数の内容: today: 日付計算で固定する今日。
     today = pd.Timestamp.now(tz="Asia/Tokyo").tz_localize(None).normalize()
     # 1. イベント（id, 開始日のずれ, 日数, 名前, 会場, ブランド, WS の有無）
     ev_specs = [
@@ -167,6 +170,7 @@ def normal_rows() -> dict[str, list[dict]]:
         ("e7", 15, 1, "Plant Market vol.3", "東京", ["ei8ht plants"], True),
         ("e8", 40, 2, "Winter Plants Fair", "福岡", ["HUE by ei8ht plants"], False),
     ]
+    # 変数の内容: events: API に返すイベントのテストデータ。
     events = [
         {
             "id": eid, "slug": f"slug-{eid}", "name": name, "start_date": _day(today, off),
@@ -191,6 +195,7 @@ def normal_rows() -> dict[str, list[dict]]:
         {"id": "s2", "event_id": "e5", "time_label": "13:00〜", "max_participants": 6},
         {"id": "s3", "event_id": "e7", "time_label": "11:00〜", "max_participants": 4},
     ]
+    # 変数の内容: res_specs: 予約 API 応答に含めるテスト仕様。
     res_specs = [
         ("r1", "e5", "s1", 2, "confirmed", -45, "a@example.com", True, False),
         ("r2", "e5", "s1", 3, "confirmed", -40, "b@example.com", False, True),
@@ -199,6 +204,7 @@ def normal_rows() -> dict[str, list[dict]]:
         ("r5", "e7", "s3", 2, "confirmed", -5, "a@example.com", False, False),  # リピーター
         ("r6", "e7", "s3", 1, "confirmed", -1, "e@example.com", True, False),
     ]
+    # 変数の内容: reservations: 予約一覧のテストデータ。
     reservations = [
         {
             "id": rid, "event_id": eid, "session_id": sid, "participants": n, "status": status,
@@ -217,6 +223,7 @@ def normal_rows() -> dict[str, list[dict]]:
         {"id": "p3", "name": "非公開の商品", "price": 1000, "stock": 0, "category": "other", "tags": None,
          "is_published": False, "created_at": _ts(today, -10)},
     ]
+    # 変数の内容: ord_specs: 注文 API 応答に含めるテスト仕様。
     ord_specs = [
         ("o1", -200, "x@example.com", "東京都", "paid", [("p1", 1), ("p2", 1)]),
         ("o2", -150, "y@example.com", "大阪府", "shipped", [("p1", 2)]),
@@ -226,6 +233,7 @@ def normal_rows() -> dict[str, list[dict]]:
         ("o6", -2, "w@example.com", "福岡県", "paid", [("p1", 1)]),
         ("o7", -1, "v@example.com", "沖縄県", "cancelled", [("p1", 5)]),
     ]
+    # 変数の内容: price: 価格計算に使うテスト入力。
     price = {p["id"]: p["price"] for p in products}
     pname = {p["id"]: p["name"] for p in products}
     orders, items = [], []
@@ -270,6 +278,7 @@ def all_cancelled_rows() -> dict[str, list[dict]]:
     Returns:
         テーブル名 → 行のリスト
     """
+    # 変数の内容: rows: テスト用レコードの一覧。
     rows = normal_rows()
     for r in rows["workshop_reservations"]:
         r["status"] = "cancelled"
@@ -425,6 +434,7 @@ def ga(monkeypatch):
 
     Args:
         monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
+    # 変数の内容: client: テスト対象 API を呼び出す TestClient。
     client = FakeGaClient()
     monkeypatch.setenv("GA_PROPERTY_ID", "123456789")
     monkeypatch.setenv("GA_CREDENTIALS_JSON", FAKE_GA_KEY)
@@ -441,6 +451,7 @@ def _login_app() -> AppTest:
     Returns:
         描画後の AppTest
     """
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = AppTest.from_file(APP_PATH, default_timeout=60)
     # 1. 手元の analytics/.streamlit/secrets.toml（本物の接続情報・許可リスト）を読ませない。
     #    AppTest に架空の Secrets を渡すと、描画のあいだ st.secrets がこれに差し替わり、ファイルは読まれない
@@ -480,6 +491,7 @@ def _render(url_path: str) -> AppTest:
     Returns:
         描画後の AppTest
     """
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _login_app()
     return at if url_path == "" else _open(at, url_path)
 
@@ -553,6 +565,7 @@ def _texts(at: AppTest) -> list[str]:
         out += [str(m.label), str(m.value)]
     # 3. 表（中身の値をすべて文字にする。書式付きの表は表示用の値も見る）
     for df in at.dataframe:
+        # 変数の内容: value: テストケースとして渡す値。
         value = df.value
         out += [str(c) for c in value.columns]
         # 生の値の NaN は表では空欄で描かれるので、書式付きの表示用の値（_styler_texts）のほうで確かめる
@@ -580,6 +593,7 @@ def _styler_texts(at: AppTest) -> list[str]:
         # Streamlit 1.66 では proto.arrow_data.styler.display_values に arrow 形式で入る
         # （streamlit/elements/lib/pandas_styler_utils.py の _marshall_display_values）。書式なしの表は空
         arrow = df.proto.arrow_data
+        # 変数の内容: data: テスト対象の入力データまたは API 応答。
         data = arrow.styler.display_values if arrow.HasField("styler") else b""
         if data:
             out += [str(v) for v in dataframe_util.convert_arrow_bytes_to_pandas_df(data).astype(str).to_numpy().ravel()]
@@ -631,6 +645,7 @@ def test_通常のデータで各画面を描くと例外もnanもinfも出ず�
 
     Returns:
         なし。"""
+    # 1. 通常のデータで各画面を描くと例外もnanもinfも出ずタイトルが出ることを確認する。
     at = _render(url_path)
     _assert_clean(at, PAGES[url_path])
     # 開いた画面のタイトルが出ている（ページの切り替えが効いている）
@@ -648,7 +663,9 @@ def test_全テーブルが0件でも各画面を描くと例外もnanもinfも�
 
     Returns:
         なし。"""
+    # 1. 全テーブルが0件でも各画面を描くと例外もnanもinfも出ないことを確認する。
     use_data(empty_rows())
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render(url_path)
     _assert_clean(at, f"{PAGES[url_path]}（0件）")
     assert [t.value for t in at.title] == [PAGES[url_path]]
@@ -668,7 +685,9 @@ def test_予約がすべてキャンセルでも各画面を描くと例外もna
 
     Returns:
         なし。"""
+    # 1. 予約がすべてキャンセルでも各画面を描くと例外もnanもinfも出ないことを確認する。
     use_data(all_cancelled_rows())
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render(url_path)
     _assert_clean(at, f"{PAGES[url_path]}（予約がすべてキャンセル）")
 
@@ -683,6 +702,7 @@ def test_予約がすべてキャンセルのときワークショップ画面�
     Returns:
         なし。"""
     use_data(all_cancelled_rows())
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render("workshop")
     assert not at.exception
     # 1. キャンセル率は 100%、予約人数は 0 人
@@ -702,6 +722,7 @@ def test_概要画面の予約人数はキャンセルを除いて数える(use_
 
     Returns:
         なし。"""
+    # 1. 概要画面の予約人数はキャンセルを除いて数えることを確認する。
     at = _render("")
     assert not at.exception
     # 通常のデータの有効な予約は 2+3+4+2+1 = 12 人（キャンセル r3 の1人を除く）
@@ -719,6 +740,7 @@ def test_会計年度をすべての期と各年度に切り替えても各画�
 
     Returns:
         なし。"""
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render(url_path)
     box = at.sidebar.selectbox(key=YEAR_KEY)
     # 1. 既定は「すべての期」。データは複数の会計年度にまたがるので年度の選択肢が2つ以上ある
@@ -744,6 +766,7 @@ def test_アクセス解析と予測の画面には会計年度の選択欄が�
 
     Returns:
         なし。"""
+    # 1. アクセス解析と予測の画面には会計年度の選択欄が出ないことを確認する。
     at = _render(url_path)
     assert not at.exception
     # アクセス解析は GA の期間（直近7日など）で、予測はすべての実績で見るので、年度の選択欄は出さない
@@ -761,7 +784,9 @@ def test_予約がすべてキャンセルで年度を切り替えてもワー�
 
     Returns:
         なし。"""
+    # 1. 予約がすべてキャンセルで年度を切り替えてもワークショップ画面に例外もnanも出ないことを確認する。
     use_data(all_cancelled_rows())
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render("workshop")
     for label in at.sidebar.selectbox(key=YEAR_KEY).options:
         at = _select_year(at, label)
@@ -779,6 +804,7 @@ def test_GAが未設定ならアクセス解析画面は設定の手順を出し
         なし。"""
     calls = []
     monkeypatch.setattr(lib.ga, "_client", lambda ref: calls.append(ref))
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（GA 未設定）")
     # 1. 足りない設定の説明と、設定の手順が出る
@@ -798,6 +824,7 @@ def test_GAのデータが取れるとアクセス解析画面に数字と予約
 
     Returns:
         なし。"""
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（GA あり）")
     # 1. まとめの数字（偽の GA の値）
@@ -821,6 +848,7 @@ def test_GAの期間を切り替えてもアクセス解析画面に例外もnan
 
     Returns:
         なし。"""
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render("traffic")
     # 1. 期間の選択欄（segmented_control）で期間を選び直す
     groups = [g for g in at.get("button_group") if g.key == "ga_period"]
@@ -847,6 +875,7 @@ def test_GAの2本目以降のレポートが失敗しても画面全体はエ�
     Returns:
         なし。"""
     ga.fail_from = fail_from
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render("traffic")
     # 1. 例外（画面全体のエラー）にならない
     _assert_clean(at, f"アクセス解析（{fail_from}本目以降が失敗）")
@@ -865,7 +894,9 @@ def test_GAの1本目のレポートが失敗するとアクセス解析画面�
 
     Returns:
         なし。"""
+    # 1. GAの1本目のレポートが失敗するとアクセス解析画面は読み込めませんと出すことを確認する。
     ga.fail_from = 1
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（1本目が失敗）")
     assert any("Google アナリティクスのデータを読み込めませんでした" in e.value for e in at.error)
@@ -880,6 +911,7 @@ def test_データの読み込みに失敗すると各画面はエラーを出�
 
     Returns:
         なし。"""
+    # 1. データの読み込みに失敗すると各画面はエラーを出して止まることを確認する。
     def fail():
         """fail のテスト用処理を行う。
 
@@ -889,6 +921,7 @@ def test_データの読み込みに失敗すると各画面はエラーを出�
 
     monkeypatch.setattr(lib.context, "load_all", fail)
     for url_path, title in PAGES.items():
+        # 変数の内容: at: 画面上で対象要素を探すロケーター。
         at = _render(url_path)
         assert not at.exception, title
         assert any("データを読み込めませんでした" in e.value for e in at.error), title

@@ -89,6 +89,7 @@ class TestListEntries:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. エントリが0件のとき空配列が返ること。
         mock_sb = _make_sb_mock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = []
@@ -111,6 +112,7 @@ class TestListEntries:
             なし。
         """
         # require_auth をオーバーライドしないで本来の認証チェックが走るようにする
+        # 1. Authorization ヘッダーなしでアクセスすると 401 が返ること。
         resp = TestClient(app).get('/api/price-calc-entries')
         assert resp.status_code == 401
 
@@ -125,6 +127,7 @@ class TestAddEntry:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 正しいリクエストボディでエントリが作成され、作成されたレコードが返ること。
         mock_sb = _make_sb_mock()
         # 変数の内容: mock_sb.table.return_value.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.insert.return_value.execute.return_value.data = [ENTRY_1]
@@ -156,6 +159,7 @@ class TestAddEntry:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. pot_artist_name は省略可能でNoneでも正常に作成できること。
         mock_sb = _make_sb_mock()
         # 変数の内容: mock_sb.table.return_value.insert.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.insert.return_value.execute.return_value.data = [ENTRY_2]
@@ -185,6 +189,7 @@ class TestAddEntry:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. brand フィールドが欠けると 422 バリデーションエラーが返ること。
         mock_sb = _make_sb_mock()
 
         app.dependency_overrides[require_auth] = _auth_override
@@ -208,6 +213,7 @@ class TestAddEntry:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. plant_name フィールドが欠けると 422 バリデーションエラーが返ること。
         mock_sb = _make_sb_mock()
 
         app.dependency_overrides[require_auth] = _auth_override
@@ -235,6 +241,7 @@ class TestDeleteEntry:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 削除に成功すると {"ok": True} が返ること。
         mock_sb = _make_sb_mock()
 
         app.dependency_overrides[require_auth] = _auth_override
@@ -303,6 +310,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. mode='production' を受け取り、insert の dict に mode が入り、作成した行がそのまま返ること。
         resp, mock_sb = _post_entry({**BASE_PAYLOAD, 'mode': 'production'})
         assert resp.status_code == 200
         assert _inserted_row(mock_sb)['mode'] == 'production'
@@ -316,6 +324,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. mode='purchase' を受け取り、insert の dict に mode='purchase' が入ること。
         resp, mock_sb = _post_entry({**BASE_PAYLOAD, 'mode': 'purchase'})
         assert resp.status_code == 200
         assert _inserted_row(mock_sb) == {**BASE_PAYLOAD, 'mode': 'purchase'}
@@ -327,6 +336,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. mode を省略すると insert に 'mode' キーを渡さない（DB の既定の NULL で入る。021 未実行の DB でも通る）。
         resp, mock_sb = _post_entry(dict(BASE_PAYLOAD))
         assert resp.status_code == 200
         assert 'mode' not in _inserted_row(mock_sb)
@@ -338,6 +348,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
+        # 1. mode=null を明示しても 422 にはならず、insert に 'mode' キーを渡さないこと。
         resp, mock_sb = _post_entry({**BASE_PAYLOAD, 'mode': None})
         assert resp.status_code == 200
         assert 'mode' not in _inserted_row(mock_sb)
@@ -349,6 +360,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス、row: DB から取得した単一レコード。
+        # 1. pot_artist_name=null は insert に渡さず、ほかの項目はそのまま渡すこと。
         resp, mock_sb = _post_entry({**BASE_PAYLOAD, 'pot_artist_name': None, 'mode': 'production'})
         assert resp.status_code == 200
         row = _inserted_row(mock_sb)
@@ -362,7 +374,9 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、payload: DB に保存する値、resp: API から返されたレスポンス。
+        # 1. pot_artist_name に作家名があれば insert の dict に入ること。
         payload = {**BASE_PAYLOAD, 'brand': 'habitatoides', 'pot_artist_name': '山田陶房', 'mode': 'purchase'}
+        # 変数の内容: resp: テスト対象 API の HTTP 応答、mock_sb: Supabase クライアントを置き換えるテスト用モック。
         resp, mock_sb = _post_entry(payload)
         assert resp.status_code == 200
         assert _inserted_row(mock_sb) == payload
@@ -374,6 +388,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: bad: 不正なテスト入力。
+        # 1. mode が production・purchase・seedling 以外なら 422 で、insert は呼ばれないこと。
         for bad in ['Production', 'PURCHASE', '', 1, ['production']]:
             # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
             resp, mock_sb = _post_entry({**BASE_PAYLOAD, 'mode': bad})
@@ -387,7 +402,9 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、payload: DB に保存する値、resp: API から返されたレスポンス。
+        # 1. 実生の mode を受け付け、insert の dict に渡すこと。
         payload = {**BASE_PAYLOAD, 'mode': 'seedling'}
+        # 変数の内容: resp: テスト対象 API の HTTP 応答、mock_sb: Supabase クライアントを置き換えるテスト用モック。
         resp, mock_sb = _post_entry(payload)
         assert resp.status_code == 200
         assert _inserted_row(mock_sb) == payload
@@ -399,6 +416,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、rows: DB から取得した行の一覧。
+        # 1. GET の一覧は DB の行（mode が production・purchase・seedling・null）をそのまま返すこと。
         rows = [
             {**ENTRY_1, 'mode': 'production'},
             {**ENTRY_2, 'mode': 'purchase'},
@@ -425,6 +443,7 @@ class TestAddEntryMode:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. 認証なしでは mode を付けても 401 で、insert は呼ばれないこと。
         mock_sb = _make_sb_mock()
         with patch('app.routes.price_calc_entries.admin_supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。

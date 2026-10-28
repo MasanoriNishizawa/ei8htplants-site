@@ -38,7 +38,6 @@ def _make_auth_supabase_mock(user_obj=None, raise_exc: Exception = None) -> Magi
         result = MagicMock()
         # 変数の内容: mock_auth_sb.auth.get_user.return_value: モック呼び出しの返却値、result.user: 認証 API のユーザー応答。
         result.user = user_obj
-        # 変数の内容: mock_auth_sb.auth.get_user.return_value: モック呼び出しの返却値。
         mock_auth_sb.auth.get_user.return_value = result
     return mock_auth_sb
 
@@ -69,6 +68,7 @@ class TestRequireAuth:
             なし。
         """
         # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーを送らない場合は 401 が返る。
         client = TestClient(app)
         resp = client.get(PROTECTED_URL)
         assert resp.status_code == 401
@@ -80,6 +80,7 @@ class TestRequireAuth:
             なし。
         """
         # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーが 'Bearer ' で始まらない場合は 401 が返る。
         client = TestClient(app)
         resp = client.get(PROTECTED_URL, headers={'Authorization': 'Token abc123'})
         assert resp.status_code == 401
@@ -93,6 +94,7 @@ class TestRequireAuth:
             なし。
         """
         # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
+        # 1. 'Bearer ' プレフィックスのみでトークンが空の場合は 401 が返る。
         mock_auth_sb = _make_auth_supabase_mock(raise_exc=Exception('Invalid token'))
 
         with patch('app.auth.supabase', mock_auth_sb):
@@ -109,6 +111,7 @@ class TestRequireAuth:
             なし。
         """
         # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
+        # 1. Supabase が user=None を返す場合は 401 が返る。
         mock_auth_sb = _make_auth_supabase_mock(user_obj=None)
 
         with patch('app.auth.supabase', mock_auth_sb):
@@ -125,6 +128,7 @@ class TestRequireAuth:
             なし。
         """
         # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
+        # 1. Supabase の get_user が例外を投げる場合は 401 が返る。
         mock_auth_sb = _make_auth_supabase_mock(raise_exc=Exception('Token verification failed'))
 
         with patch('app.auth.supabase', mock_auth_sb):
@@ -141,6 +145,7 @@ class TestRequireAuth:
             なし。
         """
         # 有効なユーザーオブジェクトを返すモック
+        # 1. Supabase がユーザーオブジェクトを返す有効なトークンで認証が通る。
         user = MagicMock()
         # 変数の内容: user.id: 対象レコード ID。
         user.id = 'user-123'
@@ -167,6 +172,7 @@ class TestRequireAuth:
             なし。
         """
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_auth_sb: 認証用 Supabase クライアントのモック、user: 認証済みユーザーのモック。
+        # 1. 有効なトークンで require_auth が Supabase の get_user を正しく呼ぶ。
         user = MagicMock()
         # 変数の内容: user.id: 対象レコード ID。
         user.id = 'user-456'

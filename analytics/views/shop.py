@@ -25,12 +25,16 @@ def render() -> None:
 
     # 1. 有効な注文と、その注文の明細だけを使う
     orders = valid_orders(ctx.raw["orders"])
+    # 変数の内容: items: 有効注文に属する商品明細。
     items = ctx.raw["order_items"]
+    # 変数の内容: items: 有効注文に属する商品明細。
     items = items[items["order_id"].isin(orders["id"])]
+    # 変数の内容: products: 商品テーブルの分析用データ。
     products = ctx.raw["products"]
 
     # 2. まとめの数字（件数が少なくても表示する）
     rep = repeat_summary(orders)
+    # 変数の内容: c1〜c4: 注文数・売上・顧客数・リピート率を並べる画面列。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("注文数", f"{len(orders)}件")
     c2.metric("売上（送料込み）", yen(orders["total"].sum()))
@@ -46,32 +50,40 @@ def render() -> None:
 
     # 4. 月ごとの売上
     monthly = orders.assign(month=to_month(orders["created_at"]))
+    # 変数の内容: monthly: 月ごとに合計した注文売上と注文件数。
     monthly = monthly.groupby("month").agg(売上=("total", "sum"), 件数=("id", "count")).reset_index()
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = monthly_bar(monthly["month"], monthly["売上"], "%{x|%Y年%-m月}<br>%{y:,.0f}円（%{customdata}件）<extra></extra>",
                       title="月ごとの売上", customdata=monthly["件数"])
     st.plotly_chart(style(fig, height=300), width="stretch")
 
     # 5. 商品ランキング（売上の多い順・上位 TOP_N）
     c1, c2 = st.columns(2)
+    # 変数の内容: rank: 商品ごとの売上を集計したランキング。
     rank = (items.assign(amount=items["price"] * items["quantity"]).groupby("product_name")
             .agg(売上=("amount", "sum"), 個数=("quantity", "sum")).sort_values("売上").tail(TOP_N).reset_index())
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = bar_chart(rank["売上"], rank["product_name"], "%{y}<br>%{x:,.0f}円（%{customdata}個）<extra></extra>",
                     title=f"商品別の売上（上位{TOP_N}）", customdata=rank["個数"])
     c1.plotly_chart(style(fig, height=RANKING_HEIGHT, yen_axis="x"), width="stretch")
 
     # 6. 都道府県別の注文数（上位 TOP_N）
     pref = orders["prefecture"].value_counts().sort_values().tail(TOP_N)
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = bar_chart(pref.values, pref.index, "%{y}<br>%{x}件<extra></extra>", title=f"都道府県別の注文数（上位{TOP_N}）")
     c2.plotly_chart(style(fig, height=RANKING_HEIGHT, yen_axis=None), width="stretch")
 
     # 7. 顧客分析（RFM）：最近買ったか・何回買ったか・いくら買ったか。基準日はほかの画面と同じ「今日（日本時間）」
     st.subheader("顧客分析（RFM）")
+    # 変数の内容: rfm: 顧客ごとの最終購入日・購入回数・購入額の分析表。
     rfm = rfm_table(orders, ctx.today)
+    # 変数の内容: seg: 顧客区分ごとの人数・平均購入額。
     seg = rfm.groupby("segment").agg(人数=("customer_key", "count"), 平均購入額=("monetary", "mean")).reset_index()
     st.dataframe(seg.style.format({"平均購入額": "{:,.0f}円"}), hide_index=True, width="stretch")
 
     # 8. 併売分析：一緒に買われやすい商品の組み合わせ
     st.subheader("一緒に買われている商品")
+    # 変数の内容: pairs: 同時購入された商品の組み合わせ。
     pairs = co_purchase_pairs(items)
     if pairs.empty:
         st.caption("2種類以上を同時に買った注文はまだありません。")

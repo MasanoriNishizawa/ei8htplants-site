@@ -159,6 +159,7 @@ def _fetch_all(table: str) -> list[dict]:
         if res.status_code == HTTP_RANGE_NOT_SATISFIABLE:
             return rows
         res.raise_for_status()
+        # 変数の内容: page: API 応答のページ分データ。
         page = res.json()
         # 3. 空のページが返ったら最後まで取り終えた
         if not page:
@@ -180,11 +181,14 @@ def load_table(table: str) -> pd.DataFrame:
     """
     # 1. 全件を取得する。0件でも後続の処理が列名で動けるように列だけ作っておく
     rows = _fetch_all(table)
+    # 変数の内容: df: テーブル列をそろえた分析用 DataFrame。
     df = pd.DataFrame(rows, columns=COLUMNS[table].split(","))
     # 2. メールアドレスはハッシュに置き換えて捨てる
     if table == "workshop_reservations":
+        # 変数の内容: df: テーブル列をそろえた分析用 DataFrame。
         df = _hash_emails(df, "email")
     if table == "orders":
+        # 変数の内容: df: テーブル列をそろえた分析用 DataFrame。
         df = _hash_emails(df, "customer_email")
     # 3. タイムスタンプ列は日本時間、日付列は日付型にする
     for col in ("created_at", "published_at"):

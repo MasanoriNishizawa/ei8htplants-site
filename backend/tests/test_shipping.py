@@ -21,6 +21,7 @@ class TestListPrefectures:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 都道府県の一覧が配列で返ること。
         resp = TestClient(app).get('/api/shipping/prefectures')
 
         assert resp.status_code == 200
@@ -36,6 +37,7 @@ class TestListPrefectures:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 47都道府県すべてがリストに含まれること。
         resp = TestClient(app).get('/api/shipping/prefectures')
 
         assert resp.status_code == 200
@@ -50,6 +52,7 @@ class TestListPrefectures:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 東京都・大阪府・北海道・沖縄県がリストに含まれること。
         resp = TestClient(app).get('/api/shipping/prefectures')
 
         assert resp.status_code == 200
@@ -70,6 +73,7 @@ class TestGetRate:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. prefecture=東京都 を指定したとき配送料オブジェクトが返ること。
         resp = TestClient(app).get('/api/shipping/rate?prefecture=東京都')
 
         assert resp.status_code == 200
@@ -84,6 +88,7 @@ class TestGetRate:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 配送料（fee）は正の整数であること。
         resp = TestClient(app).get('/api/shipping/rate?prefecture=東京都')
 
         assert resp.status_code == 200
@@ -99,6 +104,7 @@ class TestGetRate:
             なし。
         """
         # 変数の内容: fee_hokkaido: 北海道宛ての送料計算結果、fee_osaka: 大阪府宛ての送料計算結果、resp_hokkaido: 北海道宛ての送料 API 応答、resp_osaka: 大阪府宛ての送料 API 応答。
+        # 1. 北海道は大阪府より配送料が高い（地理的に遠いため）こと。
         resp_hokkaido = TestClient(app).get('/api/shipping/rate?prefecture=北海道')
         resp_osaka = TestClient(app).get('/api/shipping/rate?prefecture=大阪府')
 
@@ -113,6 +119,7 @@ class TestGetRate:
             なし。
         """
         # 変数の内容: fee_okinawa: 沖縄県宛ての送料計算結果、fee_tokyo: 東京都宛ての送料計算結果、resp_okinawa: 沖縄県宛ての送料 API 応答、resp_tokyo: 東京都宛ての送料 API 応答。
+        # 1. 沖縄県の配送料は東京都より高いこと。
         resp_okinawa = TestClient(app).get('/api/shipping/rate?prefecture=沖縄県')
         resp_tokyo = TestClient(app).get('/api/shipping/rate?prefecture=東京都')
 
@@ -127,6 +134,7 @@ class TestGetRate:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. RATES に存在しない都道府県を指定すると 400 が返ること。
         resp = TestClient(app).get('/api/shipping/rate?prefecture=存在しない県')
 
         assert resp.status_code == 400
@@ -138,6 +146,7 @@ class TestGetRate:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. prefecture クエリパラメータを指定しないと 422 バリデーションエラーが返ること。
         resp = TestClient(app).get('/api/shipping/rate')
 
         assert resp.status_code == 422
@@ -149,6 +158,7 @@ class TestGetRate:
             なし。
         """
         # 変数の内容: prefectures: 送料テストで使う都道府県一覧、prefectures_resp: 都道府県別送料の API 応答。
+        # 1. 都道府県リストに含まれるすべての都道府県で配送料取得ができること。
         prefectures_resp = TestClient(app).get('/api/shipping/prefectures')
         prefectures = prefectures_resp.json()
 

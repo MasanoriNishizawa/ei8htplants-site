@@ -60,6 +60,7 @@ def _stop_process(process: subprocess.Popen, grace_seconds: float = 5.0) -> None
         戻り値なし。
     """
     # 1. SIGTERM送信時点で共通の期限を決め、leaderと子孫で猶予時間を共有する。
+    # deadline: SIGTERM後にプロセス群へ与える終了猶予の絶対時刻。
     deadline = time.monotonic() + grace_seconds
     _signal_process(process, signal.SIGTERM)
     try:
@@ -116,4 +117,6 @@ def run_process(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
         _stop_process(process)
         raise
 
+    # stdout / stderr: 子プロセスから回収した標準出力・標準エラー。
+    # start: 起動前の時刻。差分を返却値の経過秒数にする。
     return process.returncode, (stdout or "") + (stderr or ""), time.monotonic() - start

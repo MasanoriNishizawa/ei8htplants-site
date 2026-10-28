@@ -56,6 +56,7 @@ def _response(status: int, body: dict | None = None) -> MagicMock:
     Returns:
         応答のモック
     """
+    # 変数の内容: res: テスト対象処理が返した応答または結果。
     res = MagicMock()
     res.status_code = status
     res.json.return_value = body or {}
@@ -71,6 +72,7 @@ def post(monkeypatch):
 
     Returns:
         requests.post のモック応答を返す。"""
+    # 変数の内容: mock: 対象依存処理を置き換えるモック。
     mock = MagicMock(return_value=_response(200, {"access_token": "tok-SECRET", "user": {"email": EMAIL}}))
     monkeypatch.setattr(requests, "post", mock)
     return mock
@@ -138,6 +140,7 @@ def _is_login_form(at: AppTest) -> bool:
 
     Returns:
         bool を返す。"""
+    # 変数の内容: labels: 画面に表示するラベル一覧。
     labels = [t.label for t in at.text_input]
     return labels == ["メールアドレス", "パスワード"] and len(at.sidebar.button) == 0
 
@@ -168,6 +171,7 @@ def test_未ログインで開くとログインフォームだけが出てダ�
     Returns:
         なし。"""
     load_all, get = data_get
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _new_app()
     assert not at.exception
     # 1. タイトル・メールアドレス・パスワード・ログインボタンが出る
@@ -209,9 +213,11 @@ def test_接続情報が無いと設定不足のメッセージを出してフ�
 
     Returns:
         なし。"""
+    # 1. 接続情報が無いと設定不足のメッセージを出してフォームを出さずに止まることを確認する。
     load_all, _ = data_get
     for k, v in env.items():
         monkeypatch.setenv(k, v)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _new_app()
     assert not at.exception
     assert any(MSG_NO_SETTINGS in e for e in _errors(at))
@@ -237,6 +243,7 @@ def test_ログインに成功するとauth_emailが入りサイドバーにロ�
     Returns:
         なし。"""
     load_all, _ = data_get
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert not at.exception
     # 1. セッションにはメールアドレスだけが入る
@@ -246,6 +253,7 @@ def test_ログインに成功するとauth_emailが入りサイドバーにロ�
     # 2. サイドバーに「ログイン中: メール」とログアウト・再読み込みボタン
     captions = [c.value for c in at.sidebar.caption]
     assert f"ログイン中: {EMAIL}" in captions
+    # 変数の内容: sidebar_buttons: サイドバーに表示された操作ボタン。
     sidebar_buttons = [b.label for b in at.sidebar.button]
     assert "ログアウト" in sidebar_buttons
     assert "データを再読み込み" in sidebar_buttons
@@ -267,6 +275,7 @@ def test_ログイン後はセッションにパスワードもトークンも�
 
     Returns:
         なし。"""
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     # 1. アプリが置いたセッションのキーは auth_email だけ（ログイン成功後は失敗回数も消える）
     app_keys = {k for k in at.session_state.keys() if not k.startswith("FormSubmitter")}
@@ -275,6 +284,7 @@ def test_ログイン後はセッションにパスワードもトークンも�
     # （Streamlit 内部のウィジェット状態にパスワードが残らないかは
     #   test_ログイン後に画面を最後まで描くとパスワード欄の値がセッションの内部状態に残らない で確かめる）
     for key in app_keys:
+        # 変数の内容: value: テストケースとして渡す値。
         value = str(at.session_state[key])
         assert PASSWORD not in value, key
         assert "tok-SECRET" not in value, key
@@ -296,6 +306,7 @@ def test_入力したメールの前後の空白は除いて認証に送る(fake
 
     Returns:
         なし。"""
+    # 1. 入力したメールの前後の空白は除いて認証に送ることを確認する。
     _submit(_new_app(), email="  admin@example.com  ")
     assert post.call_args.kwargs["json"]["email"] == EMAIL
 
@@ -310,6 +321,7 @@ def test_ログイン後に再描画しても認証を呼び直さない(fake_en
 
     Returns:
         なし。"""
+    # 1. ログイン後に再描画しても認証を呼び直さないことを確認する。
     at = _submit(_new_app())
     at.run()
     assert at.session_state[SESSION_EMAIL] == EMAIL
@@ -326,6 +338,7 @@ def test_ログイン前に失敗していても成功すれば失敗回数が�
 
     Returns:
         なし。"""
+    # 1. ログイン前に失敗していても成功すれば失敗回数が消えることを確認する。
     at = _new_app()
     post.return_value = _response(400)
     at = _submit(at)
@@ -350,8 +363,10 @@ def test_パスワードが違うとエラーが出て失敗回数が1増えフ�
 
     Returns:
         なし。"""
+    # 1. パスワードが違うとエラーが出て失敗回数が1増えフォームのままことを確認する。
     load_all, _ = data_get
     post.return_value = _response(400, {"error": "invalid_grant"})
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert not at.exception
     assert MSG_BAD_CREDENTIALS in _errors(at)
@@ -372,7 +387,9 @@ def test_失敗を続けると回数が1ずつ増える(fake_env, post, data_get
 
     Returns:
         なし。"""
+    # 1. 失敗を続けると回数が1ずつ増えることを確認する。
     post.return_value = _response(401)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _new_app()
     for n in range(1, 4):
         at = _submit(at)
@@ -391,7 +408,9 @@ def test_通信エラーは別のメッセージを出し失敗回数に数え�
 
     Returns:
         なし。"""
+    # 1. 通信エラーは別のメッセージを出し失敗回数に数えないことを確認する。
     post.side_effect = exc
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert MSG_NETWORK_ERROR in _errors(at)
     assert MSG_BAD_CREDENTIALS not in _errors(at)
@@ -412,6 +431,7 @@ def test_未入力で送ると入力を促すエラーを出し認証を呼ば�
 
     Returns:
         なし。"""
+    # 1. 未入力で送ると入力を促すエラーを出し認証を呼ばず失敗回数にも数えないことを確認する。
     at = _submit(_new_app(), email=email, password=password)
     assert "メールアドレスとパスワードを入力してください。" in _errors(at)
     post.assert_not_called()
@@ -432,6 +452,7 @@ def test_5回続けて失敗すると6回目はロック表示になりrequests_
     Returns:
         なし。"""
     post.return_value = _response(400)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _new_app()
     # 1. 5回失敗する（5回目まではふつうのエラー）
     for _ in range(5):
@@ -459,7 +480,9 @@ def test_4回失敗のあとはまだロックされず5回目も認証を呼ぶ
 
     Returns:
         なし。"""
+    # 1. 4回失敗のあとはまだロックされず5回目も認証を呼ぶことを確認する。
     post.return_value = _response(400)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 4
     at.session_state[SESSION_LAST_FAIL] = time.time()
@@ -479,6 +502,7 @@ def test_ロック時間が過ぎれば再びログインでき成功する(fake
 
     Returns:
         なし。"""
+    # 1. ロック時間が過ぎれば再びログインでき成功することを確認する。
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time() - LOCK_SECONDS - 1
@@ -499,6 +523,7 @@ def test_ロック時間が過ぎた後の失敗は1回目から数え直し直�
     Returns:
         なし。"""
     post.return_value = _response(400)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time() - LOCK_SECONDS - 1
@@ -523,7 +548,9 @@ def test_ロック中に通信エラーが起きる状況でもロック表示�
 
     Returns:
         なし。"""
+    # 1. ロック中に通信エラーが起きる状況でもロック表示が優先されることを確認する。
     post.side_effect = requests.ConnectionError("c")
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time()
@@ -546,8 +573,10 @@ def test_許可リストに無いアカウントは認証に成功しても拒�
 
     Returns:
         なし。"""
+    # 1. 許可リストに無いアカウントは認証に成功しても拒否され失敗回数に数えることを確認する。
     load_all, _ = data_get
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com, staff@example.com")
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert MSG_NOT_ALLOWED in _errors(at)
     assert SESSION_EMAIL not in at.session_state
@@ -567,7 +596,9 @@ def test_許可リストにあるアカウントは大文字小文字が違っ�
 
     Returns:
         なし。"""
+    # 1. 許可リストにあるアカウントは大文字小文字が違ってもログインできることを確認する。
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", " ADMIN@example.com ,owner@example.com")
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert MSG_NOT_ALLOWED not in _errors(at)
     assert at.session_state[SESSION_EMAIL] == EMAIL
@@ -585,8 +616,10 @@ def test_許可リストの判定は入力ではなくSupabaseが返したメー
 
     Returns:
         なし。"""
+    # 1. 許可リストの判定は入力ではなくSupabaseが返したメールで行うことを確認する。
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com")
     post.return_value = _response(200, {"user": {"email": "other@example.com"}})
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app(), email="owner@example.com")
     assert MSG_NOT_ALLOWED in _errors(at)
     assert SESSION_EMAIL not in at.session_state
@@ -605,6 +638,7 @@ def test_ログアウトするとauth_emailが消えてログインフォーム�
 
     Returns:
         なし。"""
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     load_all, _ = data_get
@@ -642,6 +676,7 @@ def test_ログイン後に許可リストからアドレスを外して再実�
     load_all, get = data_get
     # 1. 許可リストに入った状態でログインする
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", f"{EMAIL},owner@example.com")
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     calls_before = load_all.call_count
@@ -671,7 +706,9 @@ def test_ログイン後に許可リストを別のアドレスだけにして�
 
     Returns:
         なし。"""
+    # 1. ログイン後に許可リストを別のアドレスだけにして再実行してもダッシュボードは描かれないことを確認する。
     load_all, _ = data_get
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     calls_before = load_all.call_count
@@ -695,9 +732,11 @@ def test_許可リストが未設定や空のままなら再実行してもロ�
 
     Returns:
         なし。"""
+    # 1. 許可リストが未設定や空のままなら再実行してもログイン状態が続くことを確認する。
     load_all, _ = data_get
     if allowed is not None:
         monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", allowed)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     # 2回描き直してもログインしたまま、ダッシュボードが描かれ続ける
     for _ in range(2):
@@ -722,7 +761,9 @@ def test_許可リストに残っていれば大文字小文字が違っても�
 
     Returns:
         なし。"""
+    # 1. 許可リストに残っていれば大文字小文字が違っても再実行後もログイン状態が続くことを確認する。
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", EMAIL)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", f" {EMAIL.upper()} , owner@example.com")
     at.run()
@@ -744,7 +785,9 @@ def test_送信後は入力欄が空に戻り同じパスワードは再送さ�
 
     Returns:
         なし。"""
+    # 1. 送信後は入力欄が空に戻り同じパスワードは再送されないことを確認する。
     post.return_value = _response(400)
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert MSG_BAD_CREDENTIALS in _errors(at)
     assert post.call_count == 1
@@ -766,9 +809,11 @@ def test_ログイン後に画面を最後まで描くとパスワード欄の�
 
     Returns:
         なし。"""
+    # 1. ログイン後に画面を最後まで描くとパスワード欄の値がセッションの内部状態に残らないことを確認する。
     import views.overview
 
     monkeypatch.setattr(views.overview, "render", lambda: st.write("概要（テスト用）"))
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert "概要（テスト用）" in [m.value for m in at.markdown]
@@ -789,6 +834,7 @@ def test_ログイン直後の描画がst_stopで終わってもパスワード�
 
     Returns:
         なし。"""
+    # 変数の内容: at: 画面上で対象要素を探すロケーター。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert any(MSG_DATA_ERROR in e for e in _errors(at))  # st.stop() で終わったことの確認
@@ -809,6 +855,7 @@ def test_パスワード欄のキーはauth_password_input():
 
     Returns:
         なし。"""
+    # 1. パスワード欄のキーはauth password inputことを確認する。
     assert SESSION_PASSWORD_INPUT == "auth_password_input"
 
 
@@ -820,9 +867,11 @@ def test_config_tomlでエラーの詳細を画面に出さない設定になっ
 
     Returns:
         なし。"""
+    # 1. config tomlでエラーの詳細を画面に出さない設定になっていることを確認する。
     import tomllib
 
     config_path = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
+    # 変数の内容: config: テスト対象の設定。
     config = tomllib.loads(config_path.read_text(encoding="utf-8"))
     assert config["client"]["showErrorDetails"] == "none"
     # XSRF 保護・CORS を無効にしていない（README の約束）

@@ -108,7 +108,7 @@ class TestNormalizeLegacyPath:
         Returns:
             なし。
         """
-        # 1. 旧公式URLを新しい公式サイト階層へ移し、既存の下位パスも保つ。
+        # 1. 旧公式サイトURLを新しい公式サイト階層へ移し、既存の下位パスも保つ。
         assert normalize_legacy_path(path) == expected
 
     @pytest.mark.parametrize('path', [
@@ -222,9 +222,7 @@ class FakeDB:
             errors: テストで例外を発生させるテーブル名の集合。"""
         # 変数の内容: self.calls: モックの呼び出し履歴、self.errors: テスト用の例外一覧、self.tables: DB モックが返すテーブル別データ。
         self.tables = tables or {}
-        # 変数の内容: self.errors: モックが投げるテーブル別の例外。
         self.errors = set(errors or [])
-        # 変数の内容: self.calls: モックの呼び出し履歴。
         self.calls = []
 
     def table(self, name):
@@ -249,9 +247,7 @@ class _FakeQuery:
             name: このクエリモックが参照するテーブル名。"""
         # 変数の内容: self.db: このクエリが参照する DB モック、self.filters: DB モックへ渡す絞り込み条件、self.name: DB モックのテーブル名。
         self.db = db
-        # 変数の内容: self.name: DB モックのテーブル名。
         self.name = name
-        # 変数の内容: self.filters: DB モックへ渡す絞り込み条件。
         self.filters = {}
 
     def select(self, *a, **k):
@@ -502,7 +498,7 @@ class TestBrandDomainMeta:
         """
         # 1. ブランドと対象パスから PageMeta を生成する。
         meta = seo._brand_domain_meta(path, site_name, origin)
-        # 2. 表示情報・絶対URL・公開状態が仕様どおりか確認する。
+        # 2. 表示情報、絶対URL、公開状態が仕様どおりか確認する。
         assert meta.title == title
         assert meta.description == description
         assert meta.image == f'{origin}{image}'
@@ -529,7 +525,7 @@ class TestBrandDomainMeta:
         """
         # 1. 公開一覧にないパスのメタ情報を生成する。
         meta = seo._brand_domain_meta('/private', site_name, origin)
-        # 2. noindex・canonical 無効・既定説明・ブランド情報を確認する。
+        # 2. noindex、canonical 無効、既定説明、ブランド情報を確認する。
         assert meta.title == site_name
         assert meta.description == seo.DEFAULT_DESCRIPTION
         assert meta.image == f'{origin}{image}'
@@ -582,7 +578,7 @@ class TestBrandDomainMeta:
 
 @needs_dist
 class TestServeSpaMeta:
-    """パスごとに <head> の title・description・canonical・OGP・twitter・JSON-LD が入る。"""
+    """パスごとに <head> の title・説明文・canonical・OGP・twitter・JSON-LD が入る。"""
 
     def test_トップページを開くとサイト名のタイトルとOrganizationの構造化データが入る(self, db):
         """トップページを開くとサイト名のタイトルとOrganizationの構造化データが入ることを確認する。
@@ -593,7 +589,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET / を行い、HTML応答を取得する。
         resp = TestClient(app).get('/')
+        # 2. HTTPステータス、HTTPレスポンスヘッダー、ページタイトル、説明文、canonical URL、OGP URL、OGP画像、OGPサイト名、OGPの言語、OGPの種別、Twitterカード、robots設定、JSON-LDのURL、JSON-LDのロゴ を応答から確認する。
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('text/html')
         # 変数の内容: head: 解析対象の HTML head 部分。
@@ -638,7 +636,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. 各テストケースのパスとホスト名を使ってページを要求する。
         resp = TestClient(app).get(path, headers={'host': host})
+        # 2. HTTPステータス、ページタイトル、canonical URL、OGP URL、OGPサイト名、robots設定 を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _title(head) == title
@@ -652,7 +652,7 @@ class TestServeSpaMeta:
         ('huebyei8htplants.com', 'HUE by ei8ht plants', 'https://huebyei8htplants.com/img/logo-hue.png'),
     ])
     def test_ブランド専用ドメインの未公開パスはnoindexでcanonicalなし(self, db, host, site_name, image):
-        """未公開のブランドページでnoindexとcanonical省略をHTML出力まで確認する。
+        """未公開のブランドページでnoindexとcanonical URLの省略をHTML出力まで確認する。
 
         Args:
             db: テスト対象が使う Supabase クライアントのモック。
@@ -666,7 +666,7 @@ class TestServeSpaMeta:
         # 1. 公開カタログにないURLをブランド専用ホストで開く。
         response = TestClient(app).get('/private', headers={'host': host})
         assert response.status_code == 200
-        # 2. 生成されたHTMLでブランド名・既定画像・noindex・canonical省略を確認する。
+        # 2. 生成されたHTMLでブランド名、既定画像、noindex、canonical URLの省略を確認する。
         head = _head(response.text)
         assert _title(head) == site_name
         assert _meta(head, 'property', 'og:site_name') == site_name
@@ -697,7 +697,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. 各テストケースで指定されたパスを要求する。
         head = _head(TestClient(app).get(path).text)
+        # 2. ページタイトル、OGPタイトル、Twitterタイトル、説明文、OGPの説明文、Twitterの説明文、canonical URL、robots設定、JSON-LD を応答から確認する。
         assert _title(head) == title
         assert _meta(head, 'property', 'og:title') == title
         assert _meta(head, 'name', 'twitter:title') == title
@@ -721,6 +723,7 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. GET /chat を行い、HTML応答を取得する。
         head = _head(TestClient(app).get('/chat').text)
         assert _title(head) == 'AI コンシェルジュ | ei8ht plants'
         assert _title(head).count('ei8ht plants') == 1
@@ -734,7 +737,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. GET /official/gallery/ を行い、HTML応答を取得する。
         head = _head(TestClient(app).get('/official/gallery/').text)
+        # 2. ページタイトル、canonical URL を応答から確認する。
         assert _title(head) == 'Gallery | ei8ht plants'
         assert _canonical(head) == 'https://ei8htplants.com/official/gallery'
 
@@ -747,7 +752,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. GET /habitatoides を行い、HTML応答を取得する。
         head = _head(TestClient(app).get('/habitatoides').text)
+        # 2. OGP画像、Twitter画像、Twitterカード を応答から確認する。
         assert _meta(head, 'property', 'og:image') == 'https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg'
         assert _meta(head, 'name', 'twitter:image') == 'https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg'
         assert _meta(head, 'name', 'twitter:card') == 'summary_large_image'
@@ -761,6 +768,7 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. GET /events?page=past を行い、イベントHTMLを取得する。
         head = _head(TestClient(app).get('/events?page=past').text)
         assert _title(head) == 'Past Events | ei8ht plants'
 
@@ -773,7 +781,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
         resp = TestClient(app).get('/events/plant-market')
+        # 2. HTTPステータス、ページタイトル、説明文、OGP画像、Twitterカード、canonical URL、JSON-LDの名称、JSON-LDの開始日時、JSON-LDの終了日時、JSON-LDの開催状態、JSON-LDの参加形式、JSON-LDの開催場所、JSON-LDの画像、JSON-LDのURL、JSON-LDの説明文、JSON-LDの主催者 を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
@@ -813,7 +823,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. 各テストケースで指定されたパスを要求する。
         head = _head(TestClient(app).get(f'/events/{EVENT_ID}').text)
+        # 2. ページタイトル、canonical URL、OGP URL、JSON-LDのURL、robots設定 を応答から確認する。
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
         assert _canonical(head) == 'https://ei8htplants.com/official/events/plant-market'
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/plant-market'
@@ -832,7 +844,9 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(slug=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. 各テストケースで指定されたパスを要求する。
             head = _head(TestClient(app).get(f'/events/{EVENT_ID}').text)
+        # 2. canonical URL、OGP URL、JSON-LD、JSON-LDのURL を応答から確認する。
         assert _canonical(head) == f'https://ei8htplants.com/official/events/{EVENT_ID}'
         assert _meta(head, 'property', 'og:url') == f'https://ei8htplants.com/official/events/{EVENT_ID}'
         assert _json_ld(head)[0]['url'] == f'https://ei8htplants.com/official/events/{EVENT_ID}'
@@ -846,7 +860,9 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(slug='植物')])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/植物 を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/植物').text)
+        # 2. ページタイトル、canonical URL、OGP URL を応答から確認する。
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
         assert _canonical(head) == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
@@ -860,9 +876,11 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(time=None, daily_times=None, end_date=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/plant-market').text)
         # 変数の内容: ld: JSON-LD の構造化データ。
         ld = _json_ld(head)[0]
+        # 2. JSON-LDの開始日時、JSON-LDの終了日時 を応答から確認する。
         assert ld['startDate'] == '2026-11-03'
         assert ld['endDate'] == '2026-11-03'
 
@@ -875,7 +893,9 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(address=None, page_content={'hero': {'tagline': '植物の市'}})])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/plant-market').text)
+        # 2. JSON-LD、ページタイトル、canonical URL、robots設定 を応答から確認する。
         assert _json_ld(head) == []
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
         assert _canonical(head) == 'https://ei8htplants.com/official/events/plant-market'
@@ -890,9 +910,11 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(address='  ', page_content={'venue': {'address': '大阪府大阪市'}})])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/plant-market').text)
         # 変数の内容: ld: JSON-LD の構造化データ。
         ld = _json_ld(head)[0]
+        # 2. JSON-LDの開催場所 を応答から確認する。
         assert ld['location']['address']['streetAddress'] == '大阪府大阪市'
 
     @pytest.mark.parametrize('time_value,daily,expected_start,expected_end', [
@@ -922,9 +944,11 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(time=time_value, daily_times=daily)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/plant-market').text)
         # 変数の内容: ld: JSON-LD の構造化データ。
         ld = _json_ld(head)[0]
+        # 2. JSON-LDの開始日時、JSON-LDの終了日時 を応答から確認する。
         assert ld['startDate'] == expected_start
         assert ld['endDate'] == expected_end
         # 片方だけ日時になることはない
@@ -939,7 +963,9 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(page_content=None)], event_images=[])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/plant-market').text)
+        # 2. 説明文、OGP画像、Twitterカード、JSON-LD、JSON-LDの画像 を応答から確認する。
         assert _meta(head, 'name', 'description') == '2026年11月3日〜4日 / 代々木公園'
         # 画像が無いときは既定のロゴと summary
         assert _meta(head, 'property', 'og:image') == seo.DEFAULT_OG_IMAGE
@@ -956,6 +982,7 @@ class TestServeSpaMeta:
         fake = _default_db(events=[_event(page_content={'concept': long})])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/plant-market').text)
         # 変数の内容: desc: ページ説明文。
         desc = _meta(head, 'name', 'description')
@@ -973,7 +1000,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. 各テストケースで指定されたパスを要求する。
         resp = TestClient(app).get(path)
+        # 2. HTTPステータス、ページタイトル、説明文、JSON-LD、robots設定、canonical URL、OGP URL を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _title(head) == 'ei8ht plants'
@@ -992,9 +1021,11 @@ class TestServeSpaMeta:
 
         戻り値:
             なし。"""
+        # 1. GET /events/nope を行い、イベントHTMLを取得する。
         TestClient(app).get('/events/nope')
         # 変数の内容: event_calls: イベントテーブルの DB 呼び出し記録。
         event_calls = [c for c in db.calls if c[0] == 'events']
+        # 2. DBの検索条件、呼び出し回数 を応答から確認する。
         assert event_calls == [('events', {'slug': 'nope'})]
 
     def test_公開済みの記事を開くと記事名とJournalのタイトルと本文の冒頭と画像が入る(self, db):
@@ -1006,7 +1037,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. 各テストケースで指定されたパスを要求する。
         head = _head(TestClient(app).get(f'/journal/{ARTICLE_ID}').text)
+        # 2. ページタイトル、説明文、OGP画像、canonical URL、JSON-LD を応答から確認する。
         assert _title(head) == '記事A | Journal | ei8ht plants'
         assert _meta(head, 'name', 'description') == '本文です 次の行'
         assert _meta(head, 'property', 'og:image') == 'https://cdn.example.com/hero.png'
@@ -1028,7 +1061,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. 各テストケースで指定されたパスを要求する。
         resp = TestClient(app).get(path)
+        # 2. HTTPステータス、ページタイトル、robots設定、canonical URL、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _title(head) == 'ei8ht plants'
@@ -1044,7 +1079,9 @@ class TestServeSpaMeta:
 
         戻り値:
             なし。"""
+        # 1. GET /journal/not-a-uuid を行い、記事HTMLを取得する。
         TestClient(app).get('/journal/not-a-uuid')
+        # 2. DBの検索条件、呼び出し回数 を応答から確認する。
         assert [c for c in db.calls if c[0] == 'articles'] == []
 
     def test_公開中の商品を開くと商品名とShopのタイトルと説明と画像が入る(self, db):
@@ -1056,7 +1093,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. 各テストケースで指定されたパスを要求する。
         head = _head(TestClient(app).get(f'/shop/{PRODUCT_ID}').text)
+        # 2. ページタイトル、説明文、OGP画像 を応答から確認する。
         assert _title(head) == 'アガベ | Shop | ei8ht plants'
         # 古いテキスト形式（## 見出し）も読める
         assert _meta(head, 'name', 'description') == '見出し 説明文'
@@ -1077,7 +1116,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. 各テストケースで指定されたパスを要求する。
         resp = TestClient(app).get(path)
+        # 2. HTTPステータス、ページタイトル、robots設定、canonical URL、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _title(head) == 'ei8ht plants'
@@ -1099,7 +1140,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. 各テストケースで指定されたパスを要求する。
         resp = TestClient(app).get(path)
+        # 2. HTTPステータス、robots設定 を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _meta(head, 'name', 'robots') == 'noindex'
@@ -1115,7 +1158,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. 各テストケースで指定されたパスを要求する。
         head = _head(TestClient(app).get(path).text)
+        # 2. canonical URL を応答から確認する。
         assert _canonical(head) is None
 
     @pytest.mark.parametrize('path', ['/official/cancel', '/official/checkout', '/official/order/complete'])
@@ -1129,7 +1174,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. 各テストケースで指定されたパスを要求する。
         head = _head(TestClient(app).get(path).text)
+        # 2. robots設定、canonical URL を応答から確認する。
         assert _meta(head, 'name', 'robots') == 'noindex'
         assert _canonical(head) == f'https://ei8htplants.com{path}'
 
@@ -1144,6 +1191,7 @@ class TestServeSpaMeta:
 
         戻り値:
             なし。"""
+        # 1. 判定対象のパス をnoindex判定関数へ渡す。
         assert seo._is_noindex(path) is False
 
     @pytest.mark.parametrize('path', ['/admin', '/admin/x', '/cancel', '/cancel/abc', '/checkout', '/order', '/order/complete'])
@@ -1155,6 +1203,7 @@ class TestServeSpaMeta:
 
         戻り値:
             なし。"""
+        # 1. 判定対象のパス をnoindex判定関数へ渡す。
         assert seo._is_noindex(path) is True
 
     def test_不明なパスは既定のタイトルと説明で200を返しnoindexでcanonicalなし(self, db):
@@ -1166,7 +1215,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. GET /unknown/page/here を行い、HTML応答を取得する。
         resp = TestClient(app).get('/unknown/page/here')
+        # 2. HTTPステータス、ページタイトル、説明文、robots設定、canonical URL、OGP URL を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _title(head) == 'ei8ht plants'
@@ -1184,7 +1235,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: text: 生成または解析する本文。
+        # 1. GET /events を行い、イベントHTMLを取得する。
         text = TestClient(app).get('/events').text
+        # 2. HTML本文 を応答から確認する。
         assert text.count('<title>') == 1
         # 元の index.html の script などは残る
         assert '<div id="root">' in text
@@ -1201,10 +1254,12 @@ class TestServeSpaMeta:
         )])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: text: 生成または解析する本文。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             text = TestClient(app).get('/events/plant-market').text
         # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(text)
         # 生の値はどこにも出ない
+        # 2. OGPタイトル、説明文 を応答から確認する。
         assert '<Market>' not in head
         assert '<script>alert(1)' not in head
         assert 'alert(1)</script>' not in head
@@ -1226,9 +1281,11 @@ class TestServeSpaMeta:
         )])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: head: 解析対象の HTML head 部分。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             head = _head(TestClient(app).get('/events/plant-market').text)
         # 変数の内容: body: リクエスト本文、raw: エスケープ前または加工前の値。
         raw = re.findall(r'<script type="application/ld\+json">(.*?)</script>', head, flags=re.S)
+        # 2. JSON-LDの名称、JSON-LDの説明文 を応答から確認する。
         assert len(raw) == 1
         body = raw[0]
         # < > & と U+2028/2029 は生で入らない
@@ -1250,7 +1307,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分。
+        # 1. GET /events/植物 を行い、イベントHTMLを取得する。
         head = _head(TestClient(app).get('/events/植物').text)
+        # 2. OGP URL、canonical URL を応答から確認する。
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
         assert _canonical(head) is None
 
@@ -1263,7 +1322,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
         resp = TestClient(app).get('/events/plant-market')
+        # 2. キャッシュ制御ヘッダー、キャッシュ有効期限とDB再読込、HTTPレスポンスヘッダー を応答から確認する。
         assert resp.headers['cache-control'] == 'public, s-maxage=60, max-age=0, must-revalidate'
         assert resp.headers['x-frame-options'] == 'SAMEORIGIN'
         assert resp.headers['x-content-type-options'] == 'nosniff'
@@ -1278,7 +1339,9 @@ class TestServeSpaMeta:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /manifest.webmanifest を行い、「distにある静的ファイルはそのまま返す」に該当するdist応答を取得する。
         resp = TestClient(app).get('/manifest.webmanifest')
+        # 2. HTTPステータス、HTML本文、DBの検索条件、呼び出し回数 を応答から確認する。
         assert resp.status_code == 200
         assert '<title>' not in resp.text
         assert db.calls == []
@@ -1296,7 +1359,9 @@ class TestServeSpaMeta:
             # 変数の内容: path: 現在処理するファイルまたは URL パス。
             for path in ('/events/plant-market', f'/journal/{ARTICLE_ID}', f'/shop/{PRODUCT_ID}'):
                 # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+                # 1. 各テストケースで指定されたパスを要求する。
                 resp = client.get(path)
+                # 2. HTTPステータス、ページタイトル、説明文、robots設定、canonical URL を応答から確認する。
                 assert resp.status_code == 200
                 head = _head(resp.text)
                 assert _title(head) == 'ei8ht plants'
@@ -1313,13 +1378,15 @@ class TestServeSpaMeta:
 
         戻り値:
             なし。"""
-        # 変数の内容: f: 読み書きするファイルまたは応答。
+        # 変数の内容: f: 開いたHTMLファイルを読み書きするファイルオブジェクト。
         with open(app_main.INDEX_HTML, encoding='utf-8') as f:
             # 変数の内容: original: 変更前の元データ。
             original = f.read()
         with patch.object(seo, 'render_spa_index', side_effect=RuntimeError('boom')):
             # 変数の内容: resp: API から返されたレスポンス。
+            # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
             resp = TestClient(app).get('/events/plant-market')
+        # 2. HTTPステータス、HTML本文、HTTPレスポンスヘッダー を応答から確認する。
         assert resp.status_code == 200
         assert resp.text == original
         assert resp.headers['content-type'].startswith('text/html')
@@ -1351,6 +1418,7 @@ class TestLegacyStructuredDataConstants:
 
         戻り値:
             なし。"""
+        # 1. DESCRIPTION_MAX_LEN をテスト用の値へ差し替えて境界条件を作る。
         monkeypatch.setattr(seo, 'DESCRIPTION_MAX_LEN', limit)
         # 変数の内容: event: 処理対象のイベント。
         event = {'page_content': {'hero': {'tagline': 'あいうえおかきくけこさしすせそ'}}}
@@ -1374,8 +1442,9 @@ class TestLegacyStructuredDataConstants:
 
         戻り値:
             なし。"""
+        # 1. EVENT_JSONLD_MAX_IMAGES をテスト用の値へ差し替えて境界条件を作る。
         monkeypatch.setattr(seo, 'EVENT_JSONLD_MAX_IMAGES', max_images)
-        # 変数の内容: event: 処理対象のイベント、images: 対象画像の一覧、ld: JSON-LD の構造化データ、meta: ページの title・description・画像などの SEO 情報。
+        # 変数の内容: event: 処理対象のイベント、images: 対象画像の一覧、ld: JSON-LD の構造化データ、meta: ページの title・説明文・画像などの SEO 情報。
         images = [f'https://cdn.example.com/{index}.jpg' for index in range(7)]
         event = _event(image_urls=images)
         meta = seo.PageMeta(
@@ -1385,6 +1454,7 @@ class TestLegacyStructuredDataConstants:
             url='https://ei8htplants.com/official/events/plant-market',
         )
         ld = seo._event_json_ld(event, meta)
+        # 2. JSON-LDの画像 を応答から確認する。
         assert ld is not None
         assert len(ld['image']) == expected_count
         if max_images == 0:
@@ -1411,8 +1481,9 @@ class TestLegacyStructuredDataConstants:
 
         戻り値:
             なし。"""
+        # 1. _TIME_RE をテスト用の値へ差し替えて境界条件を作る。
         monkeypatch.setattr(seo, '_TIME_RE', re.compile(pattern))
-        # 変数の内容: event: 処理対象のイベント、ld: JSON-LD の構造化データ、meta: ページの title・description・画像などの SEO 情報。
+        # 変数の内容: event: 処理対象のイベント、ld: JSON-LD の構造化データ、meta: ページの title・説明文・画像などの SEO 情報。
         event = _event(time=time_text, daily_times=None)
         meta = seo.PageMeta(
             title='Plant Market | ei8ht plants',
@@ -1421,6 +1492,7 @@ class TestLegacyStructuredDataConstants:
             url='https://ei8htplants.com/official/events/plant-market',
         )
         ld = seo._event_json_ld(event, meta)
+        # 2. JSON-LDの開始日時、JSON-LDの終了日時 を応答から確認する。
         assert ld is not None
         assert ld['startDate'] == expected_start
         assert ld['endDate'] == expected_end
@@ -1439,8 +1511,10 @@ class TestSeoCache:
             なし。"""
         # 変数の内容: client: API 応答を取得する TestClient、n: Supabase モックの呼び出し回数。
         client = TestClient(app)
+        # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
         client.get('/events/plant-market')
         n = len(db.calls)
+        # 2. DBの検索条件、呼び出し回数、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert n > 0
         client.get('/events/plant-market')
         assert len(db.calls) == n
@@ -1455,9 +1529,11 @@ class TestSeoCache:
             なし。"""
         # 変数の内容: client: API 応答を取得する TestClient、n: Supabase モックの呼び出し回数。
         client = TestClient(app)
+        # 1. GET /events/nope を行い、イベントHTMLを取得する。
         client.get('/events/nope')
         n = len(db.calls)
         client.get('/events/nope')
+        # 2. DBの検索条件、呼び出し回数、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert len(db.calls) == n
 
     def test_clear_cacheを呼ぶとDBの最新の値を読み直す(self, db):
@@ -1470,6 +1546,7 @@ class TestSeoCache:
             なし。"""
         # 変数の内容: client: テスト対象の API クライアント。
         client = TestClient(app)
+        # 1. GET /events/plant-market を行い、イベントHTMLを取得する。
         client.get('/events/plant-market')
         db.tables['events'] = [_event(name='名前を変更')]
         # キャッシュ中は古い名前のまま
@@ -1488,11 +1565,13 @@ class TestSeoCache:
         # 変数の内容: client: テスト対象の API クライアント。
         client = TestClient(app)
         with patch.object(seo.time, 'monotonic', return_value=1000.0):
+            # 1. 各テストケースで指定されたパスを要求する。
             client.get(f'/journal/{ARTICLE_ID}')
         # 変数の内容: n: Supabase モックの呼び出し回数。
         n = len(db.calls)
         with patch.object(seo.time, 'monotonic', return_value=1059.0):
             client.get(f'/journal/{ARTICLE_ID}')
+        # 2. DBの検索条件、呼び出し回数、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert len(db.calls) == n
         with patch.object(seo.time, 'monotonic', return_value=1061.0):
             client.get(f'/journal/{ARTICLE_ID}')
@@ -1504,10 +1583,12 @@ class TestSeoCache:
         戻り値:
             なし。"""
         # 変数の内容: cache: 対象キャッシュの値。
+        # 1. TTLと件数上限を指定して独立したキャッシュを作る。
         cache = seo._TTLCache(ttl=60, max_entries=3)
         # 変数の内容: i: 現在処理する一覧要素の番号。
         for i in range(10):
             cache.set(i, i)
+        # 2. キャッシュ有効期限とDB再読込 を応答から確認する。
         assert len(cache._data) <= 3
         # 最後に入れたものは残る
         assert cache.get(9) == (True, 9)
@@ -1519,8 +1600,10 @@ class TestSeoCache:
         戻り値:
             なし。"""
         # 変数の内容: cache: 対象キャッシュの値。
+        # 1. TTLと件数上限を指定して独立したキャッシュを作る。
         cache = seo._TTLCache(ttl=60, max_entries=10)
         cache.set('k', None)
+        # 2. キャッシュ有効期限とDB再読込 を応答から確認する。
         assert cache.get('k') == (True, None)
         assert cache.get('other') == (False, None)
 
@@ -1537,7 +1620,8 @@ class TestSeoHelpers:
 
         戻り値:
             なし。"""
-        # 変数の内容: meta: ページの title・description・画像などの SEO 情報、out: 組み立てた出力内容。
+        # 変数の内容: meta: ページの title・説明文・画像などの SEO 情報、out: 組み立てた出力内容。
+        # 1. タイトルのないHTML headに追加するメタタグを生成する。
         meta = seo._make_meta('/gallery', 'Gallery', None, None)
         out = seo.inject_head('<html><head><meta charset="utf-8"></head><body></body></html>', meta)
         assert '<title>Gallery | ei8ht plants</title>' in out
@@ -1548,7 +1632,8 @@ class TestSeoHelpers:
 
         戻り値:
             なし。"""
-        # 変数の内容: meta: ページの title・description・画像などの SEO 情報、out: 組み立てた出力内容。
+        # 変数の内容: meta: ページの title・説明文・画像などの SEO 情報、out: 組み立てた出力内容。
+        # 1. タイトルのないHTML headに追加するメタタグを生成する。
         meta = seo._make_meta('/x', 'a\\1\\g<0>', None, None)
         out = seo.inject_head('<head><title>old</title></head>', meta)
         assert '<title>a\\1\\g&lt;0&gt; | ei8ht plants</title>' in out
@@ -1560,7 +1645,9 @@ class TestSeoHelpers:
         戻り値:
             なし。"""
         # 変数の内容: s: 現在処理する行または文字列。
+        # 1. script終了タグとHTML記号を含む入力をJSON-LD用に変換する。
         s = seo._json_for_script({'v': '</script><!-- & \u2028\u2029'})
+        # 2. script境界タグとHTML記号がエスケープされ、JSONとして復元できることを確認する。
         assert s == '{"v":"\\u003c/script\\u003e\\u003c!-- \\u0026 \\u2028\\u2029"}'
         assert json.loads(s) == {'v': '</script><!-- & \u2028\u2029'}
 
@@ -1578,7 +1665,9 @@ class TestRobotsTxt:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /robots.txt を行い、robots設定を取得する。
         resp = TestClient(app).get('/robots.txt')
+        # 2. HTTPステータス、HTTPレスポンスヘッダー、サイトマップURL、最終更新日 を応答から確認する。
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('text/plain')
         # 変数の内容: lines: 本文や応答に使う行の一覧。
@@ -1596,7 +1685,9 @@ class TestRobotsTxt:
         戻り値:
             なし。"""
         # 変数の内容: disallows: robots.txt から抽出した除外パス一覧、text: 生成または解析する本文。
+        # 1. GET /robots.txt を行い、robots設定を取得する。
         text = TestClient(app).get('/robots.txt').text
+        # 2. Disallow一覧に /api がなく、定義済みの拒否パスだけが含まれることを確認する。
         assert 'Disallow: /api' not in text
         disallows = [l for l in text.splitlines() if l.startswith('Disallow:')]
         assert disallows == [f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW]
@@ -1607,6 +1698,7 @@ class TestRobotsTxt:
         戻り値:
             なし。"""
         # 変数の内容: text: 生成または解析する本文。
+        # 1. GET /robots.txt を行い、robots設定を取得する。
         text = TestClient(app).get('/robots.txt').text
         assert '<html' not in text.lower()
 
@@ -1626,7 +1718,9 @@ class TestRobotsTxt:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. robots.txt を要求し、テストケースのホスト名を Host ヘッダーに設定する。
         resp = TestClient(app).get('/robots.txt', headers={'host': host})
+        # 2. HTTPステータス、サイトマップURL、最終更新日、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         assert f'Sitemap: {origin}/sitemap.xml' in resp.text.splitlines()
 
@@ -1652,9 +1746,11 @@ class TestRobotsTxtPureFunctions:
             なし。
         """
         # 変数の内容: text: pure function が生成する robots.txt 本文。
+        # 1. 許可ホストと公開元URLをrobots.txt生成関数に渡す。
         text = seo_robots.build_robots_txt(
             hostname, seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
         )
+        # 2. サイトマップURL、最終更新日 を応答から確認する。
         assert f'Sitemap: {origin}/sitemap.xml' in text.splitlines()
 
     @pytest.mark.parametrize('hostname', [
@@ -1675,9 +1771,11 @@ class TestRobotsTxtPureFunctions:
             なし。
         """
         # 変数の内容: text: pure function が生成する robots.txt 本文。
+        # 1. 許可ホストと公開元URLをrobots.txt生成関数に渡す。
         text = seo_robots.build_robots_txt(
             hostname, seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
         )
+        # 2. サイトマップURL、最終更新日 を応答から確認する。
         assert f'Sitemap: {seo.SITE_ORIGIN}/sitemap.xml' in text.splitlines()
         assert 'Sitemap: https://habitatoides.com/sitemap.xml' not in text.splitlines()
 
@@ -1698,7 +1796,7 @@ class TestRobotsTxtPureFunctions:
             f'Sitemap: {origin}/sitemap.xml',
         ]
 
-        # 1. 先頭から Sitemap までの directive と順番を確認する。
+        # 1. 先頭から サイトマップ指示行までの設定項目 と順番を確認する。
         # 2. 末尾改行と /api を拒否対象に含めない仕様を確認する。
         text = seo_robots.build_robots_txt(
             'www.habitatoides.com', seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
@@ -1738,7 +1836,9 @@ class TestSitemapXml:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /sitemap.xml を行い、XMLを取得する。
         resp = TestClient(app).get('/sitemap.xml')
+        # 2. HTTPステータス、HTTPレスポンスヘッダー、サイトマップURL、最終更新日 を応答から確認する。
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('application/xml')
         # 変数の内容: xml: 生成した sitemap XML。
@@ -1764,7 +1864,7 @@ class TestSitemapXml:
         assert 'https://ei8htplants.com/official/shop/55555555-5555-5555-5555-555555555555' not in locs
 
     def test_記事と商品にはlastmodの日付が付く(self, db):
-        """記事と商品にはlastmodの日付が付くことを確認する。
+        """記事と商品には最終更新日の日付が付くことを確認する。
 
         引数:
             db: テスト対象が使う Supabase クライアントのモック。
@@ -1772,7 +1872,9 @@ class TestSitemapXml:
         戻り値:
             なし。"""
         # 変数の内容: xml: 生成した sitemap XML。
+        # 1. GET /sitemap.xml を行い、XMLを取得する。
         xml = TestClient(app).get('/sitemap.xml').text
+        # 2. サイトマップURL、最終更新日 を応答から確認する。
         assert f'<loc>https://ei8htplants.com/official/journal/{ARTICLE_ID}</loc><lastmod>2026-01-02</lastmod>' in xml
         assert f'<loc>https://ei8htplants.com/official/shop/{PRODUCT_ID}</loc><lastmod>2026-02-01</lastmod>' in xml
 
@@ -1785,7 +1887,9 @@ class TestSitemapXml:
         fake = _default_db(events=[_event(slug=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: locs: サイトマップから抽出した URL 一覧。
+            # 1. GET /sitemap.xml を行い、XMLを取得する。
             locs = _locs(TestClient(app).get('/sitemap.xml').text)
+        # 2. サイトマップURL、最終更新日 を応答から確認する。
         assert f'https://ei8htplants.com/official/events/{EVENT_ID}' in locs
 
     def test_URLに入る記号はXMLエスケープされる(self):
@@ -1797,7 +1901,9 @@ class TestSitemapXml:
         fake = _default_db(events=[_event(slug='a&b')])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: xml: 生成した sitemap XML。
+            # 1. GET /sitemap.xml を行い、XMLを取得する。
             xml = TestClient(app).get('/sitemap.xml').text
+        # 2. サイトマップURL、最終更新日 を応答から確認する。
         assert '<loc>https://ei8htplants.com/official/events/a%26b</loc>' in xml or \
             '<loc>https://ei8htplants.com/official/events/a&amp;b</loc>' in xml
         assert 'a&b' not in xml
@@ -1812,9 +1918,11 @@ class TestSitemapXml:
             なし。"""
         # 変数の内容: client: API 応答を取得する TestClient、n: Supabase モックの呼び出し回数。
         client = TestClient(app)
+        # 1. GET /sitemap.xml を行い、XMLを取得する。
         client.get('/sitemap.xml')
         n = len(db.calls)
         client.get('/sitemap.xml')
+        # 2. DBの検索条件、呼び出し回数、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert len(db.calls) == n
 
     def test_一部の読み取りに失敗しても読めた分を返しキャッシュしない(self):
@@ -1829,7 +1937,9 @@ class TestSitemapXml:
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: client: テスト対象の API クライアント、locs: サイトマップから抽出した URL 一覧、resp: API から返されたレスポンス。
             client = TestClient(app)
+            # 1. GET /sitemap.xml を行い、XMLを取得する。
             resp = client.get('/sitemap.xml')
+            # 2. HTTPステータス、サイトマップURL、最終更新日 を応答から確認する。
             assert resp.status_code == 200
             locs = _locs(resp.text)
             assert 'https://ei8htplants.com/official/events/plant-market' in locs
@@ -1850,7 +1960,9 @@ class TestSitemapXml:
         fake = FakeDB(errors={'events', 'articles', 'products'})
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
             # 変数の内容: resp: API から返されたレスポンス。
+            # 1. GET /sitemap.xml を行い、XMLを取得する。
             resp = TestClient(app).get('/sitemap.xml')
+        # 2. HTTPステータス、サイトマップURL、最終更新日、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         assert len(_locs(resp.text)) == len(seo.SITEMAP_STATIC_PATHS)
 
@@ -1869,7 +1981,9 @@ class TestSitemapXml:
         戻り値:
             なし。"""
         # 変数の内容: locs: サイトマップから抽出した URL 一覧、resp: API から返されたレスポンス。
+        # 1. sitemap.xml を要求し、テストケースのホスト名を Host ヘッダーに設定してXMLを取得する。
         resp = TestClient(app).get('/sitemap.xml', headers={'host': host})
+        # 2. HTTPステータス、サイトマップURL、最終更新日 を応答から確認する。
         assert resp.status_code == 200
         locs = _locs(resp.text)
         assert locs == [f'{origin}{path}' for path in paths]
@@ -1891,7 +2005,9 @@ class TestSitemapXml:
         戻り値:
             なし。"""
         # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
+        # 1. 対象パスを HUE by ei8ht plants のホスト名で要求する。
         resp = TestClient(app).get(path, headers={'host': 'huebyei8htplants.com'})
+        # 2. HTTPステータス、ページタイトル、canonical URL、OGP URL、robots設定 を応答から確認する。
         assert resp.status_code == 200
         head = _head(resp.text)
         assert _title(head) == title
@@ -1920,7 +2036,9 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 対象パスを ei8ht plants のホスト名で要求する。
         resp = TestClient(app).get(path, headers={'host': 'ei8htplants.com'}, follow_redirects=False)
+        # 2. HTTPステータス、JSON-LDの開催場所、リダイレクト先URL を応答から確認する。
         assert resp.status_code == 301
         assert resp.headers['location'] == destination
 
@@ -1930,10 +2048,12 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /habitatoides/workshop?source=legacy&lang=en を行い、HTML応答を取得する。 www.ei8htplants.com を Host ヘッダーに設定する。
         resp = TestClient(app).get(
             '/habitatoides/workshop?source=legacy&lang=en',
             headers={'host': 'www.ei8htplants.com'}, follow_redirects=False,
         )
+        # 2. HTTPステータス、JSON-LDの開催場所、リダイレクト先URL を応答から確認する。
         assert resp.status_code == 301
         assert resp.headers['location'] == 'https://habitatoides.com/workshop?source=legacy&lang=en'
 
@@ -1943,6 +2063,7 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /events を行い、イベントHTMLを取得する。 ei8htplants.com を Host ヘッダーに設定する。
         resp = TestClient(app).get('/events', headers={'host': 'ei8htplants.com'}, follow_redirects=False)
         assert resp.status_code == 200
 
@@ -1961,9 +2082,11 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 各テストケースのパスとホスト名を使ってページを要求する。
         resp = TestClient(app).get(
             f'{path}?from=brand', headers={'host': host}, follow_redirects=False,
         )
+        # 2. HTTPステータス、JSON-LDの開催場所、リダイレクト先URL、キャッシュ制御ヘッダー、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert resp.status_code == 301
         assert resp.headers['location'] == f'https://ei8htplants.com{path}?from=brand'
         assert 'no-store' in resp.headers['cache-control']
@@ -1978,7 +2101,9 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /hue?from=habitat を行い、HTML応答を取得する。 テストケースで指定されたホスト名を Host ヘッダーに設定する。
         resp = TestClient(app).get('/hue?from=habitat', headers={'host': host}, follow_redirects=False)
+        # 2. HTTPステータス、JSON-LDの開催場所、リダイレクト先URL を応答から確認する。
         assert resp.status_code == 301
         assert resp.headers['location'] == 'https://huebyei8htplants.com/?from=habitat'
 
@@ -1992,7 +2117,9 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /registerSW.js を行い、「ブランドドメインの旧PWA登録スクリプトは解除用に差し替わりキャッシュしない」を確かめる旧PWAスクリプトを取得する。 テストケースで指定されたホスト名を Host ヘッダーに設定する。
         resp = TestClient(app).get('/registerSW.js', headers={'host': host})
+        # 2. HTTPステータス、HTTPレスポンスヘッダー、HTML本文、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('application/javascript')
         assert 'serviceWorker.register(\'/sw.js\'' in resp.text
@@ -2008,7 +2135,9 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /sw.js を行い、「ブランドドメインの旧ServiceWorkerはキャッシュ削除と自身の登録解除を行う」を確かめる旧PWAスクリプトを取得する。 テストケースで指定されたホスト名を Host ヘッダーに設定する。
         resp = TestClient(app).get('/sw.js', headers={'host': host})
+        # 2. HTTPステータス、HTTPレスポンスヘッダー、HTML本文、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('application/javascript')
         assert 'caches.keys()' in resp.text
@@ -2028,7 +2157,9 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET / を行い、HTML応答を取得する。 テストケースで指定されたホスト名を Host ヘッダーに設定する。
         resp = TestClient(app).get('/', headers={'host': host})
+        # 2. HTTPステータス、キャッシュ有効期限とDB再読込、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         assert 'no-store' in resp.headers.get('cache-control', '')
         assert not re.search(r'<link\s+rel="manifest"', resp.text, flags=re.I)
@@ -2052,7 +2183,9 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: ブランド専用ドメインでトップページを開いたレスポンス。
+        # 1. GET / を行い、HTML応答を取得する。 テストケースで指定されたホスト名を Host ヘッダーに設定する。
         resp = TestClient(app).get('/', headers={'host': host})
+        # 2. HTTPステータス、Apple用タイトル、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         assert _meta(_head(resp.text), 'name', 'apple-mobile-web-app-title') == expected_title
 
@@ -2065,7 +2198,9 @@ class TestLegacyBrandRedirects:
         戻り値:
             なし。"""
         # 変数の内容: resp: ei8htplants.com でトップページを開いたレスポンス。
+        # 1. GET / を行い、HTML応答を取得する。 ei8htplants.com を Host ヘッダーに設定する。
         resp = TestClient(app).get('/', headers={'host': 'ei8htplants.com'})
+        # 2. HTTPステータス、Apple用タイトル、HTML本文、キャッシュ有効期限とDB再読込 を応答から確認する。
         assert resp.status_code == 200
         # 変数の内容: head: レスポンスHTMLから切り出したhead要素。
         head = _head(resp.text)
@@ -2149,10 +2284,10 @@ class TestServeSpaPathTraversal:
 
         戻り値:
             なし。"""
-        # 変数の内容: target: 処理対象のファイルまたは値。
+        # 変数の内容: target: DIST外にあるファイルを指すパス。
         target = os.path.join(app_main.DIST, outside)
         assert os.path.isfile(target)
-        # 変数の内容: f: 読み書きするファイルまたは応答。
+        # 変数の内容: f: 対象ファイルをバイナリ読み込みするファイルオブジェクト。
         with open(target, 'rb') as f:
             # 変数の内容: secret: ログに出てはいけない秘密テスト値。
             secret = f.read()
@@ -2173,7 +2308,9 @@ class TestServeSpaPathTraversal:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /nothing%2F..%2Fmanifest.webmanifest を行い、「dist/foo/../manifest.webmanifest のように dist の中で完結するパスはそのまま返す」に該当するdist応答を取得する。
         resp = TestClient(app).get('/nothing%2F..%2Fmanifest.webmanifest')
+        # 2. HTTPステータス、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         assert '<div id="root">' not in resp.text
 
@@ -2188,10 +2325,12 @@ class TestServeSpaPathTraversal:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 各テストケースで指定されたパスを要求する。
         resp = TestClient(app).get(path)
+        # 2. HTTPステータス、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         assert '<div id="root">' not in resp.text
-        # 変数の内容: f: 読み書きするファイルまたは応答。
+        # 変数の内容: f: 開いたHTMLファイルを読み書きするファイルオブジェクト。
         with open(os.path.join(app_main.DIST, path.lstrip('/')), 'rb') as f:
             assert resp.content == f.read()
 
@@ -2204,6 +2343,8 @@ class TestServeSpaPathTraversal:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. GET /. を行い、「distそのものを指すパスはindex htmlのメタ情報入りを返す」に該当するdist応答を取得する。
         resp = TestClient(app).get('/.')
+        # 2. HTTPステータス、HTML本文 を応答から確認する。
         assert resp.status_code == 200
         assert '<div id="root">' in resp.text

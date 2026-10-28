@@ -72,6 +72,7 @@ def authenticate(email: str, password: str, url: str, anon_key: str) -> tuple[bo
     """
     # 1. パスワード方式のトークン発行 API を呼ぶ。通信の失敗は「認証失敗」と分けて扱う
     try:
+        # 変数の内容: res: Supabase Auth の認証応答。
         res = requests.post(
             f"{url.rstrip('/')}/auth/v1/token",
             params={"grant_type": "password"},
@@ -90,8 +91,10 @@ def authenticate(email: str, password: str, url: str, anon_key: str) -> tuple[bo
 
     # 3. 応答のユーザー情報からメールアドレスを取り出す。形が想定外なら失敗扱いにする
     try:
+        # 変数の内容: user_email: 認証応答から取り出した利用者のメールアドレス。
         user_email = (res.json().get("user") or {}).get("email") or ""
     except ValueError:
+        # 変数の内容: user_email: 認証応答から取り出した利用者のメールアドレス。
         user_email = ""
     if not user_email:
         logger.error("Supabase Auth の応答にメールアドレスがありません")
@@ -198,10 +201,13 @@ def require_login() -> str:
     # 3. ログインフォーム（送信ボタンを押すまで再実行されないよう st.form にする）。
     #    送信後は入力欄を空にし、パスワードが画面の部品の状態に残らないようにする
     with st.form("login_form", clear_on_submit=True):
+        # 変数の内容: input_email: ログインフォームに入力されたメールアドレス。
         input_email = st.text_input("メールアドレス", autocomplete="username")
+        # 変数の内容: input_password: ログインフォームに入力されたパスワード。
         input_password = st.text_input(
             "パスワード", type="password", autocomplete="current-password", key=SESSION_PASSWORD_INPUT,
         )
+        # 変数の内容: submitted: ログインフォームが送信されたかを示す値。
         submitted = st.form_submit_button("ログイン", type="primary")
 
     if submitted:

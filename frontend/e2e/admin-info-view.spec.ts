@@ -22,6 +22,7 @@ const FIXED_NOW = new Date('2026-10-16T12:00:00+09:00')
 /**
  * 偽の管理者セッションを入れ、Supabase への通信を遮断する
  * @param page - 対象ページ（goto より前に呼ぶ）
+ * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
 async function useFakeAdminSession(page: Page) {
   // 1. Supabase（認証・DB）への通信をすべて遮断する
@@ -47,6 +48,7 @@ async function useFakeAdminSession(page: Page) {
 /**
  * 横スクロールが出ていないことを確かめる（document・body・管理画面の main の3つ）
  * @param page - 対象ページ
+ * @returns なし。横スクロールがないことを検証する。
  */
 async function expectNoHorizontalScroll(page: Page) {
   const sizes = await page.evaluate(() => {
@@ -69,6 +71,7 @@ async function expectNoHorizontalScroll(page: Page) {
  * @param page - 対象ページ
  * @param locator - 対象の要素
  * @param label - 失敗時のメッセージに出す要素名
+ * @returns なし。要素が画面の横幅内に収まることを検証する。
  */
 async function expectWithinViewportX(page: Page, locator: Locator, label: string) {
   await locator.scrollIntoViewIfNeeded()
@@ -84,6 +87,7 @@ async function expectWithinViewportX(page: Page, locator: Locator, label: string
  * 「出店料」はセクション見出しにもあるため、行ラベルである最後の一致を使う
  * @param page - 対象ページ
  * @param label - 行のラベル
+ * @returns 確認画面で指定したラベルを持つ行の Locator。
  */
 function viewRow(page: Page, label: string): Locator {
   return page.getByText(label, { exact: true }).last().locator('..')
@@ -94,6 +98,7 @@ function viewRow(page: Page, label: string): Locator {
  * @param page - 対象ページ
  * @param label - ラベルの文字（完全一致）
  * @param tag - 取り出す要素（input または select）
+ * @returns 指定したラベルに対応する input または select の Locator。
  */
 function editField(page: Page, label: string, tag: 'input' | 'select' = 'input'): Locator {
   return page.locator('label').filter({ hasText: new RegExp(`^${label}$`) }).locator('..').locator(tag)
@@ -103,6 +108,7 @@ function editField(page: Page, label: string, tag: 'input' | 'select' = 'input')
  * 編集画面で管理情報の全項目を入力して保存し、確認画面に戻るまで待つ
  * （スクリーンショット用に、確認画面のすべてのカードに値が入った状態を作る）
  * @param page - 編集画面を開いたページ
+ * @returns なし。管理情報を入力して保存し、確認画面を表示する。
  */
 async function fillAllAndSave(page: Page) {
   // 1. 搬入・搬出の日付・時・分
@@ -132,6 +138,7 @@ async function fillAllAndSave(page: Page) {
  * 2枚目は一時的に画面の高さを main の中身の高さまで広げて撮り、撮ったら元の大きさに戻す
  * @param page - 対象ページ
  * @param name - ファイル名（拡張子なし）
+ * @returns なし。指定名の画面キャプチャを保存する。
  */
 async function saveScreenshots(page: Page, name: string) {
   // 1. 開いたときに見える範囲
@@ -248,11 +255,13 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
   })
 
   test('変更が無いとき編集画面の「← 戻る」は確認ダイアログを出さずに確認画面へ戻る', async ({ page }) => {
+    // 1. 未変更の編集画面を開き、確認ダイアログを監視する
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
     /** ダイアログが出たかどうか */
     let dialogShown = false
     page.on('dialog', (d) => { dialogShown = true; void d.dismiss() })
+    // 2. 確認なしで確認画面に戻ることを確かめる
     await page.getByRole('link', { name: '← 戻る' }).click()
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
     expect(dialogShown).toBe(false)
@@ -338,10 +347,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
   })
 
   test('全項目を入力して保存すると、搬入・搬出（曜日つき）・金額・支払い方法・期限・「期限切れ」・メモが確認画面に表示される', async ({ page }) => {
+    // 1. 管理情報の編集画面を開き、全項目を入力して保存する
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('搬入日時')).toBeVisible()
     await fillAllAndSave(page)
 
+    // 2. 保存後の確認画面で、日時・金額・支払い状態・メモを検証する
     await expect(viewRow(page, '搬入日時')).toContainText('2026年10月24日（土） 09:00')
     await expect(viewRow(page, '搬出日時')).toContainText('2026年10月25日（日） 18:30')
     await expect(viewRow(page, 'ホテル名')).toContainText('ホテル確認テスト')
@@ -364,11 +375,13 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
   })
 
   test('確認画面で出店要項のサムネイルを押すと拡大表示が開き、閉じるで閉じる', async ({ page }) => {
+    // 1. 確認画面で2枚目のサムネイルを拡大する
     await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
     await page.getByRole('button', { name: '出店要項の画像 2 を拡大表示' }).click()
     const dialog = page.getByRole('dialog', { name: '出店要項の画像の拡大表示' })
     await expect(dialog).toBeVisible()
     await expect(dialog.getByText('2 / 3')).toBeVisible()
+    // 2. 表示画像を次へ切り替えた後、閉じる操作でダイアログを閉じる
     await expect(dialog.getByRole('img')).toHaveAttribute('src', '/img/logo-habitatoides.png')
     await dialog.getByRole('button', { name: /次へ/ }).click()
     await expect(dialog.getByText('3 / 3')).toBeVisible()

@@ -35,6 +35,7 @@ class TestListChatQA:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、order: 処理対象の注文。
+        # 1. 未ログインの一覧は sort_order 順に並べ、enabled=True で絞った結果を返すこと。
         mock_sb = MagicMock()
         order = mock_sb.table.return_value.select.return_value.order.return_value
         # 変数の内容: order.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -58,6 +59,7 @@ class TestListChatQA:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、order: 処理対象の注文。
+        # 1. 公開の GET /api/chat-qa は enabled=True で絞り、無効な Q&A を返さないこと。
         mock_sb = MagicMock()
         order = mock_sb.table.return_value.select.return_value.order.return_value
         # 変数の内容: order.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、order.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -80,6 +82,7 @@ class TestListChatQA:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. レコードが 0 件のとき空リストが返ること。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.return_value.data = []
@@ -98,6 +101,7 @@ class TestListChatQA:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. admin_supabase が例外を投げたとき 500 が返り、応答に内部の例外の文字列が含まれないこと。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
         mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.side_effect = Exception('DB error')
@@ -117,6 +121,7 @@ class TestListChatQA:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. GET /api/chat-qa は認証不要のため Authorization ヘッダーなしでも 200 が返ること。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.order.return_value.eq.return_value.execute.return_value.data = QA_DATA
@@ -134,6 +139,7 @@ class TestListChatQA:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
+        # 1. ?all=true（無効を含む全件）は管理者専用のため、未ログインでは 401 になりDBを読まないこと。
         mock_sb = MagicMock()
 
         with patch('app.routes.chat_qa.admin_supabase', mock_sb):
@@ -150,6 +156,7 @@ class TestListChatQA:
             なし。
         """
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、order: 処理対象の注文。
+        # 1. 管理者としてログインして ?all=true を指定すると enabled で絞らず全件が返ること。
         mock_sb = MagicMock()
         order = mock_sb.table.return_value.select.return_value.order.return_value
         # 変数の内容: order.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -173,6 +180,7 @@ class TestAddChatQA:
         Returns:
             なし。
         """
+        # 1. POST /api/chat-qa で Q&A を追加したとき、作成後のレコードが返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、new_qa: 新規登録する Q&A テストデータ。
@@ -199,6 +207,7 @@ class TestAddChatQA:
         Returns:
             なし。
         """
+        # 1. question フィールドが欠けると 422 バリデーションエラーが返ること。
         from app.auth import require_auth
 
         app.dependency_overrides[require_auth] = lambda: None
@@ -216,6 +225,7 @@ class TestAddChatQA:
         Returns:
             なし。
         """
+        # 1. answer フィールドが欠けると 422 バリデーションエラーが返ること。
         from app.auth import require_auth
 
         app.dependency_overrides[require_auth] = lambda: None
@@ -234,6 +244,7 @@ class TestAddChatQA:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで POST すると 401 が返ること。
         resp = TestClient(app).post('/api/chat-qa', json=VALID_QA_PAYLOAD)
         assert resp.status_code == 401
 
@@ -247,6 +258,7 @@ class TestUpdateChatQA:
         Returns:
             なし。
         """
+        # 1. PATCH /api/chat-qa/{id} で Q&A を更新したとき、更新後のレコードが返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック、updated_qa: 更新後の Q&A テストデータ。
@@ -276,6 +288,7 @@ class TestUpdateChatQA:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで PATCH すると 401 が返ること。
         resp = TestClient(app).patch('/api/chat-qa/q1', json=VALID_QA_PAYLOAD)
         assert resp.status_code == 401
 
@@ -289,6 +302,7 @@ class TestDeleteChatQA:
         Returns:
             なし。
         """
+        # 1. DELETE /api/chat-qa/{id} で削除したとき {"ok": True} が返ること。
         from app.auth import require_auth
 
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
@@ -314,5 +328,6 @@ class TestDeleteChatQA:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. Authorization ヘッダーなしで DELETE すると 401 が返ること。
         resp = TestClient(app).delete('/api/chat-qa/q1')
         assert resp.status_code == 401

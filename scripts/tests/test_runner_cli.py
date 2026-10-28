@@ -11,7 +11,10 @@ class TestRunnerCliArguments(unittest.TestCase):
     """CLIの既定値・全オプション・矛盾する指定の拒否を確認する。"""
 
     def test引数なしでは全suite実行用の既定値を返す(self):
-        """未指定の対象はNone、フラグはFalse、noteは空文字である。"""
+        """未指定の対象はNone、フラグはFalse、noteは空文字である。
+
+        Returns:
+            なし。"""
         # 1. 引数を空にして標準の既定値を解析する。
         # args: 全CLIオプションを省略したときの解析結果。
         args = runner_cli.parse_arguments([])
@@ -25,7 +28,10 @@ class TestRunnerCliArguments(unittest.TestCase):
         self.assertFalse(args.analytics)
 
     def test全CLIオプションと複数の対象パスを個別に解析する(self):
-        """note・各省略/追加フラグ・3種類の対象パスを混同せず保持する。"""
+        """note・各省略/追加フラグ・3種類の対象パスを混同せず保持する。
+
+        Returns:
+            なし。"""
         # 1. 全オプションと複数の対象ファイルを渡して解析する。
         # args: オプション指定を反映したCLI解析結果。
         args = runner_cli.parse_arguments([
@@ -46,7 +52,10 @@ class TestRunnerCliArguments(unittest.TestCase):
         self.assertTrue(args.analytics)
 
     def testno_e2e単独指定を省略フラグとして解析する(self):
-        """E2E省略だけを指定した場合はe2e対象なしでno_e2eを有効にする。"""
+        """E2E省略だけを指定した場合はe2e対象なしでno_e2eを有効にする。
+
+        Returns:
+            なし。"""
         # 1. E2E対象ファイルを伴わない省略フラグを解析する。
         # args: E2E省略フラグだけを反映した解析結果。
         args = runner_cli.parse_arguments(["--no-e2e"])
@@ -55,7 +64,10 @@ class TestRunnerCliArguments(unittest.TestCase):
         self.assertIsNone(args.e2e)
 
     def testno_e2eとe2e同時指定は終了コード2と説明付きstderrになる(self):
-        """矛盾する指定を拒否し、既存CLIの日本語エラー文言をstderrへ出す。"""
+        """矛盾する指定を拒否し、既存CLIの日本語エラー文言をstderrへ出す。
+
+        Returns:
+            なし。"""
         # 1. argparseの標準エラー出力を捕捉して矛盾指定を解析する。
         # stderr: エラー説明を検査するための標準エラー用バッファ。
         stderr = io.StringIO()
@@ -73,7 +85,10 @@ class TestRunnerSuitePlan(unittest.TestCase):
     """固定suiteと選択済みoptional suiteの順序・runner引数を確認する。"""
 
     def _selection(self, **overrides):
-        """指定のないoptional suiteを除外する絞り込み選択を作る。"""
+        """指定のないoptional suiteを除外する絞り込み選択を作る。
+
+        Returns:
+            なし。"""
         # values: Vitestだけを選択するための初期CLI指定。
         values = {
             "vitest_targets": ["src/logic.test.ts"],
@@ -86,7 +101,10 @@ class TestRunnerSuitePlan(unittest.TestCase):
         return runner_selection.select_tests(**values)
 
     def _runners(self):
-        """7 suite分の呼び出し記録用runnerを返す。"""
+        """7 suite分の呼び出し記録用runnerを返す。
+
+        Returns:
+            なし。"""
         # 1. 各runnerの呼び出しと引数を記録するMockをまとめて返す。
         return runner_plan.SuiteRunners(
             tsc=Mock(name="tsc"),
@@ -99,7 +117,10 @@ class TestRunnerSuitePlan(unittest.TestCase):
         )
 
     def test固定三suiteの後に選択optionalを所定の順で追加する(self):
-        """optional全対象をVitest・Playwright・Backend・Analytics順に並べる。"""
+        """optional全対象をVitest・Playwright・Backend・Analytics順に並べる。
+
+        Returns:
+            なし。"""
         # selection: optional 4 suiteをすべて有効にした選択結果。
         selection = self._selection(
             e2e_targets=["e2e/home.spec.ts"],
@@ -132,7 +153,10 @@ class TestRunnerSuitePlan(unittest.TestCase):
         )
 
     def test各suiteのrunnerへ指定targetsを束縛する(self):
-        """optional suiteを実行すると、構築時に渡した対象リストで呼び出す。"""
+        """optional suiteを実行すると、構築時に渡した対象リストで呼び出す。
+
+        Returns:
+            なし。"""
         # selection: 3種類の対象suiteとAnalyticsを実行する選択結果。
         selection = self._selection(
             e2e_targets=["e2e/plant.spec.ts"],
@@ -159,7 +183,10 @@ class TestRunnerSuitePlan(unittest.TestCase):
         runners.analytics.assert_called_once_with()
 
     def test未選択optional_suiteを追加しない(self):
-        """Vitestだけ選んだ場合、残りoptional suiteは計画にも呼び出しにも現れない。"""
+        """Vitestだけ選んだ場合、残りoptional suiteは計画にも呼び出しにも現れない。
+
+        Returns:
+            なし。"""
         # selection: Vitestのみを選び、他optional suiteを省略する結果。
         selection = self._selection()
         # runners: 固定・optional suiteの実行有無を追跡するMock一式。

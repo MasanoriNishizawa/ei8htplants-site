@@ -47,16 +47,19 @@ def select_tests(
         実行対象、ログに残す対象名、省略理由をまとめた値。
     """
     # 1. いずれかのselectorがあれば指定枠だけに絞り、no-e2e単独は他枠を全件実行する。
+    # narrowed / partial: テスト対象の絞り込み有無と、全件でない実行かを示す状態。
     narrowed = any(
         targets is not None for targets in (vitest_targets, e2e_targets, pytest_targets)
     ) or analytics
     partial = narrowed or no_e2e
+    # run_*: CLI指定に基づき、それぞれのテストsuiteを実際に起動するか。
     run_vitest = not narrowed or vitest_targets is not None
     run_playwright = not no_e2e and (not narrowed or e2e_targets is not None)
     run_pytest = not narrowed or pytest_targets is not None
     run_analytics = not narrowed or analytics
 
     # 2. 実行しないテスト枠ごとに、ログへ出す理由を決める。
+    # skipped_suites: suite名と省略理由を実行ログへ残す一覧。
     skipped_suites: list[tuple[str, str]] = []
     if not run_vitest:
         skipped_suites.append(("フロントのロジック（Vitest）", "省略（関連なし）"))
@@ -69,6 +72,7 @@ def select_tests(
         skipped_suites.append(("分析ダッシュボード（pytest）", "省略（関連なし）"))
 
     # 3. 絞り込み実行とno-e2e単独実行のログ対象を、現行ラベルと順序で作る。
+    # targets: 実行ログに記録するsuite・ファイルの表示名。全件実行時はNone。
     targets: list[str] | None = None
     if partial:
         targets = (

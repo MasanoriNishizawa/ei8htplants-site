@@ -11,6 +11,7 @@ import { test, expect, type Page } from '@playwright/test'
 /**
  * 偽の管理者セッションを入れ、Supabase への通信を遮断する（admin-info-carry.spec.ts と同じ）
  * @param page - 対象ページ（goto より前に呼ぶ）
+ * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
@@ -34,6 +35,7 @@ async function useFakeAdminSession(page: Page) {
 /**
  * 横スクロールが出ていないかを確かめる（文書の幅が画面の幅を超えていない）
  * @param page - 対象ページ
+ * @returns なし。横スクロールがないことを検証する。
  */
 async function expectNoHorizontalScroll(page: Page) {
   // 文書全体と、管理画面で中身だけがスクロールする <main> の両方を確かめる
@@ -59,11 +61,13 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
   })
 
   test('出店料の支払いは期限切れ→期限間近→期限未設定の順に並び、支払い済みは出ない', async ({ page }) => {
+    // 1. 固定した日付でダッシュボードを開き、支払い一覧を読み込む
     await page.goto('/admin')
     const section = page.getByRole('region', { name: '出店料の支払い' })
     const rows = section.getByTestId('dashboard-payment-row')
     // 開発サーバーの最初の読み込みは遅いことがあるので長めに待つ
     await expect(rows).toHaveCount(3, { timeout: 20000 })
+    // 2. 期限状態ごとの順序・表示内容と、支払い済みイベントの除外を確かめる
     await expect(rows.nth(0)).toHaveAttribute('data-due-status', 'overdue')
     await expect(rows.nth(0)).toContainText('Habitat Exhibition 2026')
     await expect(rows.nth(0)).toContainText('期限切れ')
@@ -79,10 +83,12 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
   })
 
   test('今後の搬入予定は今日から60日以内に始まるイベントだけが出る', async ({ page }) => {
+    // 1. 固定日付のダッシュボードを開き、搬入予定を読み込む
     await page.goto('/admin')
     const section = page.getByRole('region', { name: '今後の搬入予定' })
     const rows = section.getByTestId('dashboard-carry-in-row')
     await expect(rows).toHaveCount(1)
+    // 2. 60日以内の予定の詳細と、範囲外・終了済みイベントの除外を確かめる
     await expect(rows.first()).toContainText('Green Market 2027')
     await expect(rows.first()).toContainText('代々木公園 イベント広場')
     await expect(rows.first()).toContainText('2027年4月5日（月） 08:00')
@@ -93,8 +99,10 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
   })
 
   test('行を押すと管理情報の確認画面に移り、戻るリンクでダッシュボードに戻れる', async ({ page }) => {
+    // 1. ダッシュボードの支払い行から対象イベントを開く
     await page.goto('/admin')
     await page.getByRole('region', { name: '出店料の支払い' }).getByTestId('dashboard-payment-row').first().click()
+    // 2. 管理情報画面の戻るリンクがダッシュボードを指し、戻れることを確かめる
     await expect(page).toHaveURL(/\/admin\/events\/mock-past-1\/admin-info$/)
     // state.from に /admin が渡っているので「← 戻る」はダッシュボードへ戻る（無ければイベント一覧へ戻る）
     const back = page.getByRole('link', { name: '← 戻る' })
@@ -108,9 +116,11 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
   // API は MSW のサービスワーカーが応答するため、page.route では 500 に差し替えられない
 
   test('375px 幅でもダッシュボードに横スクロールが出ない', async ({ page }) => {
+    // 1. 375px の表示幅でダッシュボードを開く
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/admin')
     await expect(page.getByTestId('dashboard-payment-row')).toHaveCount(3)
+    // 2. 一覧件数・横幅・各行の画面内配置を確認する
     await expect(page.getByTestId('dashboard-carry-in-row')).toHaveCount(1)
     await expectNoHorizontalScroll(page)
     // 各行が画面の幅に収まっている
@@ -123,7 +133,11 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
 })
 
 test.describe('サイドメニューでの未保存の変更の確認', () => {
-  /** 管理情報の編集画面を開き、ホテル名を入力して未保存の状態にする */
+  /**
+   * 管理情報の編集画面を開き、ホテル名を入力して未保存の状態にする
+   * @param page - 対象の管理画面ページ
+   * @returns なし。未保存の変更がある編集画面を用意する。
+   */
   async function openDirtyEditor(page: Page) {
     await page.goto('/admin/events/mock-past-1/admin-info/edit')
     await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
@@ -131,33 +145,40 @@ test.describe('サイドメニューでの未保存の変更の確認', () => {
   }
 
   test('未保存でサイドメニューの別の画面を押し、キャンセルすると移動しない', async ({ page }) => {
+    // 1. 編集画面に未保存変更を作り、移動確認をキャンセルする
     await openDirtyEditor(page)
     const messages: string[] = []
     page.once('dialog', async (d) => { messages.push(d.message()); await d.dismiss() })
     await page.getByRole('complementary').getByRole('link', { name: 'ギャラリー' }).click()
+    // 2. 確認文言・URL・入力値が保たれたことを確かめる
     await expect.poll(() => messages).toEqual(['保存していない変更があります。破棄して移動しますか？'])
     await expect(page).toHaveURL(/\/admin\/events\/mock-past-1\/admin-info\/edit$/)
     await expect(page.locator('input[type="date"]').first()).toHaveValue('2099-01-02')
   })
 
   test('未保存でサイドメニューの別の画面を押し、OK すると移動する', async ({ page }) => {
+    // 1. 編集画面に未保存変更を作り、移動確認を承認する
     await openDirtyEditor(page)
     page.once('dialog', (d) => d.accept())
+    // 2. 確認後にギャラリーへ移動することを確かめる
     await page.getByRole('complementary').getByRole('link', { name: 'ギャラリー' }).click()
     await expect(page).toHaveURL(/\/admin\/gallery$/)
   })
 
   test('未保存の変更が無ければ確認なしで移動する', async ({ page }) => {
+    // 1. 変更を加えず編集画面を開き、確認ダイアログを監視する
     await page.goto('/admin/events/mock-past-1/admin-info/edit')
     await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs++; await d.dismiss() })
+    // 2. サイドメニューから移動でき、ダイアログが発生しないことを確認する
     await page.getByRole('complementary').getByRole('link', { name: 'ギャラリー' }).click()
     await expect(page).toHaveURL(/\/admin\/gallery$/)
     expect(dialogs).toBe(0)
   })
 
   test('375px 幅のメニュー（ドロワー）でも未保存ならキャンセルで移動しない', async ({ page }) => {
+    // 1. 375px 幅で未保存変更を作り、ドロワーを開く
     await page.setViewportSize({ width: 375, height: 812 })
     await openDirtyEditor(page)
     // モバイルのヘッダーにあるメニューボタンでドロワーを開く

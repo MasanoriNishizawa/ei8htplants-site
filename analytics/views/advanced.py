@@ -154,6 +154,7 @@ def _forecast_details(details: pd.DataFrame) -> None:
         "時期を考慮した実質の回数": [f"{float(n):.1f}" for n in details["n_eff"]],
         # 中央値は時期の重み付き。同じイベントの重みが小さく見込みにほとんど効いていない行は出さない
         "過去の売上の中央値": [
+            # 変数の内容: shown: 重みが小さすぎる値を除外した、画面表示用の過去売上中央値。
             yen(shown) if (shown := displayed_median(m, w)) is not None else "なし（全体の実績で見込み）"
             for m, w in zip(details["median_past"], details["weight"])
         ],
@@ -209,12 +210,14 @@ def _factors(done: pd.DataFrame) -> None:
     col, unit = FACTORS[label]
     # 1. 実績を点で打ち、直線を当てはめる
     fit = fit_linear(done[col], done["sales"])
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = go.Figure(go.Scatter(
         x=done[col], y=done["sales"], mode="markers", name="イベント",
         marker=dict(size=10, color=SERIES[0], line=dict(color="white", width=2)),
         customdata=done[["name"]], hovertemplate=f"%{{customdata[0]}}<br>{label} %{{x:,}}{unit}<br>売上 %{{y:,.0f}}円<extra></extra>",
     ))
     if fit:
+        # 変数の内容: xs: 回帰直線を描くための等間隔な説明変数の値。
         xs = np.linspace(done[col].min(), done[col].max(), TREND_LINE_POINTS)
         fig.add_scatter(x=xs, y=fit["slope"] * xs + fit["intercept"], mode="lines", name="傾向の直線",
                         line=dict(color=SERIES[1], width=2), hoverinfo="skip")
@@ -225,6 +228,7 @@ def _factors(done: pd.DataFrame) -> None:
     if not fit:
         st.caption("この項目は値がほぼ同じなので、関係を調べられません。")
         return
+    # 変数の内容: strength: 決定係数から判定した、指標と売上の関係の強さ。
     strength = "強い" if fit["r2"] >= R2_STRONG else "ある程度の" if fit["r2"] >= R2_MODERATE else "ほとんど"
     st.caption(
         f"{label}が 1{unit} 増えると、売上は平均で {yen(fit['slope'])} 変わる傾向です。"
@@ -245,19 +249,30 @@ def _simulator(done: pd.DataFrame) -> None:
     st.caption("条件を入れると、管理画面と同じ式で収支を計算します。見込み売上には WS の参加費も含めてください。")
     # 1. 条件の入力（初期値は過去の実績の中央値）
     c1, c2, c3 = st.columns(3)
+    # 変数の内容: sales: シミュレーターに入力された見込み売上（円）。
     sales = c1.number_input("見込み売上（円）", 0, step=5000, value=int(done["sales"].median()))
+    # 変数の内容: booth: シミュレーターに入力された出店料（円）。
     booth = c1.number_input("出店料（円）", 0, step=1000, value=int(done["booth_fee"].median()))
+    # 変数の内容: distance: シミュレーターに入力された片道距離（km）。
     distance = c2.number_input("片道の距離（km）", 0, step=10, value=int(done["distance"].median()))
+    # 変数の内容: gas: シミュレーターに入力されたガソリン単価（円/L）。
     gas = c2.number_input("ガソリン単価（円/L）", 0, step=5, value=_default_gas_price(done))
+    # 変数の内容: toll: シミュレーターに入力された高速代（円）。
     toll = c2.number_input("高速代（円）", 0, step=500, value=0)
+    # 変数の内容: hotel: シミュレーターに入力された宿泊費（円）。
     hotel = c3.number_input("宿泊費（円）", 0, step=1000, value=0)
+    # 変数の内容: other: シミュレーターに入力されたその他支出（円）。
     other = c3.number_input("その他支出（円）", 0, step=1000, value=0)
+    # 変数の内容: ws: シミュレーターに入力されたワークショップ参加人数。
     ws = c3.number_input("WS 参加見込み（人）", 0, step=1, value=0)
+    # 変数の内容: helper: 手伝い支払いを収支に含めるかを示す入力値。
     helper = st.toggle("手伝い支払いあり", value=True)
 
     # 2. 収支と損益分岐点を計算する
     fin = finance_row(sales, booth, distance, gas, toll, hotel, other, ws, helper)
+    # 変数の内容: result: 入力条件から計算した収支と支出内訳。
     result = compute_finances(fin, has_workshop=ws > 0)
+    # 変数の内容: be: 入力条件で収支がゼロになる損益分岐売上（円）。
     be = break_even_sales(fin, has_workshop=ws > 0)
     # 3. 過去の売上のうち、損益分岐を超えていた回の割合 ＝ 同じ条件なら黒字になった確率の目安
     p_win = float((done["sales"] >= be).mean())

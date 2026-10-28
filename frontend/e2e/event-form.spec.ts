@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 
-// 開催時間ラベルの2階層上の div 以下にある select 要素（開始・終了の2つ）を取得する
+/**
+ * 「開催時間」ラベルの2階層上にある div から開始・終了の select 要素を取得する
+ * @param page - 対象の管理画面ページ
+ * @returns 開始時刻と終了時刻の select 要素をまとめた Locator
+ */
 function timeSelects(page: Parameters<typeof test>[1] extends (args: { page: infer P }) => unknown ? P : never) {
   return page.locator('label', { hasText: '開催時間' }).locator('..').locator('..').locator('select')
 }
@@ -12,6 +16,7 @@ test.describe('イベントフォーム 開催時間プルダウン', () => {
   })
 
   test('開始と終了を両方選ぶとそれぞれ反映される', async ({ page }) => {
+    // 1. 新規イベントフォームを開き、開始・終了時刻を選択する
     await page.goto('/admin/events/new')
 
     const sels = timeSelects(page)
@@ -23,6 +28,7 @@ test.describe('イベントフォーム 開催時間プルダウン', () => {
   })
 
   test('開始だけ選んでも終了プルダウンは初期値のまま', async ({ page }) => {
+    // 1. 新規イベントフォームで開始時刻だけを選ぶ
     await page.goto('/admin/events/new')
 
     const sels = timeSelects(page)
@@ -42,40 +48,40 @@ test.describe('イベントフォーム 開催時間プルダウン', () => {
   })
 
   test('既存イベント編集時にプルダウンで時間を変更すると変更後の値が表示される', async ({ page }) => {
-    // mock-upcoming-1 は time: '10:00〜17:00'。ロード後に開始・終了をそれぞれ変更する
+    // 1. 開始・終了時刻を持つ既存イベントを開く
     await page.goto('/admin/events/mock-upcoming-1/edit')
 
     const sels = timeSelects(page)
-    // ロード後の初期値を確認
+    // 2. 読み込み後の開始・終了時刻がモックどおりか確認する
     await expect(sels.nth(0)).toHaveValue('10:00')
     await expect(sels.nth(1)).toHaveValue('17:00')
 
-    // 開始時間を変更
+    // 3. 開始時刻だけを変更し、終了時刻が維持されることを確認する
     await sels.nth(0).selectOption('11:00')
     await expect(sels.nth(0)).toHaveValue('11:00')
     await expect(sels.nth(1)).toHaveValue('17:00')
 
-    // 終了時間を変更
+    // 4. 終了時刻も変更し、両方の更新値を確認する
     await sels.nth(1).selectOption('18:00')
     await expect(sels.nth(0)).toHaveValue('11:00')
     await expect(sels.nth(1)).toHaveValue('18:00')
   })
 
   test('time が null のイベントを編集するとき、開始・終了を両方選べば値が表示される', async ({ page }) => {
-    // mock-no-time は time: null。--/-- から始まり、両方選ぶと表示・保存される
+    // 1. 時刻が未設定の既存イベントを開く（モック値は time: null）
     await page.goto('/admin/events/mock-no-time/edit')
 
     const sels = timeSelects(page)
-    // 初期状態は両方 --
+    // 2. 初期状態では開始・終了がどちらも未選択であることを確認する
     await expect(sels.nth(0)).toHaveValue('')
     await expect(sels.nth(1)).toHaveValue('')
 
-    // 開始だけ選んだ時点では終了はまだ --
+    // 3. 開始時刻だけを選び、終了時刻は未選択のままか確認する
     await sels.nth(0).selectOption('10:00')
     await expect(sels.nth(0)).toHaveValue('10:00')
     await expect(sels.nth(1)).toHaveValue('')
 
-    // 終了も選ぶと両方表示される
+    // 4. 終了時刻を選び、両方の選択値が表示されることを確認する
     await sels.nth(1).selectOption('16:00')
     await expect(sels.nth(0)).toHaveValue('10:00')
     await expect(sels.nth(1)).toHaveValue('16:00')

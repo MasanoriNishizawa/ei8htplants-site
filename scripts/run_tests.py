@@ -61,7 +61,9 @@ except ImportError:
     )
     from runner_selection import select_tests
 
+# ROOT: scripts/ の親にあるプロジェクトルート。
 ROOT = Path(__file__).resolve().parent.parent
+# LOG: 自動実行結果を追加するテスト実行ログ。
 LOG = ROOT / "doc/04_TEST/08_テスト実行ログ.md"
 
 
@@ -102,6 +104,7 @@ def run_tsc() -> dict:
     """
     # frontend/tsconfig.json は files: []（参照をまとめるだけ）なので、アプリのコードを含む tsconfig.app.json を指定する。
     # 指定しないと何も検査せずに成功してしまう
+    # code / out / sec: 型チェックの終了コード・出力・経過秒数。
     code, out, sec = run(["npx", "tsc", "--noEmit", "-p", "tsconfig.app.json"], ROOT / "frontend")
     return parse_tsc_result(code, out, sec)
 
@@ -119,18 +122,22 @@ def run_build() -> dict:
     Args:
         なし。
     """
+    # frontend: frontendの作業ディレクトリ。
     frontend = ROOT / "frontend"
+    # start: tscからviteまでのビルド総時間を測る開始時刻。
     start = time.monotonic()
     # 1. ビルド時の型チェック（npm run build の前半と同じ）
     code, out, _ = run(["npx", "tsc", "-b"], frontend)
     if code != 0:
         return parse_build_result(code, out, time.monotonic() - start, "tsc")
     # 2. 一時フォルダに本番ビルドする（npm run build の後半と同じ。モードは production）
+    # tmp: 生成物検査用の一時出力先。実リポジトリのdistは変更しない。
     with tempfile.TemporaryDirectory() as tmp:
         code, out, _ = run(["npx", "vite", "build", "--outDir", tmp, "--emptyOutDir"], frontend)
         if code != 0:
             return parse_build_result(code, out, time.monotonic() - start, "vite")
         # 3. 本番用の出力に、開発用のダミートークンの文字列が残っていないこと（devAuth.ts の安全確認）
+        # leaked: 開発用ダミートークンを含んでいたJavaScript成果物の相対パス。
         leaked = [
             str(p.relative_to(tmp)) for p in Path(tmp).rglob("*.js")
             if "dev-skip-admin-auth" in p.read_text(encoding="utf-8", errors="ignore")
@@ -175,6 +182,7 @@ def run_pytest(targets: list[str] | None = None) -> dict:
     Returns:
         件数・終了コード・診断を含むpytest結果dict。
     """
+    # backend: pytestを実行するバックエンドの作業ディレクトリ。
     backend = ROOT / "backend"
     if not backend.exists():
         return {
@@ -182,6 +190,7 @@ def run_pytest(targets: list[str] | None = None) -> dict:
             "passed": 0, "failed": 0, "skipped": 0, "xfail": 0,
             "failed_names": [], "tail": ["backend/ ディレクトリがないためスキップ"],
         }
+    # venv_python / python_cmd: backend専用環境があれば優先し、なければ現在のPythonを使う。
     venv_python = backend / ".venv" / "bin" / "python"
     python_cmd = str(venv_python) if venv_python.exists() else sys.executable
     code, out, sec = run([python_cmd, "-m", "pytest", "-rfE", *(targets or [])], backend)
@@ -200,8 +209,11 @@ def run_analytics() -> dict:
     Args:
         なし。
     """
+    # name: ログと表示に使う分析suite名。
     name = "分析ダッシュボード（pytest）"
+    # analytics: 分析ダッシュボードの作業ディレクトリ。
     analytics = ROOT / "analytics"
+    # venv_python: 分析suiteの依存ライブラリを含む専用Python実行ファイル。
     venv_python = analytics / ".venv" / "bin" / "python"
     # 1. フォルダか仮想環境が無ければスキップ（失敗扱いにはしない）
     if not venv_python.exists():
@@ -212,6 +224,7 @@ def run_analytics() -> dict:
             "skip_reason": "analytics/.venv がないため実行をスキップ",
         }
     # 2. analytics の中で tests を実行し、件数と失敗したテスト名を取り出す
+    # code / out / sec: 分析suiteのpytest終了コード・出力・実行秒数。
     code, out, sec = run([str(venv_python), "-m", "pytest", "tests", "-rfE"], analytics)
     return parse_pytest_result(name, code, out, sec)
 
@@ -225,7 +238,9 @@ def run_runner_tests() -> dict:
     Returns:
         unittestの件数・終了コード・診断を含む結果dict。
     """
+    # tests_dir: テストランナー自身のunittestを置くフォルダ。
     tests_dir = ROOT / "scripts" / "tests"
+    # code / out / sec: runner回帰テストの終了コード・出力・実行秒数。
     code, out, sec = run(
         [sys.executable, "-m", "unittest", "discover", "-s", str(tests_dir)], ROOT
     )
@@ -241,9 +256,11 @@ def git_info() -> str:
     Returns:
         commit短縮番号。未コミット変更があればその表示も含む。
     """
+    # head: 作業中のリビジョン短縮番号。
     head = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True
     ).stdout.strip()
+    # dirty: テストログ自体を除いた未コミット変更の一覧。
     dirty = subprocess.run(
         ["git", "status", "--porcelain", "--", ".", ":!doc/04_TEST/08_テスト実行ログ.md"],
         cwd=ROOT, capture_output=True, text=True
@@ -326,7 +343,7 @@ def main() -> int:
     # skipped_suites: 初期選択または中断による未実行suiteとその理由。
     skipped_suites = execution.skipped_suites
 
-    # text: 画面表示と必要に応じたファイル追記に使うMarkdown記録。
+    # text: 標準出力とログファイルに使う、今回の実行記録Markdown。
     text = make_entry(results, args.note, skipped_suites, selection.targets)
     print("\n" + text)
 

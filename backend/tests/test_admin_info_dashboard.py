@@ -70,7 +70,6 @@ def _make_sb(events, infos):
             # 変数の内容: q.select.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ、q.select.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
             q.select.return_value.order.return_value.execute.return_value.data = events
         elif name == 'event_admin_info':
-            # 変数の内容: q.select.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
             q.select.return_value.execute.return_value.data = infos
         else:
             raise AssertionError(f'想定外のテーブル: {name}')
@@ -120,6 +119,7 @@ class TestAdminInfoDashboard:
 
         戻り値:
             なし。"""
+        # 1. 認証なしで呼ぶと401になることを確認する。
         app.dependency_overrides.clear()
         # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/api/events/admin-info/dashboard')
@@ -131,6 +131,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: events: 取得したイベントの一覧、infos: イベント管理情報の一覧、items: 応答へ返す項目の一覧、resp: API から返されたレスポンス。
+        # 1. 今後のイベントと未払いの終了済みイベントだけが開始日順で返ることを確認する。
         events = [
             _ev('past-unpaid', '2026-01-01', '2026-01-02'),
             _ev('past-paid', '2026-02-01'),
@@ -157,6 +158,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: info: イベントに紐づく管理情報、item: 一覧から処理する単一項目、resp: API から返されたレスポンス。
+        # 1. 返す値は管理情報の値がそのまま入ることを確認する。
         info = {
             'carry_in_time': '2026-11-01T09:00', 'carry_out_time': '2026-11-02T18:00',
             'hotel_name': 'ホテルA', 'booth_fee': 12000, 'booth_fee_pay_method': '振込',
@@ -181,6 +183,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: item: 一覧から処理する単一項目、resp: API から返されたレスポンス。
+        # 1. 管理情報が無いイベントは各値がnullで支払い済みはfalseになることを確認する。
         resp = self._get([_ev('e1', '2026-11-01')], [])
         item = resp.json()['items'][0]
         # 変数の内容: k: 現在処理する辞書キー。
@@ -194,6 +197,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: item: 一覧から処理する単一項目、resp: API から返されたレスポンス。
+        # 1. infoがdictでない行は管理情報なしとして扱うことを確認する。
         resp = self._get([_ev('e1', '2026-11-01')], [{'event_id': 'e1', 'info': None}])
         item = resp.json()['items'][0]
         assert item['hotel_name'] is None
@@ -216,6 +220,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 終了日が今日以降なら含まれ昨日までなら含まれないことを確認する。
         resp = self._get([_ev('e1', start, end)], [])
         assert (len(resp.json()['items']) == 1) is expected
 
@@ -238,6 +243,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 終了済みイベントは未払いで出店料か期限があるときだけ含まれることを確認する。
         resp = self._get([_ev('old', '2026-05-01', '2026-05-02')], [{'event_id': 'old', 'info': info}])
         assert (len(resp.json()['items']) == 1) is expected
 
@@ -247,6 +253,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: events: 取得したイベントの一覧、resp: API から返されたレスポンス。
+        # 1. DBの並びが崩れていても開始日の昇順に並べ直すことを確認する。
         events = [_ev('c', '2026-12-03'), _ev('a', '2026-11-01'), _ev('b', '2026-11-15')]
         resp = self._get(events, [])
         assert [i['event_id'] for i in resp.json()['items']] == ['a', 'b', 'c']
@@ -257,6 +264,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. 対象が無いときは空のitemsを返すことを確認する。
         resp = self._get([_ev('old', '2020-01-01')], [])
         assert resp.status_code == 200
         assert resp.json() == {'items': []}
@@ -267,6 +275,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. イベントが0件でも空のitemsを返すことを確認する。
         resp = self._get([], [])
         assert resp.json() == {'items': []}
 
@@ -276,6 +285,7 @@ class TestAdminInfoDashboard:
         戻り値:
             なし。"""
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. DBの読み取りで例外が出ると500になることを確認する。
         sb = MagicMock()
         # 変数の内容: sb.table.side_effect: モック呼び出し時に返す例外または副作用。
         sb.table.side_effect = RuntimeError('boom')
@@ -292,6 +302,7 @@ class TestAdminInfoDashboard:
             なし。
         """
         # 変数の内容: resp: API から返されたレスポンス。
+        # 1. /admin-info/dashboard が /{event_id}/... の別ルートに吸われていない。
         resp = self._get([_ev('e1', '2026-11-01')], [])
         assert resp.status_code == 200
         assert 'items' in resp.json()
@@ -303,6 +314,7 @@ class TestAdminInfoDashboard:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
+        # 1. 管理情報が CDN・ブラウザに残らないよう、Authorization 付きの GET は no-store になる。
         sb = _make_sb([_ev('e1', '2026-11-01')], [])
         with patch('app.routes.events.admin_supabase', sb), \
              patch('app.routes.events.today_jst', return_value=TODAY):

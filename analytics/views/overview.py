@@ -37,6 +37,7 @@ def render() -> None:
 
     # 2. 月ごとの売上（棒）と収支（棒）。単位が同じ円なので1つの軸に並べる
     monthly = done.groupby("month")[["sales", "net"]].sum().reset_index()
+    # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = go.Figure()
     fig.add_bar(x=monthly["month"], y=monthly["sales"], name="売上", marker_color=SERIES[0],
                 hovertemplate="%{x|%Y年%-m月}<br>売上 %{y:,.0f}円<extra></extra>")
@@ -48,6 +49,7 @@ def render() -> None:
 
     # 3. 売上の累計（選んだ期間の中でどこまで積み上がったか）
     cum = done.sort_values("start_date").assign(cum=lambda d: d["sales"].cumsum())
+    # 変数の内容: fig2: 売上累計を表示する Plotly グラフ。
     fig2 = go.Figure(go.Scatter(
         x=cum["start_date"], y=cum["cum"], mode="lines+markers", name="累計売上",
         line=dict(color=POSITIVE, width=2), marker=dict(size=8),
@@ -59,7 +61,9 @@ def render() -> None:
 
     # 4. これからのイベント（最終日が今日以降のもの。開催中のイベントも含める）。最終日が無ければ初日で判定する
     ev = ctx.raw["events"]
+    # 変数の内容: last_day: イベントごとの最終開催日。終了日未設定時は開始日。
     last_day = ev["end_date"].fillna(ev["start_date"])
+    # 変数の内容: upcoming: 最終開催日が今日以降のイベント。
     upcoming = ev[last_day >= ctx.today].sort_values("start_date")
     st.subheader(f"今後のイベント（{len(upcoming)}件）")
     if upcoming.empty:

@@ -57,9 +57,11 @@ export default defineConfig({
   ],
   // 開発サーバー: /api への通信を手元のバックエンド（FastAPI・ポート 8000）へ中継する
   server: {
+    // APIの同一オリジン通信をローカルFastAPIへ転送する設定。
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
+        // 転送先ホストをHostヘッダーにも反映し、開発サーバーのホスト名判定を避ける。
         changeOrigin: true,
       },
     },
