@@ -32,7 +32,6 @@
 1 つでも失敗があれば終了コード 1 を返す（コミットしてはいけない合図）。
 """
 import argparse
-import re
 import subprocess
 import sys
 import tempfile
@@ -43,10 +42,18 @@ try:
     # unittest からの読み込みではパッケージ相対、直接実行では同じディレクトリから読み込む。
     from .runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
     from .runner_process import run_process
+    from .runner_results import (
+        num as _parse_number, parse_build_result, parse_playwright_result, parse_pytest_result,
+        parse_runner_tests_result, parse_tsc_result, parse_vitest_result,
+    )
     from .runner_selection import select_tests
 except ImportError:
     from runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
     from runner_process import run_process
+    from runner_results import (
+        num as _parse_number, parse_build_result, parse_playwright_result, parse_pytest_result,
+        parse_runner_tests_result, parse_tsc_result, parse_vitest_result,
+    )
     from runner_selection import select_tests
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -67,9 +74,8 @@ def run(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
 
 
 def num(pattern: str, text: str) -> int:
-    """出力から「〇〇 passed」などの数を取り出す（見つからなければ 0）。"""
-    m = re.findall(pattern, text)
-    return int(m[-1]) if m else 0
+    """従来の呼び出し口を保ち、数値の解析を専用モジュールへ委ねる。"""
+    return _parse_number(pattern, text)
 
 
 def run_tsc() -> dict:
@@ -77,14 +83,7 @@ def run_tsc() -> dict:
     # frontend/tsconfig.json は files: []（参照をまとめるだけ）なので、アプリのコードを含む tsconfig.app.json を指定する。
     # 指定しないと何も検査せずに成功してしまう
     code, out, sec = run(["npx", "tsc", "--noEmit", "-p", "tsconfig.app.json"], ROOT / "frontend")
-    errors = re.findall(r"error TS\d+: .+", out)
-    return {
-        "name": "TypeScript チェック（tsc）", "code": code, "sec": sec,
-        "passed": 0 if code != 0 else 1, "failed": len(errors),
-        "skipped": 0, "xfail": 0,
-        "failed_names": errors[:10],
-        "tail": out.strip().splitlines()[-2:] if out.strip() else [],
-    }
+    return parse_tsc_result(code, out, sec)
 
 
 def run_build() -> dict:
@@ -97,46 +96,25 @@ def run_build() -> dict:
     Returns:
         ほかのテストと同じ形の結果の dict
     """
-    name = "本番ビルド（tsc -b ＋ vite build）"
     frontend = ROOT / "frontend"
     start = time.monotonic()
     # 1. ビルド時の型チェック（npm run build の前半と同じ）
     code, out, _ = run(["npx", "tsc", "-b"], frontend)
-    errors = re.findall(r"error TS\d+: .+", out)
     if code != 0:
-        return {
-            "name": name, "code": code, "sec": time.monotonic() - start,
-            "passed": 0, "failed": max(len(errors), 1), "skipped": 0, "xfail": 0,
-            "failed_names": errors[:10] or ["tsc -b が失敗しました"],
-            "tail": out.strip().splitlines()[-2:] if out.strip() else [],
-        }
+        return parse_build_result(code, out, time.monotonic() - start, "tsc")
     # 2. 一時フォルダに本番ビルドする（npm run build の後半と同じ。モードは production）
     with tempfile.TemporaryDirectory() as tmp:
         code, out, _ = run(["npx", "vite", "build", "--outDir", tmp, "--emptyOutDir"], frontend)
         if code != 0:
-            return {
-                "name": name, "code": code, "sec": time.monotonic() - start,
-                "passed": 0, "failed": 1, "skipped": 0, "xfail": 0,
-                "failed_names": ["vite build が失敗しました"],
-                "tail": out.strip().splitlines()[-3:] if out.strip() else [],
-            }
+            return parse_build_result(code, out, time.monotonic() - start, "vite")
         # 3. 本番用の出力に、開発用のダミートークンの文字列が残っていないこと（devAuth.ts の安全確認）
         leaked = [
             str(p.relative_to(tmp)) for p in Path(tmp).rglob("*.js")
             if "dev-skip-admin-auth" in p.read_text(encoding="utf-8", errors="ignore")
         ]
     if leaked:
-        return {
-            "name": name, "code": 1, "sec": time.monotonic() - start,
-            "passed": 0, "failed": 1, "skipped": 0, "xfail": 0,
-            "failed_names": [f"開発用のダミートークンが本番用の出力に残っています: {', '.join(leaked)}"],
-            "tail": [],
-        }
-    return {
-        "name": name, "code": 0, "sec": time.monotonic() - start,
-        "passed": 1, "failed": 0, "skipped": 0, "xfail": 0,
-        "failed_names": [], "tail": [],
-    }
+        return parse_build_result(1, "", time.monotonic() - start, "token_leak", leaked)
+    return parse_build_result(0, "", time.monotonic() - start, "completed")
 
 
 def run_vitest(targets: list[str] | None = None) -> dict:
@@ -146,15 +124,7 @@ def run_vitest(targets: list[str] | None = None) -> dict:
         targets: 流すテストファイル（frontend/ から見たパス）。None ならすべて
     """
     code, out, sec = run(["npx", "vitest", "run", *(targets or [])], ROOT / "frontend")
-    tests_line = next((l for l in out.splitlines() if l.strip().startswith("Tests")), "")
-    failed_names = re.findall(r"^\s*FAIL\s+(.+)$", out, flags=re.M)
-    return {
-        "name": "フロントのロジック（Vitest）", "code": code, "sec": sec,
-        "passed": num(r"(\d+) passed", tests_line), "failed": num(r"(\d+) failed", tests_line),
-        "skipped": num(r"(\d+) skipped", tests_line), "xfail": 0,
-        "failed_names": failed_names[:10],
-        "tail": [tests_line.strip()],
-    }
+    return parse_vitest_result(code, out, sec)
 
 
 def run_playwright(targets: list[str] | None = None) -> dict:
@@ -164,22 +134,7 @@ def run_playwright(targets: list[str] | None = None) -> dict:
         targets: 流すテストファイル（frontend/ から見たパス）。None ならすべて
     """
     code, out, sec = run(["npx", "playwright", "test", "--reporter=line", *(targets or [])], ROOT / "frontend")
-    failed_names = [
-        f"[{p}] {n.strip()}"
-        for p, n in re.findall(r"^\s*\d+\) \[(\w+)\] › (.+?) ─*$", out, flags=re.M)
-    ]
-    # 起動前エラーなどで通常の passed/failed 集計行が無い場合も、原因を実行ログに残す。
-    summary_lines = [l.strip() for l in out.splitlines() if re.search(r"\d+ (passed|failed)", l)]
-    tail = summary_lines[-1:] if summary_lines else []
-    if code != 0 and not tail:
-        tail = out.strip().splitlines()[-5:] if out.strip() else [f"出力なし（終了コード {code}）"]
-    return {
-        "name": "画面テスト（Playwright）", "code": code, "sec": sec,
-        "passed": num(r"(\d+) passed", out), "failed": num(r"(\d+) failed", out),
-        "skipped": num(r"(\d+) skipped", out), "xfail": 0,
-        "failed_names": failed_names[:10],
-        "tail": tail,
-    }
+    return parse_playwright_result(code, out, sec)
 
 
 def run_pytest(targets: list[str] | None = None) -> dict:
@@ -198,14 +153,7 @@ def run_pytest(targets: list[str] | None = None) -> dict:
     venv_python = backend / ".venv" / "bin" / "python"
     python_cmd = str(venv_python) if venv_python.exists() else sys.executable
     code, out, sec = run([python_cmd, "-m", "pytest", "-rfE", *(targets or [])], backend)
-    failed_names = re.findall(r"^(?:FAILED|ERROR) (\S+)", out, flags=re.M)
-    return {
-        "name": "バックエンド（pytest）", "code": code, "sec": sec,
-        "passed": num(r"(\d+) passed", out), "failed": num(r"(\d+) failed", out) + num(r"(\d+) errors?\b", out),
-        "skipped": num(r"(\d+) skipped", out), "xfail": num(r"(\d+) xfailed", out),
-        "failed_names": failed_names[:10],
-        "tail": out.strip().splitlines()[-1:] if out.strip() else [],
-    }
+    return parse_pytest_result("バックエンド（pytest）", code, out, sec)
 
 
 def run_analytics() -> dict:
@@ -230,14 +178,7 @@ def run_analytics() -> dict:
         }
     # 2. analytics の中で tests を実行し、件数と失敗したテスト名を取り出す
     code, out, sec = run([str(venv_python), "-m", "pytest", "tests", "-rfE"], analytics)
-    failed_names = re.findall(r"^(?:FAILED|ERROR) (\S+)", out, flags=re.M)
-    return {
-        "name": name, "code": code, "sec": sec,
-        "passed": num(r"(\d+) passed", out), "failed": num(r"(\d+) failed", out) + num(r"(\d+) errors?\b", out),
-        "skipped": num(r"(\d+) skipped", out), "xfail": num(r"(\d+) xfailed", out),
-        "failed_names": failed_names[:10],
-        "tail": out.strip().splitlines()[-1:] if out.strip() else [],
-    }
+    return parse_pytest_result(name, code, out, sec)
 
 
 def run_runner_tests() -> dict:
@@ -246,22 +187,7 @@ def run_runner_tests() -> dict:
     code, out, sec = run(
         [sys.executable, "-m", "unittest", "discover", "-s", str(tests_dir)], ROOT
     )
-    passed_match = re.search(r"Ran (\d+) tests?", out)
-    total = int(passed_match.group(1)) if passed_match else 0
-    skipped = num(r"skipped=(\d+)", out)
-    xfail = num(r"expected failures=(\d+)", out)
-    failed_match = re.search(r"FAILED \(([^)]*)\)", out)
-    failure_counts = (
-        [int(value) for value in re.findall(r"(?:failures|errors)=(\d+)", failed_match.group(1))]
-        if failed_match else []
-    )
-    failed = 0 if code == 0 else max(1, sum(failure_counts))
-    passed = max(0, total - skipped - xfail - failed)
-    return {
-        "name": "テストランナー（unittest）", "code": code, "sec": sec,
-        "passed": passed, "failed": failed, "skipped": skipped, "xfail": xfail,
-        "failed_names": [], "tail": out.strip().splitlines()[-3:] if out.strip() else [],
-    }
+    return parse_runner_tests_result(code, out, sec)
 
 
 def git_info() -> str:
