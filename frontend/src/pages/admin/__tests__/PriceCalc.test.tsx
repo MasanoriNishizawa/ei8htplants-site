@@ -5,6 +5,7 @@
  * - HUE のタブ: 植物名・植物仕入れ値・鉢仕入れ値の計算フォーム（鉢作家の選択は無い）と登録時に送る内容
  * - Habitat Oides のタブ: 鉢作家を選べて、選んだ作家名が送られる
  * - 登録リストの植物名の下の 2 行目（鉢作家名 or「量産鉢」）は Habitat Oides の行だけ
+ * - 実生の種子20粒分の上代・1粒分の原価、鉢代加算、任意価格の登録、入力エラー時の登録可否と登録失敗時の入力保持
  * - HUE の書きかけ保護（タブの切り替えで確認が出る・登録に成功したら出ない）
  * - 目標原価率の欄（ブランド別既定値・変更時の見出しと推奨価格と注意・入力検証・ブランド別 localStorage の保存と復元・
  *   既定値に戻す・書きかけ扱いしない・ブランド切替時の独立値）
@@ -90,6 +91,17 @@ const openHue = () => {
   fireEvent.click(brandTab('HUE'))
   // HUE の植物名の placeholder が出るまで待たずに使えるよう、ここで確かめておく
   expect(screen.getByPlaceholderText('例: ユーフォルビア オベサ')).toBeInTheDocument()
+}
+
+/**
+ * 実生タブを開き、選んだブランドの入力欄が表示された状態にする
+ * @param brand - 表示するブランド（省略時は ei8ht plants）
+ * @returns 戻り値なし
+ */
+const openSeedling = (brand: 'ei8ht plants' | 'Habitat Oides' = 'ei8ht plants') => {
+  if (brand === 'Habitat Oides') fireEvent.click(brandTab(brand))
+  fireEvent.click(screen.getByRole('button', { name: '実生' }))
+  expect(screen.getByText('種子 20粒の値段')).toBeInTheDocument()
 }
 
 beforeEach(() => {
@@ -321,6 +333,105 @@ describe('Habitat Oides の計算フォーム', () => {
     await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith({
       brand: 'habitatoides', plant_name: 'ポタトルム', pot_artist_name: null, cost: 1500, selling_price: 3800, mode: 'purchase',
     }))
+  })
+})
+
+describe('実生の計算フォーム', () => {
+  it('ei8ht plants は種子20粒の値段を上代、1粒分を原価として計算し、目標原価率によらず原価率だけを表示する', async () => {
+    render(<PriceCalc />)
+    fireEvent.click(screen.getByRole('button', { name: '仕入れ' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '目標原価率（%）' }), { target: { value: '' } })
+    openSeedling()
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
+
+    expect(screen.getByText('上代（種子 20粒の値段）')).toBeInTheDocument()
+    expect(screen.getByText('¥600')).toBeInTheDocument()
+    expect(screen.getByText('1粒あたり ¥30')).toBeInTheDocument()
+    expect(screen.getByText('原価率 5.0%')).toBeInTheDocument()
+    expect(screen.queryByText(/目標原価率/)).toBeNull()
+  })
+
+  it('植物名を trim し、任意価格を上代の代わりに登録して成功後に入力を空にする', async () => {
+    render(<PriceCalc />)
+    openSeedling()
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: '  アガベ  ' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
+    fireEvent.change(numberInputs()[1], { target: { value: '1200' } })
+    expect(screen.getByText('登録価格: ¥1,200（原価率 2.5%）')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥1,200$/ }))
+
+    await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith({
+      brand: 'ei8htplants', plant_name: 'アガベ', pot_artist_name: null, cost: 30, selling_price: 1200, mode: 'seedling',
+    }))
+    await waitFor(() => expect(screen.getByPlaceholderText('例: アガベ チタノタ')).toHaveValue(''))
+    expect(screen.getByPlaceholderText('例: 600')).toHaveValue(null)
+    expect(numberInputs()[1]).toHaveValue(null)
+  })
+
+  it('種子の価格が空・0・負数なら上代を計算せず、植物名や鉢代だけでは登録できない', async () => {
+    render(<PriceCalc />)
+    openSeedling('Habitat Oides')
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ ポタトルム'), { target: { value: 'ポタトルム' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 5000'), { target: { value: '500' } })
+    expect(screen.getByRole('button', { name: '登録' })).toBeDisabled()
+    expect(screen.getAllByText('¥ —').length).toBeGreaterThan(0)
+
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '0' } })
+    expect(screen.getByRole('button', { name: '登録' })).toBeDisabled()
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '-1' } })
+    expect(screen.getByRole('button', { name: '登録' })).toBeDisabled()
+    expect(api.priceCalcEntries.add).not.toHaveBeenCalled()
+  })
+
+  it('Habitat Oides は種子原価に鉢代を加算し、選んだ鉢作家と合計を登録する', async () => {
+    render(<PriceCalc />)
+    openSeedling('Habitat Oides')
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ ポタトルム'), { target: { value: 'ポタトルム' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 5000'), { target: { value: '500' } })
+    const artistSelect = screen.getByRole('combobox')
+    await within(artistSelect).findByRole('option', { name: '佐藤窯' })
+    fireEvent.change(artistSelect, { target: { value: 'a-2' } })
+    expect(screen.getByText('上代（種子 20粒の値段 + 鉢）')).toBeInTheDocument()
+    expect(screen.getByText('¥1,100')).toBeInTheDocument()
+    expect(screen.getByText('原価率 48.2%')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥1,100$/ }))
+
+    await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith({
+      brand: 'habitatoides', plant_name: 'ポタトルム', pot_artist_name: '佐藤窯', cost: 530, selling_price: 1100, mode: 'seedling',
+    }))
+  })
+
+  it('登録に失敗するとエラーを出し、種子と植物名を残して再登録できる', async () => {
+    vi.mocked(api.priceCalcEntries.add).mockRejectedValueOnce(new Error('通信に失敗しました'))
+    render(<PriceCalc />)
+    openSeedling()
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'アガベ' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
+    fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥600$/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('登録に失敗しました')
+    expect(screen.getByPlaceholderText('例: アガベ チタノタ')).toHaveValue('アガベ')
+    expect(screen.getByPlaceholderText('例: 600')).toHaveValue(600)
+    expect(screen.getByRole('button', { name: /^登録\s+¥600$/ })).toBeEnabled()
+  })
+
+  it('登録処理中は「登録中...」を表示してボタンを無効にし、完了したら再び操作可能になる', async () => {
+    /** モック登録を完了させる関数。クリック後、登録中表示を確認してから呼ぶ */
+    let finishSave: (() => void) | undefined
+    vi.mocked(api.priceCalcEntries.add).mockImplementationOnce((body) => new Promise<PriceCalcEntry>((resolve) => {
+      finishSave = () => resolve(toEntry(body))
+    }))
+    render(<PriceCalc />)
+    openSeedling()
+    fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: 'アガベ' } })
+    fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
+    fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥600$/ }))
+
+    expect(screen.getByRole('button', { name: '登録中...' })).toBeDisabled()
+    finishSave?.()
+    await waitFor(() => expect(screen.getByPlaceholderText('例: アガベ チタノタ')).toHaveValue(''))
+    expect(screen.getByRole('button', { name: '登録' })).toBeDisabled()
   })
 })
 
