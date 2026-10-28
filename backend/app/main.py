@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 
 from .config import SITE_ORIGIN
+from .spa_files import resolve_dist_file_path
 from .spa_redirects import resolve_spa_redirect
 from .utils.errors import error_summary
 from .routes import (
@@ -284,9 +285,9 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
         # 2. 静的ファイル（dist 直下の manifest・sw.js など）があればそのまま返す。
         #    「..%2F」や「%2Fetc%2F…」のようなパスで dist の外（.env やソースなど）を読まれないよう、
         #    実際の場所に直してから dist の中にあるときだけ返す（外を指すときは SPA の index.html を返す）
-        dist_real = os.path.realpath(DIST)
-        file_path = os.path.realpath(os.path.join(dist_real, full_path))
-        if file_path.startswith(dist_real + os.sep) and os.path.isfile(file_path):
+        # 変数の内容: file_path: dist 内に解決できた場合の静的ファイル実パス。
+        file_path = resolve_dist_file_path(DIST, full_path)
+        if file_path is not None and os.path.isfile(file_path):
             return FileResponse(file_path)
         # 3. パスに応じたメタ情報を index.html に入れて返す
         try:
