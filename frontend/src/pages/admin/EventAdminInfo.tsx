@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
-import { SectionBox, ImageViewer } from './AdminInfoParts'
+import { SectionBox } from './AdminInfoParts'
+import EventGuidelinesImages from './EventGuidelinesImages'
 import { confirmLeaveIfDirty, dirtySnapshotJson, useUnsavedChanges } from './UnsavedChanges'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
@@ -18,9 +19,6 @@ const BLANK: EventAdminInfo = {
   guidelines_text: null,
   guidelines_image_urls: [],
 }
-
-/** 出店要項の画像として受け付けるファイル形式（api.upload が受け付ける形式と合わせる） */
-const GUIDELINE_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
 
 /**
  * 収支 API の取得結果から、保存 API に送る項目だけを取り出す
@@ -623,71 +621,18 @@ export default function EventAdminInfo() {
               />
             </div>
 
-            <div>
-              <label style={labelStyle}>要項の画像{guidelineImages.length > 0 && `（${guidelineImages.length} 枚）`}</label>
-
-              {/* アップロード済み画像のサムネイル。最小 120px で折り返し、狭い幅でも横スクロールしない */}
-              {guidelineImages.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(120px, 100%), 1fr))', gap: 10, marginBottom: 12 }}>
-                  {guidelineImages.map((url, i) => (
-                    <div key={`${url}-${i}`} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                      {/* 正方形のサムネイル。タップで画面内に拡大表示する */}
-                      <button
-                        type="button"
-                        onClick={() => setViewerIndex(i)}
-                        aria-label={`出店要項の画像 ${i + 1} を拡大表示`}
-                        style={{ display: 'block', width: '100%', aspectRatio: '1 / 1', padding: 0, border: '1px solid #dddde8', borderRadius: 4, background: '#f4f4f8', overflow: 'hidden', cursor: 'zoom-in' }}
-                      >
-                        <img
-                          src={url}
-                          alt={`出店要項の画像 ${i + 1}`}
-                          loading="lazy"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        />
-                      </button>
-                      {/* この画像を外すボタン（アップロード中は押せない） */}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(i)}
-                        disabled={uploading}
-                        style={{ minHeight: 40, padding: '6px 8px', border: '1px solid #dddde8', borderRadius: 4, background: '#ffffff', color: '#c0392b', fontSize: 13, fontFamily: 'inherit', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}
-                      >
-                        削除
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 実際のファイル選択欄は隠し、下の「画像を追加」ボタンから開く */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={GUIDELINE_IMAGE_ACCEPT}
-                multiple
-                onChange={handleAddImages}
-                style={{ display: 'none' }}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                style={{ minHeight: 44, padding: '10px 20px', border: '1px solid #dddde8', borderRadius: 4, background: '#ffffff', color: 'var(--c-body)', fontSize: 14, fontFamily: 'inherit', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1, maxWidth: '100%' }}
-              >
-                {uploadProgress ? `アップロード中...（${uploadProgress.current}/${uploadProgress.total}）` : '画像を追加'}
-              </button>
-              {/* 受け付ける画像の案内 */}
-              <p style={{ fontSize: 12, color: 'var(--c-muted)', margin: '8px 0 0' }}>
-                JPEG・PNG・WebP・GIF、1枚 10MB まで。複数枚まとめて選べます
-              </p>
-
-              {/* アップロードに失敗したファイルの案内 */}
-              {uploadError && (
-                <p style={{ fontSize: 13, color: '#c0392b', background: '#fdf2f2', border: '1px solid #f5c6cb', borderRadius: 4, padding: '8px 12px', margin: '10px 0 0', overflowWrap: 'anywhere' }}>
-                  {uploadError}
-                </p>
-              )}
-            </div>
+            <EventGuidelinesImages
+              urls={guidelineImages}
+              uploadProgress={uploadProgress}
+              uploadError={uploadError}
+              labelStyle={labelStyle}
+              fileInputRef={fileInputRef}
+              onAddImages={handleAddImages}
+              onRemoveImage={handleRemoveImage}
+              viewerIndex={viewerIndex}
+              onChangeViewer={setViewerIndex}
+              onCloseViewer={() => setViewerIndex(null)}
+            />
           </div>
         </SectionBox>
 
@@ -731,15 +676,6 @@ export default function EventAdminInfo() {
       </form>
     </div>
 
-    {/* 出店要項画像の拡大表示 */}
-    {viewerIndex !== null && guidelineImages.length > 0 && (
-      <ImageViewer
-        urls={guidelineImages}
-        index={Math.min(viewerIndex, guidelineImages.length - 1)}
-        onChange={setViewerIndex}
-        onClose={() => setViewerIndex(null)}
-      />
-    )}
     </>
   )
 }

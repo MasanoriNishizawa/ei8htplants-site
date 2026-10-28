@@ -365,6 +365,35 @@ describe('EventAdminInfo ページ — 出店要項', () => {
     expect(screen.getByRole('button', { name: '画像を追加' })).toBeEnabled()
   })
 
+  it('アップロード完了後に同じファイルを同じ input から再選択すると、2回とも追加される', async () => {
+    // 同じ File オブジェクトを再選択し、ファイル input の value がクリアされる動作を確かめる
+    const file = imageFile('same.png')
+    vi.mocked(api.upload)
+      .mockResolvedValueOnce('https://ex.com/same-1.png')
+      .mockResolvedValueOnce('https://ex.com/same-2.png')
+    const { container } = renderAdminInfoPage()
+    await screen.findByLabelText('要項の文章')
+    const input = getFileInput(container)
+
+    // 1. 同じ input から1回目を選び、アップロード完了と画像追加を待つ
+    await userEvent.upload(input, file)
+    await waitFor(() => {
+      expect(api.upload).toHaveBeenCalledTimes(1)
+      expect(screen.getByText('要項の画像（3 枚）')).toBeInTheDocument()
+    })
+
+    // 2. 同じ File を同じ input からもう一度選び、2枚目も末尾に追加されることを確かめる
+    await userEvent.upload(input, file)
+    await waitFor(() => {
+      expect(api.upload).toHaveBeenCalledTimes(2)
+      expect(screen.getByText('要項の画像（4 枚）')).toBeInTheDocument()
+    })
+    expect(vi.mocked(api.upload).mock.calls[0][0]).toBe(file)
+    expect(vi.mocked(api.upload).mock.calls[1][0]).toBe(file)
+    expect(screen.getByRole('img', { name: '出店要項の画像 3' })).toHaveAttribute('src', 'https://ex.com/same-1.png')
+    expect(screen.getByRole('img', { name: '出店要項の画像 4' })).toHaveAttribute('src', 'https://ex.com/same-2.png')
+  })
+
   it('アップロード中は「アップロード中...（n/m）」が出て、保存ボタンと追加ボタンが押せない', async () => {
     /**
      *  1枚目のアップロードを外から完了させるための resolve
