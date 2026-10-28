@@ -55,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
  * サイドメニューのリンクの見た目
  * @param state.isActive - 今いる画面のリンクか
  * @param sub - グループの中の項目（字下げして小さくする）か
- * @returns スタイル
+ * @returns ナビゲーション項目の選択状態を反映した CSSProperties
  * @param isActive - リンク先が現在のページかどうか
  */
 const navStyle = ({ isActive }: { isActive: boolean }, sub = false): React.CSSProperties => ({

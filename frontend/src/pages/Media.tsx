@@ -60,10 +60,12 @@ function VideoCard({ item }: { item: MediaAppearance }) {
       rel="noopener noreferrer"
       style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}
     >
+      {/* 16:9 のサムネイル枠。未登録画像時も背景色で枠を保つ */}
       <div style={{
         position: 'relative', width: '100%', aspectRatio: '16/9',
         background: '#e8e8e8', overflow: 'hidden', borderRadius: 2,
       }}>
+        {/* サムネイルを枠いっぱいに切り抜き、ホバー時に拡大する画像 */}
         {thumb && (
           <img
             src={thumb}
@@ -90,7 +92,7 @@ function VideoCard({ item }: { item: MediaAppearance }) {
           </div>
         </div>
       </div>
-      {/* 公開日・タイトル・説明 */}
+      {/* 公開日・タイトル・説明の余白と文字表現 */}
       <div style={{ padding: '14px 0 0' }}>
         {item.published_at && (
           <p style={{ fontSize: 11, letterSpacing: 2, color: 'var(--c-muted)', margin: '0 0 6px', textTransform: 'uppercase' }}>

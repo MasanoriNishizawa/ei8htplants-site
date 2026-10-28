@@ -229,7 +229,7 @@ def _session_used_count(event_id: str, session: dict, preferred_date: Optional[s
         query = query.eq('preferred_date', preferred_date)
     # 2. セッション ID を優先し、古い予約は希望時刻で照合して人数を合計する。
     used = 0
-    # 変数の内容: r: r の反復ごとの値。
+    # 変数の内容: r: 使用人数を加算するキャンセル以外の予約レコード。
     for r in query.execute().data or []:
         # 変数の内容: sid: 照合対象の時間枠 ID。
         sid = r.get('session_id')
@@ -805,7 +805,7 @@ def add_walkin(body: WalkInBody) -> dict:
     Raises:
         HTTPException(400): event_id・session_id が UUID の形でない、または存在しない場合
     """
-    # メールアドレスの列は必須なので、届かないダミーのアドレス（.invalid は実在しないドメイン）を入れる
+    # 1. 必須のメール欄には配信されないダミー値を設定する（.invalid は実在しないドメイン）。
     dummy_email = f'walkin-{uuid.uuid4().hex[:12]}@nomail.invalid'
     data = {
         'event_id': body.event_id,
@@ -818,6 +818,7 @@ def add_walkin(body: WalkInBody) -> dict:
         'status': 'confirmed',
         'cancel_token': _generate_cancel_token(),
     }
+    # 2. 予約を確定状態で登録し、3. 時間枠の予約人数を同期して登録行を返す。
     row = execute_or_400(
         admin_supabase.table('workshop_reservations').insert(data), 'イベントまたは時間枠が正しくありません'
     ).data[0]

@@ -106,7 +106,7 @@ def times_in(text: str, time_pattern: Pattern[str] = _TIME_RE) -> list[str]:
     """
     # 変数の内容: result: 正常な時刻を HH:MM 形式で集める結果リスト。
     result = []
-    # 変数の内容: hour: hour の反復ごとの値、minute: minute の反復ごとの値。
+    # 変数の内容: hour: 抽出した時刻の時、minute: 抽出した時刻の分。
     for hour, minute in time_pattern.findall(text):
         if int(hour) < 24 and int(minute) < 60:
             result.append(f'{int(hour):02d}:{minute}')

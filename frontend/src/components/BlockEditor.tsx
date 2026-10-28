@@ -43,6 +43,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * アップロードの状態を 1 件変える
    * @param block - 対象の画像ブロック
    * @param state - 新しい状態（null なら消す）
+   * @returns なし
    */
   const setUpload = (block: Block, state: UploadState | null) => {
     setUploads((prev) => {
@@ -58,6 +59,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * index の位置のブロックを書き換える
    * @param i - 位置
    * @param patch - 変える項目
+   * @returns 更新後のブロック配列を onChange に渡す
    */
   const update = (i: number, patch: Partial<Block>) =>
     onChange(blocks.map((b, idx) => idx === i ? { ...b, ...patch } as Block : b))
@@ -65,6 +67,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
   /**
    * index の位置のブロックを削除する
    * @param i - 位置
+   * @returns 削除後のブロック配列を onChange に渡す
    */
   const remove = (i: number) => onChange(blocks.filter((_, idx) => idx !== i))
 
@@ -72,6 +75,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * ブロックを 1 つ上か下へ動かす（端では何もしない）
    * @param i - 位置
    * @param dir - -1 なら上、1 なら下
+   * @returns なし。端の位置ではブロック配列を変更しない
    */
   const move = (i: number, dir: -1 | 1) => {
     const next = [...blocks]
@@ -86,6 +90,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * ブロックを追加する
    * @param afterIdx - この位置の後ろに追加する（-1 なら先頭）
    * @param block - 追加するブロック
+   * @returns なし。追加後のブロック配列を onChange に渡す
    */
   const insert = (afterIdx: number, block: Block) => {
     const next = [...blocks]
@@ -102,6 +107,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * 4. 失敗したら「失敗」の表示にする
    * @param i - アップロードを始めたときの画像ブロックの位置
    * @param file - 選んだ画像ファイル
+   * @returns なし。成功・失敗の状態をブロックに反映する
    */
   const handleImageFile = async (i: number, file: File) => {
     // 1. 対象のブロックを控えてアップロード中にする
@@ -127,7 +133,7 @@ export default function BlockEditor({ blocks, onChange }: Props) {
    * 操作ボタンの見た目
    * @param color - 文字色
    * @param bg - 背景色
-   * @returns style
+   * @returns 文字色と背景色を反映したボタン用 CSSProperties
    */
   const btnStyle = (color = '#fff', bg = '#1c2417'): React.CSSProperties => ({
     padding: '5px 12px', border: 'none', background: bg, color,

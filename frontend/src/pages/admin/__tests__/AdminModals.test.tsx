@@ -216,7 +216,7 @@ describe('商品の編集モーダル（Products）', () => {
 describe('写真の拡大表示（ImageLightbox）の Esc と後ろのモーダル', () => {
   /**
    *  useEscapeToClose を使うモーダルの上に、写真の拡大表示を重ねる部品
-   * @returns 表示する React 要素。
+   * @returns 背面モーダルと ImageLightbox を重ねたテスト用要素
    */
   function ModalWithLightbox() {
     // Esc キーで閉じる対象になる背面モーダルの表示状態

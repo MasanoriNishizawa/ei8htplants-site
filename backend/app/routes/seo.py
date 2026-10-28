@@ -245,7 +245,7 @@ def _parse_blocks(content: Any) -> list[dict]:
         return []
     # 1. JSON のブロック配列として読めればそれを使う
     try:
-        # 変数の内容: parsed: 変換後の値。
+        # 変数の内容: parsed: JSON として解析した値（配列ならブロック一覧として採用する）。
         parsed = json.loads(text)
         if isinstance(parsed, list):
             return [b for b in parsed if isinstance(b, dict)]
@@ -253,7 +253,7 @@ def _parse_blocks(content: Any) -> list[dict]:
         pass
     # 2. 読めなければ古いテキスト形式として「## 」行を見出し、それ以外の行を本文にする
     blocks: list[dict] = []
-    # 変数の内容: line: line の反復ごとの値。
+    # 変数の内容: line: 旧形式の本文を改行で分けた現在行。
     for line in text.split('\n'):
         if line.startswith('## '):
             blocks.append({'type': 'heading', 'value': line[3:]})
@@ -293,7 +293,7 @@ def _first_image_block_url(blocks: list[dict]) -> Optional[str]:
     Returns:
         最初の画像ブロックの URL。画像ブロックが無ければ None
     """
-    # 変数の内容: b: b の反復ごとの値。
+    # 変数の内容: b: JSON 配列から抽出したブロック候補。
     for b in blocks:
         if b.get('type') == 'image' and _str(b.get('url')):
             return _str(b.get('url'))

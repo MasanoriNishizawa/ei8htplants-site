@@ -171,7 +171,7 @@ def _attach_images(events: list[dict]) -> list[dict]:
     # 1. 全イベントの画像を一括取得し、イベント ID ごとの辞書にまとめる。
     imgs = supabase.table('event_images').select('*').in_('event_id', ids).order('display_order').execute().data
     img_map: dict[str, list] = {}
-    # 変数の内容: img: img の反復ごとの値。
+    # 変数の内容: img: event_images テーブルから取得した画像レコード。
     for img in imgs:
         img_map.setdefault(img['event_id'], []).append(img)
     # 2. 画像を付け、公開してはいけない管理情報を応答から除く。
@@ -374,7 +374,7 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
 
     # 3. session_id または旧予約の preferred_time で照合して人数を集計する。
     count_map: dict[str, int] = {}
-    # 変数の内容: r: r の反復ごとの値。
+    # 変数の内容: r: 参加人数を集計するワークショップ予約レコード。
     for r in reservations:
         # 変数の内容: sid: 照合対象の時間枠 ID。
         sid = r.get('session_id')
@@ -416,7 +416,7 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) 
 
     # 2. 送られた順に、既存の枠は更新・新しい枠は作成する
     incoming_ids: set[str] = set()
-    # 変数の内容: i: 現在処理する一覧要素の番号、s: s の反復ごとの値。
+    # 変数の内容: i: 保存順として使うセッション番号、s: リクエスト内のセッション内容。
     for i, s in enumerate(body.sessions):
         # id が送られてきた場合はそれを優先、なければ time_label で照合
         sid = s.id if s.id and s.id in existing_by_id else existing_by_label.get(s.time_label)
@@ -513,7 +513,8 @@ def create_event(body: EventBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成したイベント（get_event と同じ形）
     """
-    # 変数の内容: result: INSERT で作成されたイベント行。、row: DB から取得した単一レコード。
+    # 変数の内容: row: INSERT 前に整形するイベント列、result: INSERT で作成されたイベントレコード。
+    # 1. イベント本体を登録し、2. 画像を紐付けて完全なイベントを返す。
     row = body.model_dump(exclude={'image_urls'})
     row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     result = admin_supabase.table('events').insert(row).execute().data[0]

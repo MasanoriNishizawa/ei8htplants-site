@@ -41,7 +41,9 @@ export default function Header() {
 
   // スクロール量が 4px を超えたらボーダーを表示してヘッダーを強調
   useEffect(() => {
-    /** スクロールするたびに、4px を超えたかを入れ直す */
+    /** スクロール位置からヘッダーの強調状態を更新する。
+     * @returns なし
+     */
     const handler = () => setScrolled(window.scrollY > 4)
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
@@ -52,6 +54,7 @@ export default function Header() {
 
   /**
    * モバイルメニューを閉じ、閉じた後に開閉ボタンへフォーカスを戻す（閉じるボタン・幕・メニューのリンクから呼ぶ。Esc は同じ処理を直接書いている）
+   * @returns なし
    */
   const closeMenuAndReturnFocus = () => {
     returnFocusOnClose.current = true
@@ -66,7 +69,8 @@ export default function Header() {
     const mq = window.matchMedia('(min-width: 769px)')
     /**
      * 画面の幅が変わったとき、PC の幅になっていればメニューを閉じる（開くボタンは隠れているのでフォーカスは戻さない）
-     * @param e - 判定が変わったときのイベント
+     * @param e - 画面幅の条件に一致したかを示すメディアクエリ変更イベント
+     * @returns なし
      */
     const onChange = (e: MediaQueryListEvent) => {
       if (e.matches) setMenuOpen(false)
@@ -102,7 +106,11 @@ export default function Header() {
   // モバイルメニューを開いているあいだは、Tab のフォーカスをメニューの中で回す（後ろのページへ出ないように）
   useEffect(() => {
     if (!menuOpen) return
-    /** Esc で開いているメニューを閉じ、Tab はモバイルメニューの中で回す */
+    /**
+     * Esc キーでメニューを閉じ、Tab キーのフォーカスをメニュー内に保つ。
+     * @param e - 押されたキーを含むキーボードイベント
+     * @returns なし。キーに応じて閉じる処理またはフォーカス移動を行う
+     */
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Tab' && menuOpen && mobileNavRef.current) {
         /** メニューの中でフォーカスできる要素（先頭は閉じるボタン、最後は言語切り替え） */
@@ -135,7 +143,7 @@ export default function Header() {
   /**
    * ナビの各リンクの見た目
    * @param isActive - 今いるページなら true（濃い文字と下線）
-   * @returns style
+   * @returns 選択状態を反映したナビゲーションリンク用 CSSProperties
    */
   const navItemStyle = (isActive: boolean): React.CSSProperties => ({
     fontSize: 'var(--brand-type-navigation)',

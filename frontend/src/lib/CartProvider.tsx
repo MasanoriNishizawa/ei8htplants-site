@@ -20,7 +20,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch { /* 保存できなくてもカートの操作は続ける */ }
   }, [items])
 
-  /** 商品を追加する（すでにあれば数量を足す。在庫数が上限） */
+  /** 商品を追加する（すでにあれば数量を足す。在庫数が上限）。
+   * @param product - カートへ追加する最新の商品情報
+   * @param quantity - 追加する数量（既定値: 1）
+   * @returns なし。商品と数量をカート state に反映する
+   */
   const add = (product: Product, quantity = 1) => {
     setItems((prev) => {
       // 同じ商品がすでにカートにあるか
@@ -38,11 +42,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  /** 商品をカートから外す */
+  /** 商品をカートから外す。
+   * @param productId - 取り除く商品の ID
+   * @returns なし。該当商品を除いた一覧を state に反映する
+   */
   const remove = (productId: string) =>
     setItems((prev) => prev.filter((i) => i.product.id !== productId))
 
-  /** 数量を変える（0 以下なら外す） */
+  /** 数量を変える（0 以下なら外す）。
+   * @param productId - 数量を変更する商品の ID
+   * @param quantity - 新しい数量
+   * @returns なし。数量が 0 以下なら商品を削除する
+   */
   const updateQty = (productId: string, quantity: number) => {
     if (quantity <= 0) {
       remove(productId)
@@ -53,7 +64,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  /** 最新の商品情報でカートを更新する（売り切れは外し、在庫より多い数量は在庫数まで減らす） */
+  /** 最新の商品情報でカートを更新する（売り切れは外し、在庫より多い数量は在庫数まで減らす）。
+   * @param latest - 商品一覧画面などから取得した最新の商品情報
+   * @returns なし。最新の商品状態をカート state に反映する
+   */
   const syncProducts = (latest: Product[]) => {
     // id から最新の商品を引けるようにする
     const byId = new Map(latest.map((p) => [p.id, p]))
@@ -71,7 +85,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  /** カートを空にする */
+  /** カートを空にする。
+   * @returns なし。カート state を空配列にする
+   */
   const clear = () => setItems([])
 
   // 数量の合計（ヘッダーのカート表示用）

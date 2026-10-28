@@ -35,7 +35,7 @@ vi.mock('../../../lib/supabase', () => ({
 
 /**
  *  編集画面の代わり。入力すると未保存になる
- * @returns 表示する React 要素。
+ * @returns 未保存状態を切り替えられるテスト用入力要素
  */
 function FakeEditor() {
   // テスト用入力欄の値。空でないときに未保存として扱う
@@ -46,7 +46,7 @@ function FakeEditor() {
 
 /**
  *  今のパスを出す部品
- * @returns 表示する React 要素。
+ * @returns 現在のパスを表示するテスト要素
  */
 function PathProbe() {
   const { pathname } = useLocation()
@@ -59,7 +59,7 @@ const NeverPage = lazy(() => new Promise<{ default: () => null }>(() => {}))
 /**
  * AdminLayout を描画する
  * @param path - 最初に開くパス
- * @returns 処理結果。
+ * @returns AdminLayout とテスト用ルートを描画した Testing Library の結果
  */
 function renderLayout(path = '/admin/articles') {
   return render(

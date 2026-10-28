@@ -155,7 +155,7 @@ export function useEscapeToClose(open: boolean, onEscape: () => void): void {
     if (!open) return
     /**
      *  Esc が押されたときの処理
-     * @param e - 発生したイベントまたはエラー
+     * @param e - 押されたキーと入力変換状態を含むキーボードイベント
      * @returns 戻り値なし。
      */
     const onKeyDown = (e: KeyboardEvent) => {

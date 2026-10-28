@@ -53,7 +53,7 @@ function item(over: Partial<AdminInfoDashboardItem>): AdminInfoDashboardItem {
 
 /**
  *  確認画面の代わりに表示する部品。state.from を画面に出す
- * @returns 表示する React 要素。
+ * @returns 確認画面への遷移情報を表示するプローブ
  */
 function AdminInfoProbe() {
   const loc = useLocation()
@@ -63,7 +63,7 @@ function AdminInfoProbe() {
 
 /**
  *  Dashboard を /admin で描画する
- * @returns 処理結果。
+ * @returns Dashboard と遷移先プローブを描画した Testing Library の結果
  */
 function renderDashboard() {
   return render(
@@ -78,7 +78,7 @@ function renderDashboard() {
 
 /**
  *  「出店料の支払い」のセクション
- * @returns 処理結果。
+ * @returns 「出店料の支払い」領域の要素
  */
 function paymentSection() {
   return screen.getByRole('region', { name: '出店料の支払い' })
@@ -86,7 +86,7 @@ function paymentSection() {
 
 /**
  *  「今後の搬入予定」のセクション
- * @returns 処理結果。
+ * @returns 「今後の搬入予定」領域の要素
  */
 function carryInSection() {
   return screen.getByRole('region', { name: '今後の搬入予定' })

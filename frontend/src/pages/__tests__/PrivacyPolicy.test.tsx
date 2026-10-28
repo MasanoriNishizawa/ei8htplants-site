@@ -7,7 +7,7 @@ import { LangProvider, useLang } from '../../lib/lang'
 
 /**
  *  テスト用に言語を切り替えるボタン
- * @returns 表示する React 要素。
+ * @returns 表示言語を切り替えるテスト用ボタン
  */
 function LangToggle() {
   const { toggle } = useLang()

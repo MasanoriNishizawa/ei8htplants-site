@@ -91,7 +91,7 @@ def get_content(path: str = Query(...)) -> str:
     """
     # 1. 実際の場所に直し、DOC_ROOT の中にあるか確かめる（「../」などで外に出させない）
     try:
-        # 変数の内容: target: 処理対象のファイルまたは値。
+        # 変数の内容: target: DOC_ROOT 配下に解決した Markdown ファイルのパス。
         target = (DOC_ROOT / path).resolve()
         target.relative_to(DOC_ROOT.resolve())
     except (ValueError, OSError):

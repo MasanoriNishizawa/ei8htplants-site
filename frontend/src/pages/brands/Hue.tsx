@@ -11,14 +11,19 @@ import { useHueImages } from '../../sites/hue/useHueImages'
  */
 export default function Hue() {
   const t = useT()
-  // 管理画面から設定した色写真と、ヒーロー／ストーリー各領域の DOM 参照
+  // 管理画面から設定した6枚の色写真
   const paletteImages = useHueImages()
+  // ページ全体の動き用クラスと進捗 CSS 変数を設定するルート要素
   const homeRef = useRef<HTMLDivElement>(null)
+  // スクロール進捗で背景の変化を制御するヒーロー領域
   const heroRef = useRef<HTMLElement>(null)
+  // 横移動ストーリーの進捗計算に使うセクション
   const storyRef = useRef<HTMLElement>(null)
+  // スクロール進捗に合わせて横へ移動するストーリー列
   const storyTrackRef = useRef<HTMLDivElement>(null)
-  // ストーリーのスクロール進捗と現在章を表示する要素の参照
+  // ストーリーのスクロール進捗を示すバー
   const storyProgressRef = useRef<HTMLSpanElement>(null)
+  // 現在表示中の章番号を示すカウンター
   const storyCounterRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {

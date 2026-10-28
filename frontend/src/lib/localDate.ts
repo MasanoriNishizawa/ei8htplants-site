@@ -62,7 +62,10 @@ export function formatDateRange(start: string, end: string | null, lang: Lang): 
   // 開始日と終了日が同じ年・同じ月か（同じなら終わりの年・月を省く）
   const sameMonth = !!e && s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()
   if (lang === 'en') {
-    /** 英語の「May 1, 2026」の形にする */
+    /** 英語の「May 1, 2026」の形にする。
+     * @param d - 表示するローカル日付
+     * @returns 英語ロケールで整形した年月日
+     */
     const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     if (!e || end === start) return fmt(s)
     if (sameMonth) {
@@ -70,7 +73,10 @@ export function formatDateRange(start: string, end: string | null, lang: Lang): 
     }
     return `${fmt(s)} – ${fmt(e)}`
   }
-  /** 日本語の「2026年5月1日」の形にする */
+  /** 日本語の「2026年5月1日」の形にする。
+   * @param d - 表示するローカル日付
+   * @returns 日本語の年月日文字列
+   */
   const fmt = (d: Date) => `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
   if (!e || end === start) return fmt(s)
   if (sameMonth) return `${fmt(s)}〜${e.getDate()}日`

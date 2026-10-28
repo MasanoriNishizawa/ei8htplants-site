@@ -85,8 +85,8 @@ export default function Home() {
     const mq = window.matchMedia('(max-width: 767px)')
     setIsMobile(mq.matches)
     /**
-     *  幅が切り替わったら入れ直す
-     * @param e - 発生したイベントまたはエラー
+     * 画面幅のメディア条件が切り替わったら表示モードを更新する。
+     * @param e - max-width 条件への一致状態を含むメディアクエリ変更イベント
      * @returns 戻り値なし。
      */
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)

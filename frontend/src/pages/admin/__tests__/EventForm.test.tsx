@@ -77,7 +77,7 @@ const MOCK_SESSIONS: WsSession[] = []
 /**
  * 新規作成フォームをレンダリングするヘルパー
  * /admin/events/new にマウントする
- * @returns 処理結果。
+ * @returns 新規イベントフォームを描画した Testing Library の結果
  */
 function renderNewForm() {
   return render(
@@ -92,7 +92,7 @@ function renderNewForm() {
 /**
  * 編集フォームをレンダリングするヘルパー
  * @param eventId - 編集対象のイベントID
- * @returns 処理結果。
+ * @returns 指定イベントの編集フォームを描画した Testing Library の結果
  */
 function renderEditForm(eventId = 'mock-event-1') {
   return render(

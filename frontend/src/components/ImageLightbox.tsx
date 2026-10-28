@@ -29,6 +29,7 @@ interface Props {
  * @returns 画面全体を覆う拡大表示
  */
 export default function ImageLightbox({ images, index, onClose, onChange, alt = '' }: Props) {
+  // 閉じる・前後移動ボタンと画像説明のアクセシビリティ文言を翻訳する関数
   const t = useT()
   // スワイプを始めた位置（横方向）
   const touchX = useRef<number | null>(null)
@@ -38,7 +39,13 @@ export default function ImageLightbox({ images, index, onClose, onChange, alt = 
   const handlersRef = useRef({ onClose, prev: () => {}, next: () => {} })
   // 画像の枚数と、前後へ移る処理（端では反対の端へ回り込む）
   const n = images.length
+  /** 前の画像へ移動し、先頭なら最後の画像へ戻る。
+   * @returns なし。移動先の画像番号を onChange に渡す
+   */
   const prev = () => onChange((index - 1 + n) % n)
+  /** 次の画像へ移動し、最後なら最初の画像へ戻る。
+   * @returns なし。移動先の画像番号を onChange に渡す
+   */
   const next = () => onChange((index + 1) % n)
   useEffect(() => { handlersRef.current = { onClose, prev, next } })
 
@@ -54,6 +61,8 @@ export default function ImageLightbox({ images, index, onClose, onChange, alt = 
     /**
      * Esc で閉じ、左右の矢印キーで前後の画像へ移る。
      * Esc は preventDefault で「受け取り済み」の印を付け、後ろにある編集のモーダルなど（useEscapeToClose）まで一緒に閉じないようにする
+     * @param e - 押されたキーを含むキーボードイベント
+     * @returns なし。キーに応じて閉じる処理または画像移動を行う
      */
     const handle = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

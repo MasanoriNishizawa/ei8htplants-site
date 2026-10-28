@@ -17,7 +17,9 @@ export function LangProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang
   }, [lang])
 
-  /** 日本語と英語を切り替え、選んだ言語を保存する */
+  /** 日本語と英語を切り替え、選んだ言語を保存する。
+   * @returns なし。表示言語と localStorage を更新する
+   */
   const toggle = () => {
     // 現在と反対の言語を次の表示言語にする
     const next: Lang = lang === 'ja' ? 'en' : 'ja'

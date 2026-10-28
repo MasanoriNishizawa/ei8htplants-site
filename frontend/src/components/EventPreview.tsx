@@ -74,6 +74,7 @@ export default function EventPreview({ event, horizontal = false }: Props) {
   const touchX = useRef<number | null>(null)
   // 今の表示言語（日付の表示に使う）
   const { lang } = useLang()
+  // 見出し・予約リンクなどのイベント紹介文を表示言語に合わせて出す翻訳関数
   const t = useT()
   // イベントページの中身（未設定なら空）
   const pc: PageContent = event.page_content ?? {}

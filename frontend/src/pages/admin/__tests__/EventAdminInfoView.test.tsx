@@ -114,7 +114,7 @@ const EMPTY_INFO: EventAdminInfo = {
 
 /**
  * 現在の URL と location.state を画面に出すプローブ（リンク先の state・履歴の書き換えを確かめる）
- * @returns 表示する React 要素。
+ * @returns URL と location.state を出力するテスト用プローブ
  */
 function LocationProbe() {
   const location = useLocation()
@@ -137,7 +137,7 @@ function probeState(): unknown {
 /**
  * 確認画面を MemoryRouter でレンダリングする。編集画面・一覧はスタブに置き換える
  * @param state - 確認画面に渡す location.state（from・saved）
- * @returns 処理結果。
+ * @returns 確認画面と遷移先スタブを描画した Testing Library の結果
  */
 function renderView(state: { from?: string; saved?: boolean } | null = null) {
   return render(

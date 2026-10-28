@@ -129,6 +129,7 @@ async def security_headers(request: Request, call_next) -> Response:
     """
     # 変数の内容: response: 下流へ返す HTTP 応答。
     response = await call_next(request)
+    # 1. HTTPS を強制し、2. MIME の誤認識を防ぎ、3. iframe 埋め込みと参照元情報を制御する。
     # HTTPS を強制する（1 年）
     response.headers['Strict-Transport-Security'] = f'max-age={_HSTS_MAX_AGE}'
     # 宣言と違う種類のファイルとして解釈させない（MIME スニッフィング防止）

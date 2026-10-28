@@ -28,7 +28,7 @@ const yenRounded = (value: number) => formatYen(Math.round(value))
  * @param entries - 登録済みの価格エントリ一覧
  * @param emptyMessage - 一覧が空のときに表示する案内文
  * @param onDelete - 削除ボタンを押したときに呼び出す処理
- * @returns 表示する React 要素。
+ * @returns 価格エントリ一覧または空状態の React 要素
  */
 export function PriceCalcEntriesList({ entries, emptyMessage, onDelete }: {
   entries: PriceCalcEntry[]

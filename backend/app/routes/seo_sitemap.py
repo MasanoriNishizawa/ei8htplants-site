@@ -86,7 +86,7 @@ def build_sitemap(
     try:
         # 変数の内容: events: 取得したイベントの一覧。
         events = rows(public_client.table('events').select('id, slug, start_date').order('start_date', desc=True).execute())
-        # 変数の内容: event: event の反復ごとの値。
+        # 変数の内容: event: サイトマップに追加する公開イベントのレコード。
         for event in events:
             # 変数の内容: key: 辞書やキャッシュを参照するキー。
             key = as_string(event.get('slug')) or as_string(event.get('id'))
@@ -102,7 +102,7 @@ def build_sitemap(
         articles = rows(
             admin_client.table('articles').select('id, published_at, created_at').eq('is_published', True).execute()
         )
-        # 変数の内容: article: article の反復ごとの値。
+        # 変数の内容: article: サイトマップに追加する公開記事のレコード。
         for article in articles:
             if as_string(article.get('id')):
                 entries.append(
@@ -122,7 +122,7 @@ def build_sitemap(
         products = rows(
             admin_client.table('products').select('id, created_at').eq('is_published', True).execute()
         )
-        # 変数の内容: product: product の反復ごとの値。
+        # 変数の内容: product: サイトマップに追加する公開商品のレコード。
         for product in products:
             if as_string(product.get('id')):
                 entries.append(

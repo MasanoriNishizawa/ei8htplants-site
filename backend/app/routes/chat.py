@@ -113,7 +113,7 @@ def _build_site_context() -> str:
         if upcoming:
             # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【開催予定のイベント・ワークショップ】']
-            # 変数の内容: e: e の反復ごとの値。
+            # 変数の内容: e: 開催中または今後に当たるイベントレコード。
             for e in upcoming:
                 # 変数の内容: date_str: 表示用の開催日。
                 date_str = e['start_date']
@@ -152,7 +152,7 @@ def _build_site_context() -> str:
         if rows:
             # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【ジャーナル・記事】']
-            # 変数の内容: a: a の反復ごとの値。
+            # 変数の内容: a: 公開記事のレコード。
             for a in rows:
                 # 変数の内容: tag_str: 記事タグの表示文字列、tags: head に出力するメタタグ。
                 tags = '、'.join(a['tags']) if a.get('tags') else ''
@@ -170,7 +170,7 @@ def _build_site_context() -> str:
         if rows:
             # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【取扱店】']
-            # 変数の内容: s: s の反復ごとの値。
+            # 変数の内容: s: 取扱店のレコード。
             for s in rows:
                 # 変数の内容: area: 表示する地域名、brand_str: ブランド取扱情報の表示文字列、brands: 対象ブランドの一覧。
                 area = f"（{s['area']}）" if s.get('area') else ''

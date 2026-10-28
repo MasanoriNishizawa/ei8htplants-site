@@ -5,6 +5,7 @@ import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
 import { useHueImages } from '../../sites/hue/useHueImages'
 
+/** HUE の編集ページ種別。ブランド紹介・一鉢の選び方・植物のある部屋を識別する */
 type HueEditorialPageKind = 'about' | 'choose' | 'living'
 
 // HUE の各編集ページで使う日本語・英語の見出しと本文
@@ -68,19 +69,23 @@ const NEXT_PAGE: Record<HueEditorialPageKind, { href: string; ja: string; en: st
 export default function HueEditorialPage({ page }: { page: HueEditorialPageKind }) {
   const t = useT()
   const images = useHueImages()
+  // IntersectionObserver が表示状態を切り替える対象をまとめたページルート
   const pageRef = useRef<HTMLDivElement>(null)
   const content = PAGE_COPY[page]
   const next = NEXT_PAGE[page]
 
   useEffect(() => {
+    // 1. アニメーション対象を取得し、表示準備用クラスを付ける
     const root = pageRef.current
     if (!root) return
     const items = Array.from(root.querySelectorAll<HTMLElement>('[data-hue-reveal]'))
     root.classList.add('hue-motion-ready')
+    // 2. 動きを減らす設定または未対応環境では、要素をすぐ表示して監視を登録しない
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
       items.forEach((item) => item.classList.add('is-inview'))
       return () => root.classList.remove('hue-motion-ready')
     }
+    // 3. 要素が画面に入ったら表示状態にし、再監視を止める
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return
@@ -89,6 +94,7 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
       })
     }, { threshold: 0.12, rootMargin: '0px 0px -7% 0px' })
     items.forEach((item) => observer.observe(item))
+    // 4. ページ種別が変わるか画面を離れるとき、監視と準備用クラスを解除する
     return () => {
       observer.disconnect()
       root.classList.remove('hue-motion-ready')

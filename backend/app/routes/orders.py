@@ -199,7 +199,7 @@ def _rollback_stock(reserved: list[tuple[str, int]]) -> None:
     Returns:
         なし。
     """
-    # 変数の内容: pid: pid の反復ごとの値、qty: qty の反復ごとの値。
+    # 変数の内容: pid: 在庫を戻す商品 ID、qty: その商品について元に戻す数量。
     for pid, qty in reserved:
         try:
             admin_supabase.rpc('increment_stock', {
@@ -441,7 +441,7 @@ def _save_order(body: OrderBody, product_map: dict[str, dict], subtotal: int, sh
     Raises:
         Exception: 保存に失敗した場合（呼び出し元で CRITICAL として扱う）
     """
-    # 変数の内容: order: 処理対象の注文。
+    # 変数の内容: order: DB に新規登録した注文レコード。
     order = admin_supabase.table('orders').insert({
         'customer_name': body.customer_name,
         'customer_email': body.customer_email,
@@ -534,7 +534,7 @@ def create_order(body: OrderBody, request: Request) -> dict:
 
     # 4. 注文の保存（失敗したら課金済みなので管理者に知らせる）
     try:
-        # 変数の内容: order: 処理対象の注文。
+        # 変数の内容: order: 決済後に DB へ保存した注文レコード。
         order = _save_order(body, product_map, subtotal, shipping_fee, payment_id)
     # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
@@ -582,7 +582,7 @@ def get_order(order_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): 注文が存在しない場合
     """
-    # 変数の内容: items: 応答へ返す項目の一覧、order: 処理対象の注文。
+    # 変数の内容: order: 検索で取得した注文レコード、items: 注文 ID に紐づく注文明細一覧。
     order = fetch_one_or_404(admin_supabase.table('orders').select('*').eq('id', order_id))
     items = admin_supabase.table('order_items').select('*').eq('order_id', order_id).execute().data
     return {**order, 'items': items}

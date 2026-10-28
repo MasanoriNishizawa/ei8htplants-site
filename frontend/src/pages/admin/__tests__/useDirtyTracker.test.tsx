@@ -189,8 +189,8 @@ describe('useEscapeToClose', () => {
     renderHook(() => useEscapeToClose(true, onEscape))
     // 先に登録した部品（写真の拡大表示など）が受け取る
     /**
-     * テスト用の first を実行する。
-     * @param e - 発生したイベントまたはエラー
+     * Esc キーイベントを受け取り済みにして、後続のハンドラーへ伝えないテスト用処理。
+     * @param e - preventDefault を設定するキーボードイベント
      * @returns 戻り値なし。
      */
     const first = (e: KeyboardEvent) => e.preventDefault()

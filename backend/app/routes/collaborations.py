@@ -53,7 +53,7 @@ def add_collaboration(body: CollaborationBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
-    # 変数の内容: order: 処理対象の注文。
+    # 変数の内容: order: 新しいコラボレーションに割り当てる末尾の表示順。
     order = next_display_order(admin_supabase, 'collaborations')
     return admin_supabase.table('collaborations').insert({**body.model_dump(), 'display_order': order}).execute().data[0]
 

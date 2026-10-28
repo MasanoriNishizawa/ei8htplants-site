@@ -17,7 +17,7 @@ import { UnsavedChangesProvider, useConfirmLeave, useUnsavedChanges, UNSAVED_LEA
  *  編集画面の代わり。チェックボックスで未保存の状態を切り替える
  * @param label - 表示ラベル
  * @param initial - 初期状態
- * @returns 表示する React 要素。
+ * @returns チェックボックスで未保存状態を切り替える編集ラベル
  */
 function Editor({ label, initial = false }: { label: string; initial?: boolean }) {
   // チェックボックスで切り替える未保存状態
@@ -33,7 +33,7 @@ function Editor({ label, initial = false }: { label: string; initial?: boolean }
 
 /**
  *  useConfirmLeave の結果を画面に出すボタン
- * @returns 表示する React 要素。
+ * @returns 確認処理の結果を表示する移動ボタンと結果欄
  */
 function LeaveButton() {
   const confirmLeave = useConfirmLeave()
@@ -51,7 +51,7 @@ function LeaveButton() {
  *  Provider の中に編集画面（表示の切り替え可）と移動ボタンを置く
  * @param withProvider - Provider を描画するかどうか
  * @param editors - 未保存状態を切り替える編集画面のラベル一覧
- * @returns 表示する React 要素。
+ * @returns Provider の有無と編集画面数を指定できるテスト用ツリー
  */
 function Harness({ withProvider = true, editors = ['A'] }: { withProvider?: boolean; editors?: string[] }) {
   // 編集画面を閉じる操作をテストするための表示状態
@@ -68,7 +68,7 @@ function Harness({ withProvider = true, editors = ['A'] }: { withProvider?: bool
 
 /**
  *  移動ボタンを押して結果の文字を返す
- * @returns 処理結果。
+ * @returns 画面に描画された移動結果の文字列
  */
 function pressLeave(): string {
   fireEvent.click(screen.getByRole('button', { name: '移動' }))
@@ -77,7 +77,7 @@ function pressLeave(): string {
 
 /**
  *  beforeunload を発火し、preventDefault されたかを返す
- * @returns 処理結果。
+ * @returns beforeunload が preventDefault された場合は true
  */
 function fireBeforeUnload(): boolean {
   const ev = new Event('beforeunload', { cancelable: true })

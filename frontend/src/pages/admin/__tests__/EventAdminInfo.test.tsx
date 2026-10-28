@@ -95,7 +95,7 @@ const MOCK_FINANCES: EventFinances = {
 /**
  * 確認画面（/admin/events/:id/admin-info）の代わりに置くスタブ。
  * 保存後・「← 戻る」で遷移してきたことと、受け取った location.state を画面に出して確かめられるようにする
- * @returns 表示する React 要素。
+ * @returns location.state を表示し、戻る操作を提供する確認画面スタブ
  */
 function ViewStub() {
   const location = useLocation()
@@ -116,7 +116,7 @@ function ViewStub() {
  * 編集画面は /admin/events/:id/admin-info/edit。保存後の遷移先として確認画面のスタブも置く
  * @param eventId - URL パラメータとして渡すイベントID
  * @param from - 確認画面から引き継いだ遷移元（location.state.from）。省略時は state なし
- * @returns 処理結果。
+ * @returns 編集画面と確認画面スタブを描画した Testing Library の結果
  */
 function renderAdminInfoPage(eventId: string = 'event-admin-info-1', from?: string) {
   return render(
@@ -278,7 +278,7 @@ const INFO_WITH_GUIDELINES: EventAdminInfo = {
 /**
  * 隠しファイル input を取り出す（「画像を追加」ボタンから開く input[type=file]）
  * @param container - render の戻り値の container
- * @returns 処理結果。
+ * @returns フォーム内のファイル選択 input 要素
  */
 function getFileInput(container: HTMLElement): HTMLInputElement {
   const input = container.querySelector('input[type="file"]')
@@ -289,7 +289,7 @@ function getFileInput(container: HTMLElement): HTMLInputElement {
 /**
  * テスト用の画像ファイルを作る
  * @param name - ファイル名
- * @returns 処理結果。
+ * @returns PNG 形式のテスト用画像ファイル
  */
 function imageFile(name: string): File {
   return new File(['x'], name, { type: 'image/png' })
@@ -892,7 +892,7 @@ describe('EventAdminInfo ページ — 確認画面との行き来', () => {
  * 保存後・「← 戻る」の遷移が replace なら履歴は 一覧 → 確認画面 → 確認画面 になり、
  * 1つ戻ると最初の確認画面（state に entry: 'first' の目印あり）、2つ戻ると一覧に着く。
  * push だと 一覧 → 確認 → 編集 → 確認 になり、1つ戻ると編集画面に戻ってしまう
- * @returns 処理結果。
+ * @returns 遷移履歴を含む編集画面を描画した Testing Library の結果
  */
 function renderWithHistory() {
   return render(

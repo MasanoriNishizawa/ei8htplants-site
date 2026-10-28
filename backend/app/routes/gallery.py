@@ -62,7 +62,7 @@ def add_image(body: GalleryBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
-    # 変数の内容: order: 処理対象の注文。
+    # 変数の内容: order: 新しい画像に割り当てる末尾の表示順。
     order = next_display_order(admin_supabase, 'gallery_images')
     return admin_supabase.table('gallery_images').insert({**body.model_dump(), 'display_order': order}).execute().data[0]
 

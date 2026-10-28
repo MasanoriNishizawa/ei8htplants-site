@@ -74,7 +74,7 @@ const FULL_EVENT: Event = {
 
 /**
  * 画像DLページを /admin/events/:id/images でレンダリングするヘルパー
- * @returns 処理結果。
+ * @returns イベント画像管理ページを描画した Testing Library の結果
  */
 function renderPage() {
   return render(

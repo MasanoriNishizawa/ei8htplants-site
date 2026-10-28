@@ -67,7 +67,7 @@ export default function Events() {
   /**
    * 絞り込みボタン（丸い枠）の見た目
    * @param active - 選択中なら true（濃い背景）
-   * @returns style
+   * @returns 選択状態を反映した絞り込みボタン用 CSSProperties
    */
   const filterBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: '7px 16px', border: '1px solid #dddde8', borderRadius: 20, fontSize: 12,

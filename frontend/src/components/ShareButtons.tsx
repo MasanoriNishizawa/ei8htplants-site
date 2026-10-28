@@ -56,14 +56,19 @@ export default function ShareButtons({ url, text }: Props) {
     setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
   }, [])
 
-  /** URL のクエリに入れられるよう文字列をエンコードする */
+  /** URL のクエリに入れられるよう文字列をエンコードする。
+   * @param s - エンコードする文字列
+   * @returns URL クエリに使えるパーセントエンコード済み文字列
+   */
   const enc = (s: string) => encodeURIComponent(s)
   // X の投稿画面を開く URL（本文と URL を入れておく）
   const xUrl = `https://x.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`
   // Threads の投稿画面を開く URL（本文の後に改行して URL を入れる）
   const threadsUrl = `https://www.threads.net/intent/post?text=${enc(text + '\n' + url)}`
 
-  /** 端末の共有シートを開く。利用者が閉じた（キャンセルした）ときの例外は無視する */
+  /** 端末の共有シートを開く。利用者が閉じた（キャンセルした）ときの例外は無視する。
+   * @returns なし。共有シートが閉じられても画面状態は変えない
+   */
   const handleWebShare = async () => {
     try { await navigator.share({ title: text, url }) } catch { /* 共有シートを閉じただけなので何もしない */ }
   }

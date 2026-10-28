@@ -34,7 +34,7 @@ const CONTENTS: Record<string, string> = {
 
 /**
  *  今の URL（pathname + search）を出し、戻る・進むのボタンを持つ部品（ブラウザの戻る・進むの代わり）
- * @returns 表示する React 要素。
+ * @returns 現在の検索文字列と戻る・進むボタンを表示するプローブ
  */
 function HistoryProbe() {
   const location = useLocation()

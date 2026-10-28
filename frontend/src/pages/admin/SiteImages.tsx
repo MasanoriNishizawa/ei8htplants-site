@@ -18,7 +18,7 @@ const fieldStyle: React.CSSProperties = {
 
 /**
  *  HUE by ei8ht plants のサイトに掲載する6枚の写真をアップロード・保存する管理ページ
- * @returns 表示する React 要素。
+ * @returns 6 枚の HUE 写真を登録する管理画面の React 要素
  */
 export default function SiteImages() {
   // 6 枚の写真について、保存済み URL・編集中 URL・処理状態を保持する
