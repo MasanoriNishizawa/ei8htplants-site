@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances } from '../../lib/api'
-import { SectionBox, ImageViewer } from './AdminInfoParts'
-import { formatJaDate, formatJaDateTime, formatYen, isPastDue, localToday } from './adminInfoFormat'
+import { ImageViewer } from './AdminInfoParts'
+import { hasText, isPastDue, localToday } from './adminInfoFormat'
+import EventAdminInfoViewContent from './EventAdminInfoViewContent'
 
 /** この画面が受け取る location.state の形 */
 interface ViewLocationState {
@@ -10,57 +11,6 @@ interface ViewLocationState {
   from?: string
   /** 編集画面で保存に成功して戻ってきたときだけ true。「保存しました」を表示する */
   saved?: boolean
-}
-
-/** 「編集」ボタン（黒いボタン）の見た目。スマホでも押しやすいよう高さを 44px 確保する */
-const editButtonStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 44,
-  padding: '10px 28px',
-  background: 'var(--c-ink)',
-  color: '#ffffff',
-  borderRadius: 4,
-  fontSize: 15,
-  textDecoration: 'none',
-  boxSizing: 'border-box',
-}
-
-/** 支払い状況などのバッジの共通の見た目 */
-const badgeBaseStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '3px 10px',
-  borderRadius: 999,
-  fontSize: 13,
-  lineHeight: 1.5,
-  border: '1px solid',
-}
-
-/** 「支払い済み」バッジの色（緑系） */
-const paidBadgeStyle: React.CSSProperties = { ...badgeBaseStyle, color: '#4a6741', background: '#f0f5ee', borderColor: '#b8d4ae' }
-
-/** 「未払い」「期限切れ」バッジの色（赤系） */
-const unpaidBadgeStyle: React.CSSProperties = { ...badgeBaseStyle, color: '#c0392b', background: '#fdf2f2', borderColor: '#f5c6cb' }
-
-/** 改行をそのまま表示し、長い URL なども枠からはみ出さず折り返す文章の見た目（出店要項・メモ） */
-const multilineTextStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 14,
-  lineHeight: 1.8,
-  color: 'var(--c-body)',
-  whiteSpace: 'pre-wrap',
-  overflowWrap: 'anywhere',
-  wordBreak: 'break-word',
-}
-
-/**
- * 文字列が入力されているかどうか（空白・改行だけのものは未入力とみなす）
- * @param value - 調べる文字列
- * @returns 空白以外の文字が1つでもあれば true
- */
-function hasText(value: string | null | undefined): value is string {
-  return typeof value === 'string' && value.trim() !== ''
 }
 
 /**
@@ -96,61 +46,6 @@ function resolveFee(
   // 収支の 0 は「未入力」と区別できないため、0 以外のときだけ使う（編集画面と同じ）
   if (financeValue !== null && financeValue !== undefined && financeValue !== 0) return { value: financeValue, fromFinance: true }
   return { value: null, fromFinance: false }
-}
-
-/**
- * 未入力のときに表示する薄い文字
- * @returns 「未入力」の薄い文字
- */
-function Empty() {
-  return <span style={{ color: 'var(--c-muted)', fontSize: 14 }}>未入力</span>
-}
-
-/**
- * 「ラベル」と「値」を横に並べる1行。幅が狭い（スマホ）ときは折り返してラベルの下に値が来る
- * @param label - 項目名
- * @param children - 値の表示
- * @returns 項目名と値の1行
- */
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12, rowGap: 2, padding: '10px 0', borderBottom: '1px solid #f0f0f5' }}>
-      {/* ラベル。幅 120px で固定し、値と合わせて入りきらない幅では値が下に回る */}
-      <div style={{ flex: '0 0 120px', fontSize: 13, color: 'var(--c-muted)', letterSpacing: 1, paddingTop: 1 }}>
-        {label}
-      </div>
-      {/* 値。minWidth: 0 で長い文字列でも枠を押し広げない */}
-      <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 15, color: 'var(--c-ink)', overflowWrap: 'anywhere' }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/**
- * 文字列の値を表示する。未入力なら「未入力」を薄く出す
- * @param value - 表示する値（null・undefined・空文字は未入力）
- * @returns 値の文字、または「未入力」
- */
-function TextValue({ value }: { value: string | null | undefined }) {
-  return hasText(value) ? <>{value}</> : <Empty />
-}
-
-/**
- * 金額を表示する。収支から補った値には小さく「（収支から）」を添える
- * @param fee - resolveFee で決めた金額と、収支から補ったかどうか
- * @returns 「14,000円」の形の金額（と補足）、または「未入力」
- */
-function FeeValue({ fee }: { fee: { value: number | null; fromFinance: boolean } }) {
-  /** 表示する金額の文字（金額が無ければ null） */
-  const text = formatYen(fee.value)
-  if (!text) return <Empty />
-  return (
-    <>
-      {text}
-      {fee.fromFinance && <span style={{ fontSize: 12, color: 'var(--c-muted)', marginLeft: 4 }}>（収支から）</span>}
-    </>
-  )
 }
 
 /**
@@ -240,152 +135,25 @@ export default function AdminEventAdminInfoView() {
     boothFee.value !== null || hasText(info.booth_fee_pay_method) || hasText(info.booth_fee_due) || !!info.booth_fee_paid
   )
 
-  /** 編集ボタン。確認画面に来たときの from を渡し、保存して戻ってきても「← 戻る」が元の画面へ戻れるようにする */
-  const editButton = (
-    <Link to={editPath} state={{ from }} style={editButtonStyle}>
-      編集
-    </Link>
-  )
-
   return (
     <>
-    <div style={{ maxWidth: 640 }}>
-      {/* 戻るリンク。上下に余白を持たせてスマホでもタップしやすくする */}
-      <div style={{ marginBottom: 12 }}>
-        <Link to={backTo} style={{ display: 'inline-block', padding: '12px 0', fontSize: 13, color: 'var(--c-muted)', textDecoration: 'none' }}>
-          &larr; 戻る
-        </Link>
-      </div>
-
-      {/* 見出し・イベント名と、右側の編集ボタン。狭い幅では編集ボタンが下に折り返す */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 24 }}>
-        <div style={{ minWidth: 0, flex: '1 1 220px' }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: '0 0 4px' }}>
-            管理情報
-          </h2>
-          {event && (
-            <p style={{ fontSize: 14, color: 'var(--c-muted)', margin: 0, overflowWrap: 'anywhere' }}>
-              {event.name} &mdash; {formatJaDate(event.start_date) ?? event.start_date}
-              {event.end_date && event.end_date !== event.start_date && ` 〜 ${formatJaDate(event.end_date) ?? event.end_date}`}
-            </p>
-          )}
-        </div>
-        {editButton}
-      </div>
-
-      {/* 編集画面で保存して戻ってきたときに3秒間表示する */}
-      {savedVisible && (
-        <p role="status" style={{ color: '#4a6741', background: '#f0f5ee', border: '1px solid #b8d4ae', borderRadius: 4, padding: '12px 16px', margin: '0 0 16px', fontSize: 14 }}>
-          保存しました
-        </p>
-      )}
-
-      {/* 読み込み中 */}
-      {loading && <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>}
-
-      {/* 読み込み失敗 */}
-      {!loading && error && (
-        <p style={{ color: '#c0392b', background: '#fdf2f2', border: '1px solid #f5c6cb', borderRadius: 4, padding: '12px 16px', margin: '0 0 16px', fontSize: 14 }}>
-          {error}
-        </p>
-      )}
-
-      {/* 管理情報の本体（読み込めたときだけ） */}
-      {!loading && info && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* 管理情報がまだ1つも登録されていないときの案内 */}
-          {isAdminInfoEmpty(info) && (
-            <p style={{ margin: 0, padding: '14px 16px', background: '#f4f4f8', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, color: 'var(--c-body)', lineHeight: 1.7 }}>
-              まだ管理情報が登録されていません。「編集」ボタンから搬入・搬出、宿泊、出店料などを登録できます。
-            </p>
-          )}
-
-          {/* 搬入・搬出 */}
-          <SectionBox label="搬入・搬出">
-            <Row label="搬入日時"><TextValue value={formatJaDateTime(info.carry_in_time)} /></Row>
-            <Row label="搬出日時"><TextValue value={formatJaDateTime(info.carry_out_time)} /></Row>
-          </SectionBox>
-
-          {/* 宿泊 */}
-          <SectionBox label="宿泊">
-            <Row label="ホテル名"><TextValue value={info.hotel_name} /></Row>
-            <Row label="宿泊料金"><FeeValue fee={hotelFee} /></Row>
-          </SectionBox>
-
-          {/* 出店料 */}
-          <SectionBox label="出店料">
-            <Row label="出店料"><FeeValue fee={boothFee} /></Row>
-            <Row label="支払い方法"><TextValue value={info.booth_fee_pay_method} /></Row>
-            <Row label="支払い期限"><TextValue value={formatJaDate(info.booth_fee_due)} /></Row>
-            <Row label="支払い状況">
-              {!hasBoothFeeInfo ? (
-                <Empty />
-              ) : info.booth_fee_paid ? (
-                <span style={paidBadgeStyle}>支払い済み</span>
-              ) : (
-                <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6 }}>
-                  <span style={unpaidBadgeStyle}>未払い</span>
-                  {/* 期限を過ぎて未払いのときは、強調した「期限切れ」も並べる */}
-                  {overdue && (
-                    <span style={{ ...unpaidBadgeStyle, color: '#ffffff', background: '#c0392b', borderColor: '#c0392b' }}>期限切れ</span>
-                  )}
-                </span>
-              )}
-            </Row>
-          </SectionBox>
-
-          {/* 出店要項（主催者から届いた要項の文章と画像） */}
-          <SectionBox label="出店要項">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 13, color: 'var(--c-muted)', letterSpacing: 1, marginBottom: 6 }}>要項の文章</div>
-                {hasText(info.guidelines_text) ? <p style={multilineTextStyle}>{info.guidelines_text}</p> : <Empty />}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, color: 'var(--c-muted)', letterSpacing: 1, marginBottom: 6 }}>
-                  要項の画像{guidelineImages.length > 0 && `（${guidelineImages.length} 枚）`}
-                </div>
-                {guidelineImages.length === 0 ? (
-                  <Empty />
-                ) : (
-                  /* サムネイル。編集画面と同じく最小 120px で折り返し、狭い幅でも横スクロールしない。押すと拡大表示 */
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(120px, 100%), 1fr))', gap: 10 }}>
-                    {guidelineImages.map((url, i) => (
-                      <button
-                        key={`${url}-${i}`}
-                        type="button"
-                        onClick={() => setViewerIndex(i)}
-                        aria-label={`出店要項の画像 ${i + 1} を拡大表示`}
-                        style={{ display: 'block', width: '100%', aspectRatio: '1 / 1', padding: 0, border: '1px solid #dddde8', borderRadius: 4, background: '#f4f4f8', overflow: 'hidden', cursor: 'zoom-in', minWidth: 0 }}
-                      >
-                        <img
-                          src={url}
-                          alt={`出店要項の画像 ${i + 1}`}
-                          loading="lazy"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </SectionBox>
-
-          {/* メモ */}
-          <SectionBox label="メモ">
-            {hasText(info.notes) ? <p style={multilineTextStyle}>{info.notes}</p> : <Empty />}
-          </SectionBox>
-        </div>
-      )}
-
-      {/* 下部の編集ボタン。長い内容を読み終えた位置からもすぐ編集できるようにする（読み込みに失敗したときも出す） */}
-      {!loading && (
-        <div style={{ marginTop: 32 }}>
-          {editButton}
-        </div>
-      )}
-    </div>
+      <EventAdminInfoViewContent
+        event={event}
+        info={info}
+        loading={loading}
+        error={error}
+        savedVisible={savedVisible}
+        backTo={backTo}
+        editPath={editPath}
+        from={from}
+        guidelineImages={guidelineImages}
+        isEmpty={!!info && isAdminInfoEmpty(info)}
+        boothFee={boothFee}
+        hotelFee={hotelFee}
+        hasBoothFeeInfo={hasBoothFeeInfo}
+        overdue={overdue}
+        onOpenImage={setViewerIndex}
+      />
 
     {/* 出店要項画像の拡大表示 */}
     {viewerIndex !== null && guidelineImages.length > 0 && (

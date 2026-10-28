@@ -9,6 +9,15 @@ import { formatYen as formatYenCommon } from '../../lib/format'
 const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'] as const
 
 /**
+ * 文字列に空白以外の文字が入力されているかを判定する。
+ * @param value - 確認する文字列。null・undefined も受け付ける
+ * @returns 空白以外の文字があれば true
+ */
+export function hasText(value: string | null | undefined): value is string {
+  return typeof value === 'string' && value.trim() !== ''
+}
+
+/**
  * "YYYY-MM-DD" を年・月・日に分解し、実在する日付かどうかを確かめる
  * @param value - "YYYY-MM-DD" 形式の文字列
  * @returns 年・月・日と曜日の番号（0=日曜）。形式が違う・存在しない日付なら null
