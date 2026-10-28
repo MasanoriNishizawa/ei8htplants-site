@@ -26,15 +26,20 @@ def _build_tree(directory: pathlib.Path, base: pathlib.Path) -> list[dict]:
     Returns:
         各エントリが type/name/path（およびディレクトリは children）を持つ辞書のリスト
     """
+    # 変数の内容: items: 応答へ返す項目の一覧。
     items: list[dict] = []
     try:
+        # 変数の内容: entries: 出力する URL またはツリー項目。
         entries = sorted(directory.iterdir(), key=lambda p: (p.is_file(), p.name))
     except PermissionError:
         return items
+    # 1. 隠し項目を除外し、各項目の相対パスを組み立てる。
     for entry in entries:
         if entry.name.startswith('.') or entry.name == '__pycache__':
             continue
+        # 変数の内容: rel: ベースディレクトリからの相対パス。
         rel = entry.relative_to(base).as_posix()
+        # 2. ディレクトリは再帰処理し、Markdown ファイルだけをツリーへ加える。
         if entry.is_dir():
             items.append({
                 'type': 'dir',
@@ -86,6 +91,7 @@ def get_content(path: str = Query(...)) -> str:
     """
     # 1. 実際の場所に直し、DOC_ROOT の中にあるか確かめる（「../」などで外に出させない）
     try:
+        # 変数の内容: target: 処理対象のファイルまたは値。
         target = (DOC_ROOT / path).resolve()
         target.relative_to(DOC_ROOT.resolve())
     except (ValueError, OSError):

@@ -27,6 +27,7 @@ export function parseLocalDate(s: string): Date {
  * @returns YYYY-MM
  */
 export function monthKey(s: string): string {
+  // 日付文字列をローカル日付として解釈し、UTC 起因の日付ずれを防ぐ
   const d = parseLocalDate(s)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
@@ -54,7 +55,9 @@ export function formatMonthKey(key: string, lang: Lang): string {
  * @returns 例: 「2026年5月1日〜3日」「May 1–3, 2026」
  */
 export function formatDateRange(start: string, end: string | null, lang: Lang): string {
+  // 開始日と、終了日があれば終了日をローカル日付として読む
   const s = parseLocalDate(start)
+  // 終了日が省略された場合は期間なしとして null を使う
   const e = end ? parseLocalDate(end) : null
   // 開始日と終了日が同じ年・同じ月か（同じなら終わりの年・月を省く）
   const sameMonth = !!e && s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()
@@ -86,7 +89,9 @@ const JST_OFFSET_MS = 9 * 60 * 60 * 1000
  * @returns YYYY-MM-DD
  */
 export function toYmd(d: Date): string {
+  // 年・月・日をゼロ埋めして YYYY-MM-DD にする
   const y = d.getFullYear()
+  // 月・日を2桁にそろえる
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
@@ -129,6 +134,7 @@ export function todayJst(now: Date = new Date()): string {
  * @returns 表示用の文字列
  */
 export function formatJaYmd(s: string): string {
+  // 入力文字列をローカル日付として解釈する
   const d = parseLocalDate(s)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
@@ -139,6 +145,7 @@ export function formatJaYmd(s: string): string {
  * @returns 表示用の文字列
  */
 export function formatJaMonthDayDow(s: string): string {
+  // 入力文字列をローカル日付として解釈する
   const d = parseLocalDate(s)
   return `${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS_JA[d.getDay()]}）`
 }

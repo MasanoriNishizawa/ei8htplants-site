@@ -77,6 +77,7 @@ const MOCK_SESSIONS: WsSession[] = []
 /**
  * 新規作成フォームをレンダリングするヘルパー
  * /admin/events/new にマウントする
+ * @returns 処理結果。
  */
 function renderNewForm() {
   return render(
@@ -91,6 +92,7 @@ function renderNewForm() {
 /**
  * 編集フォームをレンダリングするヘルパー
  * @param eventId - 編集対象のイベントID
+ * @returns 処理結果。
  */
 function renderEditForm(eventId = 'mock-event-1') {
   return render(
@@ -353,9 +355,15 @@ describe('イベントフォーム 編集', () => {
 
 // ---- URL スラッグの自動生成 ----
 describe('イベントフォーム URL スラッグの自動生成', () => {
-  /** イベント名の入力欄 */
+  /**
+   *  イベント名の入力欄
+   * @returns 戻り値なし。
+   */
   const nameInput = () => screen.getByLabelText('イベント名') as HTMLInputElement
-  /** スラッグの入力欄 */
+  /**
+   *  スラッグの入力欄
+   * @returns 戻り値なし。
+   */
   const slugInput = () => screen.getByPlaceholderText('plant-market-2026') as HTMLInputElement
 
   beforeEach(() => {

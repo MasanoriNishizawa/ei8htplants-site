@@ -25,6 +25,7 @@ vi.mock('../../lib/api', () => ({
 /**
  * テスト用イベントデータのファクトリ関数
  * @param overrides - 上書きするフィールド
+ * @returns 戻り値なし。
  */
 const makeEvent = (overrides: Partial<Event> = {}): Event => ({
   id: 'ev-1',

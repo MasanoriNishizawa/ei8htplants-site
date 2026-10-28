@@ -20,15 +20,21 @@ WS_EVENT_LABEL_LENGTH = 22
 
 
 def render() -> None:
-    """ワークショップ画面を表示する。"""
+    """ワークショップ画面を表示する。
+
+    Returns:
+        なし。"""
+    # 変数の内容: ctx: ワークショップ画面で使う集計済みデータコンテキスト。
     ctx = get_context()
     st.title("ワークショップ")
     st.caption(ctx.year_label)
 
+    # 変数の内容: res: ワークショップの申込レコード一覧。
     res = ctx.res
     if res.empty:
         no_data("WS 予約")
         return
+    # 変数の内容: active: キャンセル済みを除いたワークショップ申込一覧。
     active = active_reservations(res)
 
     # 1. まとめの数字（キャンセルだけでも件数とキャンセル率は出す）
@@ -50,7 +56,9 @@ def _summary(res: pd.DataFrame, active: pd.DataFrame) -> None:
     Args:
         res: 予約の表（キャンセル含む）
         active: 有効な予約（キャンセル除く）
-    """
+
+    Returns:
+        なし。"""
     # 1. リピーターは「異なるイベントで予約した数」で数える（同じイベントの2枠は1回）
     rep = repeat_summary(active, unit="event_id")
     c1, c2, c3, c4 = st.columns(4)
@@ -70,7 +78,9 @@ def _by_event(active: pd.DataFrame) -> None:
 
     Args:
         active: 有効な予約
-    """
+
+    Returns:
+        なし。"""
     # 1. イベントごとに人数を合計する（同じ名前のイベントでも別の回は別の行にする）
     by_event = (
         active.groupby("event_id", dropna=False)
@@ -97,7 +107,9 @@ def _fill_rates(ctx: Context, res: pd.DataFrame) -> None:
     Args:
         ctx: get_context の結果（ws_sessions・events を使う）
         res: 予約の表（キャンセル含む。埋まり具合の計算ではキャンセルを数えない）
-    """
+
+    Returns:
+        なし。"""
     st.subheader("時間枠の埋まり具合")
     # 1. 選んだ期間に予約のあるイベントの時間枠だけを残す（同じ名前のイベントを取り違えないよう event_id で絞る）
     fill = session_fill_rates(res, ctx.raw["ws_sessions"], ctx.raw["events"])
@@ -135,7 +147,9 @@ def _lead_time(active: pd.DataFrame) -> None:
 
     Args:
         active: 有効な予約
-    """
+
+    Returns:
+        なし。"""
     st.subheader("予約のタイミング")
     # 1. 日数が分かる予約のうち、予約日が参加日より後のものを除く
     known = active["lead_days"].dropna()
@@ -166,7 +180,9 @@ def _booking_time(active: pd.DataFrame) -> None:
 
     Args:
         active: 有効な予約（created_at は日本時間）
-    """
+
+    Returns:
+        なし。"""
     st.subheader("予約が入った曜日と時間帯")
     # 1. 曜日 × HOUR_BIN 時間ごとの件数を数える（予約の無い枠も 0 として並べる）
     t = active["created_at"]

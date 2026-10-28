@@ -25,7 +25,11 @@ NET_LABEL_PAD_RIGHT = 0.15  # 右側
 
 
 def render() -> None:
-    """イベント収支画面を表示する。"""
+    """イベント収支画面を表示する。
+
+    Returns:
+        なし。"""
+    # 変数の内容: ctx: イベント一覧画面で使う集計済みデータコンテキスト。
     ctx = get_context()
     st.title("イベント収支")
     st.caption(
@@ -36,7 +40,9 @@ def render() -> None:
     if ctx.fin.empty:
         no_data("イベント収支")
         return
+    # 変数の内容: done: 売上が確定したイベントの行だけを抽出する。
     done = ctx.done.copy()
+    # 変数の内容: pending: 全イベント数から確定済み件数を引いた未確定件数。
     pending = len(ctx.fin) - len(done)
     if pending:
         st.caption(f"売上が 0 円のイベント {pending} 件は、未開催または入力前として集計から外しています。")
@@ -60,7 +66,10 @@ def _summary(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績がある回の表
-    """
+
+    Returns:
+        なし。"""
+    # 変数の内容: c1, c2, c3, c4: 4分割したイベント概要カードの列配置。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("1回あたりの売上（中央値）", yen(done["sales"].median()))
     c2.metric("1回あたりの収支（中央値）", yen(done["net"].median()))
@@ -73,7 +82,9 @@ def _ranking(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績がある回の表（label 列を持つ）
-    """
+
+    Returns:
+        なし。"""
     # 1. 収支の小さい順に並べた横棒（横棒は下から積まれるので、いちばん上が最も黒字の回になる）
     ranked = done.sort_values("net")
     fig = go.Figure(go.Bar(
@@ -97,10 +108,14 @@ def _break_even(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績がある回の表（label 列を持つ）
-    """
+
+    Returns:
+        なし。"""
     st.subheader("売上と損益分岐点")
     st.caption("◆ は収支が 0 円になる売上。棒がこれより右にあれば黒字です。")
+    # 変数の内容: order: 売上額の昇順で並べた損益分岐比較用イベント。
     order = done.sort_values("sales")
+    # 変数の内容: fig: 損益分岐額と実売上を描画する Plotly 図。
     fig = go.Figure()
     fig.add_bar(x=order["sales"], y=order["label"], orientation="h", name="売上", marker_color=SERIES[0],
                 hovertemplate="%{y}<br>売上 %{x:,.0f}円<extra></extra>")
@@ -118,7 +133,9 @@ def _expenses(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績がある回の表（label 列を持つ）
-    """
+
+    Returns:
+        なし。"""
     st.subheader("支出の内訳")
     # 1. 費目ごとに積み上げる（一度も発生していない費目は凡例に出さない）
     fig = go.Figure()
@@ -150,7 +167,9 @@ def _brands(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績がある回の表
-    """
+
+    Returns:
+        なし。"""
     st.subheader("ブランド別の平均")
     st.caption("複数ブランドで出店した回は、それぞれのブランドに数えています。")
     # 1. 1回に複数ブランドがあれば行を分けて、ブランドごとに集計する
@@ -174,8 +193,11 @@ def _workshop(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績がある回の表
-    """
+
+    Returns:
+        なし。"""
     st.subheader("WS ありの回 と なしの回")
+    # 変数の内容: ws: ワークショップ開催有無ごとの回数・平均売上集計。
     ws = done.groupby("has_workshop").agg(回数=("event_id", "count"), 平均売上=("sales", "mean"), 平均収支=("net", "mean"))
     ws.index = ws.index.map({True: "WS あり", False: "WS なし"}).rename("区分")
     st.dataframe(ws.style.format({"平均売上": "{:,.0f}円", "平均収支": "{:,.0f}円"}), width="stretch")
@@ -186,8 +208,11 @@ def _detail_table(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績がある回の表
-    """
+
+    Returns:
+        なし。"""
     with st.expander("収支の明細を表で見る"):
+        # 変数の内容: table: イベントごとの詳細を画面表示する表。
         table = pd.DataFrame({
             "開催日": done["start_date"].dt.strftime("%Y/%m/%d"),
             "イベント": done["name"],

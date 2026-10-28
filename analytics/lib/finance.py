@@ -202,7 +202,9 @@ def _row_results(row: pd.Series) -> pd.Series:
     Returns:
         FINANCE_RESULT_COLUMNS と break_even を持つ Series
     """
+    # 変数の内容: fin: 売上行を辞書にし、後続の項目別計算へ渡す。
     fin = row.to_dict()
+    # 変数の内容: has_workshop: 対象行がワークショップ開催ありかを示す真偽値。
     has_workshop = bool(fin["has_workshop"])
     return pd.Series({**compute_finances(fin, has_workshop), "break_even": break_even_sales(fin, has_workshop)})
 
@@ -217,7 +219,9 @@ def _empty_finance_table(events: pd.DataFrame, finances: pd.DataFrame) -> pd.Dat
     Returns:
         build_event_finance_table と同じ列を持つ0行の表（真偽値・日付の列は型もそろえる）
     """
+    # 変数の内容: base: 売上表とイベント表の列名を重複なくまとめた基礎列。
     base = list(dict.fromkeys([*finances.columns, *events.columns]))
+    # 変数の内容: columns: 空結果にも保持する基礎列と計算結果列の一覧。
     columns = base + [c for c in (*FINANCE_RESULT_COLUMNS, *FINANCE_DERIVED_COLUMNS) if c not in base]
     return pd.DataFrame({c: pd.Series(dtype=_EMPTY_DTYPES.get(c, object)) for c in columns})
 

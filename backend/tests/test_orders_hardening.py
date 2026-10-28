@@ -58,7 +58,14 @@ def _post_order(payload: dict, mock_sb: MagicMock, mock_http: MagicMock, mock_re
 
 
 def _rpc_names(mock_sb: MagicMock) -> list[str]:
-    """呼ばれた RPC の名前を順に返す。"""
+    """呼ばれた RPC の名前を順に返す。
+
+    Args:
+        mock_sb: Supabase クライアントを模したモック。
+
+    Returns:
+        list[str] を返す。
+    """
     return [c.args[0] for c in mock_sb.rpc.call_args_list]
 
 
@@ -67,7 +74,15 @@ class TestOrderQuantityValidation:
 
     @pytest.mark.parametrize('quantity', [-1, 0, 100, -99])
     def test_数量が1から99の範囲外なら422で決済も在庫の確保も呼ばない(self, quantity):
-        """数量が 0・負・100 以上のとき 422 になり、商品の読み取り・在庫の確保・Square の決済を呼ばないこと。"""
+        """数量が 0・負・100 以上のとき 422 になり、商品の読み取り・在庫の確保・Square の決済を呼ばないこと。
+
+        Args:
+            quantity: 注文または在庫の数量。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = _make_admin_sb_for_create()
         mock_http = _make_http_mock_success()
 
@@ -79,7 +94,12 @@ class TestOrderQuantityValidation:
         mock_sb.table.assert_not_called()
 
     def test_負の数量を混ぜて合計を減らそうとしても422になる(self):
-        """正の数量の品目と負の数量の品目を混ぜても 422 になり、決済されないこと。"""
+        """正の数量の品目と負の数量の品目を混ぜても 422 になり、決済されないこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: items: 応答へ返す項目の一覧、mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = _make_admin_sb_for_create()
         mock_http = _make_http_mock_success()
         items = [{'product_id': 'product-1', 'quantity': 2}, {'product_id': 'product-2', 'quantity': -1}]
@@ -91,7 +111,15 @@ class TestOrderQuantityValidation:
 
     @pytest.mark.parametrize('quantity', [1, 99])
     def test_数量が1と99の境界は受け付ける(self, quantity):
-        """数量 1 と 99（上限ちょうど）は 422 にならず、決済まで進むこと。"""
+        """数量 1 と 99（上限ちょうど）は 422 にならず、決済まで進むこと。
+
+        Args:
+            quantity: 注文または在庫の数量。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = _make_admin_sb_for_create(stock=99)
         mock_http = _make_http_mock_success()
 
@@ -103,7 +131,12 @@ class TestOrderQuantityValidation:
         assert sent['amount_money']['amount'] == 3000 * quantity + 1000
 
     def test_数量が小数なら422になる(self):
-        """数量に 1.5 のような小数を送ると 422 になること。"""
+        """数量に 1.5 のような小数を送ると 422 になること。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = _make_admin_sb_for_create()
         mock_http = _make_http_mock_success()
 
@@ -113,7 +146,12 @@ class TestOrderQuantityValidation:
         mock_http.post.assert_not_called()
 
     def test_品目が空なら422で決済を呼ばない(self):
-        """items が空のリストなら 422 になり、決済されないこと。"""
+        """items が空のリストなら 422 になり、決済されないこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = _make_admin_sb_for_create()
         mock_http = _make_http_mock_success()
 
@@ -124,7 +162,12 @@ class TestOrderQuantityValidation:
         mock_sb.rpc.assert_not_called()
 
     def test_品目が51件なら422になる(self):
-        """1 回の注文の品目は 50 件まで。51 件は 422 になること。"""
+        """1 回の注文の品目は 50 件まで。51 件は 422 になること。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: items: 応答へ返す項目の一覧、mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = _make_admin_sb_for_create()
         mock_http = _make_http_mock_success()
         items = [{'product_id': f'product-{i}', 'quantity': 1} for i in range(51)]
@@ -135,8 +178,14 @@ class TestOrderQuantityValidation:
         mock_http.post.assert_not_called()
 
     def test_品目が50件ちょうどなら入力チェックは通る(self):
-        """品目 50 件は 422 にならないこと（商品が無いので 404 で止まる）。"""
+        """品目 50 件は 422 にならないこと（商品が無いので 404 で止まる）。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: items: 応答へ返す項目の一覧、mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = MagicMock()
+        # 変数の内容: mock_sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data = []
         mock_http = _make_http_mock_success()
         items = [{'product_id': f'product-{i}', 'quantity': 1} for i in range(50)]
@@ -155,9 +204,18 @@ class TestSquareFailures:
         RequestsConnectionError('connection refused'),
     ])
     def test_接続の時間切れや接続失敗は502で在庫を戻す(self, error):
-        """つながる前の時間切れ・接続失敗では決済されていないので、502 を返し確保した在庫を戻すこと。"""
+        """つながる前の時間切れ・接続失敗では決済されていないので、502 を返し確保した在庫を戻すこと。
+
+        Args:
+            error: 検証対象で発生させる例外またはエラー内容。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック、resp: API から返されたレスポンス。
         mock_sb = _make_admin_sb_for_create()
         mock_http = MagicMock()
+        # 変数の内容: mock_http.post.side_effect: モック呼び出し時に返す例外または副作用。
         mock_http.post.side_effect = error
         mock_resend = MagicMock()
 
@@ -172,12 +230,20 @@ class TestSquareFailures:
             assert 'CRITICAL' not in c.args[0]['subject']
 
     def test_応答がJSONとして読めないときは502で在庫を戻す(self):
-        """Square の応答が JSON として読めない（ValueError）ときは 502 を返し在庫を戻すこと。"""
+        """Square の応答が JSON として読めない（ValueError）ときは 502 を返し在庫を戻すこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = _make_admin_sb_for_create()
         mock_http = MagicMock()
+        # 変数の内容: mock_http.post.return_value.json.side_effect: モック呼び出し時に返す例外または副作用、mock_http.post.return_value.ok: 対象オブジェクトに設定するok属性値。
         mock_http.post.return_value.ok = True
+        # 変数の内容: mock_http.post.return_value.json.side_effect: モック呼び出し時に返す例外または副作用。
         mock_http.post.return_value.json.side_effect = ValueError('Expecting value')
 
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = _post_order(ORDER_REQUEST, mock_sb, mock_http)
 
         assert resp.status_code == 502
@@ -185,13 +251,23 @@ class TestSquareFailures:
         assert 'Expecting value' not in resp.text
 
     def test_送ったあとの時間切れは502で在庫を戻さずCRITICALログと管理者メール(self, caplog):
-        """応答を待つ間の時間切れ（ReadTimeout）は決済された可能性があるので在庫を戻さず、CRITICAL ログと管理者メールを出すこと。"""
+        """応答を待つ間の時間切れ（ReadTimeout）は決済された可能性があるので在庫を戻さず、CRITICAL ログと管理者メールを出すこと。
+
+        Args:
+            caplog: ログ出力を取得する pytest の caplog フィクスチャ。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = _make_admin_sb_for_create()
         mock_http = MagicMock()
+        # 変数の内容: mock_http.post.side_effect: モック呼び出し時に返す例外または副作用。
         mock_http.post.side_effect = ReadTimeout('read timeout')
         mock_resend = MagicMock()
         caplog.set_level(logging.CRITICAL, logger='app.routes.orders')
 
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = _post_order(ORDER_REQUEST, mock_sb, mock_http, mock_resend, resend_key='k', contact_to='admin@example.com')
 
         assert resp.status_code == 502
@@ -208,12 +284,20 @@ class TestSquareFailures:
         assert mock_resend.Emails.send.call_args_list[0].args[0]['to'] == ['admin@example.com']
 
     def test_Squareが決済を拒否したときは402で在庫を戻す(self):
-        """Square が errors を返した（カードの拒否など）ときは 402 で Square の文言を返し、在庫を戻すこと。"""
+        """Square が errors を返した（カードの拒否など）ときは 402 で Square の文言を返し、在庫を戻すこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_http: HTTP 通信のモック、mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = _make_admin_sb_for_create()
         mock_http = MagicMock()
+        # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値、mock_http.post.return_value.ok: 対象オブジェクトに設定するok属性値。
         mock_http.post.return_value.ok = False
+        # 変数の内容: mock_http.post.return_value.json.return_value: モック呼び出しの返却値。
         mock_http.post.return_value.json.return_value = {'errors': [{'detail': 'カードが拒否されました'}]}
 
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = _post_order(ORDER_REQUEST, mock_sb, mock_http)
 
         assert resp.status_code == 402
@@ -225,19 +309,36 @@ class TestOrderStatusLiteral:
     """注文のステータスの入力チェックと、存在しない注文の 404。"""
 
     def setup_method(self):
-        """認証をバイパスする。"""
+        """認証をバイパスする。
+
+        Returns:
+            なし。
+        """
         app.dependency_overrides[require_auth] = lambda: None
 
     def teardown_method(self):
-        """認証のバイパスを戻す。"""
+        """認証のバイパスを戻す。
+
+        Returns:
+            なし。
+        """
         app.dependency_overrides.pop(require_auth, None)
 
     @pytest.mark.parametrize('status', ['refunded', 'PAID', '', 'pending'])
     def test_決められた値以外のステータスは422でDBを更新しない(self, status):
-        """paid|shipped|delivered|cancelled 以外のステータスは 422 になり、DB を更新しないこと。"""
+        """paid|shipped|delivered|cancelled 以外のステータスは 422 になり、DB を更新しないこと。
+
+        Args:
+            status: 検証対象の HTTP ステータスコード。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = MagicMock()
 
         with patch('app.routes.orders.admin_supabase', mock_sb):
+            # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).patch('/api/orders/order-uuid-1', json={'status': status})
 
         assert resp.status_code == 422
@@ -245,26 +346,43 @@ class TestOrderStatusLiteral:
 
     @pytest.mark.parametrize('status', ['paid', 'shipped', 'delivered', 'cancelled'])
     def test_決められた4つのステータスは受け付ける(self, status):
-        """4 つのステータスはどれも 200 で更新できること。"""
+        """4 つのステータスはどれも 200 で更新できること。
+
+        Args:
+            status: 検証対象の HTTP ステータスコード。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = MagicMock()
+        # 変数の内容: mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [{**SAMPLE_ORDER, 'status': status}]
 
         with patch('app.routes.orders.admin_supabase', mock_sb), \
              patch('app.routes.orders.RESEND_API_KEY', ''):
+            # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).patch('/api/orders/order-uuid-1', json={'status': status})
 
         assert resp.status_code == 200
         assert resp.json()['status'] == status
 
     def test_存在しない注文のステータスを変えると404になる(self):
-        """更新の結果が 0 件（存在しない注文）なら 404 になり、メールは送らないこと。"""
+        """更新の結果が 0 件（存在しない注文）なら 404 になり、メールは送らないこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_resend: Resend メール送信のモック、mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = MagicMock()
+        # 変数の内容: mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value.data = []
         mock_resend = MagicMock()
 
         with patch('app.routes.orders.admin_supabase', mock_sb), \
              patch('app.mail.resend', mock_resend), \
              patch('app.routes.orders.RESEND_API_KEY', 'k'):
+            # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).patch('/api/orders/nope', json={'status': 'shipped'})
 
         assert resp.status_code == 404

@@ -1,6 +1,7 @@
 """送料（都道府県ごとの固定額）の API。注文の作成（routes/orders.py）でも RATES を使う。"""
 from fastapi import APIRouter, HTTPException
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/shipping', tags=['shipping'])
 
 # 都道府県別送料（円）。実際の送料に合わせて変更してください
@@ -36,6 +37,7 @@ def get_rate(prefecture: str) -> dict:
     Raises:
         HTTPException(400): 送料の表に無い都道府県の場合
     """
+    # 変数の内容: fee: 手数料または送料。
     fee = RATES.get(prefecture)
     if fee is None:
         raise HTTPException(400, f'未対応の都道府県です: {prefecture}')

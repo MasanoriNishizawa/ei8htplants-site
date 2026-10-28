@@ -56,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
  * @param state.isActive - 今いる画面のリンクか
  * @param sub - グループの中の項目（字下げして小さくする）か
  * @returns スタイル
+ * @param isActive - リンク先が現在のページかどうか
  */
 const navStyle = ({ isActive }: { isActive: boolean }, sub = false): React.CSSProperties => ({
   display: 'block',
@@ -120,6 +121,7 @@ export default function AdminLayout() {
    * 3. 失敗したら文言を出す
    * 4. 送信中を戻す
    * @param e - フォームの submit イベント
+   * @returns 戻り値なし。
    */
   const login = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -185,6 +187,7 @@ export default function AdminLayout() {
  * UnsavedChangesProvider の内側で描画し、メニューのリンクを押したときに未保存の変更があれば確認を出す
  * @param props.onLogout - ログアウトボタンを押したときの処理
  * @returns 管理画面の枠
+ * @param onLogout - ログアウトを実行する処理
  */
 function AdminShell({ onLogout }: { onLogout: () => void }) {
   /** モバイルでサイドメニュー（ドロワー）を開いているかどうか */
@@ -208,6 +211,7 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
    * 4. 移動するときはモバイルのメニューを閉じる
    * @param e - クリックイベント
    * @param to - リンク先のパス
+   * @returns 戻り値なし。
    */
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
     // 1. 新しいタブ・ウィンドウで開く操作はブラウザに任せる
@@ -221,7 +225,10 @@ function AdminShell({ onLogout }: { onLogout: () => void }) {
     setMenuOpen(false)
   }
 
-  /** ログアウトボタンの処理。ログアウトすると編集中の入力も消えるので、未保存の変更があれば確認する */
+  /**
+   *  ログアウトボタンの処理。ログアウトすると編集中の入力も消えるので、未保存の変更があれば確認する
+   * @returns 戻り値なし。
+   */
   const handleLogout = () => {
     if (!confirmLeave()) return
     onLogout()

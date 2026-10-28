@@ -16,7 +16,11 @@ import Gallery from '../Gallery'
  * GET /api/gallery の ?brand= の値を記録しながら、モックの写真を brand で絞って返す
  * @returns 問い合わせの brand の値（無ければ null）を入れていく配列
  */
-// 末尾の問い合わせは brands[brands.length - 1] で取る（tsconfig の lib が ES2020 で Array.prototype.at が使えないため）
+/**
+ * gallery API へ送られた brand クエリを記録する MSW ハンドラーを登録する。
+ * 末尾の問い合わせは brands[brands.length - 1] で取る（tsconfig の lib が ES2020 で Array.prototype.at が使えないため）。
+ * @returns 記録した brand クエリ値の配列を返す。
+ */
 function recordGalleryRequests(): (string | null)[] {
   const brands: (string | null)[] = []
   server.use(

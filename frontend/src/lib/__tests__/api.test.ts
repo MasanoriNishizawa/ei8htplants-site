@@ -130,7 +130,11 @@ describe('computeFinances - payment_flag あり', () => {
 // fetch API テスト: 各 api.* 関数が正しいエンドポイントを呼ぶか検証
 // ---------------------------------------------------------------
 
-/** テスト用の fetch モックを作成するヘルパー */
+/**
+ * 指定した JSON 応答を返す fetch モックを作る。
+ * @param responseData - fetch の json() が返す値
+ * @returns 成功応答を返す vi.fn モック
+ */
 function makeMockFetch(responseData: unknown = []) {
   return vi.fn().mockResolvedValue({
     ok: true,

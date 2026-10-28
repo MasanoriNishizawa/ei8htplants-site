@@ -81,6 +81,7 @@ function ImageInput({ value, onChange }: { value: string; onChange: (v: string) 
   /**
    * 選んだ画像をアップロードし、URL を onChange で返す（失敗したら alert で知らせる）
    * @param e - ファイル選択の change イベント
+   * @returns 戻り値なし。
    */
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     /** 選ばれたファイル（選ぶのをやめたときは undefined） */
@@ -235,6 +236,7 @@ export default function AdminEventSite() {
    * 2. 公開サイト側のキャッシュを捨てさせる印を立て、2.5 秒「保存しました」を出す
    * 3. 失敗したら文言を出す（入力は残る）
    * 4. 成功・失敗どちらでも保存中を戻す
+   * @returns 戻り値なし。
    */
   const save = async () => {
     if (!id) return
@@ -268,6 +270,7 @@ export default function AdminEventSite() {
    * 公開ページコンテンツの1項目をまるごと差し替える
    * @param key - 項目名（concept・lineup など）
    * @param val - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof PageContent>(key: K, val: PageContent[K]) =>
     setPc((p) => ({ ...p, [key]: val }))
@@ -276,6 +279,7 @@ export default function AdminEventSite() {
    * Hero の1項目を変える
    * @param key - 項目名（tagline・subtitle など）
    * @param val - 新しい値
+   * @returns 戻り値なし。
    */
   const setHero = (key: string, val: string) =>
     setPc((p) => ({ ...p, hero: { ...p.hero, [key]: val } }))
@@ -284,6 +288,7 @@ export default function AdminEventSite() {
    * 開催情報（venue）の1項目を変える
    * @param key - 項目名（access など）
    * @param val - 新しい値
+   * @returns 戻り値なし。
    */
   const setVenue = (key: string, val: string) =>
     setPc((p) => ({ ...p, venue: { ...p.venue, [key]: val } }))
@@ -292,6 +297,7 @@ export default function AdminEventSite() {
    * アーカイブの1項目を変える（アーカイブがまだ無ければ空の内容を補ってから変える）
    * @param key - 項目名（enabled・title・message・gallery）
    * @param val - 新しい値
+   * @returns 戻り値なし。
    */
   const setArchive = (key: string, val: string | boolean | string[]) =>
     setPc((p) => ({ ...p, archive: { ...emptyContent().archive, ...p.archive, enabled: p.archive?.enabled ?? false, [key]: val } }))
@@ -300,6 +306,7 @@ export default function AdminEventSite() {
    * ラインナップの i 番目の一部を変える
    * @param i - 何番目か（0始まり）
    * @param patch - 変える項目と値
+   * @returns 戻り値なし。
    */
   const setLineupItem = (i: number, patch: Partial<LineupItem>) =>
     set('lineup', (pc.lineup ?? []).map((it, j) => j === i ? { ...it, ...patch } : it))
@@ -308,6 +315,7 @@ export default function AdminEventSite() {
    * ゲストの i 番目の一部を変える
    * @param i - 何番目か（0始まり）
    * @param patch - 変える項目と値
+   * @returns 戻り値なし。
    */
   const setGuestItem = (i: number, patch: Partial<GuestItem>) =>
     set('guests', (pc.guests ?? []).map((g, j) => j === i ? { ...g, ...patch } : g))

@@ -45,6 +45,7 @@ function makeFin(eventId: string, over: Partial<EventFinances>): EventFinances {
  * 収支一覧を開く
  * @param events - 終了したイベント
  * @param fins - 収支
+ * @returns 戻り値なし。
  */
 function renderWith(events: Event[], fins: EventFinances[]) {
   vi.mocked(api.events.list).mockImplementation((past = false) => Promise.resolve(past ? events : []))

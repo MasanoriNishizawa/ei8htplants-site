@@ -3,7 +3,10 @@ import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
 
-/** Habitat Oides の独立サイト。自生地の景色を鉢に表現するブランド体験を紹介する。 */
+/**
+ *  Habitat Oides の独立サイト。自生地の景色を鉢に表現するブランド体験を紹介する。
+ * @returns Habitat Oides のブランドトップページの React 要素。
+ */
 export default function HabitatOides() {
   const t = useT()
 
@@ -15,6 +18,7 @@ export default function HabitatOides() {
         ogImage="/img/habitatOides/habitat_oides_hero.jpg"
       />
 
+      {/* ブランドの世界観と主要ページへの入口を示すヒーロー */}
       <section className="habitat-hero" aria-labelledby="habitat-title">
         <img className="habitat-hero-image" src="/img/habitatOides/habitat_oides_hero.jpg" alt="" />
         <div className="habitat-hero-overlay" />
@@ -31,6 +35,7 @@ export default function HabitatOides() {
         <span className="habitat-hero-side-label">{t('植物 · 石 · 土', 'PLANT · STONE · SOIL')}</span>
       </section>
 
+      {/* 植物と素材から景色を仕立てるブランドの考え方 */}
       <section id="world" className="habitat-world">
         <div className="habitat-section-kicker"><span>01</span><span>{t('私たちの考え方', 'OUR POINT OF VIEW')}</span></div>
         <div className="habitat-world-grid">
@@ -57,6 +62,7 @@ export default function HabitatOides() {
         </div>
       </section>
 
+      {/* 作品を構成する植物・石と砂・鉢の紹介 */}
       <section className="habitat-elements" aria-labelledby="habitat-elements-title">
         <div className="habitat-section-kicker habitat-section-kicker--light"><span>02</span><span>{t('景色をつくる素材', 'THE ELEMENTS')}</span></div>
         <h2 id="habitat-elements-title">{t('重なりから、景色が生まれる。', 'A world in layers.')}</h2>
@@ -67,6 +73,7 @@ export default function HabitatOides() {
         </div>
       </section>
 
+      {/* 自分で景色を仕立てるワークショップへの案内 */}
       <section id="workshop" className="habitat-workshop">
         <div className="habitat-workshop-image"><img src="/img/habitatOides/habitat_oides_workshop_main.jpg" alt="" /></div>
         <div className="habitat-workshop-copy">
@@ -79,6 +86,7 @@ export default function HabitatOides() {
         <span className="habitat-workshop-index">{t('ここから始まる', 'A PLACE TO BEGIN')}</span>
       </section>
 
+      {/* 作り手や素材とのコラボレーション紹介 */}
       <section id="collaboration" className="habitat-collaboration">
         <div className="habitat-section-kicker habitat-section-kicker--light"><span>03</span><span>{t('コラボレーション', 'COLLABORATIONS')}</span></div>
         <div className="habitat-collaboration-grid">

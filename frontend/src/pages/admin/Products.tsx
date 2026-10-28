@@ -64,7 +64,10 @@ export default function AdminProducts() {
   // 編集中に変更があれば、サイドメニューでの移動・再読み込みでも確認を出す
   useUnsavedChanges(isDirty)
 
-  /** 一覧を読み込む（非公開も含む）。失敗したら「商品がありません」と区別できるようエラーを出す */
+  /**
+   *  一覧を読み込む（非公開も含む）。失敗したら「商品がありません」と区別できるようエラーを出す
+   * @returns 戻り値なし。
+   */
   const load = () => {
     api.products.list(true)
       .then(setProducts)
@@ -79,6 +82,7 @@ export default function AdminProducts() {
    * @param target - 編集する商品か 'new'
    * @param nextForm - フォームの初期値
    * @param nextBlocks - 本文のブロックの初期値
+   * @returns 戻り値なし。
    */
   const openModal = (target: Product | 'new', nextForm: ProductBody, nextBlocks: Block[]) => {
     setEditing(target)
@@ -88,20 +92,30 @@ export default function AdminProducts() {
     setSaveError('')
     setInitialSnapshot(snapshotOf(nextForm, nextBlocks, ''))
   }
-  /** 新規作成のモーダルを開く（表示順は末尾） */
+  /**
+   *  新規作成のモーダルを開く（表示順は末尾）
+   * @returns 戻り値なし。
+   */
   const openNew = () => openModal('new', { ...BLANK, display_order: products.length }, [])
   /**
    * 既存の商品の編集モーダルを開く
    * @param p - 編集する商品
+   * @returns 戻り値なし。
    */
   const openEdit = (p: Product) => openModal(
     p,
     { name: p.name, description: p.description ?? '', price: p.price, stock: p.stock, image_urls: p.image_urls, tags: p.tags ?? [], is_published: p.is_published, display_order: p.display_order, category: p.category ?? null },
     parseBlocks(p.description),
   )
-  /** モーダルを閉じて入力を捨てる */
+  /**
+   *  モーダルを閉じて入力を捨てる
+   * @returns 戻り値なし。
+   */
   const closeModal = () => { setEditing(null); setForm(BLANK); setBlocks([]); setSaveError('') }
-  /** モーダルの外側のクリック・「キャンセル」ボタン・Esc で閉じるとき。保存中は閉じず、変更があれば確認してから閉じる */
+  /**
+   *  モーダルの外側のクリック・「キャンセル」ボタン・Esc で閉じるとき。保存中は閉じず、変更があれば確認してから閉じる
+   * @returns 戻り値なし。
+   */
   const closeByBackdrop = () => {
     if (saving) return
     if (confirmDiscard(isDirty)) closeModal()
@@ -110,7 +124,10 @@ export default function AdminProducts() {
   // 日本語の変換中の Esc と、ほかの部品が preventDefault で受け取り済みの Esc では閉じない（useEscapeToClose）
   useEscapeToClose(editing !== null, closeByBackdrop)
 
-  /** タグの入力欄の値を form.tags に足す（空・重複は足さない） */
+  /**
+   *  タグの入力欄の値を form.tags に足す（空・重複は足さない）
+   * @returns 戻り値なし。
+   */
   const addTag = () => {
     /** 前後の空白を除いたタグ */
     const t = tagInput.trim()
@@ -120,6 +137,7 @@ export default function AdminProducts() {
   /**
    * タグを外す
    * @param t - 外すタグ
+   * @returns 戻り値なし。
    */
   const removeTag = (t: string) => set('tags', form.tags.filter((x) => x !== t))
 
@@ -127,6 +145,7 @@ export default function AdminProducts() {
    * フォームの1項目を書き換える
    * @param k - 項目名
    * @param v - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof ProductBody>(k: K, v: ProductBody[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
@@ -136,6 +155,7 @@ export default function AdminProducts() {
    * 1. ブロック内の画像 URL を image_urls にも入れる（一覧のサムネイル・後方互換のため）
    * 2. 新規なら作成、既存なら更新し、一覧に反映してモーダルを閉じる
    * 3. 失敗したらモーダルを開いたまま（入力は残る）エラーを出す
+   * @returns 戻り値なし。
    */
   const handleSave = async () => {
     setSaving(true)
@@ -164,6 +184,7 @@ export default function AdminProducts() {
   /**
    * 商品を削除する（確認のあと）。失敗したら一覧に残したままエラーを出す
    * @param p - 削除する商品
+   * @returns 戻り値なし。
    */
   const handleDelete = async (p: Product) => {
     if (!confirm(`「${p.name}」を削除しますか？`)) return
@@ -182,6 +203,7 @@ export default function AdminProducts() {
   /**
    * 一覧から直接公開状態を切り替える（モーダルを開かずに切り替え可能）。失敗したら表示は元のままエラーを出す
    * @param p - 切り替える商品
+   * @returns 戻り値なし。
    */
   const togglePublish = async (p: Product) => {
     setBusyId(p.id)

@@ -65,6 +65,7 @@ export function toSendHistory(history: ChatMessage[]): ChatSendMessage[] {
   // 2. 返事の付かなかった過去の質問を除く（user と model が交互に並ぶ履歴）
   const paired = sendable.filter((m, i) => {
     if (m.role !== 'user') return true
+    // 末尾の user 発話は今回の質問なので、応答が無くても履歴に含める
     const isLast = i === sendable.length - 1
     return isLast || sendable[i + 1].role === 'model'
   })

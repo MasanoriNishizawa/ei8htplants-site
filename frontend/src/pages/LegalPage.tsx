@@ -104,7 +104,11 @@ export default function LegalPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
               {rows.map((row) => {
-                /** 内容を描画する。配列なら 1 要素ずつ改行し、空文字は空行にする */
+                /**
+                 *  内容を描画する。配列なら 1 要素ずつ改行し、空文字は空行にする
+                 * @param val - 表示する項目内容。配列の場合は各要素を個別の行として描画する
+                 * @returns 項目内容を行ごとに分けた JSX 要素。
+                 */
                 const renderLines = (val: string | string[]) =>
                   Array.isArray(val)
                     ? val.map((line, i) =>

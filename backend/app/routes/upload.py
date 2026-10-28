@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from ..auth import require_auth
 from ..db import admin_supabase
 
+# 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/upload', tags=['upload'])
@@ -66,6 +67,7 @@ def _matches_signature(content_type: str, head: bytes) -> bool:
     Returns:
         種類が合っていれば True
     """
+    # 1. 申告された MIME 種類に対応するファイル先頭の署名を照合する。
     if content_type == 'image/jpeg':
         return head.startswith(b'\xff\xd8\xff')
     if content_type == 'image/png':
@@ -128,6 +130,9 @@ def _ensure_bucket(bucket: str) -> None:
 
     Args:
         bucket: バケットの名前（images か videos）
+
+    Returns:
+        なし。
     """
     if bucket in _ensured_buckets:
         return
@@ -140,6 +145,7 @@ def _ensure_bucket(bucket: str) -> None:
             admin_supabase.storage.create_bucket(bucket, {'public': True})
             _ensured_buckets.add(bucket)
             logger.info('ストレージのバケット %s を作成しました', bucket)
+        # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             # 「already exists」「duplicate」だけを既にある扱いにする（「does not exist」などの失敗を成功とみなさない）
             message = str(e).lower()

@@ -38,6 +38,7 @@ vi.mock('../../../lib/supabase', () => ({
 /**
  * AdminLayout を /admin 配下のルートで描画する
  * @param path - 最初に開くパス（既定は /admin）
+ * @returns 処理結果。
  */
 function renderLayout(path = '/admin') {
   return render(

@@ -188,6 +188,11 @@ describe('useEscapeToClose', () => {
     const onEscape = vi.fn()
     renderHook(() => useEscapeToClose(true, onEscape))
     // 先に登録した部品（写真の拡大表示など）が受け取る
+    /**
+     * テスト用の first を実行する。
+     * @param e - 発生したイベントまたはエラー
+     * @returns 戻り値なし。
+     */
     const first = (e: KeyboardEvent) => e.preventDefault()
     document.body.addEventListener('keydown', first)
     fireEvent.keyDown(document.body, { key: 'Escape' })

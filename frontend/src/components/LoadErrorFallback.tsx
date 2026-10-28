@@ -6,6 +6,7 @@ import { useT } from '../lib/lang'
  * @returns 案内の表示
  */
 export default function LoadErrorFallback() {
+  // 案内文を表示言語に合わせる関数
   const t = useT()
   return (
     <div

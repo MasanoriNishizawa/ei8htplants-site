@@ -39,6 +39,7 @@ function mockChatApi(responses: { status: number; body: unknown }[]): SentBody[]
 /**
  * 入力欄に文字を入れて送信ボタンを押す
  * @param text - 送る文
+ * @returns 戻り値なし。
  */
 async function typeAndSend(text: string) {
   // 1. 入力欄に文字を入れる

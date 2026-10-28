@@ -108,6 +108,7 @@ export default function AdminEvents() {
    * 1. 今後のイベント・過去のイベント・予約をまとめて取得する
    * 2. 今後は開始日の早い順、過去は新しい順に並べる
    * 3. キャンセル以外の予約をイベントごとに数える
+   * @returns 戻り値なし。
    */
   const load = () => {
     setLoading(true)
@@ -138,6 +139,7 @@ export default function AdminEvents() {
   /**
    * イベントを削除する（確認のあと）。失敗したら一覧に残したままエラーを出す
    * @param id - 削除するイベントの id
+   * @returns 戻り値なし。
    */
   const del = async (id: string) => {
     if (busy || !confirm('削除しますか？')) return
@@ -161,6 +163,7 @@ export default function AdminEvents() {
    * 3. 失敗したらエラーを出す
    * 4. 処理中を戻す
    * @param ev - 複製元のイベント
+   * @returns 戻り値なし。
    */
   const duplicate = async (ev: Event) => {
     // 1. 二重実行の防止

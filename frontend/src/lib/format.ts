@@ -29,6 +29,7 @@ export function formatNumber(n: number): string {
  * @returns 整形した金額
  */
 export function formatYen(n: number, style: YenStyle = 'symbol'): string {
+  // 金額部分を共通の3桁区切り表記にする
   const num = formatNumber(n)
   if (style === 'suffix') return `${num}円`
   if (style === 'suffixSpaced') return `${num} 円`

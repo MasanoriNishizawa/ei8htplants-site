@@ -10,6 +10,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
+# 変数の内容: logger: モジュール名を使って記録するロガー。
 logger = logging.getLogger(__name__)
 
 # 「該当する行が無い」とみなす PostgREST / PostgreSQL のエラーコード
@@ -51,6 +52,7 @@ def execute_or_404(query: Any, detail: str = 'Not found') -> Any:
     """
     try:
         return query.execute()
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         if is_not_found_error(e):
             raise HTTPException(status_code=404, detail=detail)
@@ -76,6 +78,7 @@ def execute_or_400(query: Any, detail: str = 'Invalid id') -> Any:
     """
     try:
         return query.execute()
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         if getattr(e, 'code', None) in _INVALID_REFERENCE_CODES:
             raise HTTPException(status_code=400, detail=detail)
@@ -95,7 +98,9 @@ def fetch_one_or_none(query: Any) -> dict | None:
         Exception: 接続の失敗など「見つからない」以外のエラー（そのまま投げ直す）
     """
     try:
+        # 変数の内容: data: DB応答から取得した単一レコードまたは未取得を示す値。。
         data = query.single().execute().data
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         if is_not_found_error(e):
             return None
@@ -117,6 +122,7 @@ def fetch_one_or_404(query: Any, detail: str = 'Not found') -> dict:
         HTTPException(404): 0 件・id の形が違う場合
         Exception: 接続の失敗など「見つからない」以外のエラー
     """
+    # 変数の内容: data: DB応答から取得した単一レコード。。
     data = fetch_one_or_none(query)
     if data is None:
         raise HTTPException(status_code=404, detail=detail)
@@ -138,6 +144,7 @@ def first_or_404(result: Any, detail: str = 'Not found') -> dict:
     Raises:
         HTTPException(404): 結果が 0 件の場合
     """
+    # 変数の内容: data: DB応答の先頭レコード。。
     data = getattr(result, 'data', None)
     if not isinstance(data, list) or not data:
         raise HTTPException(status_code=404, detail=detail)
@@ -157,6 +164,7 @@ def next_display_order(client: Any, table: str) -> int:
     Returns:
         次の表示順。行が無ければ 0
     """
+    # 変数の内容: rows: DB から取得した行の一覧。
     rows = client.table(table).select('display_order').order('display_order', desc=True).limit(1).execute().data
     if isinstance(rows, list) and rows and isinstance(rows[0].get('display_order'), int):
         return rows[0]['display_order'] + 1

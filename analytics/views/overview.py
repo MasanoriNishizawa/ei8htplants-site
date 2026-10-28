@@ -10,12 +10,18 @@ from lib.context import get_context
 
 
 def render() -> None:
-    """概要画面を表示する（会計年度はサイドバーで選んだ期間。初期値は「すべての期」）。"""
+    """概要画面を表示する（会計年度はサイドバーで選んだ期間。初期値は「すべての期」）。
+
+    Returns:
+        なし。"""
+    # 変数の内容: ctx: 概要画面で使う集計済みデータコンテキスト。
     ctx = get_context()
     st.title("概要")
     st.caption(ctx.year_label)
 
+    # 変数の内容: done: 概要カードとグラフに使う売上確定イベント。
     done = ctx.done
+    # 変数の内容: active_res: キャンセル済みを除いた有効予約の一覧。
     active_res = active_reservations(ctx.res)
 
     # 1. 主要な数字を4つのタイルで並べる

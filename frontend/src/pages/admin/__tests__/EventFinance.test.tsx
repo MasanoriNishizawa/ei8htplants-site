@@ -251,6 +251,7 @@ const MOCK_FINANCES: EventFinances = {
 /**
  * EventFinance ページを Routes/MemoryRouter でラップしてレンダリングするヘルパー
  * @param eventId - URL パラメータとして渡すイベントID
+ * @returns 処理結果。
  */
 function renderFinancePage(eventId: string = 'ev-finance-1') {
   return render(
@@ -346,6 +347,7 @@ const EXISTING_ADMIN_INFO: EventAdminInfo = {
 
 /**
  * 収支ページと、保存後の遷移先（イベント一覧）を用意してレンダリングする
+ * @returns 処理結果。
  */
 function renderFinancePageWithBack() {
   return render(

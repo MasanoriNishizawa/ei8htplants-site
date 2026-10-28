@@ -73,7 +73,15 @@ def is_real_secrets_path(path: str) -> bool:
 
 
 def _blocked(*args, **kwargs):
-    """モックし忘れた通信を止める（本番への接続を防ぐ安全装置）。"""
+    """モックし忘れた通信を止める（本番への接続を防ぐ安全装置）。
+
+    Args:
+        *args: 通信関数に渡された URL などの位置引数。
+        **kwargs: 通信関数に渡されたリクエストオプション。
+
+    Returns:
+        なし。
+    """
     raise AssertionError(f"テスト中に外部通信が呼ばれました: {args[:1]}")
 
 
@@ -83,7 +91,9 @@ def isolate_env(monkeypatch):
 
     Args:
         monkeypatch: pytest の monkeypatch
-    """
+
+    Returns:
+        なし。"""
     # 1. 接続情報を消す（シェルや .env から入っていても使わせない）
     for name in ENV_NAMES:
         monkeypatch.delenv(name, raising=False)
@@ -99,7 +109,9 @@ def fake_env(monkeypatch):
 
     Args:
         monkeypatch: pytest の monkeypatch
-    """
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("NEXT_PUBLIC_SUPABASE_URL", FAKE_URL)
     monkeypatch.setenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", FAKE_ANON_KEY)
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", FAKE_SERVICE_KEY)
@@ -124,12 +136,21 @@ def isolate_secrets(monkeypatch, tmp_path_factory):
 
     Yields:
         本物の secrets.toml を読もうとした場所のリスト（空のはず）
-    """
+
+    Returns:
+        なし。"""
     # 1. 探す場所を空の一時フォルダに向ける（ほかの設定はそのまま）
     empty = tmp_path_factory.mktemp("no_secrets") / ".streamlit" / "secrets.toml"
     original_get_option = st_config.get_option
 
     def get_option(key: str):
+        """get_option のテスト用処理を行う。
+
+        Args:
+            key: 検証対象のキー値。
+
+        Returns:
+            なし。"""
         if key == "secrets.files":
             return [str(empty)]
         return original_get_option(key)
@@ -141,6 +162,13 @@ def isolate_secrets(monkeypatch, tmp_path_factory):
     original_parse_file_path = Secrets._parse_file_path
 
     def guarded_parse_file_path(self, path: str):
+        """guarded_parse_file_path のテスト用処理を行う。
+
+        Args:
+            path: 検証対象のファイルパス。
+
+        Returns:
+            なし。"""
         if is_real_secrets_path(path):
             attempts.append(path)
             raise AssertionError("テスト中に本物の secrets.toml を読もうとしました")

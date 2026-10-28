@@ -61,6 +61,9 @@ const DUE_STYLES: Record<DueStatus, { background: string; border: string; color:
  * @param props.value - 値（null なら「未入力」を薄い色で出す）
  * @param props.color - 値の文字色（強調したいとき）
  * @returns 項目の表示
+ * @param label - 表示ラベル
+ * @param value - 対象の値
+ * @param color - 数値に適用する色（省略可）
  */
 function Field({ label, value, color }: { label: string; value: string | null; color?: string }) {
   return (
@@ -76,6 +79,8 @@ function Field({ label, value, color }: { label: string; value: string | null; c
  * @param props.children - 案内の文
  * @param props.error - 読み込み失敗の表示にするか（赤字）
  * @returns 案内の表示
+ * @param children - 表示する子要素
+ * @param error - エラー状態の案内を表示するかどうか
  */
 function ListNotice({ children, error = false }: { children: React.ReactNode; error?: boolean }) {
   return (
@@ -90,6 +95,8 @@ function ListNotice({ children, error = false }: { children: React.ReactNode; er
  * @param props.item - イベント1件分の管理情報
  * @param props.today - 今日の日付 "YYYY-MM-DD"
  * @returns 1行の表示
+ * @param item - 対象データ
+ * @param today - 基準日
  */
 function PaymentRow({ item, today }: { item: AdminInfoDashboardItem; today: string }) {
   /** 支払い期限の状態（期限切れ・期限間近など） */
@@ -131,6 +138,7 @@ function PaymentRow({ item, today }: { item: AdminInfoDashboardItem; today: stri
  * 「今後の搬入予定」の1行。管理情報の確認画面へのリンクにする
  * @param props.item - イベント1件分の管理情報
  * @returns 1行の表示
+ * @param item - 対象データ
  */
 function CarryInRow({ item }: { item: AdminInfoDashboardItem }) {
   return (

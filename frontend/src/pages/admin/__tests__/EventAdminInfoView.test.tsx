@@ -114,6 +114,7 @@ const EMPTY_INFO: EventAdminInfo = {
 
 /**
  * 現在の URL と location.state を画面に出すプローブ（リンク先の state・履歴の書き換えを確かめる）
+ * @returns 表示する React 要素。
  */
 function LocationProbe() {
   const location = useLocation()
@@ -136,6 +137,7 @@ function probeState(): unknown {
 /**
  * 確認画面を MemoryRouter でレンダリングする。編集画面・一覧はスタブに置き換える
  * @param state - 確認画面に渡す location.state（from・saved）
+ * @returns 処理結果。
  */
 function renderView(state: { from?: string; saved?: boolean } | null = null) {
   return render(
@@ -167,6 +169,7 @@ function rowValue(label: string): HTMLElement {
 /**
  * 今日の日付だけを固定する（setTimeout などは本物のまま）
  * @param ymd - 固定する日付 "YYYY-MM-DD"
+ * @returns 戻り値なし。
  */
 function fixToday(ymd: string) {
   vi.useFakeTimers({ toFake: ['Date'] })

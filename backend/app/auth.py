@@ -17,13 +17,18 @@ def _verify_bearer(authorization: str) -> None:
 
     Raises:
         HTTPException(401): 形が違う・トークンが無効・Supabase の呼び出しに失敗した場合
+
+    Returns:
+        なし。
     """
     # 1. 形を確かめる
     if not authorization.startswith(_BEARER_PREFIX):
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 変数の内容: token: 認証に使うトークン。
     token = authorization.removeprefix(_BEARER_PREFIX)
     # 2. Supabase でトークンを確かめる。SDK が投げる例外も 401 にそろえる
     try:
+        # 変数の内容: result: Supabase Auth が返す検証済みユーザー情報。
         result = supabase.auth.get_user(token)
     except Exception:
         raise HTTPException(status_code=401, detail='Unauthorized')
@@ -40,6 +45,9 @@ def require_auth(authorization: Optional[str] = Header(None)) -> None:
 
     Raises:
         HTTPException(401): ヘッダーが無い・形が違う・トークンが無効な場合
+
+    Returns:
+        なし。
     """
     if not authorization:
         raise HTTPException(status_code=401, detail='Unauthorized')

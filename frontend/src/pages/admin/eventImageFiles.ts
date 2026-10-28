@@ -138,11 +138,11 @@ export function buildImageFileName(eventName: string, index: number, url: string
  * 画像を取得してブラウザに保存させる
  * Supabase Storage の公開 URL は別オリジンのため <a download> だけでは保存されず、
  * いったん blob にしてからオブジェクト URL 経由で保存させる
+ * @throws 取得に失敗した場合（レスポンスが ok でない場合も含む）
  * @param url - 画像の URL
  * @param eventName - ファイル名に使うイベント名
  * @param index - 通し番号（1始まり）
  * @returns 保存の操作を始めたら終わる Promise
- * @throws 取得に失敗した場合（レスポンスが ok でない場合も含む）
  */
 export async function downloadImage(url: string, eventName: string, index: number): Promise<void> {
   // 1. 画像を取得して blob にする

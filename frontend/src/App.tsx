@@ -94,7 +94,10 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const HabitatOidesSite = lazy(() => import('./sites/habitat-oides/site'))
 const HueSite = lazy(() => import('./sites/hue/site'))
 
-/** 独立ブランドドメインで管理画面を開いた場合、管理画面のある既存ドメインへ移す。 */
+/**
+ * ブランド専用ドメインで管理画面を開いた場合、管理画面のある既存ドメインへ URL を転送する。
+ * @returns 転送中の読み込み表示
+ */
 function AdminDomainRedirect() {
   const { pathname, search, hash } = useLocation()
   useEffect(() => {
@@ -103,7 +106,10 @@ function AdminDomainRedirect() {
   return <PageLoading />
 }
 
-/** 古い公開URLを公式サイト配下へ移し、クエリ（イベント切替・予約ID）とハッシュを保つ。 */
+/**
+ * 古い公開 URL を `/official` 配下へ移し、クエリ（イベント切替・予約 ID）とハッシュを保つ。
+ * @returns 転送先への置換ナビゲーション
+ */
 function LegacyOfficialRedirect() {
   const { pathname, search, hash } = useLocation()
   return <Navigate to={`/official${pathname}${search}${hash}`} replace />

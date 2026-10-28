@@ -11,6 +11,7 @@ from ..auth import require_auth
 from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/pot-artists', tags=['pot_artists'])
 
 

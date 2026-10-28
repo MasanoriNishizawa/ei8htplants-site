@@ -3,7 +3,10 @@ import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND, TEXT_LOGO } from '../../lib/brands'
 
-/** ei8ht plantsのブランド背景を紹介するページ。 */
+/**
+ *  ei8ht plantsのブランド背景を紹介するページ。
+ * @returns ei8ht plants のブランド紹介ページの React 要素。
+ */
 export default function Ei8htPlantsAbout() {
   const t = useT()
 
@@ -13,6 +16,7 @@ export default function Ei8htPlantsAbout() {
         title={t('ei8ht plantsについて', 'Our Story')}
         description={t('個性的な植物を育て、一株ごとの魅力を届けるei8ht plantsの考え方をご紹介します。', 'Meet ei8ht plants and our approach to growing and sharing distinctive plants.')}
       />
+      {/* ブランドの背景を伝える導入と写真 */}
       <section className="ep-editorial-hero ep-about-hero">
         <div className="ep-editorial-hero-copy">
           <p className="ep-editorial-kicker">01 / OUR STORY</p>
@@ -26,6 +30,7 @@ export default function Ei8htPlantsAbout() {
         </div>
       </section>
 
+      {/* 植物を選び、育て、届けるときに大切にする考え方 */}
       <section className="ep-about-principles">
         <p className="ep-editorial-kicker">02 / OUR APPROACH</p>
         <div className="ep-about-principles-grid">

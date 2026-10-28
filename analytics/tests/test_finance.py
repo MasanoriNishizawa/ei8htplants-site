@@ -28,7 +28,10 @@ FIN = {
 
 
 def test_compute_finances_matches_admin_formula():
-    """管理画面の computeFinances と同じ値になること（手計算と比較）。"""
+    """管理画面の computeFinances と同じ値になること（手計算と比較）。
+
+    Returns:
+        なし。"""
     r = compute_finances(FIN, has_workshop=True)
     # 移動費 = 110×2÷10×160 = 3520、支出 = 4000+3520 = 7520
     assert r["transport"] == 3520
@@ -42,14 +45,20 @@ def test_compute_finances_matches_admin_formula():
 
 
 def test_compute_finances_without_workshop_ignores_participants():
-    """WS を開催していないイベントでは参加人数を計算に使わないこと。"""
+    """WS を開催していないイベントでは参加人数を計算に使わないこと。
+
+    Returns:
+        なし。"""
     r = compute_finances({**FIN, "payment_flag": False}, has_workshop=False)
     assert r["ws_cost"] == 0 and r["payment"] == 0
     assert r["net"] == 33900 - 7520
 
 
 def test_rounding_matches_javascript():
-    """.5 の丸めが JavaScript の Math.round と同じ（正の方向へ）になること。"""
+    """.5 の丸めが JavaScript の Math.round と同じ（正の方向へ）になること。
+
+    Returns:
+        なし。"""
     # 移動費 = 1×2÷10×165 = 33.0、手伝い = (5 − 0 − (33+0))×0.2 = −5.6 → −6
     r = compute_finances({**FIN, "sales": 5, "booth_fee": 0, "distance": 1, "gas_price": 165, "ws_participants": 0},
                          has_workshop=False)
@@ -62,20 +71,33 @@ def test_rounding_matches_javascript():
 
 @pytest.mark.parametrize("payment_flag,has_ws", [(True, True), (False, True), (True, False), (False, False)])
 def test_break_even_gives_zero_net(payment_flag, has_ws):
-    """損益分岐の売上を入れると収支がほぼ 0 円になること。"""
+    """損益分岐の売上を入れると収支がほぼ 0 円になること。
+
+    Args:
+        payment_flag: イベントの支払い状態を表す真偽値。
+        has_ws: イベントにワークショップがあるかを示す真偽値。
+
+    Returns:
+        なし。"""
     fin = {**FIN, "payment_flag": payment_flag}
     be = break_even_sales(fin, has_ws)
     assert abs(compute_finances({**fin, "sales": be}, has_ws)["net"]) <= 1
 
 
 def test_fiscal_year_starts_in_april():
-    """会計年度は4月始まりであること。"""
+    """会計年度は4月始まりであること。
+
+    Returns:
+        なし。"""
     assert fiscal_year(pd.Timestamp("2026-03-31")) == 2025
     assert fiscal_year(pd.Timestamp("2026-04-01")) == 2026
 
 
 def _events():
-    """テスト用のイベント表を作る。"""
+    """テスト用のイベント表を作る。
+
+    Returns:
+        イベント行の一覧を返す。"""
     return pd.DataFrame({
         "id": ["e1", "e2", "e3"],
         "name": ["A", "B", "C"],
@@ -89,7 +111,10 @@ def _events():
 
 
 def test_build_event_finance_table_marks_unentered_sales():
-    """売上 0 円の回は has_result=False になり、日数が正しく数えられること。"""
+    """売上 0 円の回は has_result=False になり、日数が正しく数えられること。
+
+    Returns:
+        なし。"""
     fin = pd.DataFrame([{**FIN, "event_id": "e1"}, {**FIN, "event_id": "e3", "sales": 0}])
     t = build_event_finance_table(_events(), fin)
     assert list(t["has_result"]) == [True, False]
@@ -98,7 +123,10 @@ def test_build_event_finance_table_marks_unentered_sales():
 
 
 def test_forecast_needs_enough_results_and_counts_remaining():
-    """実績が少ないときは予測しないこと、十分あれば残り回数を足して見込みを出すこと。"""
+    """実績が少ないときは予測しないこと、十分あれば残り回数を足して見込みを出すこと。
+
+    Returns:
+        なし。"""
     events = pd.DataFrame({
         "id": [f"e{i}" for i in range(7)],
         "start_date": pd.to_datetime(["2026-04-10", "2026-05-10", "2026-06-10", "2026-07-10", "2026-08-10",
@@ -119,21 +147,30 @@ def test_forecast_needs_enough_results_and_counts_remaining():
 
 
 def test_fit_linear_recovers_line():
-    """きれいな直線のデータから傾きと切片を正しく求めること。"""
+    """きれいな直線のデータから傾きと切片を正しく求めること。
+
+    Returns:
+        なし。"""
     fit = fit_linear(pd.Series([1, 2, 3, 4]), pd.Series([12, 14, 16, 18]))
     assert fit["slope"] == pytest.approx(2) and fit["intercept"] == pytest.approx(10) and fit["r2"] == pytest.approx(1)
     assert fit_linear(pd.Series([1, 1, 1]), pd.Series([1, 2, 3])) is None
 
 
 def test_hash_email_is_stable_and_normalized():
-    """同じメールアドレスは大文字小文字・空白に関係なく同じ識別子になり、元の文字列を含まないこと。"""
+    """同じメールアドレスは大文字小文字・空白に関係なく同じ識別子になり、元の文字列を含まないこと。
+
+    Returns:
+        なし。"""
     assert hash_email(" Foo@Example.com ") == hash_email("foo@example.com")
     assert "example" not in hash_email("foo@example.com")
     assert hash_email(None) is None
 
 
 def test_repeat_summary_and_rfm():
-    """リピーターの数え方と RFM の区分が正しいこと。"""
+    """リピーターの数え方と RFM の区分が正しいこと。
+
+    Returns:
+        なし。"""
     orders = pd.DataFrame({
         "id": ["o1", "o2", "o3"],
         "customer_key": ["a", "a", "b"],
@@ -148,14 +185,20 @@ def test_repeat_summary_and_rfm():
 
 
 def test_co_purchase_pairs_counts_each_order_once():
-    """同じ注文の中の商品の組み合わせを1回として数えること。"""
+    """同じ注文の中の商品の組み合わせを1回として数えること。
+
+    Returns:
+        なし。"""
     items = pd.DataFrame({"order_id": ["o1", "o1", "o1", "o2", "o2"], "product_name": ["鉢", "土", "鉢", "鉢", "土"]})
     pairs = co_purchase_pairs(items)
     assert pairs.iloc[0].to_dict() == {"商品A": "土", "商品B": "鉢", "同時購入回数": 2}
 
 
 def test_session_fill_rates_excludes_cancelled():
-    """時間枠の埋まり具合にキャンセルを含めないこと。"""
+    """時間枠の埋まり具合にキャンセルを含めないこと。
+
+    Returns:
+        なし。"""
     sessions = pd.DataFrame({"id": ["s1"], "event_id": ["e1"], "time_label": ["11:00"], "max_participants": [4]})
     res = pd.DataFrame({"session_id": ["s1", "s1"], "participants": [2, 1], "is_cancelled": [False, True]})
     fill = session_fill_rates(res, sessions, _events())
@@ -170,7 +213,14 @@ from lib.ga import ga_config, label_paths, response_to_frame  # noqa: E402
 
 
 def test_ga_config_reports_missing_and_wrong_values(monkeypatch, tmp_path):
-    """接続設定の不足・取り違えを、わかる理由つきで返すこと。"""
+    """接続設定の不足・取り違えを、わかる理由つきで返すこと。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        tmp_path: テスト用の一時ディレクトリ。
+
+    Returns:
+        なし。"""
     key = tmp_path / "key.json"
     key.write_text("{}")
     monkeypatch.delenv("GA_PROPERTY_ID", raising=False)
@@ -189,7 +239,10 @@ def test_ga_config_reports_missing_and_wrong_values(monkeypatch, tmp_path):
 
 
 def test_response_to_frame_converts_types():
-    """Data API の応答を、数値・日付に変換した表にすること。"""
+    """Data API の応答を、数値・日付に変換した表にすること。
+
+    Returns:
+        なし。"""
     row = lambda d, m: SimpleNamespace(  # noqa: E731
         dimension_values=[SimpleNamespace(value=v) for v in d], metric_values=[SimpleNamespace(value=v) for v in m]
     )
@@ -201,7 +254,10 @@ def test_response_to_frame_converts_types():
 
 
 def test_label_paths_names_pages_events_and_products():
-    """固定ページは日本語名、イベント・商品の詳細は名前にし、わからないパスはそのまま返すこと。"""
+    """固定ページは日本語名、イベント・商品の詳細は名前にし、わからないパスはそのまま返すこと。
+
+    Returns:
+        なし。"""
     events = pd.DataFrame({"id": ["e1", "e2"], "slug": ["kagoen-autumn", None], "name": ["花郷園 秋 ", "叢宴"]})
     products = pd.DataFrame({"id": ["p1"], "name": ["EG-90L"]})
     paths = pd.Series(["/", "/reserve?event=e1", "/events/kagoen-autumn", "/events/e2", "/shop/p1", "/events/zzz", "/foo/"])

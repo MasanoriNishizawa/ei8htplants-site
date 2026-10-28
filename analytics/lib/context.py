@@ -117,6 +117,7 @@ def _select_year(years: list[int]) -> str:
     Returns:
         選ばれた表示名（ALL_YEARS または _year_name の結果）
     """
+    # 変数の内容: options: 年度フィルターに表示する「すべて」と各会計年度の選択肢。
     options = [ALL_YEARS] + [_year_name(y) for y in years]
     # 1. 年度の選択欄の無い画面から戻ってきたとき（選択欄の値が消えている）は、控えておいた年度を選び直す
     remembered = st.session_state.get(YEAR_MEMORY_KEY)
@@ -184,7 +185,9 @@ def no_data(what: str) -> None:
 
     Args:
         what: 何のデータか（例: "イベント収支"）
-    """
+
+    Returns:
+        なし。"""
     st.info(f"{what}のデータはまだありません。")
 
 
@@ -195,5 +198,7 @@ def not_enough(what: str, n: int, need: int) -> None:
         what: 何のデータか（例: "注文"）
         n: 今ある件数
         need: 分析に必要な件数
-    """
+
+    Returns:
+        なし。"""
     st.info(f"{what}のデータがまだ {n} 件なので、この分析は {need} 件以上たまってから表示します。")

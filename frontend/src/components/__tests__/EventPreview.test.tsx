@@ -16,6 +16,7 @@ import { LangProvider } from '../../lib/lang'
  * EventPreview を MemoryRouter でラップしてレンダリングするヘルパー
  * @param event - 表示するイベントデータ
  * @param horizontal - 水平レイアウトを使うか（デフォルト: false）
+ * @returns 描画結果
  */
 function renderPreview(event: Event, horizontal = false) {
   return render(
@@ -28,6 +29,7 @@ function renderPreview(event: Event, horizontal = false) {
 /**
  * テスト用イベントのベースデータを生成する
  * @param overrides - 上書きするフィールド
+ * @returns 必須項目を含むテスト用イベント
  */
 const makeEvent = (overrides: Partial<Event> = {}): Event => ({
   id: 'ev-preview-1',

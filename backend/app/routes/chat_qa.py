@@ -13,6 +13,7 @@ from ..auth import optional_auth, require_auth
 from ..db import admin_supabase
 from ..db_utils import execute_or_404, first_or_404
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/chat-qa', tags=['chat_qa'])
 
 
@@ -45,8 +46,10 @@ def list_chat_qa(all: bool = False, is_admin: bool = Depends(optional_auth)) -> 
     """
     if all and not is_admin:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('chat_qa').select('*').order('sort_order')
     if not all:
+        # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('enabled', True)
     return q.execute().data
 

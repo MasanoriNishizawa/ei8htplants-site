@@ -41,6 +41,7 @@ export interface ComputedFinances {
  * @returns 会計年度（その年度が始まる年）
  */
 export function fiscalYear(dateStr: string): number {
+  // 日付文字列をローカル日付として扱い、月と年を取り出す
   const d = parseLocalDate(dateStr)
   // 1〜12 の月
   const month = d.getMonth() + 1

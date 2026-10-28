@@ -46,12 +46,20 @@ def _load(path: Path) -> dict:
 
 
 def test_リポジトリ直下のconfig_tomlでエラーの詳細を画面に出さない設定になっている():
+    """リポジトリ直下のconfig tomlでエラーの詳細を画面に出さない設定になっていることを確認する。
+
+    Returns:
+        なし。"""
     cfg = _load(CLOUD_CONFIG)
     assert cfg["client"]["showErrorDetails"] == "none"
 
 
 def test_リポジトリ直下のconfig_tomlにserverの設定が無い():
     # アドレス・ポートは Community Cloud が決めるため書かない（XSRF・CORS を無効にする設定も入れない）
+    """リポジトリ直下のconfig tomlにserverの設定が無いことを確認する。
+
+    Returns:
+        なし。"""
     cfg = _load(CLOUD_CONFIG)
     assert "server" not in cfg
     text = CLOUD_CONFIG.read_text(encoding="utf-8")
@@ -60,16 +68,31 @@ def test_リポジトリ直下のconfig_tomlにserverの設定が無い():
 
 
 def test_リポジトリ直下のconfig_tomlは利用状況を送らない():
+    """リポジトリ直下のconfig tomlは利用状況を送らないことを確認する。
+
+    Returns:
+        なし。"""
     assert _load(CLOUD_CONFIG)["browser"]["gatherUsageStats"] is False
 
 
 @pytest.mark.parametrize("section", ["theme", "client", "browser"])
 def test_リポジトリ直下とローカル用のconfig_tomlで同じ項目の設定が一致する(section):
     # 片方だけ変えて、公開時とローカルで見た目や挙動が食い違うのを防ぐ
+    """リポジトリ直下とローカル用のconfig tomlで同じ項目の設定が一致することを確認する。
+
+    Args:
+        section: 検証対象の件数または数値。
+
+    Returns:
+        なし。"""
     assert _load(CLOUD_CONFIG)[section] == _load(LOCAL_CONFIG)[section]
 
 
 def test_ローカル用のconfig_tomlもエラーの詳細を出さずserverはlocalhostだけで待ち受ける():
+    """ローカル用のconfig tomlもエラーの詳細を出さずserverはlocalhostだけで待ち受けることを確認する。
+
+    Returns:
+        なし。"""
     cfg = _load(LOCAL_CONFIG)
     assert cfg["client"]["showErrorDetails"] == "none"
     assert cfg["server"]["address"] == "localhost"
@@ -79,6 +102,10 @@ def test_ローカル用のconfig_tomlもエラーの詳細を出さずserverは
 
 def test_リポジトリ直下のconfig_tomlの項目はStreamlitが知っている設定名だけ():
     # 書き間違えた設定名は Streamlit に黙って無視されるため、実在する設定名か確かめる
+    """リポジトリ直下のconfig tomlの項目はStreamlitが知っている設定名だけことを確認する。
+
+    Returns:
+        なし。"""
     from streamlit import config as st_config
 
     for section, values in _load(CLOUD_CONFIG).items():
@@ -91,6 +118,13 @@ def test_リポジトリ直下のconfig_tomlの項目はStreamlitが知ってい
 
 def test_app_pyを動かすとshowErrorDetailsがnoneになる(fake_env):
     # 1. 先に別の値にしておき、app.py が "none" に戻すことを確かめる
+    """app pyを動かすとshowErrorDetailsがnoneになることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     original = st.get_option("client.showErrorDetails")
     st.set_option("client.showErrorDetails", "full")
     try:
@@ -106,7 +140,10 @@ def test_app_pyを動かすとshowErrorDetailsがnoneになる(fake_env):
 
 
 def _app_tree() -> ast.Module:
-    """app.py を構文木にする。"""
+    """app.py を構文木にする。
+
+    Returns:
+        ast.Module を返す。"""
     return ast.parse(APP_PATH.read_text(encoding="utf-8"))
 
 
@@ -126,6 +163,10 @@ def _call_name(node: ast.AST) -> str | None:
 
 
 def test_app_pyでset_optionがlibとviewsのimportより前にある():
+    """app pyでset optionがlibとviewsのimportより前にあることを確認する。
+
+    Returns:
+        なし。"""
     body = _app_tree().body
     names = [_call_name(n) for n in body]
     set_option_at = names.index("st.set_option")
@@ -139,6 +180,10 @@ def test_app_pyでset_optionがlibとviewsのimportより前にある():
 
 
 def test_app_pyでload_secrets_into_envがrequire_loginより前に呼ばれる():
+    """app pyでload secrets into envがrequire loginより前に呼ばれることを確認する。
+
+    Returns:
+        なし。"""
     names = [_call_name(n) for n in _app_tree().body]
     assert "load_secrets_into_env" in names
     assert names.index("load_secrets_into_env") < names.index("require_login")

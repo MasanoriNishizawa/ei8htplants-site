@@ -7,7 +7,10 @@ import { useApi } from '../hooks/useApi'
 import { useT } from '../lib/lang'
 import { BRANDS } from '../lib/brands'
 
-/** ブランド別フィルターとライトボックス（拡大表示）を備えたギャラリーページ */
+/**
+ *  ブランド別フィルターとライトボックス（拡大表示）を備えたギャラリーページ
+ * @returns 写真一覧と拡大表示を含むギャラリーページの React 要素。
+ */
 export default function Gallery() {
   // 選んでいるブランドの正式名（タブの表示に使う。null はすべて）
   const [activeBrand, setActiveBrand] = useState<string | null>(null)

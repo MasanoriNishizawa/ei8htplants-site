@@ -43,6 +43,7 @@ export default function AdminGallery() {
   /**
    * 選んだ画像ファイルをアップロードし、追加フォームの URL に入れる。失敗したらエラーを出す
    * @param e - ファイル選択の change イベント
+   * @returns 戻り値なし。
    */
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     /** 選ばれたファイル（選ぶのをやめたときは undefined） */
@@ -69,6 +70,7 @@ export default function AdminGallery() {
    * 3. 失敗したらフォームの入力を残してエラーを出す
    * 4. どちらでも送信中を戻す
    * @param e - フォームの submit イベント
+   * @returns 戻り値なし。
    */
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,6 +91,7 @@ export default function AdminGallery() {
   /**
    * 画像を削除する（確認のあと）。失敗したら一覧に残したままエラーを出す
    * @param id - 削除する画像の id
+   * @returns 戻り値なし。
    */
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return
@@ -109,6 +112,7 @@ export default function AdminGallery() {
    * 片方だけ保存に成功した場合もあるので、成功・失敗どちらでも一覧を読み直して実際の順を出す
    * @param idx - 動かす画像の位置
    * @param dir - -1 で前へ、1 で後ろへ
+   * @returns 戻り値なし。
    */
   const move = async (idx: number, dir: -1 | 1) => {
     /** 入れ替える相手の位置 */

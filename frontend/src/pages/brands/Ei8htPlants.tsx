@@ -3,7 +3,10 @@ import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND, TEXT_LOGO } from '../../lib/brands'
 
-/** ei8ht plants のブランドトップ。植物とブランドの考え方へ案内する。 */
+/**
+ * ei8ht plants のブランドトップを描画し、植物とブランドの考え方へ案内する。
+ * @returns ei8ht plants ブランドトップの React 要素。
+ */
 export default function Ei8htPlants() {
   const t = useT()
 
@@ -14,6 +17,7 @@ export default function Ei8htPlants() {
         description={t('アガベ、塊根植物、灌木。一株ごとに異なる個性を持つ植物を育て、植物との暮らしを提案します。', 'Agaves, caudiciform plants, and shrubs, grown and selected for their singular character.')}
       />
 
+      {/* ブランドの考え方と植物ラインへの入口を示すヒーロー */}
       <section className="ep-home-hero" aria-labelledby="ep-home-title">
         <figure className="ep-home-visual">
           <img src="/img/ei8htPlants/ei8htplants_hero.jpg" alt={t('手のオブジェに載る小さなアガベ', 'A small agave resting on a hand-shaped object')} />
@@ -32,6 +36,7 @@ export default function Ei8htPlants() {
         </div>
       </section>
 
+      {/* 一株ごとの個性を大切にするブランドの姿勢 */}
       <section className="ep-home-intro" aria-labelledby="ep-home-intro-title">
         <p className="ep-editorial-kicker">A PLANT, A STORY</p>
         <div className="ep-home-intro-grid">
@@ -48,6 +53,7 @@ export default function Ei8htPlants() {
         </div>
       </section>
 
+      {/* 植物ラインからオンラインストアへ進む案内 */}
       <section className="ep-home-store" aria-labelledby="ep-home-store-title">
         <div>
           <p className="ep-editorial-kicker">FIND YOUR PLANT</p>

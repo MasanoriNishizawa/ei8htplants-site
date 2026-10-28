@@ -8,6 +8,7 @@
  */
 export function httpStatusOf(err: unknown): number | null {
   if (!(err instanceof Error)) return null
+  // エラーメッセージ先頭が3桁のステータス表記かを調べる
   const m = /^(\d{3})\b/.exec(err.message)
   return m ? Number(m[1]) : null
 }

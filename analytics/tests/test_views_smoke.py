@@ -337,6 +337,13 @@ class FakeGaClient:
     """
 
     def __init__(self, fail_from: int | None = None) -> None:
+        """__init__ で必要なテスト状態を初期化する。
+
+        Args:
+            fail_from: レポート取得を失敗させ始める呼び出し番号。
+
+        Returns:
+            なし。"""
         self.calls: list[tuple[str, ...]] = []
         self.starts: list[str] = []
         self.fail_from = fail_from
@@ -374,7 +381,10 @@ class FakeGaClient:
 
 @pytest.fixture(autouse=True)
 def clear_cache():
-    """テストの前後で st.cache_data を空にする（GA のレポートのキャッシュが別のテストに残らないように）。"""
+    """テストの前後で st.cache_data を空にする（GA のレポートのキャッシュが別のテストに残らないように）。
+
+    Returns:
+        なし。"""
     st.cache_data.clear()
     yield
     st.cache_data.clear()
@@ -386,9 +396,18 @@ def use_data(monkeypatch):
 
     Returns:
         use(rows) … 以降の画面で使うデータを決める関数
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
 
     def use(rows: dict[str, list[dict]]) -> None:
+        """use のテスト用処理を行う。
+
+        Args:
+            rows: テスト対象へ返すレコード一覧。
+
+        Returns:
+            なし。"""
         frames = _to_frames(rows)
         # 画面ごとに中身を書き換えられても困らないよう、毎回コピーを返す
         monkeypatch.setattr(lib.context, "load_all", lambda: {k: v.copy() for k, v in frames.items()})
@@ -403,7 +422,9 @@ def ga(monkeypatch):
 
     Returns:
         FakeGaClient（fail_from を書き換えると失敗させられる）
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
     client = FakeGaClient()
     monkeypatch.setenv("GA_PROPERTY_ID", "123456789")
     monkeypatch.setenv("GA_CREDENTIALS_JSON", FAKE_GA_KEY)
@@ -492,6 +513,14 @@ def _plotly_texts(spec: str) -> list[str]:
 
     def walk(node, key: str = "") -> None:
         # 1. 文字として描かれるキーの値だけを拾う
+        """walk のテスト用処理を行う。
+
+        Args:
+            node: HTML 解析対象のノード。
+            key: 検証対象のキー値。
+
+        Returns:
+            なし。"""
         if isinstance(node, dict):
             for k, v in node.items():
                 walk(v, k)
@@ -563,7 +592,9 @@ def _assert_clean(at: AppTest, where: str) -> None:
     Args:
         at: 描画後の AppTest
         where: 失敗したときに出す場所の説明
-    """
+
+    Returns:
+        なし。"""
     # 1. 例外（画面の赤いエラー枠）が出ていない
     assert not at.exception, f"{where}: 例外が出ました: {[e.value for e in at.exception]}"
     # 2. nan・inf の文字が出ていない
@@ -591,6 +622,15 @@ def _metric(at: AppTest, label: str) -> str:
 
 @pytest.mark.parametrize("url_path", list(PAGES), ids=PAGE_IDS)
 def test_通常のデータで各画面を描くと例外もnanもinfも出ずタイトルが出る(use_data, ga, url_path):
+    """通常のデータで各画面を描くと例外もnanもinfも出ずタイトルが出ることを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+        url_path: AppTest で開くナビゲーション URL パス。
+
+    Returns:
+        なし。"""
     at = _render(url_path)
     _assert_clean(at, PAGES[url_path])
     # 開いた画面のタイトルが出ている（ページの切り替えが効いている）
@@ -599,6 +639,15 @@ def test_通常のデータで各画面を描くと例外もnanもinfも出ず�
 
 @pytest.mark.parametrize("url_path", list(PAGES), ids=PAGE_IDS)
 def test_全テーブルが0件でも各画面を描くと例外もnanもinfも出ない(use_data, ga, url_path):
+    """全テーブルが0件でも各画面を描くと例外もnanもinfも出ないことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+        url_path: AppTest で開くナビゲーション URL パス。
+
+    Returns:
+        なし。"""
     use_data(empty_rows())
     at = _render(url_path)
     _assert_clean(at, f"{PAGES[url_path]}（0件）")
@@ -610,12 +659,29 @@ def test_全テーブルが0件でも各画面を描くと例外もnanもinfも�
 
 @pytest.mark.parametrize("url_path", list(PAGES), ids=PAGE_IDS)
 def test_予約がすべてキャンセルでも各画面を描くと例外もnanもinfも出ない(use_data, ga, url_path):
+    """予約がすべてキャンセルでも各画面を描くと例外もnanもinfも出ないことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+        url_path: AppTest で開くナビゲーション URL パス。
+
+    Returns:
+        なし。"""
     use_data(all_cancelled_rows())
     at = _render(url_path)
     _assert_clean(at, f"{PAGES[url_path]}（予約がすべてキャンセル）")
 
 
 def test_予約がすべてキャンセルのときワークショップ画面の持ち込みの割合はダッシュで出る(use_data, ga):
+    """予約がすべてキャンセルのときワークショップ画面の持ち込みの割合はダッシュで出ることを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+
+    Returns:
+        なし。"""
     use_data(all_cancelled_rows())
     at = _render("workshop")
     assert not at.exception
@@ -628,6 +694,14 @@ def test_予約がすべてキャンセルのときワークショップ画面�
 
 
 def test_概要画面の予約人数はキャンセルを除いて数える(use_data, ga):
+    """概要画面の予約人数はキャンセルを除いて数えることを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+
+    Returns:
+        なし。"""
     at = _render("")
     assert not at.exception
     # 通常のデータの有効な予約は 2+3+4+2+1 = 12 人（キャンセル r3 の1人を除く）
@@ -636,6 +710,15 @@ def test_概要画面の予約人数はキャンセルを除いて数える(use_
 
 @pytest.mark.parametrize("url_path", YEAR_PAGES, ids=YEAR_PAGE_IDS)
 def test_会計年度をすべての期と各年度に切り替えても各画面で例外もnanもinfも出ない(use_data, ga, url_path):
+    """会計年度をすべての期と各年度に切り替えても各画面で例外もnanもinfも出ないことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+        url_path: AppTest で開くナビゲーション URL パス。
+
+    Returns:
+        なし。"""
     at = _render(url_path)
     box = at.sidebar.selectbox(key=YEAR_KEY)
     # 1. 既定は「すべての期」。データは複数の会計年度にまたがるので年度の選択肢が2つ以上ある
@@ -652,6 +735,15 @@ def test_会計年度をすべての期と各年度に切り替えても各画�
 
 @pytest.mark.parametrize("url_path", NO_YEAR_PAGES)
 def test_アクセス解析と予測の画面には会計年度の選択欄が出ない(use_data, ga, url_path):
+    """アクセス解析と予測の画面には会計年度の選択欄が出ないことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+        url_path: AppTest で開くナビゲーション URL パス。
+
+    Returns:
+        なし。"""
     at = _render(url_path)
     assert not at.exception
     # アクセス解析は GA の期間（直近7日など）で、予測はすべての実績で見るので、年度の選択欄は出さない
@@ -661,6 +753,14 @@ def test_アクセス解析と予測の画面には会計年度の選択欄が�
 
 
 def test_予約がすべてキャンセルで年度を切り替えてもワークショップ画面に例外もnanも出ない(use_data, ga):
+    """予約がすべてキャンセルで年度を切り替えてもワークショップ画面に例外もnanも出ないことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+
+    Returns:
+        なし。"""
     use_data(all_cancelled_rows())
     at = _render("workshop")
     for label in at.sidebar.selectbox(key=YEAR_KEY).options:
@@ -669,6 +769,14 @@ def test_予約がすべてキャンセルで年度を切り替えてもワー�
 
 
 def test_GAが未設定ならアクセス解析画面は設定の手順を出しGAを呼ばない(use_data, monkeypatch):
+    """GAが未設定ならアクセス解析画面は設定の手順を出しGAを呼ばないことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     calls = []
     monkeypatch.setattr(lib.ga, "_client", lambda ref: calls.append(ref))
     at = _render("traffic")
@@ -682,6 +790,14 @@ def test_GAが未設定ならアクセス解析画面は設定の手順を出し
 
 
 def test_GAのデータが取れるとアクセス解析画面に数字と予約率が出る(use_data, ga):
+    """GAのデータが取れるとアクセス解析画面に数字と予約率が出ることを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+
+    Returns:
+        なし。"""
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（GA あり）")
     # 1. まとめの数字（偽の GA の値）
@@ -696,6 +812,15 @@ def test_GAのデータが取れるとアクセス解析画面に数字と予約
 
 @pytest.mark.parametrize("period", ["直近7日", "直近90日"])
 def test_GAの期間を切り替えてもアクセス解析画面に例外もnanも出ない(use_data, ga, period):
+    """GAの期間を切り替えてもアクセス解析画面に例外もnanも出ないことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+        period: 基準月からの月差。
+
+    Returns:
+        なし。"""
     at = _render("traffic")
     # 1. 期間の選択欄（segmented_control）で期間を選び直す
     groups = [g for g in at.get("button_group") if g.key == "ga_period"]
@@ -712,6 +837,15 @@ def test_GAの期間を切り替えてもアクセス解析画面に例外もnan
 def test_GAの2本目以降のレポートが失敗しても画面全体はエラーにならずその表の場所に表示できませんと出る(
     use_data, ga, fail_from
 ):
+    """GAの2本目以降のレポートが失敗しても画面全体はエラーにならずその表の場所に表示できませんと出ることを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+        fail_from: レポート取得を失敗させ始める呼び出し番号。
+
+    Returns:
+        なし。"""
     ga.fail_from = fail_from
     at = _render("traffic")
     # 1. 例外（画面全体のエラー）にならない
@@ -723,6 +857,14 @@ def test_GAの2本目以降のレポートが失敗しても画面全体はエ�
 
 
 def test_GAの1本目のレポートが失敗するとアクセス解析画面は読み込めませんと出す(use_data, ga):
+    """GAの1本目のレポートが失敗するとアクセス解析画面は読み込めませんと出すことを確認する。
+
+    Args:
+        use_data: load_all が返す分析用データを差し替える関数。
+        ga: GA4 クライアントとレポート応答のモック。
+
+    Returns:
+        なし。"""
     ga.fail_from = 1
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（1本目が失敗）")
@@ -731,7 +873,18 @@ def test_GAの1本目のレポートが失敗するとアクセス解析画面�
 
 
 def test_データの読み込みに失敗すると各画面はエラーを出して止まる(monkeypatch):
+    """データの読み込みに失敗すると各画面はエラーを出して止まることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     def fail():
+        """fail のテスト用処理を行う。
+
+        Returns:
+            なし。"""
         raise RuntimeError("テスト用：読み込み失敗")
 
     monkeypatch.setattr(lib.context, "load_all", fail)

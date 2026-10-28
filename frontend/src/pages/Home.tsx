@@ -84,7 +84,11 @@ export default function Home() {
     // スマホ幅かどうかの判定（幅が変わると change が届く）
     const mq = window.matchMedia('(max-width: 767px)')
     setIsMobile(mq.matches)
-    /** 幅が切り替わったら入れ直す */
+    /**
+     *  幅が切り替わったら入れ直す
+     * @param e - 発生したイベントまたはエラー
+     * @returns 戻り値なし。
+     */
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)

@@ -150,6 +150,7 @@ export default function Reserve() {
    * フォームの 1 項目を変える
    * @param key - 項目名
    * @param value - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -182,6 +183,7 @@ export default function Reserve() {
   /**
    * 予約を送信する（日付・時間枠が選ばれていなければ送らない）。結果に応じて完了・エラーの表示に切り替える
    * @param e - フォームの送信イベント
+   * @returns 戻り値なし。
    */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -252,7 +254,7 @@ export default function Reserve() {
    * 日付・時間帯の選択肢（ラジオボタンを包んだカード）の見た目
    * @param selected - 選択中なら true（緑の枠）
    * @param disabled - 選べない（満席）なら true（薄く表示）
-   * @returns style
+   * @returns 選択状態と満席状態を反映したラジオカード用の CSS スタイル
    */
   const radioCard = (selected: boolean, disabled = false): React.CSSProperties => ({
     display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',

@@ -59,6 +59,7 @@ function toCartItem(v: unknown): CartItem | null {
   if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity <= 0) return null
   // 2. 商品の必須の項目
   if (typeof product !== 'object' || product === null) return null
+  // 必須項目を検査できるように商品を部分型として扱う
   const p = product as Partial<Record<keyof Product, unknown>>
   if (!(
     typeof p.id === 'string' &&

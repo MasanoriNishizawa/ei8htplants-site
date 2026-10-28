@@ -44,7 +44,10 @@ function mockCancelApi(status: number, body: object): { token: string }[] {
   return sent
 }
 
-/** キャンセル ID の入力欄を返す */
+/**
+ *  キャンセル ID の入力欄を返す
+ * @returns 戻り値なし。
+ */
 const tokenInput = () => screen.getByLabelText('キャンセルID') as HTMLInputElement
 
 describe('CancelReservation の入力欄', () => {

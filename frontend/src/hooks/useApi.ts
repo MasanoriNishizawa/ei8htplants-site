@@ -73,6 +73,7 @@ export function useApi<T>(
       (data) => { if (!cancelled) setState({ data, loading: false, error: null }) },
       (err: unknown) => {
         if (cancelled) return
+        // Error 以外の reject 値も画面で扱える Error にそろえる
         const error = err instanceof Error ? err : new Error(String(err))
         setState({ data: null, loading: false, error })
       },

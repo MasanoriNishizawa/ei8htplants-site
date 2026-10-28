@@ -28,12 +28,17 @@ def _make_auth_supabase_mock(user_obj=None, raise_exc: Exception = None) -> Magi
     Returns:
         supabase モック
     """
+    # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
     mock_auth_sb = MagicMock()
     if raise_exc is not None:
+        # 変数の内容: mock_auth_sb.auth.get_user.side_effect: モック呼び出し時に返す例外または副作用。
         mock_auth_sb.auth.get_user.side_effect = raise_exc
     else:
+        # 変数の内容: result: Supabase get_user が返す認証ユーザー応答のモック。
         result = MagicMock()
+        # 変数の内容: mock_auth_sb.auth.get_user.return_value: モック呼び出しの返却値、result.user: 認証 API のユーザー応答。
         result.user = user_obj
+        # 変数の内容: mock_auth_sb.auth.get_user.return_value: モック呼び出しの返却値。
         mock_auth_sb.auth.get_user.return_value = result
     return mock_auth_sb
 
@@ -42,21 +47,39 @@ class TestRequireAuth:
     """require_auth 依存関数のテスト。"""
 
     def setup_method(self):
-        """テストごとに dependency_overrides をクリアして実際の require_auth を使う。"""
+        """テストごとに dependency_overrides をクリアして実際の require_auth を使う。
+
+        Returns:
+            なし。
+        """
         app.dependency_overrides.clear()
 
     def teardown_method(self):
-        """テスト後に dependency_overrides をリセットする。"""
+        """テスト後に dependency_overrides をリセットする。
+
+        Returns:
+            なし。
+        """
         app.dependency_overrides.clear()
 
     def test_Authorizationヘッダーなし_401(self):
-        """Authorization ヘッダーを送らない場合は 401 が返る。"""
+        """Authorization ヘッダーを送らない場合は 401 が返る。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
         client = TestClient(app)
         resp = client.get(PROTECTED_URL)
         assert resp.status_code == 401
 
     def test_Bearerプレフィックスなし_401(self):
-        """Authorization ヘッダーが 'Bearer ' で始まらない場合は 401 が返る。"""
+        """Authorization ヘッダーが 'Bearer ' で始まらない場合は 401 が返る。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
         client = TestClient(app)
         resp = client.get(PROTECTED_URL, headers={'Authorization': 'Token abc123'})
         assert resp.status_code == 401
@@ -65,48 +88,72 @@ class TestRequireAuth:
         """'Bearer ' プレフィックスのみでトークンが空の場合は 401 が返る。
 
         Supabase が空トークンに対して例外を投げるケースをシミュレートする。
+
+        Returns:
+            なし。
         """
+        # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
         mock_auth_sb = _make_auth_supabase_mock(raise_exc=Exception('Invalid token'))
 
         with patch('app.auth.supabase', mock_auth_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
             client = TestClient(app)
             resp = client.get(PROTECTED_URL, headers={'Authorization': 'Bearer '})
 
         assert resp.status_code == 401
 
     def test_無効なトークン_Supabaseがユーザーなし_401(self):
-        """Supabase が user=None を返す場合は 401 が返る。"""
+        """Supabase が user=None を返す場合は 401 が返る。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
         mock_auth_sb = _make_auth_supabase_mock(user_obj=None)
 
         with patch('app.auth.supabase', mock_auth_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
             client = TestClient(app)
             resp = client.get(PROTECTED_URL, headers={'Authorization': 'Bearer invalid-token'})
 
         assert resp.status_code == 401
 
     def test_無効なトークン_Supabaseが例外_401(self):
-        """Supabase の get_user が例外を投げる場合は 401 が返る。"""
+        """Supabase の get_user が例外を投げる場合は 401 が返る。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
         mock_auth_sb = _make_auth_supabase_mock(raise_exc=Exception('Token verification failed'))
 
         with patch('app.auth.supabase', mock_auth_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
             client = TestClient(app)
             resp = client.get(PROTECTED_URL, headers={'Authorization': 'Bearer bad-token'})
 
         assert resp.status_code == 401
 
     def test_有効なトークン_認証成功(self):
-        """Supabase がユーザーオブジェクトを返す有効なトークンで認証が通る。"""
+        """Supabase がユーザーオブジェクトを返す有効なトークンで認証が通る。
+
+        Returns:
+            なし。
+        """
         # 有効なユーザーオブジェクトを返すモック
         user = MagicMock()
+        # 変数の内容: user.id: 対象レコード ID。
         user.id = 'user-123'
         mock_auth_sb = _make_auth_supabase_mock(user_obj=user)
 
         # admin_supabase のモック（finances 取得に必要）
         mock_admin_sb = MagicMock()
+        # 変数の内容: mock_admin_sb.table.return_value.select.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_admin_sb.table.return_value.select.return_value.execute.return_value.data = []
 
         with patch('app.auth.supabase', mock_auth_sb), \
              patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
             client = TestClient(app)
             resp = client.get(PROTECTED_URL, headers={'Authorization': 'Bearer valid-token'})
 
@@ -114,16 +161,24 @@ class TestRequireAuth:
         assert resp.status_code == 200
 
     def test_有効なトークン_get_userが呼ばれる(self):
-        """有効なトークンで require_auth が Supabase の get_user を正しく呼ぶ。"""
+        """有効なトークンで require_auth が Supabase の get_user を正しく呼ぶ。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック、mock_auth_sb: 認証用 Supabase クライアントのモック、user: 認証済みユーザーのモック。
         user = MagicMock()
+        # 変数の内容: user.id: 対象レコード ID。
         user.id = 'user-456'
         mock_auth_sb = _make_auth_supabase_mock(user_obj=user)
 
         mock_admin_sb = MagicMock()
+        # 変数の内容: mock_admin_sb.table.return_value.select.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_admin_sb.table.return_value.select.return_value.execute.return_value.data = []
 
         with patch('app.auth.supabase', mock_auth_sb), \
              patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
             client = TestClient(app)
             resp = client.get(PROTECTED_URL, headers={'Authorization': 'Bearer my-token'})
 

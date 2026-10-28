@@ -51,7 +51,13 @@ def _response(status: int, body=None, json_error: bool = False) -> MagicMock:
 
 @pytest.fixture
 def post(monkeypatch):
-    """requests.post をモックに差し替えて返す（既定は 200 でメールアドレスあり）。"""
+    """requests.post をモックに差し替えて返す（既定は 200 でメールアドレスあり）。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        requests.post のモック応答を返す。"""
     mock = MagicMock(return_value=_response(200, {"access_token": "tok-xyz", "user": {"email": EMAIL}}))
     monkeypatch.setattr(requests, "post", mock)
     return mock
@@ -61,12 +67,27 @@ def post(monkeypatch):
 
 
 def test_authenticate_200でメールアドレスがあれば成功しSupabaseが返したメールを返す(post):
+    """authenticate 200でメールアドレスがあれば成功しSupabaseが返したメールを返すことを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+
+    Returns:
+        なし。"""
     post.return_value = _response(200, {"access_token": "tok", "user": {"email": "Owner@Example.com"}})
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (True, "Owner@Example.com")
 
 
 @pytest.mark.parametrize("status", [400, 401, 403, 422, 429, 500])
 def test_authenticate_200以外のステータスはすべて資格情報エラーのメッセージになる(post, status):
+    """authenticate 200以外のステータスはすべて資格情報エラーのメッセージになることを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+        status: モックする認証 API の HTTP ステータスコード。
+
+    Returns:
+        なし。"""
     post.return_value = _response(status, {"error": "invalid_grant", "error_description": "Invalid login credentials"})
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (False, MSG_BAD_CREDENTIALS)
     assert MSG_BAD_CREDENTIALS == "メールアドレスまたはパスワードが違います。"
@@ -83,11 +104,26 @@ def test_authenticate_200以外のステータスはすべて資格情報エラ�
     ],
 )
 def test_authenticate_200でも応答にメールアドレスが無ければ失敗になる(post, body):
+    """authenticate 200でも応答にメールアドレスが無ければ失敗になることを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+        body: 認証 API が返す JSON 応答。
+
+    Returns:
+        なし。"""
     post.return_value = _response(200, body)
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (False, MSG_BAD_CREDENTIALS)
 
 
 def test_authenticate_200でも応答がJSONでなければ失敗になる(post):
+    """authenticate 200でも応答がJSONでなければ失敗になることを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+
+    Returns:
+        なし。"""
     post.return_value = _response(200, json_error=True)
     assert authenticate(EMAIL, PASSWORD, URL, ANON) == (False, MSG_BAD_CREDENTIALS)
 
@@ -101,6 +137,14 @@ def test_authenticate_200でも応答がJSONでなければ失敗になる(post)
     ],
 )
 def test_authenticate_タイムアウトや接続エラーは通信エラーのメッセージになり資格情報エラーと区別される(post, exc):
+    """authenticate タイムアウトや接続エラーは通信エラーのメッセージになり資格情報エラーと区別されることを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+        exc: 処理時に発生する例外。
+
+    Returns:
+        なし。"""
     post.side_effect = exc
     ok, msg = authenticate(EMAIL, PASSWORD, URL, ANON)
     assert ok is False
@@ -109,6 +153,13 @@ def test_authenticate_タイムアウトや接続エラーは通信エラーの�
 
 
 def test_authenticate_送信先URL_apikeyヘッダー_本文_timeout10秒が正しい(post):
+    """authenticate 送信先URL apikeyヘッダー 本文 timeout10秒が正しいことを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+
+    Returns:
+        なし。"""
     authenticate(EMAIL, PASSWORD, URL, ANON)
     post.assert_called_once()
     args, kwargs = post.call_args
@@ -126,11 +177,26 @@ def test_authenticate_送信先URL_apikeyヘッダー_本文_timeout10秒が正�
 
 
 def test_authenticate_URLの末尾にスラッシュがあっても二重にならない(post):
+    """authenticate URLの末尾にスラッシュがあっても二重にならないことを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+
+    Returns:
+        なし。"""
     authenticate(EMAIL, PASSWORD, URL + "/", ANON)
     assert post.call_args.args[0] == f"{URL}/auth/v1/token"
 
 
 def test_authenticate_service_roleキーではなく渡されたanonキーだけを使う(post, monkeypatch):
+    """authenticate service roleキーではなく渡されたanonキーだけを使うことを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "fake-service-role-should-not-be-used")
     authenticate(EMAIL, PASSWORD, URL, ANON)
     headers = post.call_args.kwargs["headers"]
@@ -150,6 +216,15 @@ def test_authenticate_service_roleキーではなく渡されたanonキーだけ
     ids=["成功", "400", "メールなし", "接続エラー", "タイムアウト"],
 )
 def test_authenticate_パスワードとトークンは戻り値にもログにも出ない(post, setup, caplog):
+    """authenticate パスワードとトークンは戻り値にもログにも出ないことを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+        setup: テスト対象に適用する初期設定。
+        caplog: ログを取得する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     setup(post)
     with caplog.at_level(logging.DEBUG):
         result = authenticate(EMAIL, PASSWORD, URL, ANON)
@@ -163,6 +238,14 @@ def test_authenticate_パスワードとトークンは戻り値にもログに�
 
 
 def test_authenticate_通信エラーのログには例外の種類だけが残る(post, caplog):
+    """authenticate 通信エラーのログには例外の種類だけが残ることを確認する。
+
+    Args:
+        post: requests.post を差し替えた認証リクエストのモック。
+        caplog: ログを取得する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     post.side_effect = requests.ConnectionError("detail-should-not-appear")
     with caplog.at_level(logging.ERROR):
         authenticate(EMAIL, PASSWORD, URL, ANON)
@@ -175,10 +258,21 @@ def test_authenticate_通信エラーのログには例外の種類だけが残�
 
 @pytest.mark.parametrize("allowed_env", [None, "", "   ", ",", " , , "])
 def test_is_allowed_許可リストが未設定や空なら誰でも許可される(allowed_env):
+    """is allowed 許可リストが未設定や空なら誰でも許可されることを確認する。
+
+    Args:
+        allowed_env: 環境変数の名前と値。
+
+    Returns:
+        なし。"""
     assert is_allowed("anyone@example.com", allowed_env) is True
 
 
 def test_is_allowed_許可リストにあるメールは許可され無いメールは拒否される():
+    """is allowed 許可リストにあるメールは許可され無いメールは拒否されることを確認する。
+
+    Returns:
+        なし。"""
     env = "a@example.com,b@example.com"
     assert is_allowed("a@example.com", env) is True
     assert is_allowed("b@example.com", env) is True
@@ -186,11 +280,19 @@ def test_is_allowed_許可リストにあるメールは許可され無いメー
 
 
 def test_is_allowed_大文字小文字を無視して比較する():
+    """is allowed 大文字小文字を無視して比較することを確認する。
+
+    Returns:
+        なし。"""
     assert is_allowed("Admin@Example.COM", "admin@example.com") is True
     assert is_allowed("admin@example.com", "ADMIN@EXAMPLE.COM") is True
 
 
 def test_is_allowed_リスト側とメール側の前後の空白を除いて比較する():
+    """is allowed リスト側とメール側の前後の空白を除いて比較することを確認する。
+
+    Returns:
+        なし。"""
     env = "  a@example.com ,\tb@example.com  , "
     assert is_allowed("a@example.com", env) is True
     assert is_allowed("b@example.com", env) is True
@@ -198,6 +300,10 @@ def test_is_allowed_リスト側とメール側の前後の空白を除いて比
 
 
 def test_is_allowed_部分一致では許可しない():
+    """is allowed 部分一致では許可しないことを確認する。
+
+    Returns:
+        なし。"""
     env = "admin@example.com"
     assert is_allowed("admin@example.co", env) is False
     assert is_allowed("xadmin@example.com", env) is False
@@ -205,6 +311,10 @@ def test_is_allowed_部分一致では許可しない():
 
 
 def test_is_allowed_空の要素が混ざっていても空文字のメールは許可されない():
+    """is allowed 空の要素が混ざっていても空文字のメールは許可されないことを確認する。
+
+    Returns:
+        なし。"""
     assert is_allowed("", "a@example.com, ,") is False
 
 
@@ -214,31 +324,65 @@ NOW = 1_000_000.0
 
 
 def test_is_locked_定数は5回と60秒():
+    """is locked 定数は5回と60秒ことを確認する。
+
+    Returns:
+        なし。"""
     assert MAX_FAILS == 5
     assert LOCK_SECONDS == 60
 
 
 @pytest.mark.parametrize("count", [0, 1, 4])
 def test_is_locked_失敗が5回未満ならロックしない(count):
+    """is locked 失敗が5回未満ならロックしないことを確認する。
+
+    Args:
+        count: 検証する呼び出し回数。
+
+    Returns:
+        なし。"""
     assert is_locked(count, NOW, NOW) is False
 
 
 @pytest.mark.parametrize("count", [5, 6, 100])
 def test_is_locked_失敗が5回以上で直後ならロックする(count):
+    """is locked 失敗が5回以上で直後ならロックすることを確認する。
+
+    Args:
+        count: 検証する呼び出し回数。
+
+    Returns:
+        なし。"""
     assert is_locked(count, NOW, NOW) is True
 
 
 def test_is_locked_5回目の失敗から59_9秒ではまだロック中():
+    """is locked 5回目の失敗から59 9秒ではまだロック中ことを確認する。
+
+    Returns:
+        なし。"""
     assert is_locked(5, NOW, NOW + 59.9) is True
 
 
 def test_is_locked_5回目の失敗からちょうど60秒でロックが解ける():
+    """is locked 5回目の失敗からちょうど60秒でロックが解けることを確認する。
+
+    Returns:
+        なし。"""
     assert is_locked(5, NOW, NOW + 60) is False
 
 
 def test_is_locked_60秒を過ぎればロックしない():
+    """is locked 60秒を過ぎればロックしないことを確認する。
+
+    Returns:
+        なし。"""
     assert is_locked(5, NOW, NOW + 61) is False
 
 
 def test_is_locked_最後の失敗時刻がNoneならロックしない():
+    """is locked 最後の失敗時刻がNoneならロックしないことを確認する。
+
+    Returns:
+        なし。"""
     assert is_locked(5, None, NOW) is False

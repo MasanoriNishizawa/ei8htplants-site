@@ -12,6 +12,7 @@ from ..auth import require_auth
 from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404, first_or_404, next_display_order
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/gallery', tags=['gallery'])
 
 
@@ -43,8 +44,10 @@ def list_gallery(brand: Optional[str] = None) -> list[dict]:
     Returns:
         画像の行のリスト
     """
+    # 変数の内容: q: DB テーブルに対するクエリ。
     q = supabase.table('gallery_images').select('*').order('display_order')
     if brand:
+        # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('brand', brand)
     return q.execute().data
 
@@ -59,6 +62,7 @@ def add_image(body: GalleryBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
+    # 変数の内容: order: 処理対象の注文。
     order = next_display_order(admin_supabase, 'gallery_images')
     return admin_supabase.table('gallery_images').insert({**body.model_dump(), 'display_order': order}).execute().data[0]
 

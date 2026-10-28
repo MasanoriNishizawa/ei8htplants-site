@@ -19,6 +19,7 @@ export interface BackLinkState {
  */
 export function backPathFrom(state: unknown, fallback: string): string {
   if (typeof state === 'object' && state !== null) {
+    // 遷移 state に含まれる戻り先候補
     const from = (state as BackLinkState).from
     if (typeof from === 'string' && from) return from
   }

@@ -16,6 +16,7 @@ interface Props {
  * @returns 案内と再読み込みボタン
  */
 export default function LoadError({ onRetry, message }: Props) {
+  // 案内文と再読み込みボタンを表示言語に合わせる関数
   const t = useT()
   return (
     // 案内の枠。一覧の代わりに中央寄せで出す

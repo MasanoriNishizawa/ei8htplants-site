@@ -56,14 +56,23 @@ afterEach(() => {
   confirmSpy.mockRestore()
 })
 
-/** モーダル（role=dialog）。閉じていれば null */
+/**
+ *  モーダル（role=dialog）。閉じていれば null
+ * @returns 戻り値なし。
+ */
 const dialog = () => screen.queryByRole('dialog')
 
-/** モーダルの後ろの幕（モーダルの親の固定の div） */
+/**
+ *  モーダルの後ろの幕（モーダルの親の固定の div）
+ * @returns 戻り値なし。
+ */
 const backdrop = () => dialog()!.parentElement as HTMLElement
 
 describe('記事の編集モーダル（Articles）', () => {
-  /** 一覧から記事の編集モーダルを開く */
+  /**
+   *  一覧から記事の編集モーダルを開く
+   * @returns 戻り値なし。
+   */
   async function openEdit() {
     render(<AdminArticles />)
     fireEvent.click(await screen.findByRole('button', { name: '編集' }))
@@ -148,7 +157,10 @@ describe('記事の編集モーダル（Articles）', () => {
 })
 
 describe('商品の編集モーダル（Products）', () => {
-  /** 新規作成のモーダルを開く */
+  /**
+   *  新規作成のモーダルを開く
+   * @returns 戻り値なし。
+   */
   async function openNew() {
     render(<AdminProducts />)
     fireEvent.click(await screen.findByRole('button', { name: '+ 商品追加' }))
@@ -202,9 +214,14 @@ describe('商品の編集モーダル（Products）', () => {
 })
 
 describe('写真の拡大表示（ImageLightbox）の Esc と後ろのモーダル', () => {
-  /** useEscapeToClose を使うモーダルの上に、写真の拡大表示を重ねる部品 */
+  /**
+   *  useEscapeToClose を使うモーダルの上に、写真の拡大表示を重ねる部品
+   * @returns 表示する React 要素。
+   */
   function ModalWithLightbox() {
+    // Esc キーで閉じる対象になる背面モーダルの表示状態
     const [modalOpen, setModalOpen] = useState(true)
+    // 背面モーダルの上に重ねる写真拡大表示の状態
     const [lightbox, setLightbox] = useState(true)
     useEscapeToClose(modalOpen, () => setModalOpen(false))
     return (

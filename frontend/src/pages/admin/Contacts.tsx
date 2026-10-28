@@ -61,6 +61,7 @@ export default function AdminContacts() {
   /**
    * 返信モーダルを閉じる（キャンセル・×・暗い背景・Esc。記事・商品のモーダルと同じ扱い）。
    * 送信中は閉じず、書きかけの内容があれば確認する
+   * @returns 戻り値なし。
    */
   const closeReply = () => {
     if (replySending) return
@@ -73,6 +74,7 @@ export default function AdminContacts() {
   /**
    * 既読・未読を切り替える。失敗したら 3 秒エラーを出す
    * @param c - 対象のお問い合わせ
+   * @returns 戻り値なし。
    */
   const toggleRead = async (c: ContactRecord) => {
     try {
@@ -87,6 +89,7 @@ export default function AdminContacts() {
   /**
    * 返信モーダルを開き、件名・本文のひな形を入れる
    * @param c - 返信するお問い合わせ
+   * @returns 戻り値なし。
    */
   const openReply = (c: ContactRecord) => {
     /** 件名のひな形 */
@@ -102,6 +105,7 @@ export default function AdminContacts() {
    * 2. 送れたら該当のお問い合わせを既読にし、モーダルを閉じて完了の案内を出す
    * 3. 失敗したらモーダルを開いたまま（入力は残る）エラーを出す
    * 4. 送信中を戻す
+   * @returns 戻り値なし。
    */
   const sendReply = async () => {
     if (!reply) return

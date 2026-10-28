@@ -47,7 +47,7 @@ import type {
  */
 const savedAdminInfo: Record<string, EventAdminInfo> = {}
 
-/** サイト画像の管理用モック（Storage のアップロードと同様、ブラウザのメモリだけに保持） */
+/** 管理画面から保存した HUE の6画像 URL を並び順で保持する（Storage と同様、ブラウザのメモリだけ） */
 const hueColorStudyImages = Array(6).fill('') as string[]
 
 /**
@@ -123,10 +123,16 @@ function newMockId(prefix: string): string {
   return `mock-${prefix}-${mockSeq}`
 }
 
-/** 今の日時（ISO 形式。created_at などに入れる） */
+/**
+ * モックレコードの created_at などに使う現在日時を返す。
+ * @returns 現在日時の ISO 文字列
+ */
 const nowIso = () => new Date().toISOString()
 
-/** 本番の 404 と同じ形（FastAPI の { detail }）の応答 */
+/**
+ * 本番と同じ FastAPI 形式の 404 応答を作る。
+ * @returns detail を含む 404 応答
+ */
 const notFound = () => HttpResponse.json({ detail: 'Not Found' }, { status: 404 })
 
 /**
@@ -172,8 +178,10 @@ function toMockEvent(id: string, body: EventBody, base?: Event): Event {
 /**
  * イベントを更新した内容を保存する（固定データのイベントは updatedEvents、作成したイベントは createdEvents を書き換える）
  * @param ev - 更新後のイベント
+ * @returns なし
  */
 function saveMockEvent(ev: Event): void {
+  // 作成済みイベントかどうかを判定する配列位置
   const idx = store.createdEvents.findIndex((e) => e.id === ev.id)
   if (idx >= 0) store.createdEvents[idx] = ev
   else store.updatedEvents[ev.id] = ev
@@ -210,6 +218,7 @@ export function resetSavedMockData(): void {
 export const handlers = [
   // イベントの一覧。?past=true なら終了したイベントを返す
   http.get('/api/events', ({ request }) => {
+    // クエリを含むリクエスト URL
     const url = new URL(request.url)
     // 終了したイベントを求められているか
     const past = url.searchParams.get('past') === 'true'
@@ -238,6 +247,7 @@ export const handlers = [
 
   // イベントの作成（本番と同じく、作成したイベントを返す）
   http.post('/api/events', async ({ request }) => {
+    // 作成 API に送られたイベント入力
     const body = (await request.json()) as EventBody
     /** 作成したイベント（表示順は末尾） */
     const created = { ...toMockEvent(newMockId('event'), body), display_order: allEvents().length }
@@ -247,8 +257,10 @@ export const handlers = [
 
   // イベントの更新（無ければ 404。更新後のイベントを返す）
   http.put('/api/events/:id', async ({ params, request }) => {
+    // 更新対象の既存イベント
     const base = allEvents().find((e) => e.id === params.id)
     if (!base) return notFound()
+    // 入力と既存イベントから作った更新後データ
     const updated = toMockEvent(base.id, (await request.json()) as EventBody, base)
     saveMockEvent(updated)
     return HttpResponse.json(updated)
@@ -256,6 +268,7 @@ export const handlers = [
 
   // イベントの削除（無ければ 404）
   http.delete('/api/events/:id', ({ params }) => {
+    // 削除対象を特定するイベント ID
     const id = params.id as string
     if (!allEvents().some((e) => e.id === id)) return notFound()
     store.deletedEventIds.push(id)
@@ -264,9 +277,12 @@ export const handlers = [
 
   // イベントページの中身の保存（PATCH /page。本番と同じく保存後のイベントを返す）
   http.patch('/api/events/:id/page', async ({ params, request }) => {
+    // ページ本文を保存するイベント
     const base = allEvents().find((e) => e.id === params.id)
     if (!base) return notFound()
+    // リクエスト本文に含まれる編集済みページコンテンツ
     const { page_content } = (await request.json()) as { page_content: PageContent }
+    // ページ本文を差し替えたイベント
     const updated: Event = { ...base, page_content }
     saveMockEvent(updated)
     return HttpResponse.json(updated)
@@ -274,8 +290,10 @@ export const handlers = [
 
   // 収支の取得。このページ読み込み中に保存（PUT）した値があればそれを返す
   http.get('/api/events/:id/finances', ({ params }) => {
+    // この実行中に保存されたイベント収支
     const saved = savedFinances[params.id as string]
     if (saved) return HttpResponse.json(saved)
+    // 固定データに収支が登録されている場合の値
     const fin = MOCK_FINANCES.find(f => f.event_id === params.id)
     // 未登録なら本番（events.py の get_finances）と同じく、既定値に event_id を付けて返す
     if (!fin) return HttpResponse.json({ event_id: params.id as string, ...FINANCE_DEFAULTS })
@@ -285,13 +303,15 @@ export const handlers = [
   // 収支の保存。送られた本文に id・event_id を付けて、メモリ上に保持して返す
   // （管理情報ページの保存時に出店料・宿泊費を同期するため呼ばれる）
   http.put('/api/events/:id/finances', async ({ params, request }) => {
+    // 収支を保存するイベント ID
     const id = params.id as string
     // 1. 送られた収支の入力項目を受け取る
     const body = (await request.json()) as Record<string, unknown>
     // 2. 既存の id があれば引き継ぎ、無ければモック用の id を付ける
     const existing = savedFinances[id] ?? MOCK_FINANCES.find(f => f.event_id === id)
+    // 3. API の応答形式に合わせて識別子を付けた保存データ
     const saved = { ...body, id: existing?.id ?? `fin-${id}`, event_id: id } as unknown as EventFinances
-    // 3. メモリに保持し、保存後の内容を返す
+    // 保存データをメモリに保持し、保存後の内容を返す
     savedFinances[id] = saved
     return HttpResponse.json(saved)
   }),
@@ -303,8 +323,10 @@ export const handlers = [
 
   // WS の時間枠の保存（本番と同じく、保存後の枠の一覧を返す。id の無い行には新しい id を付ける）
   http.put('/api/events/:id/sessions', async ({ params, request }) => {
+    // 時間枠を保存するイベント ID
     const id = params.id as string
     if (!allEvents().some((e) => e.id === id)) return notFound()
+    // フォームから送信された時間枠の一覧
     const { sessions } = (await request.json()) as { sessions: { id?: string; time_label: string; max_participants: number }[] }
     /** 保存後の時間枠（予約済みの人数は 0 から） */
     const saved: WsSession[] = sessions.map((s, i) => ({
@@ -323,22 +345,27 @@ export const handlers = [
   // mock-past-1 だけ出店要項（文章・画像3枚）を持つ管理情報を返し、ほかのイベントは未入力（{}）を返す
   // このページ読み込み中に保存（PUT）した値があればそれを優先して返す
   http.get('/api/events/:id/admin-info', ({ params }) => {
+    // 取得対象のイベント ID
     const id = params.id as string
+    // 今回の実行中に保存した値を固定の初期値より優先する
     const info = savedAdminInfo[id] ?? MOCK_ADMIN_INFO[id]
     return HttpResponse.json(info ?? {})
   }),
 
   // 管理情報の保存。送られた本文をメモリ上に保持する（ページを再読み込みすると元に戻る）
   http.put('/api/events/:id/admin-info', async ({ params, request }) => {
+    // リクエスト本文をイベント ID に対応づけて保存する
     savedAdminInfo[params.id as string] = (await request.json()) as EventAdminInfo
     return HttpResponse.json({ ok: true })
   }),
 
   // 公開ギャラリー。?brand= があれば、そのブランドの値と完全に一致する写真だけを返す
   http.get('/api/gallery', ({ request }) => {
+    // ブランドの絞り込みにも使うリクエスト URL
     const url = new URL(request.url)
     // 絞り込むブランドの値（無ければ全部）
     const brand = url.searchParams.get('brand')
+    // 指定ブランドで絞り込んだ写真、または写真全件
     const data = brand
       ? store.gallery.filter(g => g.brand === brand)
       : store.gallery
@@ -347,7 +374,9 @@ export const handlers = [
 
   // ギャラリーの写真の追加（本番と同じく、追加した行を返す。表示順は末尾）
   http.post('/api/gallery', async ({ request }) => {
+    // 新しい写真の入力内容
     const body = (await request.json()) as GalleryBody
+    // 応答とモックストアに登録する写真レコード
     const created: GalleryImage = { id: newMockId('gallery'), url: body.url, alt: body.alt ?? null, brand: body.brand ?? null, display_order: store.gallery.length + 1 }
     store.gallery.push(created)
     return HttpResponse.json(created)
@@ -355,8 +384,10 @@ export const handlers = [
 
   // ギャラリーの表示順の変更（無ければ 404）
   http.patch('/api/gallery/:id', async ({ params, request }) => {
+    // 変更対象の写真が並んでいる位置
     const idx = store.gallery.findIndex((g) => g.id === params.id)
     if (idx < 0) return notFound()
+    // 新しい表示順
     const { display_order } = (await request.json()) as { display_order: number }
     store.gallery[idx] = { ...store.gallery[idx], display_order }
     return HttpResponse.json(store.gallery[idx])
@@ -375,7 +406,9 @@ export const handlers = [
 
   // 取扱店の追加（追加した行を返す）
   http.post('/api/stockists', async ({ request }) => {
+    // フォームから送られた取扱店の項目
     const body = (await request.json()) as StockistBody
+    // 応答とモックストアに登録する取扱店レコード
     const created: Stockist = { id: newMockId('stockist'), name: body.name, area: body.area ?? null, address: body.address ?? null, url: body.url ?? null, brands: body.brands ?? [] }
     store.stockists.push(created)
     return HttpResponse.json(created)
@@ -383,8 +416,10 @@ export const handlers = [
 
   // 取扱店の更新（無ければ 404。更新後の行を返す）
   http.patch('/api/stockists/:id', async ({ params, request }) => {
+    // 更新対象の取扱店が並んでいる位置
     const idx = store.stockists.findIndex((x) => x.id === params.id)
     if (idx < 0) return notFound()
+    // フォームから送られた変更内容
     const body = (await request.json()) as StockistBody
     store.stockists[idx] = { ...store.stockists[idx], ...body, brands: body.brands ?? store.stockists[idx].brands }
     return HttpResponse.json(store.stockists[idx])
@@ -403,6 +438,7 @@ export const handlers = [
 
   // 商品 1 件（無ければ 404）
   http.get('/api/products/:id', ({ params }) => {
+    // パスの ID に一致する商品
     const product = store.products.find(p => p.id === params.id)
     if (!product) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(product)
@@ -410,7 +446,9 @@ export const handlers = [
 
   // 商品の作成（作成した行を返す）
   http.post('/api/products', async ({ request }) => {
+    // 新商品の入力内容
     const body = (await request.json()) as ProductBody
+    // 応答とモックストアに登録する商品レコード
     const created: Product = { ...body, id: newMockId('product'), description: body.description ?? null, created_at: nowIso() }
     store.products.push(created)
     return HttpResponse.json(created)
@@ -418,8 +456,10 @@ export const handlers = [
 
   // 商品の更新（無ければ 404。更新後の行を返す）
   http.put('/api/products/:id', async ({ params, request }) => {
+    // 更新対象の商品が並んでいる位置
     const idx = store.products.findIndex((p) => p.id === params.id)
     if (idx < 0) return notFound()
+    // フォームから送られた商品情報
     const body = (await request.json()) as ProductBody
     store.products[idx] = { ...store.products[idx], ...body, description: body.description ?? null }
     return HttpResponse.json(store.products[idx])
@@ -433,8 +473,10 @@ export const handlers = [
 
   // 商品の在庫の変更（無ければ 404。更新後の行を返す）
   http.patch('/api/products/:id/stock', async ({ params, request }) => {
+    // 在庫数を変更する商品が並んでいる位置
     const idx = store.products.findIndex((p) => p.id === params.id)
     if (idx < 0) return notFound()
+    // 更新後の在庫数
     const { stock } = (await request.json()) as { stock: number }
     store.products[idx] = { ...store.products[idx], stock }
     return HttpResponse.json(store.products[idx])
@@ -467,7 +509,9 @@ export const handlers = [
 
   // 当日参加の予約の登録（管理画面。本番と同じく、作成した予約の行を返す）
   http.post('/api/reserve/walkin', async ({ request }) => {
+    // 当日参加の予約フォームから送られた項目
     const body = (await request.json()) as { event_id: string; participants: number; session_id?: string; preferred_time?: string; preferred_date?: string }
+    // API が返す予約レコード
     const created: Reservation = {
       id: newMockId('reservation'),
       event_id: body.event_id,
@@ -491,12 +535,14 @@ export const handlers = [
 
   // ジャーナルの記事の一覧（?all=true なら非公開も含む全件、無ければ公開中だけ）
   http.get('/api/articles', ({ request }) => {
+    // 公開状態で絞るかを指定するクエリ
     const all = new URL(request.url).searchParams.get('all') === 'true'
     return HttpResponse.json(all ? store.articles : store.articles.filter((a) => a.is_published))
   }),
 
   // 記事 1 件（無ければ 404）
   http.get('/api/articles/:id', ({ params }) => {
+    // パスの ID に一致する記事
     const article = store.articles.find((a) => a.id === params.id)
     if (!article) return notFound()
     return HttpResponse.json(article)
@@ -504,7 +550,9 @@ export const handlers = [
 
   // 記事の作成（作成した行を返す。公開にしたら公開日時を入れる）
   http.post('/api/articles', async ({ request }) => {
+    // 新しい記事の入力内容
     const body = (await request.json()) as ArticleBody
+    // 応答とモックストアに登録する記事レコード
     const created: Article = { ...body, id: newMockId('article'), content: body.content ?? null, published_at: body.is_published ? nowIso() : null, created_at: nowIso() }
     store.articles.push(created)
     return HttpResponse.json(created)
@@ -512,9 +560,12 @@ export const handlers = [
 
   // 記事の更新（無ければ 404。更新後の行を返す）
   http.put('/api/articles/:id', async ({ params, request }) => {
+    // 更新対象の記事が並んでいる位置
     const idx = store.articles.findIndex((a) => a.id === params.id)
     if (idx < 0) return notFound()
+    // フォームから送られた記事の変更内容と、更新前の公開日時を引き継ぐ元レコード
     const body = (await request.json()) as ArticleBody
+    // 公開日時などの既存値を引き継ぐ更新前の記事
     const prev = store.articles[idx]
     store.articles[idx] = { ...prev, ...body, content: body.content ?? null, published_at: body.is_published ? (prev.published_at ?? nowIso()) : prev.published_at }
     return HttpResponse.json(store.articles[idx])
@@ -533,7 +584,9 @@ export const handlers = [
 
   // コラボレーションの追加（追加した行を返す）
   http.post('/api/collaborations', async ({ request }) => {
+    // 新しいコラボレーションの入力内容
     const body = (await request.json()) as CollaborationPayload
+    // 応答とモックストアに登録するコラボレーションレコード
     const created: Collaboration = {
       id: newMockId('collab'),
       title: body.title,
@@ -562,7 +615,9 @@ export const handlers = [
 
   // メディア出演の追加（追加した行を返す）
   http.post('/api/media-appearances', async ({ request }) => {
+    // 新しいメディア掲載情報の入力内容
     const body = (await request.json()) as MediaAppearanceBody
+    // 応答とモックストアに登録する掲載レコード
     const created: MediaAppearance = {
       id: newMockId('media'),
       title: body.title,
@@ -611,14 +666,17 @@ export const handlers = [
 
   // WS 予約の一覧（管理画面。当日参加で追加した予約があれば返す。?event_id= があればそのイベントの分だけ）
   http.get('/api/reserves', ({ request }) => {
+    // 予約一覧をイベント ID で絞り込むためのクエリ値
     const eventId = new URL(request.url).searchParams.get('event_id')
     return HttpResponse.json(eventId ? store.reservations.filter((r) => r.event_id === eventId) : store.reservations)
   }),
 
   // 予約の状態の変更（無ければ 404。更新後の行を返す）
   http.patch('/api/reserves/:id', async ({ params, request }) => {
+    // 変更対象の予約が並んでいる位置
     const idx = store.reservations.findIndex((r) => r.id === params.id)
     if (idx < 0) return notFound()
+    // フォームで選ばれた新しい予約状態
     const { status } = (await request.json()) as { status: string }
     store.reservations[idx] = { ...store.reservations[idx], status }
     return HttpResponse.json(store.reservations[idx])
@@ -631,6 +689,7 @@ export const handlers = [
 
   // 価格計算の記録の追加（追加した行を返す）
   http.post('/api/price-calc-entries', async ({ request }) => {
+    // 新しい価格計算記録の入力内容
     const body = (await request.json()) as PriceCalcEntryBody
     // mode は省略できる（本番の API と同じく、省略時は null で保存する）
     const created: PriceCalcEntry = { ...body, mode: body.mode ?? null, id: newMockId('price'), created_at: nowIso() }
@@ -651,7 +710,9 @@ export const handlers = [
 
   // 鉢の作家の追加（追加した行を返す）
   http.post('/api/pot-artists', async ({ request }) => {
+    // 新しい作家の表示名
     const { name } = (await request.json()) as { name: string }
+    // 応答とモックストアに登録する作家レコード
     const created: PotArtist = { id: newMockId('artist'), name, created_at: nowIso() }
     store.potArtists.push(created)
     return HttpResponse.json(created)
@@ -665,6 +726,7 @@ export const handlers = [
 
   // AI チャットの Q&A の一覧（?all=true なら無効も含む全件、無ければ有効なものだけ。表示順）
   http.get('/api/chat-qa', ({ request }) => {
+    // 無効な Q&A も含めて返すかを決めるクエリ
     const all = new URL(request.url).searchParams.get('all') === 'true'
     /** 表示順に並べた Q&A */
     const sorted = [...store.chatQa].sort((a, b) => a.sort_order - b.sort_order)
@@ -673,7 +735,9 @@ export const handlers = [
 
   // Q&A の追加（追加した行を返す）
   http.post('/api/chat-qa', async ({ request }) => {
+    // 新しい Q&A の入力内容
     const body = (await request.json()) as ChatQABody
+    // 応答とモックストアに登録する Q&A レコード
     const created: ChatQA = { ...body, id: newMockId('qa') }
     store.chatQa.push(created)
     return HttpResponse.json(created)
@@ -681,8 +745,10 @@ export const handlers = [
 
   // Q&A の更新（無ければ 404。更新後の行を返す）
   http.patch('/api/chat-qa/:id', async ({ params, request }) => {
+    // 更新対象の Q&A が並んでいる位置
     const idx = store.chatQa.findIndex((q) => q.id === params.id)
     if (idx < 0) return notFound()
+    // 更新項目に既存 ID を付けた Q&A レコード
     store.chatQa[idx] = { ...((await request.json()) as ChatQABody), id: store.chatQa[idx].id }
     return HttpResponse.json(store.chatQa[idx])
   }),
@@ -717,13 +783,16 @@ export const handlers = [
 
   // HUE by ei8ht plants の6枚の写真（管理画面から URL を設定）
   http.get('/api/site-assets/:key', ({ params }) => {
+    // キー名の末尾から画像番号を取り出す
     const index = /^hue-color-0([1-6])$/.exec(String(params.key))?.[1]
     if (!index) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
     return HttpResponse.json({ key: params.key, url: hueColorStudyImages[Number(index) - 1] })
   }),
   http.put('/api/site-assets/:key', async ({ params, request }) => {
+    // キー名の末尾から画像番号を取り出す
     const index = /^hue-color-0([1-6])$/.exec(String(params.key))?.[1]
     if (!index) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    // 管理画面から保存された公開画像 URL
     const body = await request.json() as { url: string }
     hueColorStudyImages[Number(index) - 1] = body.url
     return HttpResponse.json({ key: params.key, url: hueColorStudyImages[Number(index) - 1] })
@@ -736,9 +805,11 @@ export const handlers = [
 
   // 設計書の本文。?path= のファイルを Markdown の文字列で返す（無ければ 404）
   http.get('/api/docs/content', ({ request }) => {
+    // 本文取得のクエリを読む URL
     const url = new URL(request.url)
     // doc/ からのパス
     const path = url.searchParams.get('path') ?? ''
+    // 指定されたパスに対応する Markdown 本文
     const content = MOCK_DOC_CONTENTS[path]
     if (!content) return new HttpResponse(null, { status: 404 })
     return new HttpResponse(content, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })

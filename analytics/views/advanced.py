@@ -58,7 +58,11 @@ def _cached_forecast(fin: pd.DataFrame, events: pd.DataFrame, today: pd.Timestam
 
 
 def render() -> None:
-    """予測・シミュレーション画面を表示する（会計年度では絞り込まないので、年度の選択欄は出さない）。"""
+    """予測・シミュレーション画面を表示する（会計年度では絞り込まないので、年度の選択欄は出さない）。
+
+    Returns:
+        なし。"""
+    # 変数の内容: ctx: 年度フィルターを使わずに取得した分析画面用コンテキスト。
     ctx = get_context(use_year_filter=False)
     st.title("予測・シミュレーション")
     st.caption("イベントの実績をもとにした統計的な見込みです。実績の回数が少ないうちは幅を持って見てください。")
@@ -81,8 +85,11 @@ def _forecast(ctx, fin: pd.DataFrame) -> None:
     Args:
         ctx: get_context の結果（raw の events と today を使う）
         fin: イベント収支の表（全期間）
-    """
+
+    Returns:
+        なし。"""
     st.header("今期のイベント売上の着地見込み")
+    # 変数の内容: fc: 売上履歴から計算した予測値と予測区間。
     fc = _cached_forecast(fin, ctx.raw["events"], ctx.today)
     if fc is None:
         return
@@ -131,7 +138,9 @@ def _forecast_details(details: pd.DataFrame) -> None:
 
     Args:
         details: forecast_fiscal_year の戻り値の details（series_references の結果）
-    """
+
+    Returns:
+        なし。"""
     st.subheader("残りのイベントと参考にした実績")
     if details.empty:
         st.caption("今期の残りのイベントはありません。")
@@ -176,6 +185,7 @@ def _past_label(names: list, dates: list, weights: list) -> str:
     Returns:
         表示用の文字列。過去の回が無ければ空文字
     """
+    # 変数の内容: parts: 開催実績の表示ラベルを組み立てる文字列要素。
     parts = []
     for name, date, w in zip(names, dates, weights):
         # 開催日が分からない回は時期を「時期不明」と出す
@@ -189,9 +199,13 @@ def _factors(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績があるイベントの表
-    """
+
+    Returns:
+        なし。"""
     st.header("売上を左右する要因")
+    # 変数の内容: label: 売上比較に選ばれた指標名。
     label = st.selectbox("売上と比べる項目", list(FACTORS), key="factor")
+    # 変数の内容: col, unit: 選択された指標が参照するデータ列と表示単位。
     col, unit = FACTORS[label]
     # 1. 実績を点で打ち、直線を当てはめる
     fit = fit_linear(done[col], done["sales"])
@@ -224,7 +238,9 @@ def _simulator(done: pd.DataFrame) -> None:
 
     Args:
         done: 売上の実績があるイベントの表
-    """
+
+    Returns:
+        なし。"""
     st.header("出店判断シミュレーター")
     st.caption("条件を入れると、管理画面と同じ式で収支を計算します。見込み売上には WS の参加費も含めてください。")
     # 1. 条件の入力（初期値は過去の実績の中央値）
@@ -266,6 +282,8 @@ def _default_gas_price(done: pd.DataFrame) -> int:
     Returns:
         ガソリン単価（円/L）。実績に 0 より大きい単価が無ければ DEFAULT_GAS_PRICE
     """
+    # 変数の内容: prices: 過去イベントのガソリン単価を数値化した候補。
     prices = pd.to_numeric(done["gas_price"], errors="coerce")
+    # 変数の内容: prices: 過去イベントのガソリン単価を数値化した候補。
     prices = prices[prices > 0]
     return int(round(prices.median())) if not prices.empty else DEFAULT_GAS_PRICE

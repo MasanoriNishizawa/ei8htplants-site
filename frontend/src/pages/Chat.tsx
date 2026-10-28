@@ -86,6 +86,7 @@ export default function Chat() {
    * 2. 利用者のメッセージを画面に足し、入力欄を空にする
    * 3. API に会話履歴を送る
    * 4. 結果（回数制限・入力エラー・空の返事・成功・通信の失敗）ごとに表示を足す
+   * @returns 戻り値なし。
    */
   const send = async () => {
     // 1. 送れるか確かめる
@@ -164,6 +165,7 @@ export default function Chat() {
   /**
    * 入力欄でキーを押したとき、Enter だけなら送信する
    * @param e - キーボードのイベント
+   * @returns 戻り値なし。
    */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Shift+Enter で改行、Enter のみで送信（IME変換中は送信しない）

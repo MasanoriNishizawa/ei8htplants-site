@@ -68,6 +68,7 @@ export default function AdminChatQA() {
   /**
    * 既存の Q&A を編集フォームに読み込む
    * @param item - 編集する Q&A
+   * @returns 戻り値なし。
    */
   const startEdit = (item: ChatQA) => {
     // 別の Q&A を書きかけのまま開き直すと入力が消えるので確認する
@@ -80,7 +81,10 @@ export default function AdminChatQA() {
     setError('')
   }
 
-  /** 空の追加フォームを開く（書きかけのフォームがあれば確認する） */
+  /**
+   *  空の追加フォームを開く（書きかけのフォームがあれば確認する）
+   * @returns 戻り値なし。
+   */
   const startAdd = () => {
     if (!confirmDiscard(isDirty)) return
     /** 空のフォームの値 */
@@ -91,7 +95,10 @@ export default function AdminChatQA() {
     setError('')
   }
 
-  /** フォームを閉じる（キャンセル・Esc。保存中は閉じず、書きかけなら確認する） */
+  /**
+   *  フォームを閉じる（キャンセル・Esc。保存中は閉じず、書きかけなら確認する）
+   * @returns 戻り値なし。
+   */
   const cancel = () => {
     if (saving) return
     if (!confirmDiscard(isDirty)) return

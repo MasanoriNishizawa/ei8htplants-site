@@ -7,6 +7,7 @@ import { UnsavedChangesContext, type UnsavedChangesContextValue } from './unsave
  * （画面からは ./UnsavedChanges から import する。UnsavedChanges.ts がこのファイルを再 export している）
  * @param props.children - 包む中身（サイドメニューとページ）
  * @returns Provider で包んだ中身
+ * @param children - 表示する子要素
  */
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   /** 未保存の変更がある画面のキーの集まり */

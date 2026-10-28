@@ -2,21 +2,34 @@ import { BRAND } from '../../lib/brands'
 import { formatYen } from '../../lib/format'
 import type { PriceCalcEntry, PriceCalcMode } from '../../lib/api'
 
+// ブランド識別子を、登録リストの絞り込みタブに表示する名称へ対応付ける
 const BRAND_LABELS: Readonly<Record<string, string>> = {
   ei8htplants: BRAND.ei8htPlants.shortName,
   habitatoides: BRAND.habitatOides.shortName,
   hue: BRAND.hue.shortName,
 }
 
+// 計算方式の識別子を、登録リストに表示する日本語名へ対応付ける
 const MODE_LABELS: Readonly<Record<PriceCalcMode, string>> = {
   production: '生産',
   purchase: '仕入れ',
   seedling: '実生',
 }
 
+/**
+ * 金額を四捨五入して円表示に整える。
+ * @param value - 対象の値
+ * @returns 戻り値なし。
+ */
 const yenRounded = (value: number) => formatYen(Math.round(value))
 
-/** 登録済み価格エントリの表示だけを担当する一覧。更新・削除処理は呼び出し側へ委譲する。 */
+/**
+ *  登録済み価格エントリの表示だけを担当する一覧。更新・削除処理は呼び出し側へ委譲する。
+ * @param entries - 登録済みの価格エントリ一覧
+ * @param emptyMessage - 一覧が空のときに表示する案内文
+ * @param onDelete - 削除ボタンを押したときに呼び出す処理
+ * @returns 表示する React 要素。
+ */
 export function PriceCalcEntriesList({ entries, emptyMessage, onDelete }: {
   entries: PriceCalcEntry[]
   emptyMessage: string
@@ -28,6 +41,7 @@ export function PriceCalcEntriesList({ entries, emptyMessage, onDelete }: {
 
   return (
     <div style={{ overflowX: 'auto' }}>
+      {/* 登録内容と削除操作を行ごとに表示する */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 500 }}>
         <thead>
           <tr style={{ borderBottom: '2px solid #dddde8' }}>

@@ -40,7 +40,10 @@ function renderPage() {
   )
 }
 
-/** ギャラリー画像 URL の欄 */
+/**
+ *  ギャラリー画像 URL の欄
+ * @returns 戻り値なし。
+ */
 const galleryArea = () => screen.getByLabelText('ギャラリー画像 URL（1行1URL）') as HTMLTextAreaElement
 
 beforeEach(() => {

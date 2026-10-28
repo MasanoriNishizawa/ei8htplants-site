@@ -30,7 +30,12 @@ class TestMigration016EventAdminInfo:
     """016_event_admin_info.sql（専用テーブルの作成とデータの写し）のチェック。"""
 
     def test_016_専用テーブルをevent_id主キーとeventsへのON_DELETE_CASCADEで作る(self):
-        """event_admin_info を event_id（events 参照・削除連動）主キー・info jsonb・updated_at で作る。"""
+        """event_admin_info を event_id（events 参照・削除連動）主キー・info jsonb・updated_at で作る。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列、sql: マイグレーションで実行された SQL 文。
         sql = _read_sql('016_event_admin_info.sql')
         norm = re.sub(r'\s+', ' ', sql).upper()
         assert 'CREATE TABLE IF NOT EXISTS EVENT_ADMIN_INFO' in norm
@@ -39,12 +44,22 @@ class TestMigration016EventAdminInfo:
         assert 'UPDATED_AT TIMESTAMPTZ' in norm
 
     def test_016_RLSが有効になっている(self):
-        """event_admin_info に ENABLE ROW LEVEL SECURITY がかかっている。"""
+        """event_admin_info に ENABLE ROW LEVEL SECURITY がかかっている。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = re.sub(r'\s+', ' ', _read_sql('016_event_admin_info.sql')).upper()
         assert 'ALTER TABLE EVENT_ADMIN_INFO ENABLE ROW LEVEL SECURITY' in norm
 
     def test_016_anonやauthenticated向けのポリシーが無くservice_roleだけ(self):
-        """作成するポリシーはすべて TO service_role で、anon・authenticated・public 向けのものが無い。"""
+        """作成するポリシーはすべて TO service_role で、anon・authenticated・public 向けのものが無い。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列、policies: テスト対象のポリシー一覧、sql: マイグレーションで実行された SQL 文。
         sql = _read_sql('016_event_admin_info.sql')
         norm = re.sub(r'\s+', ' ', sql).lower()
         # 1. CREATE POLICY 文を取り出す
@@ -58,13 +73,23 @@ class TestMigration016EventAdminInfo:
         assert not re.search(r'\bgrant\b[^;]*\bto\s+(anon|authenticated|public)\b', norm)
 
     def test_016_既存データを上書きせずに写す(self):
-        """events.admin_info を event_admin_info に写し、既にある行は上書きしない（ON CONFLICT DO NOTHING）。"""
+        """events.admin_info を event_admin_info に写し、既にある行は上書きしない（ON CONFLICT DO NOTHING）。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = re.sub(r'\s+', ' ', _read_sql('016_event_admin_info.sql')).upper()
         assert 'INSERT INTO EVENT_ADMIN_INFO (EVENT_ID, INFO)' in norm
         assert 'ON CONFLICT (EVENT_ID) DO NOTHING' in norm
 
     def test_016_events_admin_info列は削除しない(self):
-        """016 は今の本番を壊さないよう events.admin_info を削除しない（削除は 017）。"""
+        """016 は今の本番を壊さないよう events.admin_info を削除しない（削除は 017）。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = re.sub(r'\s+', ' ', _read_sql('016_event_admin_info.sql')).upper()
         assert 'DROP COLUMN' not in norm
 
@@ -73,12 +98,22 @@ class TestMigration017DropEventsAdminInfo:
     """017_drop_events_admin_info.sql（events.admin_info 列の削除）のチェック。"""
 
     def test_017_events_admin_info列をIF_EXISTSで削除する(self):
-        """events テーブルの admin_info 列を DROP COLUMN IF EXISTS で削除する。"""
+        """events テーブルの admin_info 列を DROP COLUMN IF EXISTS で削除する。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = re.sub(r'\s+', ' ', _read_sql('017_drop_events_admin_info.sql')).upper()
         assert 'ALTER TABLE EVENTS DROP COLUMN IF EXISTS ADMIN_INFO' in norm
 
     def test_017_削除前にまだ写していない管理情報を写す(self):
-        """017 は列の削除より前に、未移行の管理情報を上書きせずに写す。"""
+        """017 は列の削除より前に、未移行の管理情報を上書きせずに写す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: drop_pos: 削除対象の位置、insert_pos: 新しい値を挿入する位置、norm: 正規化したパスまたは文字列。
         norm = re.sub(r'\s+', ' ', _read_sql('017_drop_events_admin_info.sql')).upper()
         insert_pos = norm.find('INSERT INTO EVENT_ADMIN_INFO')
         drop_pos = norm.find('DROP COLUMN IF EXISTS ADMIN_INFO')
@@ -117,7 +152,12 @@ class TestMigration016Safety:
     """016 の二重の守り（REVOKE）・切り替え中の取りこぼし防止（トリガー）・トランザクション・API への通知のチェック。"""
 
     def test_016_anonとauthenticatedの権限をREVOKEする(self):
-        """REVOKE ALL ON event_admin_info FROM ... に anon と authenticated の両方が含まれる。"""
+        """REVOKE ALL ON event_admin_info FROM ... に anon と authenticated の両方が含まれる。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列、revokes: 権限取り消し SQL の記録。
         norm = _norm('016_event_admin_info.sql')
         # 1. event_admin_info に対する REVOKE 文を取り出す
         revokes = re.findall(r'REVOKE ALL ON EVENT_ADMIN_INFO FROM ([^;]*);', norm)
@@ -128,7 +168,12 @@ class TestMigration016Safety:
         assert 'AUTHENTICATED' in roles
 
     def test_016_トリガーがeventsのadmin_infoのINSERTとUPDATEで動く(self):
-        """trg_sync_event_admin_info が AFTER INSERT OR UPDATE OF admin_info ON events FOR EACH ROW で関数を呼ぶ。"""
+        """trg_sync_event_admin_info が AFTER INSERT OR UPDATE OF admin_info ON events FOR EACH ROW で関数を呼ぶ。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: body: リクエスト本文、m: 正規表現の一致結果または対象モデル、norm: 正規化したパスまたは文字列。
         norm = _norm('016_event_admin_info.sql')
         m = re.search(r'CREATE TRIGGER TRG_SYNC_EVENT_ADMIN_INFO ([^;]*);', norm)
         assert m, 'トリガー trg_sync_event_admin_info を作っていない'
@@ -140,7 +185,12 @@ class TestMigration016Safety:
         assert norm.find('DROP TRIGGER IF EXISTS TRG_SYNC_EVENT_ADMIN_INFO ON EVENTS') < m.start()
 
     def test_016_トリガー関数は空でない管理情報を後から書いた内容で上書きする(self):
-        """関数本文が admin_info の空チェックをし、ON CONFLICT (event_id) DO UPDATE で info と updated_at を上書きする。"""
+        """関数本文が admin_info の空チェックをし、ON CONFLICT (event_id) DO UPDATE で info と updated_at を上書きする。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: body: リクエスト本文、m: 正規表現の一致結果または対象モデル、norm: 正規化したパスまたは文字列。
         norm = _norm('016_event_admin_info.sql')
         # 1. 関数定義の $$ ... $$ の本文を取り出す
         m = re.search(r'CREATE OR REPLACE FUNCTION SYNC_EVENT_ADMIN_INFO_FROM_EVENTS\(\).*?\$\$(.*?)\$\$', norm)
@@ -156,20 +206,31 @@ class TestMigration016Safety:
         assert 'RETURN NEW' in body
 
     def test_016_BEGINとCOMMITで囲まれている(self):
-        """テーブル作成からトリガー作成までが BEGIN; 〜 COMMIT; の中にある。"""
+        """テーブル作成からトリガー作成までが BEGIN; 〜 COMMIT; の中にある。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: begin: トランザクション開始 SQL、commit: トランザクション確定 SQL、norm: 正規化したパスまたは文字列。
         norm = _norm('016_event_admin_info.sql')
         begin, commit = _tx_range(norm)
         assert begin != -1 and commit != -1 and begin < commit
+        # 変数の内容: stmt: 現在解析する SQL 文。
         for stmt in ('CREATE TABLE IF NOT EXISTS EVENT_ADMIN_INFO',
                      'ENABLE ROW LEVEL SECURITY',
                      'REVOKE ALL ON EVENT_ADMIN_INFO',
                      'INSERT INTO EVENT_ADMIN_INFO (EVENT_ID, INFO)',
                      'CREATE TRIGGER TRG_SYNC_EVENT_ADMIN_INFO'):
+            # 変数の内容: pos: 対象文字列の位置。
             pos = norm.find(stmt)
             assert begin < pos < commit, f'トランザクションの外にある: {stmt}'
 
     def test_016_NOTIFY_pgrstでスキーマ再読み込みを知らせる(self):
-        """NOTIFY pgrst, 'reload schema' がある。"""
+        """NOTIFY pgrst, 'reload schema' がある。
+
+        Returns:
+            なし。
+        """
         assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('016_event_admin_info.sql')
 
 
@@ -177,7 +238,12 @@ class TestMigration017Safety:
     """017 の実行順（トリガー削除 → 再写し → 列削除）・トランザクション・API への通知のチェック。"""
 
     def test_017_トリガーと関数の削除が列の削除より前にある(self):
-        """DROP TRIGGER / DROP FUNCTION（IF EXISTS）が DROP COLUMN より前にある。"""
+        """DROP TRIGGER / DROP FUNCTION（IF EXISTS）が DROP COLUMN より前にある。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: drop_col: 削除対象カラムの SQL、drop_fn: 削除対象関数の SQL、drop_trg: 削除対象トリガーの SQL、norm: 正規化したパスまたは文字列。
         norm = _norm('017_drop_events_admin_info.sql')
         drop_trg = norm.find('DROP TRIGGER IF EXISTS TRG_SYNC_EVENT_ADMIN_INFO ON EVENTS')
         drop_fn = norm.find('DROP FUNCTION IF EXISTS SYNC_EVENT_ADMIN_INFO_FROM_EVENTS()')
@@ -189,7 +255,12 @@ class TestMigration017Safety:
         assert drop_trg < drop_fn
 
     def test_017_再写しはトリガー削除の後で列の削除より前にある(self):
-        """INSERT INTO event_admin_info（DO NOTHING）がトリガー削除の後・DROP COLUMN の前にある。"""
+        """INSERT INTO event_admin_info（DO NOTHING）がトリガー削除の後・DROP COLUMN の前にある。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: drop_col: 削除対象カラムの SQL、drop_trg: 削除対象トリガーの SQL、insert_pos: 新しい値を挿入する位置、norm: 正規化したパスまたは文字列。
         norm = _norm('017_drop_events_admin_info.sql')
         drop_trg = norm.find('DROP TRIGGER IF EXISTS TRG_SYNC_EVENT_ADMIN_INFO')
         insert_pos = norm.find('INSERT INTO EVENT_ADMIN_INFO')
@@ -198,19 +269,30 @@ class TestMigration017Safety:
         assert 'ON CONFLICT (EVENT_ID) DO NOTHING' in norm[insert_pos:drop_col]
 
     def test_017_BEGINとCOMMITで囲まれている(self):
-        """トリガー削除・再写し・列削除がすべて BEGIN; 〜 COMMIT; の中にある。"""
+        """トリガー削除・再写し・列削除がすべて BEGIN; 〜 COMMIT; の中にある。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: begin: トランザクション開始 SQL、commit: トランザクション確定 SQL、norm: 正規化したパスまたは文字列。
         norm = _norm('017_drop_events_admin_info.sql')
         begin, commit = _tx_range(norm)
         assert begin != -1 and commit != -1 and begin < commit
+        # 変数の内容: stmt: 現在解析する SQL 文。
         for stmt in ('DROP TRIGGER IF EXISTS TRG_SYNC_EVENT_ADMIN_INFO',
                      'DROP FUNCTION IF EXISTS SYNC_EVENT_ADMIN_INFO_FROM_EVENTS()',
                      'INSERT INTO EVENT_ADMIN_INFO',
                      'DROP COLUMN IF EXISTS ADMIN_INFO'):
+            # 変数の内容: pos: 対象文字列の位置。
             pos = norm.find(stmt)
             assert begin < pos < commit, f'トランザクションの外にある: {stmt}'
 
     def test_017_NOTIFY_pgrstでスキーマ再読み込みを知らせる(self):
-        """NOTIFY pgrst, 'reload schema' がある。"""
+        """NOTIFY pgrst, 'reload schema' がある。
+
+        Returns:
+            なし。
+        """
         assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('017_drop_events_admin_info.sql')
 
 
@@ -218,7 +300,12 @@ class TestMigration018GrantServiceRole:
     """018_grant_event_admin_info.sql（サーバーへの読み書き権限の付与）のチェック。"""
 
     def test_018_service_roleに読み書きの権限を付ける(self):
-        """GRANT の対象が service_role で、SELECT・INSERT・UPDATE・DELETE がそろっている。"""
+        """GRANT の対象が service_role で、SELECT・INSERT・UPDATE・DELETE がそろっている。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: grants: 権限付与 SQL の記録、norm: 正規化したパスまたは文字列。
         norm = _norm('018_grant_event_admin_info.sql')
         # 1. event_admin_info への GRANT 文を取り出す
         grants = re.findall(r'GRANT [^;]* ON EVENT_ADMIN_INFO TO [^;]*;', norm)
@@ -231,10 +318,19 @@ class TestMigration018GrantServiceRole:
             assert g.endswith('TO SERVICE_ROLE;'), f'service_role 以外に権限を付けている: {g}'
 
     def test_018_anonやauthenticatedには権限を付けない(self):
-        """未ログイン（anon）・ログイン済み（authenticated）・public への GRANT が無い。"""
+        """未ログイン（anon）・ログイン済み（authenticated）・public への GRANT が無い。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = _norm('018_grant_event_admin_info.sql')
         assert not re.search(r'\bGRANT\b[^;]*\bTO\b[^;]*\b(ANON|AUTHENTICATED|PUBLIC)\b', norm)
 
     def test_018_NOTIFY_pgrstでスキーマ再読み込みを知らせる(self):
-        """NOTIFY pgrst, 'reload schema' がある。"""
+        """NOTIFY pgrst, 'reload schema' がある。
+
+        Returns:
+            なし。
+        """
         assert "NOTIFY PGRST, 'RELOAD SCHEMA';" in _norm('018_grant_event_admin_info.sql')

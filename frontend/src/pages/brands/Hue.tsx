@@ -5,14 +5,19 @@ import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
 import { useHueImages } from '../../sites/hue/useHueImages'
 
-/** HUE 専用サイト。色とフォルムから植物を楽しむ、編集的なブランド体験をつくる。 */
+/**
+ * HUE 専用サイトを描画し、色とフォルムから植物を楽しむブランド体験を提供する。
+ * @returns HUE ブランドトップの React 要素。
+ */
 export default function Hue() {
   const t = useT()
+  // 管理画面から設定した色写真と、ヒーロー／ストーリー各領域の DOM 参照
   const paletteImages = useHueImages()
   const homeRef = useRef<HTMLDivElement>(null)
   const heroRef = useRef<HTMLElement>(null)
   const storyRef = useRef<HTMLElement>(null)
   const storyTrackRef = useRef<HTMLDivElement>(null)
+  // ストーリーのスクロール進捗と現在章を表示する要素の参照
   const storyProgressRef = useRef<HTMLSpanElement>(null)
   const storyCounterRef = useRef<HTMLSpanElement>(null)
 
@@ -39,8 +44,17 @@ export default function Hue() {
     }, { threshold: 0.12, rootMargin: '0px 0px -7% 0px' })
     revealItems.forEach((item) => observer.observe(item))
 
+    /**
+     * スクロール進捗を 0〜1 の範囲に収める。
+     * @param value - 0〜1 に収める進捗値
+     * @returns 0 以上 1 以下に制限した進捗値
+     */
     const clamp = (value: number) => Math.min(1, Math.max(0, value))
     let frame = 0
+    /**
+     * スクロール位置に応じてヒーローと横移動ストーリーの表示を更新する。
+     * @returns 戻り値なし。
+     */
     const updateScrollMotion = () => {
       frame = 0
       const hero = heroRef.current
@@ -53,10 +67,12 @@ export default function Hue() {
       if (!story || !track) return
 
       if (window.matchMedia('(min-width: 900px)').matches) {
+        // 1. 固定ヘッダーを差し引いたストーリー表示領域と、横移動に使うスクロール距離を求める
         const storyTop = window.scrollY + story.getBoundingClientRect().top
         const headerHeight = Number.parseFloat(getComputedStyle(root).getPropertyValue('--brand-site-header-height')) || 82
         const pinHeight = Math.max(1, window.innerHeight - headerHeight)
         const travel = Math.max(1, story.offsetHeight - pinHeight)
+        // 2. 進捗を横移動距離と進捗バーに反映し、表示中の章番号を更新する
         const progress = clamp((window.scrollY - storyTop) / travel)
         const maxX = Math.max(0, track.scrollWidth - window.innerWidth)
         track.style.transform = `translate3d(${-maxX * progress}px, 0, 0)`
@@ -70,6 +86,10 @@ export default function Hue() {
         if (storyProgressRef.current) storyProgressRef.current.style.transform = 'scaleX(0)'
       }
     }
+    /**
+     * スクロール更新を次のアニメーションフレームにまとめて依頼する。
+     * @returns 戻り値なし。
+     */
     const requestScrollUpdate = () => {
       if (frame) return
       frame = window.requestAnimationFrame(updateScrollMotion)
@@ -126,6 +146,7 @@ export default function Hue() {
         ogImage="/img/logo-hue.png"
       />
 
+      {/* HUE の色彩表現とブランドメッセージを伝えるヒーロー */}
       <section className="hue-editorial-hero" aria-labelledby="hue-title" ref={heroRef}>
         <div className="hue-hero-copy" data-hue-reveal="rise">
           <p className="hue-overline">{t('植物と暮らす、HUEのある暮らし', 'A BOTANICAL COLOR STUDY')} <span>NO. 01</span></p>
@@ -151,6 +172,7 @@ export default function Hue() {
         <span className="hue-hero-side-note">{t('植物と暮らす — ei8ht plants', 'ORNAMENTAL PLANTS — EI8HT PLANTS')}</span>
       </section>
 
+      {/* 植物と暮らすことへの HUE の考え方 */}
       <section id="point-of-view" className="hue-point-of-view">
         <div className="hue-section-label"><span>01</span><span>{t('植物と暮らす', 'OUR POINT OF VIEW')}</span></div>
         <div className="hue-point-grid">
@@ -168,6 +190,7 @@ export default function Hue() {
         </div>
       </section>
 
+      {/* 写真とスクロール連動のパネルで色・形・暮らしを紹介する */}
       <section className="hue-color-study" aria-labelledby="hue-color-title">
         <div className="hue-section-label" data-hue-reveal="rise"><span>02</span><span>{t('植物のある暮らし', 'COLOR / FORM / SPACE')}</span></div>
         <h2 id="hue-color-title" data-hue-reveal="rise">{t('一鉢から、暮らしを選ぶ。', 'Choose by feeling.')}</h2>
@@ -206,6 +229,7 @@ export default function Hue() {
         </section>
       </section>
 
+      {/* HUE の各編集ページへ案内するカード */}
       <section className="hue-reading" aria-labelledby="hue-reading-title">
         <div className="hue-section-label"><span>03</span><span>{t('HUEを知る', 'EXPLORE HUE')}</span></div>
         <div className="hue-reading-heading">

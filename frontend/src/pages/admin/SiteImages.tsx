@@ -2,17 +2,28 @@ import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 import { useUnsavedChanges } from './UnsavedChanges'
 
+// 公開サイトで使う写真カードの枚数
 const PHOTO_COUNT = 6
+/**
+ * 写真カード1件分の初期状態を作る。
+ * @returns URL・処理状態・通知を初期化した写真カード状態。
+ */
 const emptyPhoto = () => ({ savedUrl: '', draftUrl: '', uploading: false, saving: false, error: '', notice: '' })
 type PhotoState = ReturnType<typeof emptyPhoto>
 
+// 写真カードのアップロード状態や案内を表示する共通ラベルの見た目
 const fieldStyle: React.CSSProperties = {
   display: 'block', fontSize: 14, color: '#555', marginBottom: 10,
 }
 
-/** HUE by ei8ht plants のサイトに掲載する6枚の写真をアップロード・保存する管理ページ */
+/**
+ *  HUE by ei8ht plants のサイトに掲載する6枚の写真をアップロード・保存する管理ページ
+ * @returns 表示する React 要素。
+ */
 export default function SiteImages() {
+  // 6 枚の写真について、保存済み URL・編集中 URL・処理状態を保持する
   const [photos, setPhotos] = useState<PhotoState[]>(() => Array.from({ length: PHOTO_COUNT }, emptyPhoto))
+  // 写真設定をサーバーから読み込んでいる間は true
   const [loading, setLoading] = useState(true)
   const dirty = photos.some(({ savedUrl, draftUrl }) => savedUrl !== draftUrl)
   useUnsavedChanges(dirty)
@@ -27,10 +38,22 @@ export default function SiteImages() {
     }).finally(() => setLoading(false))
   }, [])
 
+  /**
+   * 指定した写真カードの状態だけを部分更新する。
+   * @param index - 0 始まりの写真カード番号
+   * @param patch - 対象カードへ反映する状態差分
+   * @returns なし。
+   */
   const updatePhoto = (index: number, patch: Partial<PhotoState>) => {
     setPhotos((current) => current.map((photo, i) => i === index ? { ...photo, ...patch } : photo))
   }
 
+  /**
+   * 選択された画像をアップロードし、写真カードの編集中 URL に反映する。
+   * @param index - 0 始まりのアップロード対象写真カード番号
+   * @param event - 画像ファイル選択 input の変更イベント
+   * @returns 戻り値なし。
+   */
   const chooseImage = async (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -46,6 +69,11 @@ export default function SiteImages() {
     }
   }
 
+  /**
+   * 写真カードの編集中 URL をサイト画像設定として保存する。
+   * @param index - 0 始まりの保存対象写真カード番号
+   * @returns 戻り値なし。
+   */
   const save = async (index: number) => {
     const photo = photos[index]
     if (!photo) return
@@ -73,6 +101,7 @@ export default function SiteImages() {
 
       {loading ? <p style={{ fontSize: 16 }}>読み込み中…</p> : (
         <div className="admin-site-image-grid">
+          {/* 写真ごとのプレビュー、アップロード、保存操作 */}
           {photos.map((photo, index) => (
             <section key={index} className="admin-site-image-card">
               <h2 style={{ fontSize: 17, fontWeight: 500, margin: '0 0 14px' }}>写真 {String(index + 1).padStart(2, '0')}</h2>

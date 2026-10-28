@@ -221,6 +221,7 @@ export default function EventAdminInfo() {
    * フォームの特定フィールドを更新するヘルパー
    * @param key - 更新するフィールド名
    * @param value - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof EventAdminInfo>(key: K, value: EventAdminInfo[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -244,6 +245,7 @@ export default function EventAdminInfo() {
    * 管理情報を保存し、収支の出店料・宿泊費も同じ値にそろえてから確認画面へ戻る（手順は中のコメント 1〜4）
    * 途中で失敗したら画面に残り、文言を出す（管理情報だけ保存済みで収支は古いまま、ということもありうる）
    * @param e - フォームの送信イベント
+   * @returns 戻り値なし。
    */
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -281,6 +283,7 @@ export default function EventAdminInfo() {
    * 選ばれたファイルを1枚ずつ順にアップロードし、成功したものから URL を末尾に追加する。
    * 失敗したファイルはスキップして最後にファイル名をまとめて表示する（成功分は残す）
    * @param e - ファイル input の change イベント
+   * @returns 戻り値なし。
    */
   const handleAddImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
     /** ファイル選択欄（await のあとでも value を消せるよう先に控える） */
@@ -321,6 +324,7 @@ export default function EventAdminInfo() {
   /**
    * 出店要項画像を一覧から外す（Storage 上のファイルは消さない。保存ボタンで確定する）
    * @param index - 外す画像の位置（0始まり）
+   * @returns 戻り値なし。
    */
   const handleRemoveImage = (index: number) => {
     if (!window.confirm('この画像を出店要項から削除しますか？（保存ボタンを押すと確定します）')) return

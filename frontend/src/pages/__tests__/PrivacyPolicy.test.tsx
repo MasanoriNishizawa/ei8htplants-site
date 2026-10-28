@@ -5,7 +5,10 @@ import PrivacyPolicy, { GA_OPTOUT_URL, GOOGLE_PARTNER_URL } from '../PrivacyPoli
 import Footer from '../../components/Footer'
 import { LangProvider, useLang } from '../../lib/lang'
 
-/** テスト用に言語を切り替えるボタン */
+/**
+ *  テスト用に言語を切り替えるボタン
+ * @returns 表示する React 要素。
+ */
 function LangToggle() {
   const { toggle } = useLang()
   return <button onClick={toggle}>言語切替</button>

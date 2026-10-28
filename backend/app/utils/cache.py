@@ -17,8 +17,7 @@ class TTLCache:
 
         Args:
             ttl: 値を覚えておく秒数
-            max_entries: 保存する件数の上限（超えたら期限切れ・古い順に消す）
-        """
+            max_entries: 保存する件数の上限（超えたら期限切れ・古い順に消す）"""
         # 値を覚えておく秒数
         self._ttl = ttl
         # 保存する件数の上限
@@ -37,11 +36,14 @@ class TTLCache:
         Returns:
             (見つかったか, 値)。期限切れ・未登録なら (False, None)
         """
+        # 1. 単調時計で現在時刻を取り、ロック内で対象値を確認する。
         now = time.monotonic()
         with self._lock:
+            # 変数の内容: hit: キャッシュ検索の結果。
             hit = self._data.get(key)
             if hit is None:
                 return False, None
+            # 2. 期限切れの値は削除し、有効な値だけを返す。
             expires, value = hit
             if expires < now:
                 del self._data[key]
@@ -54,7 +56,11 @@ class TTLCache:
         Args:
             key: 保存するキー
             value: 保存する値（None でもよい）
+
+        Returns:
+            なし。
         """
+        # 変数の内容: now: 期限判定に使う現在時刻。
         now = time.monotonic()
         with self._lock:
             if len(self._data) >= self._max:
@@ -63,13 +69,19 @@ class TTLCache:
                     del self._data[k]
                 # 2. まだ多ければ、期限が早いもの（＝古いもの）から消す
                 if len(self._data) >= self._max:
+                    # 変数の内容: oldest: 期限が最も早いキャッシュ項目。
                     oldest = sorted(self._data.items(), key=lambda kv: kv[1][0])
+                    # 変数の内容: _: 繰り返し回数だけを使うための未使用値、k: 現在処理する辞書キー。
                     for k, _ in oldest[: len(self._data) - self._max + 1]:
                         del self._data[k]
             # 3. 新しい値を期限付きで保存する
             self._data[key] = (now + self._ttl, value)
 
     def clear(self) -> None:
-        """全件を消す（テストで DB のモックを差し替えるときに使う）。"""
+        """全件を消す（テストで DB のモックを差し替えるときに使う）。
+
+        Returns:
+            なし。
+        """
         with self._lock:
             self._data.clear()

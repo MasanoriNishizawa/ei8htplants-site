@@ -56,6 +56,7 @@ const ROUND_DIGITS = 6
  * @returns 丸めた数
  */
 function roundFloat(n: number): number {
+  // 小数点を移動して計算するための倍率
   const p = 10 ** ROUND_DIGITS
   return Math.round(n * p) / p
 }
@@ -152,6 +153,7 @@ export function parseCostRateInput(input: string): number | null {
     .trim()
   // 2. ふつうの 10 進数の形だけを受け付ける（空・'40abc'・'1e2'・'0x28'・'-5' などは除く）
   if (!/^(\d+(\.\d*)?|\.\d+)$/.test(normalized)) return null
+  // 正規化済みの10進数入力を数値へ変換する
   const percent = Number(normalized)
   // 3. 0 より大きく 100 以下だけを受け付け、率（÷ 100）にする
   if (percent <= 0 || percent > 100) return null
@@ -181,6 +183,7 @@ export function loadCostRateInput(brand: CostRateBrand): string {
   /** そのブランドの既定の入力（ei8ht plants は '33.4'、ほかは '40'） */
   const fallback = defaultCostRateInput(brand)
   try {
+    // このブランドについて前回保存された入力値
     const saved = localStorage.getItem(costRateStorageKey(brand))
     return saved !== null && parseCostRateInput(saved) !== null ? saved : fallback
   } catch {
@@ -193,6 +196,7 @@ export function loadCostRateInput(brand: CostRateBrand): string {
  * 受け付けない値（空・範囲外）は保存せず、前に覚えた値を残す（次に開いたとき正しい率から始まるように）
  * @param brand - ブランド
  * @param input - 目標原価率の入力欄の文字列（% の数値）
+ * @returns なし
  */
 export function saveCostRateInput(brand: CostRateBrand, input: string): void {
   if (parseCostRateInput(input) === null) return

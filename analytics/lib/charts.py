@@ -200,6 +200,7 @@ def to_month(times: pd.Series) -> pd.Series:
         月初の日付の列
     """
     if getattr(times.dt, "tz", None) is not None:
+        # 変数の内容: times: 日付列をタイムゾーンなしにそろえ、月単位の集計に使う。
         times = times.dt.tz_localize(None)
     return times.dt.to_period("M").dt.to_timestamp()
 
@@ -226,6 +227,7 @@ def monthly_bar(
     Returns:
         棒グラフ（見た目は style で整える）
     """
+    # 変数の内容: fig: 月別の値を月目盛りで表示する Plotly 棒グラフ。
     fig = bar_chart(months, values, hovertemplate, title=title, horizontal=False, customdata=customdata, color=color)
     fig.update_xaxes(tickformat="%Y/%-m", dtick="M1")
     return fig
@@ -241,6 +243,7 @@ def short_label(name: str, n: int = EVENT_LABEL_LENGTH) -> str:
     Returns:
         切り詰めた名前（切ったときは末尾に「…」）
     """
+    # 変数の内容: name: グラフ表示用に前後の空白を除いた名前。未入力値は代替名にする。
     name = name.strip() if isinstance(name, str) else "（名前なし）"
     return name if len(name) <= n else name[: n - 1] + "…"
 
@@ -256,7 +259,9 @@ def unique_labels(labels: Sequence[str]) -> list[str]:
     Returns:
         重なりのない項目名のリスト（並びは同じ。1回目に出てきたものはそのまま）
     """
+    # 変数の内容: seen: 同名ラベルが何回目に現れたかを記録する辞書。
     seen: dict[str, int] = {}
+    # 変数の内容: out: 重複を避けた表示ラベルを入力順に集めるリスト。
     out: list[str] = []
     for label in labels:
         # 1. その文字列が何回目かを数える
@@ -283,6 +288,7 @@ def event_labels(dates: pd.Series, names: pd.Series, n: int = EVENT_LABEL_LENGTH
     Returns:
         軸に出す名前のリスト（dates と同じ並び。すべて別の文字列）
     """
+    # 変数の内容: raw: 開催日と短縮名を組み合わせた、グラフ軸用ラベル。
     raw = [
         f"{d.strftime('%Y/%-m/%-d')} {short_label(name, n)}" if pd.notna(d) else short_label(name, n)
         for d, name in zip(dates, names)

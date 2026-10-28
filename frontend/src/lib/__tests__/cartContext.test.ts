@@ -17,6 +17,7 @@ const PRODUCT = {
 /**
  * localStorage にカートの値を保存する
  * @param value - 保存する値（JSON にする）
+ * @returns なし
  */
 function saveRaw(value: unknown) {
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(value))

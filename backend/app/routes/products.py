@@ -12,6 +12,7 @@ from ..auth import optional_auth, require_auth
 from ..db import admin_supabase
 from ..db_utils import execute_or_404, fetch_one_or_404, first_or_404
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/products', tags=['products'])
 
 # 商品のカテゴリーとして選べる値（管理画面の選択肢と同じ）
@@ -87,6 +88,7 @@ def list_products(all: bool = False, is_admin: bool = Depends(optional_auth)) ->
     """
     if all and not is_admin:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('products').select('*').order('display_order')
     if not all:
         # 管理用クライアントは RLS を通らないので、公開中だけの条件をアプリで付ける
@@ -108,8 +110,10 @@ def get_product(product_id: str, is_admin: bool = Depends(optional_auth)) -> dic
     Raises:
         HTTPException(404): 商品が無い・未ログインで非公開の商品を指定した場合
     """
+    # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('products').select('*').eq('id', product_id)
     if not is_admin:
+        # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('is_published', True)
     return fetch_one_or_404(q)
 

@@ -13,7 +13,9 @@ os.environ.setdefault('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key')
 # supabase パッケージ自体をモックして create_client がネットワーク接続しないようにする
 _mock_sb = MagicMock()
 _supabase_module = MagicMock()
+# 変数の内容: _supabase_module.Client: 対象オブジェクトに設定するClient属性値、_supabase_module.create_client: 対象オブジェクトに設定するcreate_client属性値。
 _supabase_module.create_client = MagicMock(return_value=_mock_sb)
+# 変数の内容: _supabase_module.Client: 対象オブジェクトに設定するClient属性値。
 _supabase_module.Client = MagicMock
 sys.modules.setdefault('supabase', _supabase_module)
 
@@ -27,11 +29,15 @@ def _reset_rate_limits():
 
     公開の書き込み API（問い合わせ・予約・キャンセル・注文）の記録は app.rate_limit.reset_all() で、
     チャットの記録は app.routes.chat._chat_limiter.reset() で消す。
+
+    Returns:
+        なし。
     """
     # 1. テストの前に消す
     from app import rate_limit
     rate_limit.reset_all()
     from app.routes import chat
+    # 変数の内容: chat_limiter: チャット API 専用の回数制限器。
     chat_limiter = getattr(chat, '_chat_limiter', None)
     if chat_limiter is not None and hasattr(chat_limiter, 'reset'):
         chat_limiter.reset()

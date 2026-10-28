@@ -11,6 +11,10 @@ vi.mock('../../lib/api', () => ({
   },
 }))
 
+/**
+ * お問い合わせフォームにテスト用の値を入力する。
+ * @returns 戻り値なし。
+ */
 function fillForm() {
   fireEvent.change(screen.getByPlaceholderText('例: 山田 花子'), { target: { value: 'テスト太郎' } })
   fireEvent.change(screen.getByPlaceholderText('yourname@example.com'), { target: { value: 'test@example.com' } })

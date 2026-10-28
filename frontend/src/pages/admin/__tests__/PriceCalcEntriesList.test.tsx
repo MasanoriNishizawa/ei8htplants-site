@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { PriceCalcEntriesList } from '../PriceCalcEntriesList'
 import type { PriceCalcEntry } from '../../../lib/api'
 
+// ブランド・計算方式・鉢作家名の表示を検証する価格登録データ
 const entries: PriceCalcEntry[] = [
   {
     id: 'hue-1', brand: 'hue', plant_name: 'ユーフォルビア オベサ',

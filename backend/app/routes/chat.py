@@ -19,6 +19,7 @@ from ..rate_limit import RateLimiter, client_ip
 from ..utils.dates import event_end_date, today_jst
 from ..utils.errors import error_summary
 
+# 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -43,6 +44,9 @@ def _check_rate_limit(ip: str) -> None:
 
     Raises:
         HTTPException(429): 1分間の上限を超えた場合
+
+    Returns:
+        なし。
     """
     _chat_limiter.check(ip)
 
@@ -97,62 +101,84 @@ def _build_site_context() -> str:
     Returns:
         チャットのシステムプロンプトに追記するサイト情報テキスト
     """
+    # 変数の内容: parts: 後で連結する要素の一覧、today: 日付比較の基準となる今日。
     today = today_jst()
     parts = []
 
-    # 開催予定・開催中のイベント（過去分は除外）
+    # 1. 開催予定・開催中のイベント（過去分は除外）を読み、説明文にする。
     try:
+        # 変数の内容: rows: DB から取得した行の一覧、upcoming: 開催中または今後のイベント一覧。
         rows = supabase.table('events').select('name,start_date,end_date,time,location,has_workshop').order('start_date').execute().data
         upcoming = [e for e in rows if event_end_date(e) >= today]
         if upcoming:
+            # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【開催予定のイベント・ワークショップ】']
+            # 変数の内容: e: e の反復ごとの値。
             for e in upcoming:
+                # 変数の内容: date_str: 表示用の開催日。
                 date_str = e['start_date']
                 if e.get('end_date') and e['end_date'] != e['start_date']:
                     date_str += f"〜{e['end_date']}"
+                # 変数の内容: time_str: 表示用の開催時刻、ws: ワークショップ開催を示す表示文字列。
                 time_str = f" {e['time']}" if e.get('time') else ''
                 ws = '（ワークショップあり・要予約）' if e.get('has_workshop') else ''
                 lines.append(f"- {e['name']}：{date_str}{time_str}、{e['location']}{ws}")
             parts.append('\n'.join(lines))
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('チャット用のイベントの読み取りに失敗しました: %s', error_summary(e))
 
-    # 販売中の商品（公開済み・在庫あり）
+    # 2. 公開済みで在庫のある商品を読み、説明文にする。
     try:
+        # 変数の内容: rows: DB から取得した行の一覧。
         rows = supabase.table('products').select('name,price,stock,category').eq('is_published', True).gt('stock', 0).order('display_order').execute().data
         if rows:
+            # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【販売中の商品】']
+            # 変数の内容: p: 販売中の商品レコード。。
             for p in rows:
+                # 変数の内容: cat: 商品カテゴリの表示文字列。
                 cat = f"[{p['category']}] " if p.get('category') else ''
                 lines.append(f"- {cat}{p['name']}：¥{p['price']:,}（在庫{p['stock']}点）")
             parts.append('\n'.join(lines))
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('チャット用の商品の読み取りに失敗しました: %s', error_summary(e))
 
-    # 公開記事（タイトルとタグのみ。本文は含めない）
+    # 3. 公開記事はタイトルとタグだけ読み、本文を含めず説明文にする。
     try:
+        # 変数の内容: rows: DB から取得した行の一覧。
         rows = admin_supabase.table('articles').select('title,tags').eq('is_published', True).order('display_order').execute().data
         if rows:
+            # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【ジャーナル・記事】']
+            # 変数の内容: a: a の反復ごとの値。
             for a in rows:
+                # 変数の内容: tag_str: 記事タグの表示文字列、tags: head に出力するメタタグ。
                 tags = '、'.join(a['tags']) if a.get('tags') else ''
                 tag_str = f"（{tags}）" if tags else ''
                 lines.append(f"- {a['title']}{tag_str}")
             parts.append('\n'.join(lines))
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('チャット用の記事の読み取りに失敗しました: %s', error_summary(e))
 
-    # 取扱店
+    # 4. 取扱店を説明文にまとめ、取得できた情報を連結して返す。
     try:
+        # 変数の内容: rows: DB から取得した行の一覧。
         rows = supabase.table('stockists').select('name,area,brands').order('display_order').execute().data
         if rows:
+            # 変数の内容: lines: 本文や応答に使う行の一覧。
             lines = ['【取扱店】']
+            # 変数の内容: s: s の反復ごとの値。
             for s in rows:
+                # 変数の内容: area: 表示する地域名、brand_str: ブランド取扱情報の表示文字列、brands: 対象ブランドの一覧。
                 area = f"（{s['area']}）" if s.get('area') else ''
                 brands = '・'.join(s['brands']) if s.get('brands') else ''
                 brand_str = f" ※{brands}取扱" if brands else ''
                 lines.append(f"- {s['name']}{area}{brand_str}")
             parts.append('\n'.join(lines))
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('チャット用の取扱店の読み取りに失敗しました: %s', error_summary(e))
 
@@ -177,6 +203,7 @@ class Message(BaseModel):
         role: 送り手。'user'（利用者）か 'model'（AI）のどちらかだけ受け付ける
         content: 本文。1〜MAX_MESSAGE_CHARS 文字で、前後の空白を除いて空のものは受け付けない
     """
+    # 変数の内容: content: 読み込んだ、または生成した内容、role: チャット発言者の種別。
     role: Literal['user', 'model']
     content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
 
@@ -205,6 +232,7 @@ class ChatRequest(BaseModel):
     Args:
         messages: これまでの会話履歴（role + content のリスト）。1〜MAX_MESSAGES 件で、最後は role='user'
     """
+    # 変数の内容: messages: チャット履歴のメッセージ一覧。
     messages: list[Message] = Field(min_length=1, max_length=MAX_MESSAGES)
 
     @model_validator(mode='after')
@@ -249,6 +277,7 @@ def chat(body: ChatRequest, request: Request) -> dict:
     # 1. 設定と回数制限を確かめる
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=503, detail='Chat is not available')
+    # 変数の内容: ip: 接続元の IP アドレス。
     ip = client_ip(request)
     _check_rate_limit(ip)
 
@@ -263,10 +292,13 @@ def chat(body: ChatRequest, request: Request) -> dict:
 
     # DBから有効なQ&Aを取得してシステムプロンプトに追記する（テーブル未作成時もエラーにしない）
     try:
+        # 変数の内容: qa_rows: チャット用に取得した Q&A 行。
         qa_rows = admin_supabase.table('chat_qa').select('question,answer').eq('enabled', True).order('sort_order').execute().data
         if qa_rows:
+            # 変数の内容: qa_text: システムプロンプトへ加える Q&A 文。
             qa_text = '\n'.join(f'Q: {row["question"]}\nA: {row["answer"]}' for row in qa_rows)
             system_prompt += f'\n\n【よくある質問と回答】\n{qa_text}'
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('チャット用の Q&A の読み取りに失敗しました: %s', error_summary(e))
 
@@ -283,7 +315,9 @@ def chat(body: ChatRequest, request: Request) -> dict:
     )
 
     try:
+        # 変数の内容: response: 下流へ返す HTTP 応答。
         response = chat_session.send_message(body.messages[-1].content)
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         # 例外の文字列には API の内部の情報や利用者の入力が入ることがあるので、
         # ログには型名とコードだけを出し、利用者には一般的な文言だけ返す
@@ -292,12 +326,14 @@ def chat(body: ChatRequest, request: Request) -> dict:
 
     # 4. チャットログをDBに保存する（失敗してもチャット自体はエラーにしない）
     try:
+        # 変数の内容: ip_hash: 保存用にハッシュ化した IP アドレス。
         ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:_IP_HASH_LEN]
         admin_supabase.table('chat_logs').insert({
             'user_message': body.messages[-1].content,
             'ai_reply': response.text,
             'ip_hash': ip_hash,
         }).execute()
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('チャットログの保存に失敗しました: %s', error_summary(e))
 

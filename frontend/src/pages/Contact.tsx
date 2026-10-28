@@ -26,6 +26,7 @@ export default function Contact() {
    * フォームを送信する
    * 1. 送信中にする 2. API に送る 3. 成功なら入力を空にし、失敗なら理由に合わせた案内を出す
    * @param e - フォームの送信イベント（ページの再読み込みを止める）
+   * @returns 戻り値なし。
    */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

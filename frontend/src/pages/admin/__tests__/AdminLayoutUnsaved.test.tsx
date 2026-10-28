@@ -33,14 +33,21 @@ vi.mock('../../../lib/supabase', () => ({
   },
 }))
 
-/** 編集画面の代わり。入力すると未保存になる */
+/**
+ *  編集画面の代わり。入力すると未保存になる
+ * @returns 表示する React 要素。
+ */
 function FakeEditor() {
+  // テスト用入力欄の値。空でないときに未保存として扱う
   const [value, setValue] = useState('')
   useUnsavedChanges(value !== '')
   return <input aria-label="メモ" value={value} onChange={(e) => setValue(e.target.value)} />
 }
 
-/** 今のパスを出す部品 */
+/**
+ *  今のパスを出す部品
+ * @returns 表示する React 要素。
+ */
 function PathProbe() {
   const { pathname } = useLocation()
   return <div data-testid="path">{pathname}</div>
@@ -52,6 +59,7 @@ const NeverPage = lazy(() => new Promise<{ default: () => null }>(() => {}))
 /**
  * AdminLayout を描画する
  * @param path - 最初に開くパス
+ * @returns 処理結果。
  */
 function renderLayout(path = '/admin/articles') {
   return render(
@@ -69,7 +77,11 @@ function renderLayout(path = '/admin/articles') {
   )
 }
 
-/** サイドメニュー（aside）の中のリンクを名前で取り出す */
+/**
+ *  サイドメニュー（aside）の中のリンクを名前で取り出す
+ * @param name - 名前
+ * @returns 非同期処理の結果を返す Promise。
+ */
 async function sideLink(name: string | RegExp) {
   await screen.findByRole('link', { name: 'ダッシュボード' })
   return within(screen.getByRole('complementary')).getByRole('link', { name })

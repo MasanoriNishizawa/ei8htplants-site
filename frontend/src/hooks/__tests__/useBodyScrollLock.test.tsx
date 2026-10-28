@@ -34,6 +34,7 @@ describe('useBodyScrollLock', () => {
   })
 
   it('2 つの部品が止めているとき、先に 1 つが外れてもスクロールは止まったまま、両方外れると戻る', () => {
+    // それぞれ独立したスクロールロックを持つメニューと拡大表示
     const menu = renderHook(() => useBodyScrollLock(true))
     const lightbox = renderHook(() => useBodyScrollLock(true))
     expect(document.body.style.overflow).toBe('hidden')

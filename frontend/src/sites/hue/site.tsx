@@ -4,9 +4,11 @@ import BrandSiteLayout, { type BrandSiteConfig } from '../../components/BrandSit
 import PageLoading from '../../components/PageLoading'
 import { BRAND } from '../../lib/brands'
 
+// HUE のトップと読みものページは、必要になった時点で個別に読み込む
 const Hue = lazy(() => import('../../pages/brands/Hue'))
 const HueEditorialPage = lazy(() => import('../../pages/brands/HueEditorialPage'))
 
+/** HUE 専用ドメインで使うブランド名・ロゴ・ナビゲーションなどの表示設定 */
 export const hueSite: BrandSiteConfig = {
   key: 'hue', name: BRAND.hue.name, descriptor: '植物と暮らす', descriptorEn: 'Live with plants',
   origin: 'https://huebyei8htplants.com', logo: BRAND.hue.logo,
@@ -18,7 +20,10 @@ export const hueSite: BrandSiteConfig = {
   ],
 }
 
-/** HUE 専用ドメインのページ構成。ブランドページを独立したトップとして提供する。 */
+/**
+ * HUE 専用ドメインのルートと共通レイアウトを描画し、ブランドページを独立したトップとして提供する。
+ * @returns ブランド共通レイアウト内のルート定義
+ */
 export default function HueSite() {
   return <Routes>
     <Route element={<BrandSiteLayout site={hueSite} />}>

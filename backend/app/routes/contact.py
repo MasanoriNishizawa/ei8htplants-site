@@ -16,6 +16,7 @@ from ..mail import send_mail
 from ..rate_limit import client_ip, contact_limiter
 from ..utils.errors import error_summary
 
+# 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/contact', tags=['contact'])
@@ -88,6 +89,7 @@ def send_contact(body: ContactBody, request: Request) -> dict:
                 'subject': f'[ei8ht plants] お問い合わせ: {body.name}',
                 'text': f'お名前: {body.name}\nメール: {body.email}\n\n{body.message}',
             })
+        # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             logger.error('お問い合わせの管理者通知の送信に失敗しました: %s', error_summary(e))
     # 3. 送信者への自動返信（本文は入れない）
@@ -106,6 +108,7 @@ def send_contact(body: ContactBody, request: Request) -> dict:
                     + NO_REPLY_NOTE
                 ),
             })
+        # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             logger.error('お問い合わせの自動返信の送信に失敗しました: %s', error_summary(e))
     return {'ok': True}
@@ -117,6 +120,9 @@ def list_contacts(_=Depends(require_auth)) -> list[dict]:
 
     Returns:
         お問い合わせの行のリスト
+
+    Args:
+        _: 認証依存として注入される値（この関数では使用しません）。
     """
     return admin_supabase.table('contacts').select('*').order('created_at', desc=True).execute().data
 
@@ -155,7 +161,9 @@ def reply_contact(contact_id: str, body: ContactReply, _=Depends(require_auth)) 
     """
     if not RESEND_API_KEY:
         raise HTTPException(500, 'RESEND_API_KEY が設定されていません')
+    # 1. 対象のお問い合わせを取得し、返信先のメールアドレスを確かめる。
     row = fetch_one_or_404(admin_supabase.table('contacts').select('email, name').eq('id', contact_id))
+    # 2. 返信メールを送る。失敗した場合は既読状態を変更せず 500 を返す。
     try:
         send_mail(RESEND_API_KEY, {
             'from': SENDER,
@@ -163,8 +171,10 @@ def reply_contact(contact_id: str, body: ContactReply, _=Depends(require_auth)) 
             'subject': body.subject,
             'text': body.body + NO_REPLY_NOTE,
         })
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('お問い合わせへの返信メールの送信に失敗しました: %s', error_summary(e))
         raise HTTPException(500, 'メール送信に失敗しました。時間をおいて再度お試しください。')
+    # 3. 送信成功後に既読へ更新し、成功レスポンスを返す。
     admin_supabase.table('contacts').update({'is_read': True}).eq('id', contact_id).execute()
     return {'ok': True}

@@ -37,6 +37,7 @@ from .routes import (
     upload,
 )
 
+# 変数の内容: app: FastAPI アプリケーション、logger: モジュール名を使って記録するロガー。
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title='ei8ht plants API')
@@ -103,8 +104,10 @@ async def redirect_render_domain(request: Request, call_next) -> Response:
     Returns:
         転送の応答、または次の処理の応答
     """
+    # 変数の内容: host: リクエスト元のホスト名。
     host = request.headers.get('host', '')
     if 'onrender.com' in host:
+        # 変数の内容: url: 公開または転送に使う URL。
         url = str(request.url).replace(f'https://{host}', SITE_ORIGIN, 1)
         return RedirectResponse(url=url, status_code=301)
     return await call_next(request)
@@ -124,6 +127,7 @@ async def security_headers(request: Request, call_next) -> Response:
     Returns:
         ヘッダーを付けた応答
     """
+    # 変数の内容: response: 下流へ返す HTTP 応答。
     response = await call_next(request)
     # HTTPS を強制する（1 年）
     response.headers['Strict-Transport-Security'] = f'max-age={_HSTS_MAX_AGE}'
@@ -151,6 +155,7 @@ async def cache_control(request: Request, call_next) -> Response:
     Returns:
         ヘッダーを付けた応答
     """
+    # 変数の内容: path: 処理対象の URL パス、response: 下流へ返す HTTP 応答。
     response = await call_next(request)
     path = request.url.path
     # ルート側が明示した no-store は、汎用のHTML/静的キャッシュ設定で上書きしない。
@@ -208,6 +213,7 @@ DIST = os.path.join(os.path.dirname(__file__), '../../frontend/dist')
 if os.path.isdir(DIST):
     # ビルド結果の中で、そのまま静的ファイルとして配信するフォルダ
     for _subdir in ['assets', 'img', 'favicon']:
+        # 変数の内容: _path: 確認対象の内部パス。
         _path = os.path.join(DIST, _subdir)
         if os.path.isdir(_path):
             app.mount(f'/{_subdir}', StaticFiles(directory=_path), name=_subdir)
@@ -231,12 +237,14 @@ if os.path.isdir(DIST):
         Returns:
             静的ファイル、またはメタ情報入りの index.html
         """
+        # 変数の内容: host: リクエスト元のホスト名、path: 処理対象の URL パス。
         host = request.headers.get('host', '').lower().split(':', 1)[0]
         path = full_path.strip('/')
 
         # 管理画面は ei8htplants.com に集約し、ブランドドメインからは SPA を読み込まずサーバー側で先に転送する。
         # モバイル Safari でもクライアント側 JavaScript の起動に依存せず管理画面を開けるようにする。
         if host in seo.BRAND_DOMAINS and (path == 'admin' or path.startswith('admin/')):
+            # 変数の内容: destination: 転送または保存先。
             destination = f'{SITE_ORIGIN}/{path}'
             if request.url.query:
                 destination += '?' + request.url.query
@@ -277,6 +285,7 @@ if os.path.isdir(DIST):
 
         # 独立ブランドドメインに残っている旧PWAのService Workerとキャッシュを一度だけ解除する。
         if host in seo.BRAND_DOMAINS and path == 'sw.js':
+            # 変数の内容: cleanup_worker: 一時ファイルを削除するバックグラウンド処理。
             cleanup_worker = """self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil((async () => {
   const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -291,6 +300,7 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
                 headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
             )
         if host in seo.BRAND_DOMAINS and path == 'registerSW.js':
+            # 変数の内容: register_cleanup_worker: バックグラウンド処理を登録する関数。
             register_cleanup_worker = "if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {})); }"
             return Response(
                 content=register_cleanup_worker,
@@ -308,11 +318,15 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
         # 3. パスに応じたメタ情報を index.html に入れて返す
         try:
             if host in seo.BRAND_DOMAINS:
+                # 変数の内容: page_html: メタ情報を埋め込む HTML ページ。
                 page_html = seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params), host)
             else:
+                # 変数の内容: page_html: メタ情報を埋め込む HTML ページ。
                 page_html = seo.render_spa_index(INDEX_HTML, full_path, dict(request.query_params))
+            # 変数の内容: headers: HTTP 応答に付けるヘッダー。
             headers = {'Cache-Control': 'no-store, no-cache, must-revalidate'} if host in seo.BRAND_DOMAINS else None
             return HTMLResponse(page_html, headers=headers)
+        # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             # 4. 失敗しても SPA は表示できるよう、元の index.html を返す
             # 例外の文字列には利用者の入力（パス）が入りうるので、型名とコードだけを出す

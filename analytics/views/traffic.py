@@ -49,7 +49,9 @@ def _part_failed(kind: str) -> None:
 
     Args:
         kind: 表の種類名（例: "日ごとの訪問者数"）
-    """
+
+    Returns:
+        なし。"""
     st.warning(f"この表は表示できません（{kind}）。時間をおいて「データを再読み込み」を押してください。")
 
 
@@ -72,7 +74,11 @@ def _try_report(kind: str, report: Report, *args) -> pd.DataFrame | None:
 
 
 def render() -> None:
-    """アクセス解析画面を表示する（会計年度では絞り込まないので、年度の選択欄は出さない）。"""
+    """アクセス解析画面を表示する（会計年度では絞り込まないので、年度の選択欄は出さない）。
+
+    Returns:
+        なし。"""
+    # 変数の内容: ctx: 年度フィルターを使わずに取得したアクセス解析用コンテキスト。
     ctx = get_context(use_year_filter=False)
     st.title("アクセス解析")
 
@@ -133,11 +139,16 @@ def _daily(report: Report) -> None:
 
     Args:
         report: レポートを取る関数
-    """
+
+    Returns:
+        なし。"""
+    # 変数の内容: daily: 日別アクセスレポート。取得できなければ後続表示を行わない。
     daily = _try_report("日ごとの訪問者数", report, ("date",), ("activeUsers", "screenPageViews"))
     if daily is None:
         return
+    # 変数の内容: daily: 日別アクセスレポート。取得できなければ後続表示を行わない。
     daily = daily.sort_values("date")
+    # 変数の内容: fig: 日別アクティブユーザー数の推移を描画する Plotly 図。
     fig = go.Figure(go.Scatter(
         x=daily["date"], y=daily["activeUsers"], mode="lines+markers", line=dict(color=SERIES[0], width=2),
         marker=dict(size=8), customdata=daily["screenPageViews"],
@@ -160,6 +171,7 @@ def _pages(ctx, report: Report) -> pd.DataFrame | None:
         ページごとの PV の表（予約率の計算に使う）。取れなかったときは None
     """
     st.subheader("よく見られているページ")
+    # 変数の内容: pages: ページ別閲覧数のレポート。
     pages = _try_report("よく見られているページ", report, ("pagePath",), ("screenPageViews", "activeUsers"),
                         "screenPageViews", PAGE_REPORT_LIMIT)
     if pages is None:
@@ -183,8 +195,11 @@ def _sources(report: Report) -> None:
 
     Args:
         report: レポートを取る関数
-    """
+
+    Returns:
+        なし。"""
     st.subheader("どこから来たか")
+    # 変数の内容: c1, c2: 流入元グラフを横並びにする左側のレイアウト列。
     c1, c2 = st.columns(2)
     # 1. 流入の種類（GA のチャネル名を日本語にする）
     with c1:
@@ -209,7 +224,10 @@ def _devices_and_regions(report: Report) -> None:
 
     Args:
         report: レポートを取る関数
-    """
+
+    Returns:
+        なし。"""
+    # 変数の内容: c1, c2: 端末・地域グラフを横並びにする左側のレイアウト列。
     c1, c2 = st.columns(2)
     # 1. 端末ごとの訪問者の割合
     with c1:
@@ -238,7 +256,9 @@ def _reservation_rate(ctx, pages: pd.DataFrame | None, days: int) -> None:
         ctx: get_context の結果（WS 予約・今日を使う）
         pages: _pages の結果（取れなかったときは None）
         days: 選んだ期間の日数
-    """
+
+    Returns:
+        なし。"""
     st.subheader("WS 予約ページからの予約率")
     if pages is None:
         _part_failed("WS 予約ページからの予約率")
@@ -262,7 +282,9 @@ def _setup_guide(problem: str | None) -> None:
 
     Args:
         problem: 今の設定で足りないものの説明
-    """
+
+    Returns:
+        なし。"""
     st.warning(problem or "Google アナリティクスとの接続が設定されていません。")
     st.markdown(
         """

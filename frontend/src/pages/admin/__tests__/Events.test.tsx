@@ -61,6 +61,7 @@ const MOCK_EVENT: Event = {
 
 /**
  * AdminEvents ページを MemoryRouter でラップしてレンダリングするヘルパー
+ * @returns 処理結果。
  */
 function renderAdminEventsPage() {
   return render(

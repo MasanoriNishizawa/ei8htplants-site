@@ -23,6 +23,11 @@ const errorBoxStyle: React.CSSProperties = {
  * @param props.id - 開始のプルダウンの id（外の label の htmlFor で結び付けるため）
  * @param props.labelPrefix - 読み上げ用のラベルの頭に付ける文字（例: 日ごとの日付）
  * @returns 2つのプルダウン
+ * @param value - 対象の値
+ * @param onChange - 値の変更を通知する処理
+ * @param style - 選択欄に適用するスタイル
+ * @param id - 対象の識別子
+ * @param labelPrefix - 選択欄のラベルに付ける接頭辞
  */
 export function TimeRangeSelect({ value, onChange, style, id, labelPrefix = '' }: {
   value: string
@@ -48,6 +53,7 @@ export function TimeRangeSelect({ value, onChange, style, id, labelPrefix = '' }
   /**
    * 開始時刻を選んだとき
    * @param s - 選んだ時刻（'' は未選択）
+   * @returns 戻り値なし。
    */
   const handleStart = (s: string) => {
     setStart(s)
@@ -57,6 +63,7 @@ export function TimeRangeSelect({ value, onChange, style, id, labelPrefix = '' }
   /**
    * 終了時刻を選んだとき
    * @param e - 選んだ時刻（'' は未選択）
+   * @returns 戻り値なし。
    */
   const handleEnd = (e: string) => {
     setEnd(e)
@@ -209,6 +216,7 @@ export default function AdminEventForm() {
    * フォームの1項目を書き換える（項目名に合わない型の値は型チェックで弾く）
    * @param k - 項目名
    * @param v - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -220,6 +228,7 @@ export default function AdminEventForm() {
    * 3. 失敗したら blob URL の分を一覧から取り除いて知らせる
    * 4. どちらでもアップロード中を戻し、blob URL を解放する
    * @param files - 選んだファイル
+   * @returns 戻り値なし。
    */
   const handleImageFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -261,15 +270,20 @@ export default function AdminEventForm() {
   /**
    * 販売ブランドの選択を切り替える
    * @param b - ブランド名
+   * @returns 戻り値なし。
    */
   const toggleBrand = (b: string) =>
     set('brands', form.brands.includes(b) ? form.brands.filter((x) => x !== b) : [...form.brands, b])
 
-  /** 空の WS セッションを1行足す（定員は WS_DEFAULT_SESSION_CAPACITY 名） */
+  /**
+   *  空の WS セッションを1行足す（定員は WS_DEFAULT_SESSION_CAPACITY 名）
+   * @returns 戻り値なし。
+   */
   const addSession = () => setSessions((prev) => [...prev, { time_label: '', max_participants: WS_DEFAULT_SESSION_CAPACITY }])
   /**
    * WS セッションを1行消す
    * @param i - 消す行の位置
+   * @returns 戻り値なし。
    */
   const removeSession = (i: number) => setSessions((prev) => prev.filter((_, j) => j !== i))
   /**
@@ -277,11 +291,15 @@ export default function AdminEventForm() {
    * @param i - 行の位置
    * @param key - 項目名
    * @param value - 新しい値
+   * @returns 戻り値なし。
    */
   const setSession = (i: number, key: keyof SessionInput, value: string | number) =>
     setSessions((prev) => prev.map((s, j) => j === i ? { ...s, [key]: value } : s))
 
-  /** 開催時間の文字列から WS セッションを 1 時間刻みで自動生成する（作れなければ今のセッションのまま） */
+  /**
+   *  開催時間の文字列から WS セッションを 1 時間刻みで自動生成する（作れなければ今のセッションのまま）
+   * @returns 戻り値なし。
+   */
   const autoSetSessions = () => {
     /** 開催時間から作った時間枠 */
     const generated = buildAutoSessions(form.time)
@@ -295,6 +313,7 @@ export default function AdminEventForm() {
    * 3. WS セッションを保存する
    * 4. 一覧へ戻る。どこかで失敗したら画面に残ってエラーを出す（入力は残るので、もう一度押して再送できる）
    * @param e - フォームの submit イベント
+   * @returns 戻り値なし。
    */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

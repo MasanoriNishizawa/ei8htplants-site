@@ -15,6 +15,7 @@ import { LangProvider, useLang, useT } from '../lang'
 /**
  * LangProvider でフックをラップするためのラッパーコンポーネント（createElement で JSX 非使用）
  * @param children - 子要素
+ * @returns LangProvider で包んだ要素
  */
 function wrapper({ children }: { children: ReactNode }) {
   return createElement(LangProvider, null, children)

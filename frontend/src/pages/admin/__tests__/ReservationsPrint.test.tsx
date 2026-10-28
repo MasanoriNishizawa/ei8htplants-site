@@ -83,6 +83,7 @@ afterEach(() => {
  * 印刷の HTML に、予約者の入力から作られた要素（script・img）が入っていないことを確かめる
  * 1. 文字列としては &lt;script&gt; の形でエスケープされている
  * 2. HTML として読んでも、script は印刷を始める 1 つだけ（予約者の入力の script は無い）で、img も無い
+ * @returns 戻り値なし。
  */
 function expectEscaped() {
   // 1. エスケープされた形

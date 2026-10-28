@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 
+// 公開ページに並べる植物ラインごとの番号・名称・説明・マーク
 const LINES = [
   { number: '01', name: 'Agave', ja: 'アガベ', copyJa: '鋸歯や葉先がつくる力強いシルエット。育つ環境によって変わる表情も魅力です。', copyEn: 'Sculptural rosettes, defined edges, and forms shaped by their growing conditions.', mark: 'A' },
   { number: '02', name: 'Caudex', ja: '塊根植物', copyJa: '幹や根に蓄えられた時間を楽しむ植物。芽吹きや休眠を通じて季節を感じます。', copyEn: 'Plants that hold time in their trunks and roots, revealing the seasons through growth and dormancy.', mark: 'C' },
@@ -9,7 +10,10 @@ const LINES = [
   { number: '04', name: 'Succulents', ja: '多肉植物', copyJa: '小さな姿に詰まった多彩なフォルム。ひと鉢から始めやすい植物も揃えています。', copyEn: 'A wide range of compact forms, including plants that are easy to begin with.', mark: '∞' },
 ]
 
-/** ei8ht plantsが扱う植物のラインを案内するページ。 */
+/**
+ *  ei8ht plantsが扱う植物のラインを案内するページ。
+ * @returns ei8ht plants の植物ライン紹介ページの React 要素。
+ */
 export default function Ei8htPlantsPlants() {
   const t = useT()
 
@@ -19,6 +23,7 @@ export default function Ei8htPlantsPlants() {
         title={t('植物のライン', 'Plants')}
         description={t('アガベ、塊根植物、灌木、多肉植物。ei8ht plantsが扱うビザールプランツをご紹介します。', 'Explore the agaves, caudiciform plants, shrubs, and succulents at ei8ht plants.')}
       />
+      {/* 植物ラインを紹介するページの導入 */}
       <section className="ep-plants-intro">
         <p className="ep-editorial-kicker">01 / PLANT LINES</p>
         <h1>{t(<>育つ姿まで、<br /><em>好きになる。</em></>, <>Love the form.<br /><em>Enjoy the journey.</em></>)}</h1>
@@ -27,6 +32,7 @@ export default function Ei8htPlantsPlants() {
           {LINES.map((line) => <a key={line.number} href={`#plant-${line.number}`}>{line.number} <span>{t(line.ja, line.name)}</span></a>)}
         </div>
       </section>
+      {/* 扱う植物をラインごとに並べた紹介カード */}
       <section className="ep-plant-lines" aria-label={t('ei8ht plantsの植物', 'Plants at ei8ht plants')}>
         {LINES.map((line, index) => (
           <article className={`ep-plant-line ep-plant-line--${index + 1}`} id={`plant-${line.number}`} key={line.number}>

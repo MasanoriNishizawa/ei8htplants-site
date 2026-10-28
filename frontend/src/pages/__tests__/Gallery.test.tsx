@@ -25,6 +25,7 @@ vi.mock('../../lib/api', () => ({
  * @param id - 画像ID
  * @param brand - 画像のブランド（null の場合はブランドなし）
  * @param alt - 代替テキスト
+ * @returns 戻り値なし。
  */
 const makeImage = (id: string, brand: string | null = null, alt: string | null = null): GalleryImage => ({
   id,

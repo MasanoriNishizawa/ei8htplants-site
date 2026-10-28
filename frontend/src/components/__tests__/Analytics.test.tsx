@@ -18,6 +18,7 @@ vi.mock('../../lib/analytics', () => ({
 /**
  * Analytics を置いた2ページだけの小さなアプリを描画する
  * @param start - 最初に開くパス
+ * @returns レンダリング結果
  */
 function renderApp(start = '/') {
   return render(

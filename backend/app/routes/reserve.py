@@ -27,6 +27,7 @@ from ..rate_limit import cancel_limiter, client_ip, reserve_limiter
 from ..utils.dates import event_end_date, today_jst
 from ..utils.errors import error_summary
 
+# 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/reserve', tags=['reserve'])
@@ -71,11 +72,16 @@ def _session_lock(session_id: str) -> Iterator[None]:
 
     Yields:
         なし（with の中がロックを取った状態）
+
+    Returns:
+        注釈に示した形式の応答（Iterator[None]）。
     """
     # 1. ロックを取り出し（無ければ作り）、使う数を 1 増やす
     with _session_locks_mu:
+        # 変数の内容: entry: 処理対象の一覧項目。
         entry = _session_locks.get(session_id)
         if entry is None:
+            # 変数の内容: entry: 処理対象の一覧項目。
             entry = _session_locks[session_id] = _LockEntry()
         entry.users += 1
     try:
@@ -167,7 +173,11 @@ def _sync_reserved_count(session_id: str) -> None:
 
     Args:
         session_id: 同期対象のワークショップセッションID
+
+    Returns:
+        なし。
     """
+    # 変数の内容: result: セッションに紐づく予約レコードの DB 応答、、total: 支払総額。
     result = admin_supabase.table('workshop_reservations') \
         .select('participants') \
         .eq('session_id', session_id) \
@@ -182,11 +192,15 @@ def _sync_reserved_count_safely(session_id: Optional[str]) -> None:
 
     Args:
         session_id: 同期するセッション ID。None なら何もしない
+
+    Returns:
+        なし。
     """
     if not session_id:
         return
     try:
         _sync_reserved_count(session_id)
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('reserved_count の同期に失敗しました: %s', error_summary(e))
 
@@ -205,14 +219,19 @@ def _session_used_count(event_id: str, session: dict, preferred_date: Optional[s
     Returns:
         入っている人数の合計
     """
+    # 1. キャンセル以外の予約を対象イベントで検索し、必要なら予約日も絞る。
     query = admin_supabase.table('workshop_reservations') \
         .select('session_id, participants, preferred_time') \
         .eq('event_id', event_id) \
         .neq('status', 'cancelled')
     if preferred_date:
+        # 変数の内容: query: DB へ渡す検索条件。
         query = query.eq('preferred_date', preferred_date)
+    # 2. セッション ID を優先し、古い予約は希望時刻で照合して人数を合計する。
     used = 0
+    # 変数の内容: r: r の反復ごとの値。
     for r in query.execute().data or []:
+        # 変数の内容: sid: 照合対象の時間枠 ID。
         sid = r.get('session_id')
         if sid == session['id'] or (not sid and r.get('preferred_time') == session['time_label']):
             used += r.get('participants') or 1
@@ -232,6 +251,7 @@ def _load_session_for_event(session_id: str, event_id: str) -> dict:
     Raises:
         HTTPException(400): 時間枠が無い、または別のイベントの時間枠の場合
     """
+    # 変数の内容: session: 処理対象の予約時間枠。
     session = fetch_one_or_none(
         admin_supabase.table('ws_sessions')
         .select('id, event_id, max_participants, time_label')
@@ -253,7 +273,11 @@ def _check_reservable(event: dict, preferred_date: Optional[str]) -> None:
 
     Raises:
         HTTPException(400): イベントが終わっている・予約日が開催期間外・予約日が過ぎている場合
+
+    Returns:
+        なし。
     """
+    # 変数の内容: end: 解析対象の終了位置、today: 日付比較の基準となる今日。
     today = today_jst()
     # 1. イベントの最終日が日本時間の今日より前なら受付終了
     end = event_end_date(event)
@@ -303,13 +327,17 @@ def create_reservation(body: ReserveBody, request: Request) -> dict:
     # 3. 時間枠があれば、先に時間枠があることを確かめてから（無い id でロックを作らないため）、
     #    ロックの中で満席を確かめて保存する
     if body.session_id:
+        # 変数の内容: session: 処理対象の予約時間枠。
         session = _load_session_for_event(body.session_id, body.event_id)
         with _session_lock(body.session_id):
+            # 変数の内容: used: 予約済みの参加人数。
             used = _session_used_count(body.event_id, session, body.preferred_date)
             if used + body.participants > session['max_participants']:
                 raise HTTPException(409, 'このセッションは満席です')
+            # 変数の内容: row: DB から取得した単一レコード。
             row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
     else:
+        # 変数の内容: row: DB から取得した単一レコード。
         row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
     _sync_reserved_count_safely(body.session_id)
     # 4. 予約者への受付メール。失敗したら email_failed を立てて管理画面で気づけるようにする
@@ -319,9 +347,11 @@ def create_reservation(body: ReserveBody, request: Request) -> dict:
         if HABITAT_RESEND_API_KEY and not mail_event:
             # イベント情報を読めず受付メールを送れなかった
             raise RuntimeError('mail context unavailable')
+        # 変数の内容: resend_email_id: Resend が返すメール ID。
         resend_email_id = _send_confirmation(body, data['cancel_token'], mail_event, time_label)
         if resend_email_id:
             update['resend_email_id'] = resend_email_id
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('予約の受付メールの送信に失敗しました: %s', error_summary(e))
         update['email_failed'] = True
@@ -329,11 +359,13 @@ def create_reservation(body: ReserveBody, request: Request) -> dict:
         try:
             admin_supabase.table('workshop_reservations').update(update).eq('id', row['id']).execute()
             row.update(update)
+        # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             logger.error('予約のメール送信結果の保存に失敗しました: %s', error_summary(e))
     # 5. 管理者への通知
     try:
         _send_admin_notification(body, mail_event, time_label)
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('予約の管理者通知の送信に失敗しました: %s', error_summary(e))
     return row
@@ -369,6 +401,7 @@ def cancel_by_token(body: CancelBody, request: Request) -> dict:
         .execute()
     if not all_rows.data:
         raise HTTPException(404, 'キャンセルIDが見つかりません')
+    # 変数の内容: row: DB から取得した単一レコード。
     row = next((r for r in all_rows.data if r['status'] != 'cancelled'), None)
     if not row:
         raise HTTPException(400, 'この予約はすでにキャンセル済みです')
@@ -381,6 +414,7 @@ def cancel_by_token(body: CancelBody, request: Request) -> dict:
     # 4. キャンセルのメール（失敗してもキャンセルは成立）
     try:
         _send_cancel_confirmation(row)
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('キャンセルのメールの送信に失敗しました: %s', error_summary(e))
     return {'ok': True}
@@ -433,6 +467,7 @@ def _row(label: str, value: object, raw_html: bool = False) -> str:
     Returns:
         <tr>...</tr> 形式のHTML文字列
     """
+    # 変数の内容: cell: 対象時間枠のロック管理情報。
     cell = str(value) if raw_html else esc(value)
     return (
         f'<tr>'
@@ -473,13 +508,18 @@ def _load_mail_context(event_id: str, session_id: Optional[str], preferred_time:
     if not HABITAT_RESEND_API_KEY:
         return None, ''
     try:
+        # 1. イベント情報を読み、時間枠 ID がある場合は表示名を優先する。
         event = fetch_one_or_none(supabase.table('events').select('name, start_date, location').eq('id', event_id))
         time_label = preferred_time or ''
         if session_id:
+            # 変数の内容: session: 処理対象の予約時間枠、time_label: 画面やメールに表示する時間枠名。
             session = fetch_one_or_none(admin_supabase.table('ws_sessions').select('time_label').eq('id', session_id))
             time_label = session['time_label'] if session else ''
+        # 2. 読めたイベント情報と選んだ時間表示を返す。
         return event, time_label
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
+        # 3. 読み取り失敗はログに残し、メール本文なしで処理を続ける。
         logger.error('予約メール用のイベント情報の読み取りに失敗しました: %s', error_summary(e))
         return None, ''
 
@@ -602,6 +642,9 @@ def _send_admin_notification(body: ReserveBody, event: Optional[dict], time_labe
 
     Raises:
         Exception: Resend の送信に失敗した場合
+
+    Returns:
+        なし。
     """
     if not HABITAT_RESEND_API_KEY or not event:
         return
@@ -652,9 +695,13 @@ def _send_cancel_confirmation(reservation: dict) -> None:
 
     Raises:
         Exception: Resend の送信に失敗した場合
+
+    Returns:
+        なし。
     """
     if not HABITAT_RESEND_API_KEY:
         return
+    # 変数の内容: email: 送信先または利用者のメールアドレス、name: 画面やログに表示する名前。
     name = reservation.get('name', '')
     email = reservation.get('email', '')
     if not email:
@@ -663,10 +710,13 @@ def _send_cancel_confirmation(reservation: dict) -> None:
     event_id = reservation.get('event_id')
     event = None
     if event_id:
+        # 変数の内容: event: 処理対象のイベント。
         event = fetch_one_or_none(supabase.table('events').select('name, start_date, location').eq('id', event_id))
+    # 変数の内容: event_name: イベント名、rows_html: メール本文に挿入する表の行。
     event_name = event['name'] if event else ''
     rows_html = ''
     if event:
+        # 変数の内容: rows_html: メール本文に挿入する表の行。
         rows_html = _row('イベント名', event['name']) + _row('開催日', event['start_date']) + _row('会場', event['location'])
     # 2. 本文を組み立てて送る
     content = f'''
@@ -692,6 +742,9 @@ def _mark_email_failed(email_id: str) -> None:
 
     Args:
         email_id: Resend のメール ID
+
+    Returns:
+        なし。
     """
     admin_supabase.table('workshop_reservations') \
         .update({'email_failed': True}) \
@@ -715,6 +768,7 @@ async def resend_webhook(request: Request) -> dict:
     """
     # 1. JSON を読む（読めなければ何もしない）
     try:
+        # 変数の内容: payload: DB に保存する値。
         payload = await request.json()
     except Exception:
         logger.warning('Resend の Webhook の本文を JSON として読めませんでした')
@@ -724,11 +778,13 @@ async def resend_webhook(request: Request) -> dict:
     # 2. 配信失敗のイベントなら、該当する予約に印を付ける（同期の DB 呼び出しはスレッドプールで行う）
     event_type = payload.get('type', '')
     if event_type in ('email.bounced', 'email.failed'):
+        # 変数の内容: data: Resend Webhook の受信データ。、email_id: Resend メール ID。
         data = payload.get('data') if isinstance(payload.get('data'), dict) else {}
         email_id = data.get('email_id') or data.get('id')
         if email_id:
             try:
                 await run_in_threadpool(_mark_email_failed, str(email_id))
+            # 変数の内容: e: except で捕捉した処理例外。
             except Exception as e:
                 logger.error('email_failed の保存に失敗しました: %s', error_summary(e))
     return {'ok': True}
@@ -782,8 +838,10 @@ def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)) -
     Raises:
         HTTPException(404): event_id が UUID の形でない場合
     """
+    # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('workshop_reservations').select('*').order('created_at', desc=True)
     if event_id:
+        # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('event_id', event_id)
     return execute_or_404(q, 'イベントが見つかりません').data
 
@@ -808,14 +866,20 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
         HTTPException(404): 予約が存在しない場合
         HTTPException(409): キャンセルから戻すときに時間枠が満席の場合
     """
+    # 変数の内容: row: DB から取得した単一レコード。
     row = fetch_one_or_404(admin_supabase.table('workshop_reservations').select('*').eq('id', reservation_id))
     # 1. 変わらなければ何もしない
     if row.get('status') == body.status:
         return row
+    # 変数の内容: session_id: 対象の予約時間枠 ID。
     session_id = row.get('session_id')
 
     def _update() -> dict:
-        """ステータスを書き換えて更新後の行を返す。"""
+        """ステータスを書き換えて更新後の行を返す。
+
+        Returns:
+            注釈に示した形式の応答（dict）。
+        """
         return first_or_404(
             admin_supabase.table('workshop_reservations').update({'status': body.status}).eq('id', reservation_id).execute()
         )
@@ -824,22 +888,27 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
     reinstating = row.get('status') == 'cancelled'
     if reinstating and session_id:
         with _session_lock(session_id):
+            # 変数の内容: session: 処理対象の予約時間枠。
             session = fetch_one_or_none(
                 admin_supabase.table('ws_sessions').select('id, max_participants, time_label').eq('id', session_id)
             )
             if session:
                 session.setdefault('id', session_id)
+                # 変数の内容: used: 予約済みの参加人数。
                 used = _session_used_count(row['event_id'], session, row.get('preferred_date'))
                 if used + (row.get('participants') or 1) > session['max_participants']:
                     raise HTTPException(409, 'この時間枠は満席のため、キャンセルを取り消せません')
+            # 変数の内容: updated: 更新後の DB レコード。
             updated = _update()
     else:
+        # 変数の内容: updated: 更新後の DB レコード。
         updated = _update()
     _sync_reserved_count_safely(session_id)
     # 3. キャンセルに変えたときだけメールを送る
     if body.status == 'cancelled':
         try:
             _send_cancel_confirmation(row)
+        # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             logger.error('キャンセルのメールの送信に失敗しました: %s', error_summary(e))
     return updated

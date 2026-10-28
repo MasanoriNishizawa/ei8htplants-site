@@ -14,7 +14,10 @@ import ShopProduct from '../ShopProduct'
 import { LangProvider } from '../../lib/lang'
 import { CartProvider } from '../../lib/cart'
 
-/** いつまでも終わらない Promise（読み込み中のままにする） */
+/**
+ *  いつまでも終わらない Promise（読み込み中のままにする）
+ * @returns 戻り値なし。
+ */
 const pending = () => new Promise<never>(() => {})
 
 // 4 画面が使う api の関数を、いつまでも終わらないモックにする

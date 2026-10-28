@@ -9,6 +9,7 @@ import { useT } from '../lib/lang'
  * @returns 読み込み中の表示
  */
 export default function PageLoading() {
+  // 読み込み中の文言を表示言語に合わせる関数
   const t = useT()
   return (
     // flex: 1 で中身の領域を埋め、フッターがヘッダーの直下に上がってこないようにする

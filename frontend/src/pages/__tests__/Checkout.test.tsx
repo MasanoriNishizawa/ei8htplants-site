@@ -107,6 +107,11 @@ async function renderCheckout() {
 async function fillAndSubmit() {
   const { container } = await renderCheckout()
   // 1. 入力欄（id の末尾で探す。言語に左右されない）
+  /**
+   * テスト用の field を実行する。
+   * @param suffix - 項目名の末尾文字列
+   * @returns 戻り値なし。
+   */
   const field = (suffix: string) => container.querySelector(`[id$="-${suffix}"]`) as HTMLInputElement
   fireEvent.change(field('name'), { target: { value: '山田 花子' } })
   fireEvent.change(field('email'), { target: { value: 'hanako@example.com' } })
@@ -232,6 +237,11 @@ describe('Checkout の注文の失敗の文言（英語）', () => {
 describe('Checkout の入力欄の maxLength', () => {
   it('お名前 100・電話 30・郵便番号 10・市区町村 100・番地 200・建物名 200・備考 2000', async () => {
     const { container } = await renderCheckout()
+    /**
+     * テスト用の max を実行する。
+     * @param suffix - 項目名の末尾文字列
+     * @returns 戻り値なし。
+     */
     const max = (suffix: string) => container.querySelector(`[id$="-${suffix}"]`)!.getAttribute('maxLength')
     expect(max('name')).toBe('100')
     expect(max('phone')).toBe('30')
@@ -250,7 +260,11 @@ describe('CheckoutOrderSummary の注文内容表示', () => {
     { product: { ...PRODUCT, id: 'p-2', name: '鉢 M', price: 5200 }, quantity: 2 },
   ]
 
-  /** 注文サマリーを表示する */
+  /**
+   * 注文内容のテストデータを使って注文サマリーを描画する。
+   * @param options - 表示に使うオプション
+   * @returns React Testing Library が返す描画結果とクエリ関数。
+   */
   function renderSummary(options?: {
     items?: CartItem[]
     subtotal?: number
@@ -347,7 +361,10 @@ describe('Checkout を開いたときの商品の取り直し（404・通信の�
     )
   }
 
-  /** 保存されたカートの商品 id の一覧 */
+  /**
+   *  保存されたカートの商品 id の一覧
+   * @returns 戻り値なし。
+   */
   const savedIds = () => (JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? '[]') as { product: Product }[]).map((i) => i.product.id)
 
   it('一部の商品だけ 404 のときは、その商品だけカートから外し「販売を終了したため…」を出す', async () => {

@@ -72,6 +72,7 @@ const filterButton = (name: string): HTMLElement =>
  * 販売価格計算を描画し、2 段目の「仕入れ」タブに切り替える（初期は「生産」のため、仕入れのテストはこれで始める）
  * @param withProvider - 書きかけ保護の Provider の中で描画するか
  * @returns render の戻り値
+ * @param setTestRate - テスト用の原価率を設定するかどうか
  */
 const renderPurchase = (withProvider = false, setTestRate = true) => {
   const result = render(withProvider ? <UnsavedChangesProvider><PriceCalc /></UnsavedChangesProvider> : <PriceCalc />)
@@ -83,6 +84,7 @@ const renderPurchase = (withProvider = false, setTestRate = true) => {
 
 /**
  * HUE のタブを開く（何も入力していないので確認は出ない）
+ * @returns 戻り値なし。
  */
 const openHue = () => {
   fireEvent.click(brandTab('HUE'))

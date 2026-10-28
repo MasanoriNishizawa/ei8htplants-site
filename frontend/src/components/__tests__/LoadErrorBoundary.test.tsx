@@ -20,7 +20,10 @@ const MSG_JA = 'ページを読み込めませんでした。再読み込みし�
 /** 英語の案内 */
 const MSG_EN = 'Failed to load the page. Please reload.'
 
-/** 描画すると例外を投げる部品 */
+/**
+ * 描画時の例外を境界に渡すテスト用コンポーネント。
+ * @returns 正常時は返らず、描画エラーを投げる
+ */
 function Boom(): React.ReactNode {
   throw new Error('描画エラー')
 }
@@ -34,6 +37,7 @@ let reloadMock: ReturnType<typeof vi.fn>
  * 言語を決めて LangProvider と境界で包んで描画する
  * @param lang - 'ja' または 'en'
  * @param child - 境界の中に置く部品
+ * @returns 言語プロバイダーとエラー境界を含む描画結果
  */
 function renderWithLang(lang: 'ja' | 'en', child: React.ReactNode) {
   localStorage.setItem('site-lang', lang)

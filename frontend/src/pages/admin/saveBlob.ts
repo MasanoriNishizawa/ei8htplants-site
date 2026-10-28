@@ -13,6 +13,7 @@ export const REVOKE_DELAY_MS = 1000
  * 3. 少し待ってからオブジェクト URL を解放する
  * @param blob - 保存する中身
  * @param fileName - 保存するときのファイル名
+ * @returns 戻り値なし。
  */
 export function saveBlob(blob: Blob, fileName: string): void {
   // 1. オブジェクト URL

@@ -14,7 +14,11 @@ RANKING_HEIGHT = 420
 
 
 def render() -> None:
-    """ショップ画面を表示する。"""
+    """ショップ画面を表示する。
+
+    Returns:
+        なし。"""
+    # 変数の内容: ctx: 商品画面で使う集計済みデータコンテキスト。
     ctx = get_context()
     st.title("ショップ")
     st.caption("オンラインショップの注文（キャンセルを除く）")
@@ -82,7 +86,9 @@ def _stock(products: pd.DataFrame) -> None:
 
     Args:
         products: products テーブル
-    """
+
+    Returns:
+        なし。"""
     st.subheader("在庫")
     # 0件のとき is_published が object 型の空の列になり、そのまま使うと「列の選択」と解釈されるので真偽値にそろえる
     pub = products[products["is_published"].fillna(False).astype(bool)].sort_values("stock")

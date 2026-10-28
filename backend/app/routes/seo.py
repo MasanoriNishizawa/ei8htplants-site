@@ -51,6 +51,7 @@ from .seo_structured_data import (
     times_in as _build_times_in,
 )
 
+# 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=['seo'])
@@ -92,6 +93,7 @@ class StaticPage:
     description・image が None のときはサイト既定の値を使う。
     """
 
+    # 変数の内容: description: 画面やメタ情報に表示する説明文、image: 処理対象の画像、title: ページまたはメールのタイトル。
     title: Optional[str] = None
     description: Optional[str] = None
     image: Optional[str] = None
@@ -166,7 +168,11 @@ _cache = _TTLCache(CACHE_TTL_SECONDS, CACHE_MAX_ENTRIES)
 
 
 def clear_cache() -> None:
-    """メモリキャッシュを空にする（テストで DB のモックを差し替えるときに使う）。"""
+    """メモリキャッシュを空にする（テストで DB のモックを差し替えるときに使う）。
+
+    Returns:
+        なし。
+    """
     _cache.clear()
 
 
@@ -183,6 +189,7 @@ def _rows(result: Any) -> list[dict]:
     Returns:
         dict の行だけのリスト。.data がリストでないときは空のリスト
     """
+    # 変数の内容: data: 指定テーブルから取得した公開対象レコード一覧。。
     data = getattr(result, 'data', None)
     if not isinstance(data, list):
         return []
@@ -198,9 +205,11 @@ def _absolute_url(url: Any) -> Optional[str]:
     Returns:
         絶対 URL。空・blob: など外から見られない URL のときは None
     """
+    # 1. 空 URL とブラウザー内だけで使える URL を除外する。
     u = _str(url).strip()
     if not u or u.startswith(('blob:', 'data:')):
         return None
+    # 2. 絶対 URL は維持し、相対 URL はサイトの origin を付ける。
     if u.startswith(('https://', 'http://')):
         return u
     if u.startswith('//'):
@@ -222,11 +231,13 @@ def _parse_blocks(content: Any) -> list[dict]:
     Returns:
         ブロック（dict）のリスト。中身が無ければ空のリスト
     """
+    # 変数の内容: text: 生成または解析する本文。
     text = _str(content)
     if not text:
         return []
     # 1. JSON のブロック配列として読めればそれを使う
     try:
+        # 変数の内容: parsed: 変換後の値。
         parsed = json.loads(text)
         if isinstance(parsed, list):
             return [b for b in parsed if isinstance(b, dict)]
@@ -234,6 +245,7 @@ def _parse_blocks(content: Any) -> list[dict]:
         pass
     # 2. 読めなければ古いテキスト形式として「## 」行を見出し、それ以外の行を本文にする
     blocks: list[dict] = []
+    # 変数の内容: line: line の反復ごとの値。
     for line in text.split('\n'):
         if line.startswith('## '):
             blocks.append({'type': 'heading', 'value': line[3:]})
@@ -255,6 +267,7 @@ def _blocks_to_text(blocks: list[dict], max_len: int = DESCRIPTION_MAX_LEN) -> s
     Returns:
         text・heading ブロックの文字を空白でつないだ先頭 max_len 文字。無ければ ''
     """
+    # 変数の内容: parts: 後で連結する要素の一覧。
     parts = [
         _str(b.get('value')).replace('\n', ' ')
         for b in blocks
@@ -272,6 +285,7 @@ def _first_image_block_url(blocks: list[dict]) -> Optional[str]:
     Returns:
         最初の画像ブロックの URL。画像ブロックが無ければ None
     """
+    # 変数の内容: b: b の反復ごとの値。
     for b in blocks:
         if b.get('type') == 'image' and _str(b.get('url')):
             return _str(b.get('url'))
@@ -348,6 +362,7 @@ def _fetch_event(key: str) -> Optional[dict]:
     Returns:
         イベントの dict（image_urls 付き）。見つからなければ None
     """
+    # 変数の内容: cache_key: メモリキャッシュを参照するキー、cached: キャッシュから取得した値、found: キャッシュに値があるかを示すフラグ。
     cache_key = ('event', key)
     found, cached = _cache.get(cache_key)
     if found:
@@ -356,10 +371,13 @@ def _fetch_event(key: str) -> Optional[dict]:
     rows = _rows(supabase.table('events').select(_EVENT_COLUMNS).eq('slug', key).limit(1).execute())
     # 2. 無ければ、UUID の形のときだけ id で探す
     if not rows and _UUID_RE.match(key):
+        # 変数の内容: rows: DB から取得した行の一覧。
         rows = _rows(supabase.table('events').select(_EVENT_COLUMNS).eq('id', key).limit(1).execute())
+    # 変数の内容: event: 処理対象のイベント。
     event = rows[0] if rows else None
     # 3. 見つかったら画像を表示順で読み、外から見られる URL だけ残す
     if event is not None:
+        # 変数の内容: imgs: DB から取得した画像行の一覧。
         imgs = _rows(
             supabase.table('event_images').select('url').eq('event_id', event.get('id')).order('display_order').execute()
         )
@@ -381,12 +399,15 @@ def _fetch_article(article_id: str) -> Optional[dict]:
     Returns:
         記事の dict（id・title・content・image_urls・published_at・created_at）。無ければ None
     """
+    # 1. ID の形式を確認し、キャッシュに値があれば DB を読まずに返す。
     if not _UUID_RE.match(article_id):
         return None
+    # 変数の内容: cache_key: メモリキャッシュを参照するキー、cached: キャッシュから取得した値、found: キャッシュに値があるかを示すフラグ。
     cache_key = ('article', article_id)
     found, cached = _cache.get(cache_key)
     if found:
         return cached
+    # 2. 公開済みの記事のメタ情報だけ取得し、見つからない結果もキャッシュする。
     rows = _rows(
         admin_supabase.table('articles')
         .select('id, title, content, image_urls, published_at, created_at')
@@ -409,12 +430,15 @@ def _fetch_product(product_id: str) -> Optional[dict]:
     Returns:
         商品の dict（id・name・description・image_urls・created_at）。無ければ None
     """
+    # 1. ID の形式を確かめ、キャッシュに値があれば DB を読まずに返す。
     if not _UUID_RE.match(product_id):
         return None
+    # 変数の内容: cache_key: メモリキャッシュを参照するキー、cached: キャッシュから取得した値、found: キャッシュに値があるかを示すフラグ。
     cache_key = ('product', product_id)
     found, cached = _cache.get(cache_key)
     if found:
         return cached
+    # 2. 公開中の商品情報だけ取得し、見つからない結果もキャッシュする。
     rows = _rows(
         admin_supabase.table('products')
         .select('id, name, description, image_urls, created_at')
@@ -485,6 +509,7 @@ def _make_meta(
     Returns:
         PageMeta
     """
+    # 変数の内容: img: 対象画像レコード。
     img = _absolute_url(image) if image else None
     return PageMeta(
         title=_full_title(title),
@@ -508,8 +533,11 @@ def _not_found_meta(path: str) -> PageMeta:
     Returns:
         既定値に noindex=True・canonical=False を付けた PageMeta
     """
+    # 変数の内容: meta: ページの title・description・画像などの SEO 情報。
     meta = _make_meta(path, None, None, None)
+    # 変数の内容: meta.canonical: 対象オブジェクトに設定するcanonical属性値、meta.noindex: 対象オブジェクトに設定するnoindex属性値。
     meta.noindex = True
+    # 変数の内容: meta.canonical: 対象オブジェクトに設定するcanonical属性値。
     meta.canonical = False
     return meta
 
@@ -562,7 +590,17 @@ def _organization_json_ld() -> dict:
 
 
 def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
-    """ブランド独立ドメイン用の canonical / OGP を作る。未公開パスは noindex にする。"""
+    """ブランド独立ドメイン用の canonical / OGP を作る。未公開パスは noindex にする。
+
+    Args:
+        path: 検証対象のファイルパスまたは URL パス。
+        site_name: サイト識別名。
+        origin: リクエスト元または生成 URL の origin。
+
+    Returns:
+        注釈に示した形式の応答（PageMeta）。
+    """
+    # 1. パスを正規化し、公開ページ一覧からページ固有の情報を探す。
     norm = '/' + path.strip('/')
     pages = {
         'Habitat Oides': {
@@ -581,12 +619,15 @@ def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
         },
     }
     page = pages[site_name].get(norm)
+    # 2. 未公開パスは noindex 用の既定メタ情報を返す。
     if page is None:
+        # 変数の内容: logo: ブランドロゴの画像パス。
         logo = 'hue' if site_name == 'HUE by ei8ht plants' else 'habitatoides'
         return PageMeta(
             title=site_name, description=DEFAULT_DESCRIPTION, image=f'{origin}/img/logo-{logo}.png',
             url=f'{origin}{quote(norm, safe="/")}', noindex=True, canonical=False, site_name=site_name,
         )
+    # 3. 公開ページは正規 URL とブランド情報を組み立てる。
     title, description, image_path = page
     canonical_path = '/' if norm in ('/habitatoides', '/hue') else '/workshop' if norm == '/habitatoides/workshop' else norm
     return PageMeta(
@@ -612,6 +653,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     Returns:
         PageMeta
     """
+    # 変数の内容: host: リクエスト元のホスト名。
     host = hostname.lower().split(':', 1)[0]
     if host in BRAND_DOMAINS:
         return _brand_domain_meta(path, *BRAND_DOMAINS[host])
@@ -619,19 +661,27 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     # パスを "/a/b" の形にそろえ、旧公式ページURLは新しい場所へ寄せる。
     norm = '/' + path.strip('/')
     if norm == '/ei8htplants':
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = '/'
     elif norm == '/brands' or norm.startswith('/brands/'):
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = '/official' + norm
     elif norm == '/events' or norm.startswith('/events/'):
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = '/official' + norm
     elif norm == '/shop' or norm.startswith('/shop/'):
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = '/official' + norm
     elif norm == '/journal' or norm.startswith('/journal/'):
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = '/official' + norm
     elif norm == '/order' or norm.startswith('/order/'):
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = '/official' + norm
     elif norm in {'/gallery', '/concept', '/contact', '/stockists', '/collaborations', '/media', '/legal', '/privacy', '/chat', '/reserve', '/cancel', '/checkout'}:
+        # 変数の内容: norm: 正規化したパスまたは文字列。
         norm = '/official' + norm
+    # 変数の内容: query: DB へ渡す検索条件、segments: 分割した URL パス要素。
     segments = [s for s in norm.split('/') if s]
     query = query or {}
 
@@ -641,6 +691,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
             event = _fetch_event(segments[2])
             if event and _str(event.get('name')):
+                # 変数の内容: canonical_path: 正規 URL として使うパス、images: 対象画像の一覧、ld: JSON-LD の構造化データ、meta: ページの title・description・画像などの SEO 情報、slug: イベントの公開 URL 用スラッグ。
                 images = event.get('image_urls') or []
                 # UUID で開かれても slug があれば canonical・og:url は slug の URL にする（sitemap と同じ URL）
                 slug = _str(event.get('slug'))
@@ -660,6 +711,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
             article = _fetch_article(segments[2])
             if article and _str(article.get('title')):
+                # 変数の内容: blocks: イベントページに設定されたブロック一覧、hero: ページ先頭に表示する内容、image_urls: イベントに設定する画像 URL の一覧、title: ページまたはメールのタイトル。
                 blocks = _parse_blocks(article.get('content'))
                 image_urls = article.get('image_urls') if isinstance(article.get('image_urls'), list) else []
                 hero = _first_image_block_url(blocks) or (image_urls[0] if image_urls else None)
@@ -672,11 +724,13 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
             # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
             product = _fetch_product(segments[2])
             if product and _str(product.get('name')):
+                # 変数の内容: blocks: イベントページに設定されたブロック一覧、image_urls: イベントに設定する画像 URL の一覧、name: 画面やログに表示する名前。
                 blocks = _parse_blocks(product.get('description'))
                 image_urls = product.get('image_urls') if isinstance(product.get('image_urls'), list) else []
                 name = _str(product.get('name'))
                 return _make_meta(norm, f'{name} | Shop', _blocks_to_text(blocks) or name, image_urls[0] if image_urls else None)
             return _not_found_meta(norm)
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         # 例外の文字列には URL の一部（利用者の入力）が入りうるので、型名とコードだけを出す
         logger.error('build_page_meta DB 読み取りエラー（%r）: %s', norm, error_summary(e))
@@ -685,9 +739,12 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     # 4. 固定ページ
     page = STATIC_PAGES.get(norm)
     if page is not None:
+        # 変数の内容: title: ページまたはメールのタイトル。
         title = page.title
         if norm == '/official/events' and query.get('page') == 'past':
+            # 変数の内容: title: ページまたはメールのタイトル。
             title = 'Past Events'
+        # 変数の内容: meta: ページの title・description・画像などの SEO 情報。
         meta = _make_meta(norm, title, page.description, page.image)
         if norm in {'/', '/official'}:
             meta.json_ld.append(_organization_json_ld())
@@ -717,12 +774,16 @@ def _read_index(index_path: str) -> str:
     Raises:
         OSError: ファイルが無い・読めない場合
     """
+    # 1. 更新時刻を調べ、変更が無ければキャッシュした HTML を返す。
     mtime = os.path.getmtime(index_path)
     with _index_lock:
+        # 変数の内容: hit: キャッシュ検索の結果。
         hit = _index_cache.get(index_path)
         if hit and hit[0] == mtime:
             return hit[1]
+    # 2. キャッシュに無い場合はファイルを読み、更新時刻と内容を保存する。
     with open(index_path, encoding='utf-8') as f:
+        # 変数の内容: content: 読み込んだ、または生成した内容。
         content = f.read()
     with _index_lock:
         _index_cache[index_path] = (mtime, content)
@@ -740,8 +801,10 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None, h
     Returns:
         メタ情報入りの HTML 文字列
     """
+    # 1. HTML にページ固有の SEO 情報を埋め込む。
     host = hostname.lower().split(':', 1)[0]
     page = inject_head(_read_index(index_path), build_page_meta(path, query, host))
+    # 2. ブランド独立ドメインでは古い PWA 登録を解除するスクリプトを加える。
     if host in BRAND_DOMAINS:
         # 独立前に登録されたPWAのService Workerが、古いei8ht plants画面を表示し続けないよう解除する。
         page = re.sub(r'<link\s+rel="manifest"[^>]*>', '', page, flags=re.I)
@@ -773,9 +836,15 @@ def robots_txt(request: Request) -> PlainTextResponse:
 
     Returns:
         robots.txt の本文（text/plain）
+
+    Args:
+        request: FastAPI に渡す HTTP リクエスト。
     """
+    # 変数の内容: lines: 本文や応答に使う行の一覧。
     lines = ['User-agent: *', 'Allow: /']
     lines += [f'Disallow: {p}' for p in ROBOTS_DISALLOW]
+    # 1. ホスト別の sitemap を選び、キャッシュ済み XML があれば再利用する。
+    # 1. リクエストのホストから対象サイトの sitemap origin を選ぶ。
     host = request.headers.get('host', '').lower().split(':', 1)[0]
     origin = BRAND_DOMAINS.get(host, ('', SITE_ORIGIN))[1]
     lines += ['', f'Sitemap: {origin}/sitemap.xml', '']
@@ -813,6 +882,10 @@ def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -
 
     Returns:
         (XML の文字列, 全部読めたか)
+
+    Args:
+        site_name: サイト識別名。
+        origin: リクエスト元または生成 URL の origin。
     """
     return _build_sitemap_content(
         site_name,
@@ -837,13 +910,19 @@ def sitemap_xml(request: Request) -> Response:
 
     Returns:
         sitemap.xml の本文（application/xml）
+
+    Args:
+        request: FastAPI に渡す HTTP リクエスト。
     """
+    # 変数の内容: cache_key: メモリキャッシュを参照するキー、found: キャッシュに値があるかを示すフラグ、host: リクエスト元のホスト名、origin: URL の起点となる origin、site: ホスト名に対応するサイト設定、site_name: 対象ブランドまたはサイト名、xml: 生成した sitemap XML。
     host = request.headers.get('host', '').lower().split(':', 1)[0]
     site = BRAND_DOMAINS.get(host)
     site_name, origin = site if site else (None, SITE_ORIGIN)
     cache_key = ('sitemap', site_name or 'ei8htplants')
     found, xml = _cache.get(cache_key)
+    # 2. キャッシュ済み XML を使い、無ければページ一覧を読み、成功時だけ保存する。
     if not found:
+        # 変数の内容: ok: 処理の成功可否、xml: 生成した sitemap XML。
         xml, ok = _build_sitemap(site_name, origin)
         if ok:
             _cache.set(cache_key, xml)

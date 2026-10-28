@@ -122,6 +122,12 @@ function orderErrorMessage(err: unknown, t: Translate): string {
   // サーバーの説明（文字列のときだけ使う。422 の項目ごとの配列は使わない）
   const detail = typeof err.detail === 'string' ? err.detail : ''
   // 日本語表示ならサーバーの detail、英語表示なら en を返す（detail が無ければ日本語は ja を使う）
+  /**
+   * fromDetail の処理を行う。
+   * @param ja - 日本語の案内文
+   * @param en - 英語の案内文
+   * @returns 戻り値なし。
+   */
   const fromDetail = (ja: string, en: string) => t(detail || ja, en)
   // 1. 回数制限・入力チェック
   if (err.status === 429) {
@@ -390,6 +396,7 @@ export default function Checkout() {
    * フォームの 1 項目を変える
    * @param k - 項目名
    * @param v - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof FormState>(k: K, v: string) =>
     setForm((f) => ({ ...f, [k]: v }))
@@ -402,6 +409,7 @@ export default function Checkout() {
   /**
    * 注文を確定する（手順は中の「1. 2. …」のコメント）
    * @param e - フォームの送信イベント
+   * @returns 戻り値なし。
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -123,6 +123,7 @@ export default function EventFinance() {
    * 収支の入力の 1 項目を書き換える
    * @param key - 項目名
    * @param value - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof EventFinancesBody>(key: K, value: EventFinancesBody[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -136,6 +137,7 @@ export default function EventFinance() {
    * 収支を保存し、管理情報の出店料・宿泊費も同じ値にそろえてから元の画面へ戻る（手順は中のコメント 1〜4）
    * 途中で失敗したら画面に残り、文言を出す（収支だけ保存済みで管理情報は古いまま、ということもありうる）
    * @param e - フォームの送信イベント
+   * @returns 戻り値なし。
    */
   const save = async (e: React.FormEvent) => {
     e.preventDefault()

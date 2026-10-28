@@ -17,7 +17,16 @@ def num(pattern: str, text: str) -> int:
 
 
 def parse_tsc_result(code: int, output: str, elapsed: float) -> dict:
-    """TypeScriptチェック出力を共通結果dictへ変換する。"""
+    """TypeScriptチェック出力を共通結果dictへ変換する。
+
+    Args:
+        code: tscの終了コード。
+        output: tscの標準出力と標準エラー。
+        elapsed: チェックにかかった秒数。
+
+    Returns:
+        suite名、件数、失敗名、診断行を含む結果dict。
+    """
     errors = re.findall(r"error TS\d+: .+", output)
     return {
         "name": "TypeScript チェック（tsc）", "code": code, "sec": elapsed,
@@ -84,7 +93,16 @@ def parse_build_result(
 
 
 def parse_vitest_result(code: int, output: str, elapsed: float) -> dict:
-    """Vitestの集計行と失敗名を共通結果dictへ変換する。"""
+    """Vitestの集計行と失敗名を共通結果dictへ変換する。
+
+    Args:
+        code: Vitestの終了コード。
+        output: Vitestの標準出力と標準エラー。
+        elapsed: 実行にかかった秒数。
+
+    Returns:
+        suite名、件数、失敗名、診断行を含む結果dict。
+    """
     tests_line = next((line for line in output.splitlines() if line.strip().startswith("Tests")), "")
     failed_names = re.findall(r"^\s*FAIL\s+(.+)$", output, flags=re.M)
     tail = [tests_line.strip()]
@@ -100,7 +118,16 @@ def parse_vitest_result(code: int, output: str, elapsed: float) -> dict:
 
 
 def parse_playwright_result(code: int, output: str, elapsed: float) -> dict:
-    """Playwrightの集計行・失敗名・起動前エラーを共通結果dictへ変換する。"""
+    """Playwrightの集計行・失敗名・起動前エラーを共通結果dictへ変換する。
+
+    Args:
+        code: Playwrightの終了コード。
+        output: Playwrightの標準出力と標準エラー。
+        elapsed: 実行にかかった秒数。
+
+    Returns:
+        suite名、件数、失敗名、診断行を含む結果dict。
+    """
     failed_names = [
         f"[{project}] {name.strip()}"
         for project, name in re.findall(r"^\s*\d+\) \[(\w+)\] › (.+?) ─*$", output, flags=re.M)
@@ -142,7 +169,16 @@ def parse_pytest_result(name: str, code: int, output: str, elapsed: float) -> di
 
 
 def parse_runner_tests_result(code: int, output: str, elapsed: float) -> dict:
-    """unittestの実行件数・省略・失敗を共通結果dictへ変換する。"""
+    """unittestの実行件数・省略・失敗を共通結果dictへ変換する。
+
+    Args:
+        code: unittestの終了コード。
+        output: unittestの標準出力と標準エラー。
+        elapsed: 実行にかかった秒数。
+
+    Returns:
+        suite名、件数、終了コード、診断行を含む結果dict。
+    """
     total_match = re.search(r"Ran (\d+) tests?", output)
     total = int(total_match.group(1)) if total_match else 0
     skipped = num(r"skipped=(\d+)", output)

@@ -71,6 +71,7 @@ export function parseBlocks(content: string | null | undefined): Block[] {
   if (!content) return []
   // 1. JSON 形式
   try {
+    // JSON として読めた場合は配列の要素を型ガードで絞る
     const parsed: unknown = JSON.parse(content)
     if (Array.isArray(parsed)) return parsed.filter(isBlock)
   } catch { /* JSON でなければ昔の形式として読む */ }

@@ -41,6 +41,7 @@ const linkStyle: React.CSSProperties = {
 export default function Footer() {
   // 今のページのパス（特定商取引法のリンクを出すかの判定に使う）
   const { pathname } = useLocation()
+  // フッターに表示する文言を現在の言語へ変換する関数
   const t = useT()
   // ショップ・チェックアウト・注文完了ページのみ特定商取引法リンクを表示
   const showLegal = SHOP_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
@@ -48,6 +49,7 @@ export default function Footer() {
   return (
     // marginTop: 'auto' で、中身が短いページでもフッターを画面の下端に寄せる
     <footer style={{ background: 'var(--c-bg)', borderTop: '1px solid var(--c-border)', marginTop: 'auto' }}>
+      {/* 横幅を制限し、画面幅に応じた余白を設けるフッター内部のラッパー */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(48px, 7vw, 80px) clamp(20px, 4vw, 48px) 40px' }}>
 
         {/* 上段: 左にロゴと Instagram、右に Pages・Brand のリンクの列 */}

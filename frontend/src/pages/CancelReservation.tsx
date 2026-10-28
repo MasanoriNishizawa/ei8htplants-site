@@ -31,6 +31,7 @@ export default function CancelReservation() {
    * キャンセルを送信する
    * 1. ID が空なら何もしない 2. API に送る 3. 応答のステータスコードに合わせて案内を切り替える
    * @param e - フォームの送信イベント（ページの再読み込みを止める）
+   * @returns 戻り値なし。
    */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

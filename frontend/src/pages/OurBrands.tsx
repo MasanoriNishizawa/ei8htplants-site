@@ -4,9 +4,13 @@ import { useT } from '../lib/lang'
 import { BRAND_SHOWCASES } from '../lib/brandShowcase'
 import { api } from '../lib/api'
 
-/** ei8ht plantsが展開する3ブランドを紹介する一覧ページ。 */
+/**
+ *  ei8ht plantsが展開する3ブランドを紹介する一覧ページ。
+ * @returns ei8ht plants グループのブランド一覧ページの React 要素。
+ */
 export default function OurBrands() {
   const t = useT()
+  // HUE のブランドカードに表示する画像 URL。サイト設定から取得する
   const [hueImage, setHueImage] = useState('')
 
   useEffect(() => {
@@ -23,6 +27,7 @@ export default function OurBrands() {
         title="Our Brands"
         description={t('植物との向き合い方から生まれた、ei8ht plantsの3つのブランドをご紹介します。', 'Discover three distinct brands shaped by different ways of living with plants.')}
       />
+      {/* ブランド一覧への導入と、一覧セクションへのスクロール案内 */}
       <section className="our-brands-hero">
         <div className="our-brands-hero-copy">
           <p className="our-brands-kicker">ei8ht plants / BOTANICAL WORLDS</p>
@@ -37,6 +42,7 @@ export default function OurBrands() {
         </div>
       </section>
 
+      {/* 3ブランドの特徴と各ブランドページへのリンク */}
       <section className="our-brands-collection" id="brand-collection" aria-label={t('ブランド一覧', 'Brand collection')}>
         <header className="our-brands-section-heading">
           <p className="home-section-index">01 / OUR BRANDS</p>
@@ -71,6 +77,7 @@ export default function OurBrands() {
         </div>
       </section>
 
+      {/* ブランド全体のメッセージと ei8ht plants トップへのリンク */}
       <section className="our-brands-note">
         <p>{t('育て、仕立て、ともに暮らす。', 'GROW IT. STYLE IT. LIVE WITH IT.')}</p>
         <a href="/">ei8ht plants <span>↗</span></a>

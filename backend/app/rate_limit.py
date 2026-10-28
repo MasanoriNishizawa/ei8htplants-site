@@ -31,8 +31,7 @@ class RateLimiter:
 
         Args:
             limit: window 秒の間に受け付ける最大回数
-            window: 数える期間（秒）
-        """
+            window: 数える期間（秒）"""
         # window 秒の間に受け付ける最大回数
         self.limit = limit
         # 数える期間（秒）
@@ -49,10 +48,16 @@ class RateLimiter:
 
         Args:
             now: 今の時刻（time.time()）
+
+        Returns:
+            なし。
         """
+        # 変数の内容: stale: 期限切れとして除去する IP の一覧。
         stale = [ip for ip, times in self.log.items() if not times or now - times[-1] >= self.window]
+        # 変数の内容: ip: 処理対象のクライアント IP アドレス。
         for ip in stale:
             del self.log[ip]
+        # 変数の内容: self._last_purge: 古い IP 記録を最後に整理した時刻。
         self._last_purge = now
 
     def check(self, ip: str) -> None:
@@ -63,7 +68,11 @@ class RateLimiter:
 
         Raises:
             HTTPException(429): window 秒の間に limit 回を超えた場合（その回は数えない）
+
+        Returns:
+            なし。
         """
+        # 変数の内容: now: 期限判定に使う現在時刻。
         now = time.time()
         with self._lock:
             # 1. window 秒に 1 回、古いキーをまとめて消す
@@ -81,16 +90,24 @@ class RateLimiter:
             # 5. 記録する IP の数が上限を超えたら、古い記録を消し、まだ多ければ最後の受付が古い順に捨てる
             if len(self.log) > MAX_TRACKED_IPS:
                 self._purge(now)
+                # 変数の内容: overflow: 上限超過で削除する項目数。
                 overflow = len(self.log) - MAX_TRACKED_IPS
                 if overflow > 0:
+                    # 変数の内容: oldest: 期限が最も早いキャッシュ項目。
                     oldest = sorted(self.log, key=lambda k: self.log[k][-1] if self.log[k] else 0.0)[:overflow]
+                    # 変数の内容: key: 現在処理する辞書キー。
                     for key in oldest:
                         del self.log[key]
 
     def reset(self) -> None:
-        """記録をすべて消す（テスト用）。"""
+        """記録をすべて消す（テスト用）。
+
+        Returns:
+            なし。
+        """
         with self._lock:
             self.log.clear()
+            # 変数の内容: self._last_purge: 古い IP 記録を最後に整理した時刻。
             self._last_purge = 0.0
 
 
@@ -138,6 +155,11 @@ order_limiter = RateLimiter(PUBLIC_WRITE_LIMIT, PUBLIC_WRITE_WINDOW)
 
 
 def reset_all() -> None:
-    """公開の書き込み API の回数制限の記録をすべて消す（テストの前に呼ぶ）。"""
+    """公開の書き込み API の回数制限の記録をすべて消す（テストの前に呼ぶ）。
+
+    Returns:
+        なし。
+    """
+    # 変数の内容: limiter: 対象の回数制限インスタンス。
     for limiter in (contact_limiter, reserve_limiter, cancel_limiter, order_limiter):
         limiter.reset()

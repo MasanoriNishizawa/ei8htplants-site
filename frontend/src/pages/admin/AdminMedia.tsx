@@ -67,6 +67,7 @@ export default function AdminMedia() {
    * 1. 読み込み中にして前回の失敗の文言を消す
    * 2. 一覧を取得する。失敗したら「登録されていません」と区別できるよう失敗の文言を出す
    * 3. 読み込み中を戻す
+   * @returns 戻り値なし。
    */
   const load = () => {
     // 1. 読み込み中
@@ -88,6 +89,7 @@ export default function AdminMedia() {
    * 2. API で追加し、一覧の先頭に足して入力欄を空にする
    * 3. 失敗したらフォームに文言を出す
    * @param e - フォームの送信イベント（画面の再読み込みを止める）
+   * @returns 戻り値なし。
    */
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,6 +122,7 @@ export default function AdminMedia() {
   /**
    * 確認のうえ動画を削除し、一覧から外す（失敗したら alert で知らせる）
    * @param id - 削除するメディア出演の id
+   * @returns 戻り値なし。
    */
   const remove = async (id: string) => {
     if (!confirm('この動画を削除しますか？')) return

@@ -31,7 +31,6 @@
 ログは新しいものが上。管理画面の「設計書」→「04_TEST」→「08_テスト実行ログ」で見られる。
 1 つでも失敗があれば終了コード 1 を返す（コミットしてはいけない合図）。
 """
-import argparse
 import subprocess
 import sys
 import tempfile
@@ -42,7 +41,9 @@ try:
     # unittest からの読み込みではパッケージ相対、直接実行では同じディレクトリから読み込む。
     from .runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
     from .runner_process import run_process
-    from .runner_execution import SuiteSpec, execute_suites
+    from .runner_execution import execute_suites
+    from .runner_cli import parse_arguments
+    from .runner_plan import SuiteRunners, build_suite_plan
     from .runner_results import (
         num as _parse_number, parse_build_result, parse_playwright_result, parse_pytest_result,
         parse_runner_tests_result, parse_tsc_result, parse_vitest_result,
@@ -51,7 +52,9 @@ try:
 except ImportError:
     from runner_log import HEADER, MARKER, make_entry as _make_log_entry, append_log as _append_log
     from runner_process import run_process
-    from runner_execution import SuiteSpec, execute_suites
+    from runner_execution import execute_suites
+    from runner_cli import parse_arguments
+    from runner_plan import SuiteRunners, build_suite_plan
     from runner_results import (
         num as _parse_number, parse_build_result, parse_playwright_result, parse_pytest_result,
         parse_runner_tests_result, parse_tsc_result, parse_vitest_result,
@@ -76,12 +79,27 @@ def run(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
 
 
 def num(pattern: str, text: str) -> int:
-    """従来の呼び出し口を保ち、数値の解析を専用モジュールへ委ねる。"""
+    """従来の呼び出し口を保ち、数値の解析を専用モジュールへ委ねる。
+
+    Args:
+        pattern: 出力から数値を探す正規表現。
+        text: 数値を探すsuite出力。
+
+    Returns:
+        出力中で最後に一致した数値。未検出時は0。
+    """
     return _parse_number(pattern, text)
 
 
 def run_tsc() -> dict:
-    """TypeScript の型チェックを実行して結果をまとめる。"""
+    """TypeScript の型チェックを実行して結果をまとめる。
+
+    Args:
+        なし。
+
+    Returns:
+        suite名、終了コード、件数、診断を持つ結果dict。
+    """
     # frontend/tsconfig.json は files: []（参照をまとめるだけ）なので、アプリのコードを含む tsconfig.app.json を指定する。
     # 指定しないと何も検査せずに成功してしまう
     code, out, sec = run(["npx", "tsc", "--noEmit", "-p", "tsconfig.app.json"], ROOT / "frontend")
@@ -97,6 +115,9 @@ def run_build() -> dict:
 
     Returns:
         ほかのテストと同じ形の結果の dict
+
+    Args:
+        なし。
     """
     frontend = ROOT / "frontend"
     start = time.monotonic()
@@ -124,6 +145,9 @@ def run_vitest(targets: list[str] | None = None) -> dict:
 
     Args:
         targets: 流すテストファイル（frontend/ から見たパス）。None ならすべて
+
+    Returns:
+        件数・終了コード・診断を含むVitest結果dict。
     """
     code, out, sec = run(["npx", "vitest", "run", *(targets or [])], ROOT / "frontend")
     return parse_vitest_result(code, out, sec)
@@ -134,6 +158,9 @@ def run_playwright(targets: list[str] | None = None) -> dict:
 
     Args:
         targets: 流すテストファイル（frontend/ から見たパス）。None ならすべて
+
+    Returns:
+        件数・終了コード・診断を含むPlaywright結果dict。
     """
     code, out, sec = run(["npx", "playwright", "test", "--reporter=line", *(targets or [])], ROOT / "frontend")
     return parse_playwright_result(code, out, sec)
@@ -144,6 +171,9 @@ def run_pytest(targets: list[str] | None = None) -> dict:
 
     Args:
         targets: 流すテストファイル（backend/ から見たパス）。None ならすべて
+
+    Returns:
+        件数・終了コード・診断を含むpytest結果dict。
     """
     backend = ROOT / "backend"
     if not backend.exists():
@@ -166,6 +196,9 @@ def run_analytics() -> dict:
 
     Returns:
         ほかのテストと同じ形の結果の dict
+
+    Args:
+        なし。
     """
     name = "分析ダッシュボード（pytest）"
     analytics = ROOT / "analytics"
@@ -184,7 +217,14 @@ def run_analytics() -> dict:
 
 
 def run_runner_tests() -> dict:
-    """テストランナーのCLI・結果記録の回帰テストを実行する。"""
+    """テストランナーのCLI・結果記録の回帰テストを実行する。
+
+    Args:
+        なし。
+
+    Returns:
+        unittestの件数・終了コード・診断を含む結果dict。
+    """
     tests_dir = ROOT / "scripts" / "tests"
     code, out, sec = run(
         [sys.executable, "-m", "unittest", "discover", "-s", str(tests_dir)], ROOT
@@ -193,7 +233,14 @@ def run_runner_tests() -> dict:
 
 
 def git_info() -> str:
-    """今のコミット番号と、まだコミットしていない変更があるかを返す。"""
+    """今のコミット番号と、まだコミットしていない変更があるかを返す。
+
+    Args:
+        なし。
+
+    Returns:
+        commit短縮番号。未コミット変更があればその表示も含む。
+    """
     head = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True
     ).stdout.strip()
@@ -232,22 +279,19 @@ def append_log(text: str) -> None:
 
 
 def main() -> int:
-    """テストを実行してログに残す。"""
-    ap = argparse.ArgumentParser(description="自動テストを実行し、テスト実行ログに追加する（何も絞らなければすべて）")
-    ap.add_argument("--note", default="", help="何を変えたか（ログに残す）")
-    ap.add_argument("--no-e2e", action="store_true", help="Playwright の画面テストを省く")
-    ap.add_argument("--no-log", action="store_true", help="ログに残さない")
-    ap.add_argument("--vitest", nargs="+", default=None, metavar="PATH", help="流す Vitest のファイル（frontend/ から見たパス）")
-    ap.add_argument("--e2e", nargs="+", default=None, metavar="PATH", help="流す Playwright のファイル（frontend/ から見たパス）")
-    ap.add_argument("--pytest", nargs="+", default=None, metavar="PATH", help="流す pytest のファイル（backend/ から見たパス）")
-    ap.add_argument("--analytics", action="store_true", help="絞った実行で、分析ダッシュボードのテストも流す")
-    args = ap.parse_args()
+    """選択したテストsuiteを実行し、結果を表示・記録する。
 
-    # 1. E2E の実行対象を指定しながら E2E 全体を省略する矛盾した指定は、黙って無視せず拒否する
-    if args.no_e2e and args.e2e is not None:
-        ap.error("--no-e2e と --e2e は同時に指定できません")
+    Args:
+        なし。CLI引数はparse_arguments()から取得する。
+
+    Returns:
+        全suite成功なら0、失敗があれば1、中断時は130。
+    """
+    # args: CLI引数を検証済みのNamespaceとして保持する。
+    args = parse_arguments()
 
     # 1. CLI引数から実行範囲と省略理由を専用関数で確定する。
+    # selection: 実行対象suite・ログ対象・省略理由をまとめた選択結果。
     selection = select_tests(
         vitest_targets=args.vitest,
         e2e_targets=args.e2e,
@@ -256,37 +300,33 @@ def main() -> int:
         no_e2e=args.no_e2e,
     )
 
-    # 2. 選択されたsuiteを順番に実行し、途中中断でも現在位置を記録できるようにする。
-    suites = [
-        SuiteSpec("TypeScript チェック（tsc）", "TypeScript チェック中…", run_tsc),
-        SuiteSpec("本番ビルド（tsc -b ＋ vite build）", "本番ビルドを確認中…", run_build),
-        SuiteSpec("テストランナー（unittest）", "テストランナーの回帰テスト中…", run_runner_tests),
-    ]
-    if selection.run_vitest:
-        suites.append(SuiteSpec(
-            "フロントのロジック（Vitest）", "Vitest（フロントロジック）を実行中…",
-            lambda: run_vitest(args.vitest),
-        ))
-    if selection.run_playwright:
-        suites.append(SuiteSpec(
-            "画面テスト（Playwright）", "Playwright（画面テスト）を実行中…",
-            lambda: run_playwright(args.e2e),
-        ))
-    if selection.run_pytest:
-        suites.append(SuiteSpec(
-            "バックエンド（pytest）", "pytest（バックエンド）を実行中…",
-            lambda: run_pytest(args.pytest),
-        ))
-    if selection.run_analytics:
-        suites.append(SuiteSpec(
-            "分析ダッシュボード（pytest）", "pytest（分析ダッシュボード）を実行中…", run_analytics,
-        ))
+    # 2. 選択結果とrunner関数から、専用関数でsuite実行計画を作る。
+    # suites: 固定suiteと選択されたoptional suiteを実行順に並べた計画。
+    suites = build_suite_plan(
+        selection,
+        vitest_targets=args.vitest,
+        e2e_targets=args.e2e,
+        pytest_targets=args.pytest,
+        runners=SuiteRunners(
+            tsc=run_tsc,
+            build=run_build,
+            runner_tests=run_runner_tests,
+            vitest=run_vitest,
+            playwright=run_playwright,
+            pytest=run_pytest,
+            analytics=run_analytics,
+        ),
+    )
 
     # 3. 実行順・進捗・中断後の未実行suite記録を専用モジュールへ委ねる。
+    # execution: suiteの結果、省略内容、中断有無を集めた返却値。
     execution = execute_suites(suites, selection.skipped_suites)
+    # results: 実行済みsuiteの結果dictを呼び出し順で保持する。
     results = execution.results
+    # skipped_suites: 初期選択または中断による未実行suiteとその理由。
     skipped_suites = execution.skipped_suites
 
+    # text: 画面表示と必要に応じたファイル追記に使うMarkdown記録。
     text = make_entry(results, args.note, skipped_suites, selection.targets)
     print("\n" + text)
 

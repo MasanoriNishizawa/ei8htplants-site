@@ -66,7 +66,10 @@ beforeEach(() => {
 })
 
 describe('EventSite の写真の前へ・次へ', () => {
-  /** いま表示している写真の URL */
+  /**
+   *  いま表示している写真の URL
+   * @returns 戻り値なし。
+   */
   const currentSrc = () => screen.getByRole('img', { name: 'Green Market' }).getAttribute('src')
 
   beforeEach(() => {
@@ -118,7 +121,10 @@ describe('EventSite の写真の前へ・次へ', () => {
 })
 
 describe('EventSite の保存直後の取り直し（event_dirty_ の印）', () => {
-  /** api.events.get の 2 番目の引数（fetch の指定）の一覧 */
+  /**
+   *  api.events.get の 2 番目の引数（fetch の指定）の一覧
+   * @returns 戻り値なし。
+   */
   const optsOfCalls = () => vi.mocked(api.events.get).mock.calls.map((c) => c[1])
 
   beforeEach(() => {
@@ -182,7 +188,10 @@ describe('EventSite の保存直後の取り直し（event_dirty_ の印）', ()
 })
 
 describe('EventSite の会場の住所', () => {
-  /** 地図（iframe）の src */
+  /**
+   *  地図（iframe）の src
+   * @returns 戻り値なし。
+   */
   const mapSrc = () => screen.getByTitle('会場の地図').getAttribute('src') ?? ''
 
   it('page_content.venue.address があればそれを表示し、地図もその住所で出す（event.address より優先）', async () => {
@@ -220,7 +229,10 @@ describe('EventSite の会場の住所', () => {
 })
 
 describe('EventSite の写真が読み込めないとき', () => {
-  /** 読み込みに失敗させる写真の img */
+  /**
+   *  読み込みに失敗させる写真の img
+   * @returns 戻り値なし。
+   */
   const photo = () => screen.getByRole('img', { name: 'Green Market' })
 
   beforeEach(() => {

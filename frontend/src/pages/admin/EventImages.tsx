@@ -69,6 +69,7 @@ export default function AdminEventImages() {
    * 3. 失敗したらそのカードに失敗メッセージを出し、最後に保存中を解除する
    * @param url - 画像の URL
    * @param index - 通し番号（1始まり）
+   * @returns 戻り値なし。
    */
   const handleDownload = async (url: string, index: number) => {
     if (!event) return

@@ -15,14 +15,17 @@ import { useApi } from '../useApi'
  * @returns promise と resolve・reject
  */
 function deferred<T>() {
+  // テストから Promise を完了・失敗させるための制御関数
   let resolve!: (v: T) => void
   let reject!: (e: unknown) => void
+  // 外部から制御できる Promise 本体
   const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
   return { promise, resolve, reject }
 }
 
 describe('useApi', () => {
   it('最初は loading が true で、取得できると data が入り loading が false になる', async () => {
+    // useApi の現在値を検査するレンダリング結果
     const { result } = renderHook(() => useApi(() => Promise.resolve(['a']), []))
     expect(result.current.loading).toBe(true)
     expect(result.current.data).toBeNull()
@@ -32,6 +35,7 @@ describe('useApi', () => {
   })
 
   it('取得に失敗すると data は null・error にエラーが入る（Error でない値も Error にする）', async () => {
+    // 失敗時のフック状態を検査するレンダリング結果
     const { result } = renderHook(() => useApi(() => Promise.reject('通信エラー'), []))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.data).toBeNull()
@@ -60,7 +64,9 @@ describe('useApi', () => {
   })
 
   it('切り替え前の古いリクエストが後から失敗しても error にならない', async () => {
+    // id ごとの通信結果をテストから制御する Promise
     const pending = { old: deferred<string>(), new: deferred<string>() }
+    // 古いリクエストの後着失敗を検査するフック結果と再描画関数
     const { result, rerender } = renderHook(({ id }: { id: 'old' | 'new' }) => useApi(() => pending[id].promise, [id]), {
       initialProps: { id: 'old' as 'old' | 'new' },
     })
@@ -72,7 +78,9 @@ describe('useApi', () => {
   })
 
   it('取り直しのあいだは直前のデータを残したまま loading が true になる', async () => {
+    // 2回目のリクエストを任意の時点で完了させる Promise
     const second = deferred<string>()
+    // 各回の応答を切り替えて返す取得関数
     const fetcher = vi.fn<(id: number) => Promise<string>>()
       .mockResolvedValueOnce('1回目')
       .mockReturnValueOnce(second.promise)
@@ -86,14 +94,18 @@ describe('useApi', () => {
   })
 
   it('enabled が false のときは取得せず、data: null・loading: false・error: null のままになる', () => {
+    // 呼び出されたかを数える取得関数
     const fetcher = vi.fn(() => Promise.resolve('x'))
+    // 無効時の状態を検査するフック結果
     const { result } = renderHook(() => useApi(fetcher, [], { enabled: false }))
     expect(fetcher).not.toHaveBeenCalled()
     expect(result.current).toMatchObject({ data: null, loading: false, error: null })
   })
 
   it('reload を呼ぶともう一度取得する', async () => {
+    // 初回と再取得で異なる値を返す取得関数
     const fetcher = vi.fn<() => Promise<number>>().mockResolvedValueOnce(1).mockResolvedValueOnce(2)
+    // reload 前後の値を検査するフック結果
     const { result } = renderHook(() => useApi(fetcher, []))
     await waitFor(() => expect(result.current.data).toBe(1))
     act(() => result.current.reload())
@@ -102,7 +114,9 @@ describe('useApi', () => {
   })
 
   it('画面を離れたあと（アンマウント後）に応答が届いても例外にならない', async () => {
+    // アンマウント後に遅れて応答させる Promise
     const d = deferred<string>()
+    // 画面から取り外すための関数
     const { unmount } = renderHook(() => useApi(() => d.promise, []))
     unmount()
     await act(async () => { d.resolve('遅れた応答') })

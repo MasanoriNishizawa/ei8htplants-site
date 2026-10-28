@@ -73,6 +73,7 @@ export function hasAdminSession(storage: Storage): boolean {
   try {
     // 1. 保存されているキーを順に見て、Supabase のログイン情報のキーで値が空でないものがあるか調べる
     for (let i = 0; i < storage.length; i++) {
+      // 現在確認している保存領域のキー
       const key = storage.key(i)
       if (key && SUPABASE_SESSION_KEY.test(key) && storage.getItem(key)) return true
     }
@@ -87,6 +88,7 @@ export function hasAdminSession(storage: Storage): boolean {
  * このブラウザでの GA4 への送信をまとめて止める・再開する（Google 公式のオプトアウトの仕組み）。
  * ページビューだけでなく、タグを読み込んだ後に GA が自動で送るスクロール・クリックなどの計測も止まる
  * @param disabled - true で送信を止める、false で再開する
+ * @returns なし
  */
 export function setAnalyticsDisabled(disabled: boolean): void {
   // gtag.js は window['ga-disable-測定ID'] が true のあいだ送信しない
@@ -107,6 +109,7 @@ export function sanitizeSearch(search: string): string {
   params.forEach((value, key) => {
     if (ALLOWED_QUERY_KEYS.includes(key) || key.startsWith('utm_')) kept.append(key, value)
   })
+  // フィルター後のクエリ文字列
   const q = kept.toString()
   return q ? `?${q}` : ''
 }
@@ -114,6 +117,7 @@ export function sanitizeSearch(search: string): string {
 /**
  * GA4 のタグ（gtag.js）を読み込み、初期設定をする。2回目以降の呼び出しは何もしない
  * （ページの <head> に script 要素を 1 つ足す）
+ * @returns なし
  */
 export function loadGtag(): void {
   if (loaded) return
@@ -144,6 +148,7 @@ export function loadGtag(): void {
  * @param pathname - URL のパス
  * @param search - URL のクエリ文字列（例: "?id=123"）。送ってよいものだけ残して送る
  * @param title - ページタイトル
+ * @returns なし
  */
 export function trackPageView(pathname: string, search: string, title: string): void {
   if (!window.gtag || isExcludedPath(pathname)) return

@@ -6,6 +6,7 @@ import pytest
 from app.routes import seo_structured_data as structured
 
 
+# 変数の内容: BASE_EVENT: イベント API の基本テストデータ、JSON_LD_OPTIONS: 構造化データ生成のテスト設定。
 BASE_EVENT = {
     'id': 'event-1',
     'name': 'Plant Market',
@@ -16,6 +17,7 @@ BASE_EVENT = {
     'address': '東京都渋谷区',
     'image_urls': ['https://cdn.example.com/plant.jpg'],
 }
+# JSON_LD_OPTIONS: 構造化データの出力で使う既定のサイト情報。
 JSON_LD_OPTIONS = {
     'description': '植物の市',
     'url': 'https://ei8htplants.com/official/events/plant-market',
@@ -37,6 +39,14 @@ class TestParseDate:
         (20261103, None),
     ])
     def test_ISO日付の先頭を読み取り不正値はNoneにする(self, value, expected):
+        """ISO日付の先頭を読み取り不正値はNoneにすることを確認する。
+
+        引数:
+            value: 設定キーに保存する値。
+            expected: 検証する期待値。
+
+        戻り値:
+            なし。"""
         assert structured.parse_date(value) == expected
 
 
@@ -52,6 +62,15 @@ class TestFormatDateLabel:
         ('invalid', '2026-11-04', ''),
     ])
     def test_開催日を同月または別月の表記にして開始日不正は空にする(self, start, end, expected):
+        """開催日を同月または別月の表記にして開始日不正は空にすることを確認する。
+
+        引数:
+            start: 期間の開始日時。
+            end: 期間の終了日時。
+            expected: 検証する期待値。
+
+        戻り値:
+            なし。"""
         assert structured.format_date_label(start, end) == expected
 
 
@@ -65,6 +84,14 @@ class TestTimesIn:
         ('', []),
     ])
     def test_時刻をゼロ埋めして範囲外や時刻のない文字列を除外する(self, text, expected):
+        """時刻をゼロ埋めして範囲外や時刻のない文字列を除外することを確認する。
+
+        引数:
+            text: 検証対象のテキスト。
+            expected: 検証する期待値。
+
+        戻り値:
+            なし。"""
         assert structured.times_in(text) == expected
 
 
@@ -72,6 +99,11 @@ class TestEventDescription:
     """イベント本文からSEO向けの説明文を組み立てる。"""
 
     def test_heroとconceptを順に連結して改行や余分な空白を一つにまとめる(self):
+        """heroとconceptを順に連結して改行や余分な空白を一つにまとめることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: event: 処理対象のイベント。
         event = {'page_content': {
             'hero': {'tagline': ' 葉の色 ', 'subtitle': '朝の光\nを楽しむ'},
             'concept': '植物と暮らす',
@@ -79,13 +111,27 @@ class TestEventDescription:
         assert structured.event_description(event, default_description='既定説明') == '葉の色 朝の光 を楽しむ 植物と暮らす'
 
     def test_説明が無ければ開催日と会場を使う(self):
+        """説明が無ければ開催日と会場を使うことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: event: 処理対象のイベント。
         event = {'start_date': '2026-11-03', 'end_date': '2026-11-04', 'location': '代々木公園'}
         assert structured.event_description(event, default_description='既定説明') == '2026年11月3日〜4日 / 代々木公園'
 
     def test_本文も開催情報も無ければ既定文を返す(self):
+        """本文も開催情報も無ければ既定文を返すことを確認する。
+
+        戻り値:
+            なし。"""
         assert structured.event_description({}, default_description='イベント情報') == 'イベント情報'
 
     def test_説明を指定上限に切り詰めて末尾に省略記号を付ける(self):
+        """説明を指定上限に切り詰めて末尾に省略記号を付けることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: event: 処理対象のイベント。
         event = {'page_content': {'concept': '  植物と暮らす時間  '}}
         assert structured.event_description(event, default_description='既定', description_max_len=6) == '植物と暮ら…'
 
@@ -94,12 +140,25 @@ class TestEventJsonLd:
     """Event JSON-LD の必須情報、fallback、複数画像の上限を確認する。"""
 
     def test_開始日を読めない場合はEventを返さない(self):
+        """開始日を読めない場合はEventを返さないことを確認する。
+
+        戻り値:
+            なし。"""
         assert structured.event_json_ld({**BASE_EVENT, 'start_date': 'invalid'}, **JSON_LD_OPTIONS) is None
 
     def test_住所が無い場合はEventを返さない(self):
+        """住所が無い場合はEventを返さないことを確認する。
+
+        戻り値:
+            なし。"""
         assert structured.event_json_ld({**BASE_EVENT, 'address': '  '}, **JSON_LD_OPTIONS) is None
 
     def test_不正な終了日は開始日に置き換え住所はvenueから補う(self):
+        """不正な終了日は開始日に置き換え住所はvenueから補うことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: event: 処理対象のイベント、ld: JSON-LD の構造化データ。
         event = {
             **BASE_EVENT,
             'end_date': 'invalid',
@@ -115,27 +174,48 @@ class TestEventJsonLd:
         assert ld['location']['address']['streetAddress'] == '大阪府大阪市'
 
     def test_daily_timesが辞書以外ならイベント共通の時刻を使う(self):
+        """daily timesが辞書以外ならイベント共通の時刻を使うことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: event: 処理対象のイベント、ld: JSON-LD の構造化データ。
         event = {**BASE_EVENT, 'daily_times': ['10:00〜17:00']}
         ld = structured.event_json_ld(event, **JSON_LD_OPTIONS)
         assert ld is not None
         assert (ld['startDate'], ld['endDate']) == ('2026-11-03T10:00:00+09:00', '2026-11-04T17:00:00+09:00')
 
     def test_日別時間帯があればイベント共通時刻より優先する(self):
+        """日別時間帯があればイベント共通時刻より優先することを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: event: 処理対象のイベント、ld: JSON-LD の構造化データ。
         event = {**BASE_EVENT, 'daily_times': {'2026-11-03': '09:30〜12:30', '2026-11-04': '13:00〜16:15'}}
         ld = structured.event_json_ld(event, **JSON_LD_OPTIONS)
         assert ld is not None
         assert (ld['startDate'], ld['endDate']) == ('2026-11-03T09:30:00+09:00', '2026-11-04T16:15:00+09:00')
 
     def test_画像が無ければ既定画像を使い最大5枚までに制限する(self):
+        """画像が無ければ既定画像を使い最大5枚までに制限することを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: images: 対象画像の一覧、ld: JSON-LD の構造化データ。
         images = [f'https://cdn.example.com/{index}.jpg' for index in range(7)]
         ld = structured.event_json_ld({**BASE_EVENT, 'image_urls': images}, **JSON_LD_OPTIONS)
         assert ld is not None
         assert ld['image'] == images[:5]
+        # 変数の内容: fallback: 該当値が無い場合に使う代替値。
         fallback = structured.event_json_ld({**BASE_EVENT, 'image_urls': []}, **JSON_LD_OPTIONS)
         assert fallback is not None
         assert fallback['image'] == [JSON_LD_OPTIONS['default_image']]
 
     def test_組織情報とページ固有情報をJSON_LDに入れる(self):
+        """組織情報とページ固有情報をJSON LDに入れることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: ld: JSON-LD の構造化データ。
         ld = structured.event_json_ld(BASE_EVENT, **JSON_LD_OPTIONS)
         assert ld is not None
         assert ld['@context'] == 'https://schema.org'
@@ -147,6 +227,10 @@ class TestEventJsonLd:
 
 
 def test_Organizationのサイト名URLロゴを引数から作る():
+    """Organizationのサイト名URLロゴを引数から作ることを確認する。
+
+    戻り値:
+        なし。"""
     assert structured.organization_json_ld(
         site_name='HUE by ei8ht plants',
         site_origin='https://huebyei8htplants.com',

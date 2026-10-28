@@ -13,6 +13,7 @@ from ..auth import optional_auth, require_auth
 from ..db import admin_supabase
 from ..db_utils import execute_or_404, fetch_one_or_404, fetch_one_or_none, first_or_404
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/articles', tags=['articles'])
 
 
@@ -60,8 +61,10 @@ def list_articles(all: bool = False, is_admin: bool = Depends(optional_auth)) ->
     """
     if all and not is_admin:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('articles').select('*').order('display_order').order('created_at', desc=True)
     if not all:
+        # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('is_published', True)
     return q.execute().data
 
@@ -80,8 +83,10 @@ def get_article(article_id: str, is_admin: bool = Depends(optional_auth)) -> dic
     Raises:
         HTTPException(404): 記事が無い・未ログインで非公開の記事を指定した場合
     """
+    # 変数の内容: q: DB テーブルに対するクエリ。
     q = admin_supabase.table('articles').select('*').eq('id', article_id)
     if not is_admin:
+        # 変数の内容: q: DB テーブルに対するクエリ。
         q = q.eq('is_published', True)
     return fetch_one_or_404(q)
 
@@ -96,6 +101,7 @@ def create_article(body: ArticleBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した記事の行
     """
+    # 変数の内容: payload: DB に保存する値。
     payload = body.model_dump()
     if payload['is_published']:
         payload['published_at'] = _now_iso()
@@ -116,6 +122,7 @@ def update_article(article_id: str, body: ArticleBody, _=Depends(require_auth)) 
     Raises:
         HTTPException(404): 記事が存在しない場合
     """
+    # 変数の内容: existing: 既に保存されている値、payload: DB に保存する値。
     payload = body.model_dump()
     existing = fetch_one_or_none(admin_supabase.table('articles').select('is_published, published_at').eq('id', article_id))
     if payload['is_published'] and existing and not existing.get('published_at'):

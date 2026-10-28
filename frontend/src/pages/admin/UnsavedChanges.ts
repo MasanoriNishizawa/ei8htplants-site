@@ -110,6 +110,7 @@ export function useUnsavedChanges(isDirty: boolean): void {
     /**
      * 再読み込み・タブを閉じる直前に呼ばれ、ブラウザの確認ダイアログを出させる
      * @param e - ページを離れる直前のイベント
+     * @returns 戻り値なし。
      */
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
@@ -152,7 +153,11 @@ export function useEscapeToClose(open: boolean, onEscape: () => void): void {
   useEffect(() => {
     // 1. 開いているときだけ聞く
     if (!open) return
-    /** Esc が押されたときの処理 */
+    /**
+     *  Esc が押されたときの処理
+     * @param e - 発生したイベントまたはエラー
+     * @returns 戻り値なし。
+     */
     const onKeyDown = (e: KeyboardEvent) => {
       // 2. 変換中・受け取り済みの Esc は無視する
       if (e.key !== 'Escape' || e.isComposing || e.defaultPrevented) return

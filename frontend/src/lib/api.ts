@@ -84,10 +84,12 @@ export class ApiError extends Error {
  * @returns 成功した Response
  */
 async function fetchOk(path: string, options?: RequestInit): Promise<Response> {
+  // 呼び出し側の追加ヘッダーと、それ以外の fetch 設定を分ける
   const { headers: optHeaders, ...restOptions } = options ?? {}
   // 2. FormData を送るかどうか
   const isFormData = typeof FormData !== 'undefined' && restOptions.body instanceof FormData
   // 1. 2. キャッシュの指定とヘッダーを付けて送る
+  // API サーバーから返る HTTP 応答
   const res = await fetch(`${BASE}${path}`, {
     ...(isAdminPage() ? { cache: 'no-store' } : {}),
     headers: { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...optHeaders },
@@ -100,6 +102,7 @@ async function fetchOk(path: string, options?: RequestInit): Promise<Response> {
     // サーバーが返した detail（無ければ null）
     let detail: unknown = null
     try {
+      // FastAPI が返した detail を持つ JSON 本文
       const body: { detail?: unknown } = await res.json()
       if (body.detail) {
         detail = body.detail
@@ -118,6 +121,7 @@ async function fetchOk(path: string, options?: RequestInit): Promise<Response> {
  * @returns 応答の JSON
  */
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // 成功応答を取得して JSON に変換する
   const res = await fetchOk(path, options)
   return res.json()
 }
@@ -135,6 +139,7 @@ async function getAccessToken(): Promise<string> {
   // Supabase のクライアント（約 200KB）はログインが必要な呼び出しでだけ使うので、ここで初めて読み込む。
   // 先頭で import すると、公開サイトだけを見る人も最初に読み込むことになり表示が遅くなるため
   const { supabase } = await import('./supabase')
+  // Supabase が保持している現在のログインセッション
   const { data } = await (supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }))
   // 1. ログイン中ならそのトークン
   const token = data.session?.access_token
@@ -152,6 +157,7 @@ async function getAccessToken(): Promise<string> {
  * @returns 成功した Response
  */
 async function authFetchOk(path: string, options?: RequestInit): Promise<Response> {
+  // Authorization ヘッダーに使う現在のログイントークン
   const token = await getAccessToken()
   return fetchOk(path, {
     ...options,
@@ -166,6 +172,7 @@ async function authFetchOk(path: string, options?: RequestInit): Promise<Respons
  * @returns 応答の JSON
  */
 async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  // 認証済みの成功応答
   const res = await authFetchOk(path, options)
   return res.json()
 }
@@ -176,6 +183,7 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
  * @returns 応答の本文（テキスト）
  */
 async function authRequestText(path: string): Promise<string> {
+  // 認証済みの成功応答
   const res = await authFetchOk(path)
   return res.text()
 }
@@ -190,7 +198,9 @@ async function uploadFile(path: string, file: File): Promise<string> {
   // 送るファイルを file という名前で入れる（サーバーの受け取り名と同じ）
   const form = new FormData()
   form.append('file', file)
+  // アップロード API の成功応答
   const res = await authFetchOk(path, { method: 'POST', body: form })
+  // Storage に保存したファイルの公開 URL
   const { url } = await res.json()
   return url
 }
@@ -202,6 +212,7 @@ export const api = {
    * @returns unreadContacts: 未読の問い合わせ数、activeEvents: 開催前・開催中のイベント数、pendingOrders: 支払い済み・未発送の注文数
    */
   stats: async (): Promise<{ unreadContacts: number; activeEvents: number; pendingOrders: number }> => {
+    // ダッシュボードの各指標に必要なデータを並行して取得する
     const [contacts, events, orders] = await Promise.all([
       authRequest<ContactRecord[]>('/contacts'),
       request<Event[]>('/events?past=false'),
@@ -270,6 +281,7 @@ export const api = {
      * @returns イベントごとの管理情報の一覧
      */
     getAdminInfoDashboard: async (): Promise<AdminInfoDashboardItem[]> => {
+      // ダッシュボードに表示する管理情報の一覧
       const res = await authRequest<{ items: AdminInfoDashboardItem[] }>('/events/admin-info/dashboard')
       return res.items
     },

@@ -32,6 +32,7 @@ export const LangCtx = createContext<LangCtxType>({ lang: 'ja', toggle: () => {}
  */
 export function initialLang(): Lang {
   try {
+    // 前回保存した言語設定
     const saved = localStorage.getItem(LANG_STORAGE_KEY)
     if (saved === 'ja' || saved === 'en') return saved
     return navigator.language.startsWith('ja') ? 'ja' : 'en'

@@ -16,6 +16,7 @@ export type { CartItem } from './cartContext'
  * @throws CartProvider の外で使ったとき
  */
 export function useCart(): CartContext {
+  // Context の値が存在するかを Provider の設置確認と合わせて読む
   const ctx = useContext(CartCtx)
   if (!ctx) throw new Error('useCart must be used within CartProvider')
   return ctx

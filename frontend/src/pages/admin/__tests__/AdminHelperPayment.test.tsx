@@ -17,6 +17,7 @@ vi.mock('../../../lib/api', async (importActual) => {
   }
 })
 
+// 年度別集計のテストで共通して使う収支の初期値
 const BASE_FIN = {
   id: '',
   booth_fee: 0,
@@ -31,6 +32,7 @@ const BASE_FIN = {
   notes: null,
 }
 
+// 支払い状態・開催年・イベントの種別を分けて検証するイベントデータ
 const EVENTS = [
   { id: 'e1', start_date: '2025-06-01', name: 'Summer Market', has_workshop: false, is_past: true },
   { id: 'e2', start_date: '2025-09-15', name: 'Autumn Pop-up', has_workshop: false, is_past: true },
@@ -38,6 +40,7 @@ const EVENTS = [
   { id: 'e4', start_date: '2025-07-20', name: 'No Payment Event', has_workshop: false, is_past: true },
 ]
 
+// 上記イベントに対応する売上・出店料のテストデータ
 const FINANCES = [
   { ...BASE_FIN, id: 'f1', event_id: 'e1', sales: 100000, booth_fee: 20000, payment_flag: true },
   { ...BASE_FIN, id: 'f2', event_id: 'e2', sales: 50000, payment_flag: true },

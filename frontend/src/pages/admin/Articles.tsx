@@ -94,6 +94,7 @@ export default function AdminArticles() {
    * @param target - 編集する記事か 'new'
    * @param nextForm - フォームの初期値
    * @param nextBlocks - 本文のブロックの初期値
+   * @returns 戻り値なし。
    */
   const openModal = (target: Article | 'new', nextForm: ArticleBody, nextBlocks: Block[]) => {
     setEditing(target)
@@ -103,11 +104,15 @@ export default function AdminArticles() {
     setSaveError('')
     setInitialSnapshot(snapshotOf(nextForm, nextBlocks, ''))
   }
-  /** 新規作成のモーダルを開く（表示順は今の件数） */
+  /**
+   *  新規作成のモーダルを開く（表示順は今の件数）
+   * @returns 戻り値なし。
+   */
   const openNew = () => openModal('new', { ...BLANK, display_order: articles.length }, [])
   /**
    * 既存の記事の編集モーダルを開く
    * @param a - 編集する記事
+   * @returns 戻り値なし。
    */
   const openEdit = (a: Article) => openModal(
     a,
@@ -122,9 +127,15 @@ export default function AdminArticles() {
     },
     parseBlocks(a.content),
   )
-  /** モーダルを閉じて入力を捨てる */
+  /**
+   *  モーダルを閉じて入力を捨てる
+   * @returns 戻り値なし。
+   */
   const close = () => { setEditing(null); setForm(BLANK); setBlocks([]); setSaveError('') }
-  /** モーダルの外側のクリック・「キャンセル」ボタン・Esc で閉じるとき。保存中は閉じず、変更があれば確認してから閉じる */
+  /**
+   *  モーダルの外側のクリック・「キャンセル」ボタン・Esc で閉じるとき。保存中は閉じず、変更があれば確認してから閉じる
+   * @returns 戻り値なし。
+   */
   const closeByBackdrop = () => {
     if (saving) return
     if (confirmDiscard(isDirty)) close()
@@ -137,11 +148,15 @@ export default function AdminArticles() {
    * フォームの1項目を書き換える
    * @param k - 項目名
    * @param v - 新しい値
+   * @returns 戻り値なし。
    */
   const set = <K extends keyof ArticleBody>(k: K, v: ArticleBody[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
 
-  /** タグの入力欄の値を form.tags に足す（空・重複は足さない） */
+  /**
+   *  タグの入力欄の値を form.tags に足す（空・重複は足さない）
+   * @returns 戻り値なし。
+   */
   const addTag = () => {
     /** 前後の空白を除いたタグ */
     const t = tagInput.trim()
@@ -151,12 +166,14 @@ export default function AdminArticles() {
   /**
    * タグを外す
    * @param t - 外すタグ
+   * @returns 戻り値なし。
    */
   const removeTag = (t: string) => set('tags', form.tags.filter((x) => x !== t))
 
   /**
    * 関連商品の選択を切り替える
    * @param id - 商品の id
+   * @returns 戻り値なし。
    */
   const toggleProduct = (id: string) => {
     /** 今選んでいる商品の id */
@@ -169,6 +186,7 @@ export default function AdminArticles() {
    * 1. ブロックエディタから画像 URL を取り出して image_urls にも入れる（後方互換）
    * 2. 新規なら作成、既存なら更新し、一覧に反映してモーダルを閉じる
    * 3. 失敗したらモーダルを開いたまま（入力は残る）エラーを出す
+   * @returns 戻り値なし。
    */
   const handleSave = async () => {
     setSaving(true)
@@ -197,6 +215,7 @@ export default function AdminArticles() {
   /**
    * 記事を削除する（確認のあと）。失敗したら一覧に残したままエラーを出す
    * @param a - 削除する記事
+   * @returns 戻り値なし。
    */
   const handleDelete = async (a: Article) => {
     if (!confirm(`「${a.title}」を削除しますか？`)) return
@@ -215,6 +234,7 @@ export default function AdminArticles() {
   /**
    * 一覧から直接公開状態を切り替える（モーダルを開かずに切り替え可能）。失敗したら表示は元のままエラーを出す
    * @param a - 切り替える記事
+   * @returns 戻り値なし。
    */
   const togglePublish = async (a: Article) => {
     setBusyId(a.id)

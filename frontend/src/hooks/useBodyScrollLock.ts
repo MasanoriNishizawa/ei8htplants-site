@@ -10,6 +10,7 @@ let savedOverflow = ''
  * 参照カウント式なので、メニューを開いたまま写真を拡大するなど複数の部品が同時に止めても、
  * 最後の 1 つが閉じるまでスクロールは止まったままになり、途中で勝手に解除されない
  * @param active - true のあいだスクロールを止める
+ * @returns なし。効果の解除処理は React Effect が管理する
  */
 export function useBodyScrollLock(active: boolean): void {
   useEffect(() => {

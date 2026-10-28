@@ -22,5 +22,11 @@ export function useLang(): LangCtxType { return useContext(LangCtx) }
  */
 export function useT() {
   const { lang } = useLang()
+  /**
+   * 現在の表示言語に合わせて日本語または英語の値を選ぶ。
+   * @param ja - 日本語で表示する値
+   * @param en - 英語で表示する値
+   * @returns 現在の言語に対応する値
+   */
   return function t<T>(ja: T, en: T): T { return lang === 'ja' ? ja : en }
 }

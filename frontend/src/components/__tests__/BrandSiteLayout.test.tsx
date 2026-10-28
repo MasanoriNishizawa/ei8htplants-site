@@ -22,6 +22,12 @@ beforeEach(() => {
   }))
 })
 
+/**
+ * 指定ブランドのページを専用レイアウト内に描画するテスト用ヘルパー。
+ * @param site - 描画するブランドのサイト設定
+ * @param page - ブランドのトップページ要素
+ * @returns レンダリング結果
+ */
 function renderBrand(site: typeof habitatOidesSite | typeof hueSite, page: React.ReactNode) {
   localStorage.setItem('site-lang', 'ja')
   return render(

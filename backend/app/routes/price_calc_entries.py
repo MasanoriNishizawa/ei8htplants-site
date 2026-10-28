@@ -11,6 +11,7 @@ from ..auth import require_auth
 from ..db import admin_supabase
 from ..db_utils import execute_or_404
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/price-calc-entries', tags=['price_calc_entries'])
 
 
@@ -37,6 +38,9 @@ def list_entries(_=Depends(require_auth)) -> list[dict]:
 
     Returns:
         記録の行のリスト
+
+    Args:
+        _: 認証依存として注入される値（この関数では使用しません）。
     """
     return admin_supabase.table('price_calc_entries').select('*').order('created_at', desc=True).execute().data
 

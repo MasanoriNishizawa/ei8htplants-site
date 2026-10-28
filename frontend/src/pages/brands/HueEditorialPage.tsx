@@ -7,6 +7,7 @@ import { useHueImages } from '../../sites/hue/useHueImages'
 
 type HueEditorialPageKind = 'about' | 'choose' | 'living'
 
+// HUE の各編集ページで使う日本語・英語の見出しと本文
 const PAGE_COPY = {
   about: {
     title: ['HUEについて', 'ABOUT HUE'],
@@ -52,12 +53,18 @@ const PAGE_COPY = {
   },
 } as const
 
+// 各編集ページの末尾に表示する次に読むページのリンク
 const NEXT_PAGE: Record<HueEditorialPageKind, { href: string; ja: string; en: string }> = {
   about: { href: '/choose', ja: '一鉢の選び方', en: 'Choosing a plant' },
   choose: { href: '/living', ja: '植物のある部屋', en: 'Plants at home' },
   living: { href: '/about', ja: 'HUEについて', en: 'About HUE' },
 }
 
+/**
+ * 指定された HUE の編集ページを表示する。
+ * @param page - 表示するページの種別
+ * @returns `page` で指定された HUE 編集ページの React 要素。
+ */
 export default function HueEditorialPage({ page }: { page: HueEditorialPageKind }) {
   const t = useT()
   const images = useHueImages()
@@ -95,6 +102,7 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
         description={t(content.intro[0], content.intro[1])}
         ogImage="/img/logo-hue.png"
       />
+      {/* ページの見出し、概要、代表写真 */}
       <header className={`hue-subpage-hero hue-subpage-hero--${page}`}>
         <div className="hue-subpage-copy" data-hue-reveal="rise">
           <p className="hue-overline">HUE by ei8ht plants <span> / {page === 'about' ? '01' : page === 'choose' ? '02' : '03'}</span></p>
@@ -109,6 +117,7 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
         <span className="hue-subpage-index" aria-hidden="true">0{page === 'about' ? '1' : page === 'choose' ? '2' : '3'}</span>
       </header>
 
+      {/* ページ種別ごとの編集記事 */}
       <section className="hue-subpage-content" id="hue-subpage-content">
         <div className="hue-section-label" data-hue-reveal="rise"><span>01</span><span>{t(content.sectionTitle[0], content.sectionTitle[1])}</span></div>
         <div className="hue-subpage-entries">
@@ -128,6 +137,7 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
         </div>
       </section>
 
+      {/* HUE トップと次の編集ページへの移動 */}
       <nav className="hue-subpage-next" aria-label={t('次のページ', 'Next page')}>
         <Link to="/">{t('HUE トップへ戻る', 'BACK TO HUE HOME')} <span>↗</span></Link>
         <Link to={next.href}><small>{t('次に読む', 'NEXT')}</small>{t(next.ja, next.en)} <span>→</span></Link>

@@ -54,15 +54,16 @@ function renderEmptyRow(index: number): string {
 
 /**
  * セッション別・日付別にグループ化して印刷用 HTML を新規ウィンドウに書き出し、自動印刷する
- * @param rows - 印刷対象の予約一覧
- * @param eventName - 印刷タイトルに使用するイベント名
- * @param sessionsData - セッション ID をキーにしたセッション情報マップ
- * @param event - セッション・日付グループ表示に使用するイベント情報（null の場合はフラット表示）
  * 1. 印刷用のウィンドウを開く（ポップアップが止められたら何もしない）
  * 2. イベントを選んでいてセッションがあれば、日付 → セッションの順に見出しを入れ、各セッションに予約と空き枠を並べる。
  *    どのセッションにも入らなかった予約は最後に「セッション未指定」としてまとめる
  * 3. それ以外は予約を順に並べるだけにする
  * 4. HTML を書き出し、読み込みが終わったら印刷ダイアログを出す
+ * @param rows - 印刷対象の予約一覧
+ * @param eventName - 印刷タイトルに使用するイベント名
+ * @param sessionsData - セッション ID をキーにしたセッション情報マップ
+ * @param event - セッション・日付グループ表示に使用するイベント情報（null の場合はフラット表示）
+ * @returns 戻り値なし。
  */
 function printReservations(
   rows: ReservationWithTime[],
@@ -150,6 +151,7 @@ function printReservations(
   <meta charset="utf-8">
   <title>${escapeHtml(eventName)} — WS予約一覧</title>
   <style>
+    /* 印刷ページ全体の余白・文字と、予約一覧表の見出し・行・集計欄を整える */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif; font-size: 11px; color: #1a1a1a; padding: 16px 20px; }
     h1 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
@@ -163,6 +165,7 @@ function printReservations(
     tr.session-header td { background: #e8e8f0; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; border: 1px solid #b0b0c8; }
     tr.empty-row td { background: #fafafa; height: 28px; border: 1px dashed #ccc; }
     .summary { margin-top: 12px; font-size: 11px; color: #444; }
+    /* 印刷時は A4 横向きにし、用紙端に 10mm の余白を設ける */
     @media print { @page { size: A4 landscape; margin: 10mm; } }
   </style>
 </head>
@@ -313,6 +316,7 @@ export default function AdminReservations() {
    * （満席で戻せない 409 は専用の文言にする）
    * @param id - 予約の id
    * @param status - 新しいステータス
+   * @returns 戻り値なし。
    */
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id)
@@ -336,6 +340,7 @@ export default function AdminReservations() {
    * 当日参加の時間枠を読み込む（選択と人数は初期化する）。失敗したらモーダルの中にエラーを出す
    * @param eventId - イベントの id
    * @param date - 参加日（YYYY-MM-DD）
+   * @returns 戻り値なし。
    */
   const fetchWalkinSessions = (eventId: string, date: string) => {
     setWalkinSessions([])
@@ -350,7 +355,10 @@ export default function AdminReservations() {
       .finally(() => setWalkinSessionsLoading(false))
   }
 
-  /** 当日参加のモーダルを開く。今日開催のイベントが1つだけなら自動で選び、その時間枠を読み込む */
+  /**
+   *  当日参加のモーダルを開く。今日開催のイベントが1つだけなら自動で選び、その時間枠を読み込む
+   * @returns 戻り値なし。
+   */
   const openWalkin = () => {
     /** 今日の日付（日本時間。当日参加の参加日にする） */
     const today = todayJst()
@@ -380,6 +388,7 @@ export default function AdminReservations() {
   /**
    * 当日参加のイベントを選び直したとき、その時間枠を読み込み直す
    * @param eventId - 選んだイベントの id
+   * @returns 戻り値なし。
    */
   const onWalkinEventChange = (eventId: string) => {
     setWalkinEventId(eventId)
@@ -392,6 +401,7 @@ export default function AdminReservations() {
    * 1. 送る内容を作る（入力のある項目だけ足す）
    * 2. 登録できたら一覧の末尾に足し、モーダルを閉じて入力を初期値に戻す
    * 3. 失敗したら文言を出す
+   * @returns 戻り値なし。
    */
   const submitWalkin = async () => {
     if (!walkinEventId) return
@@ -457,6 +467,7 @@ export default function AdminReservations() {
   /**
    * 「今後の開催」「過去の開催」のタブを切り替える（絞り込みと詳細は初期化）
    * @param past - 過去のタブにするか
+   * @returns 戻り値なし。
    */
   const switchTab = (past: boolean) => {
     setIsPast(past)

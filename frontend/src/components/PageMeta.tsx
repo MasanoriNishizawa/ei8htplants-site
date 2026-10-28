@@ -31,6 +31,7 @@ interface Props {
  * @returns head に移される title・meta・link 要素（React 19 が自動で head に入れる）
  */
 export default function PageMeta({ title, description, ogImage, ogType = 'website' }: Props) {
+  // 現在開いているホストに対応するブランド名と本番 URL を取得する
   const site = siteForHost(window.location.hostname)
   // 1. タイトル・説明文・画像を、指定が無ければ既定の値で決める
   const siteName = site.key === 'ei8htplants' ? DEFAULT_SITE : site.brandName

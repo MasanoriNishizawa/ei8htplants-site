@@ -44,7 +44,10 @@ afterEach(() => {
 })
 
 describe('取扱店の編集ダイアログ（Stockists）', () => {
-  /** 編集ダイアログを開いて返す */
+  /**
+   *  編集ダイアログを開いて返す
+   * @returns 非同期処理の結果を返す Promise。
+   */
   async function openEdit() {
     vi.mocked(api.stockists.list).mockReset().mockResolvedValue([STOCKIST])
     render(<AdminStockists />)
@@ -52,7 +55,10 @@ describe('取扱店の編集ダイアログ（Stockists）', () => {
     return screen.getByRole('dialog', { name: '取扱店を編集' })
   }
 
-  /** 編集ダイアログ（閉じていれば null） */
+  /**
+   *  編集ダイアログ（閉じていれば null）
+   * @returns 戻り値なし。
+   */
   const editDialog = () => screen.queryByRole('dialog', { name: '取扱店を編集' })
 
   it('変更していなければ、幕・Esc・キャンセルのどれでも確認なしに閉じる', async () => {
@@ -122,7 +128,10 @@ describe('取扱店の編集ダイアログ（Stockists）', () => {
 })
 
 describe('問い合わせの返信（Contacts）', () => {
-  /** 返信のモーダルを開いて返す */
+  /**
+   *  返信のモーダルを開いて返す
+   * @returns 非同期処理の結果を返す Promise。
+   */
   async function openReply() {
     vi.mocked(api.contact.list).mockReset().mockResolvedValue([CONTACT])
     render(<AdminContacts />)
@@ -130,7 +139,10 @@ describe('問い合わせの返信（Contacts）', () => {
     return screen.getByRole('dialog')
   }
 
-  /** 返信のモーダル（閉じていれば null） */
+  /**
+   *  返信のモーダル（閉じていれば null）
+   * @returns 戻り値なし。
+   */
   const replyDialog = () => screen.queryByRole('dialog')
 
   it('書きかけでなければ、キャンセル・×・幕・Esc のどれでも確認なしに閉じる', async () => {
@@ -149,7 +161,10 @@ describe('問い合わせの返信（Contacts）', () => {
     expect(confirmSpy).not.toHaveBeenCalled()
   })
 
-  /** 一覧の「返信」をもう一度押してモーダルを返す */
+  /**
+   *  一覧の「返信」をもう一度押してモーダルを返す
+   * @returns 非同期処理の結果を返す Promise。
+   */
   async function openReplyAgain() {
     fireEvent.click(screen.getByRole('button', { name: '返信' }))
     return screen.getByRole('dialog')
@@ -189,7 +204,10 @@ describe('問い合わせの返信（Contacts）', () => {
 })
 
 describe('チャットの Q&A のフォーム（AdminChatQA）', () => {
-  /** 追加のフォームを開く */
+  /**
+   *  追加のフォームを開く
+   * @returns 戻り値なし。
+   */
   async function openAdd() {
     vi.mocked(api.chatQa.list).mockReset().mockResolvedValue([])
     render(<AdminChatQA />)

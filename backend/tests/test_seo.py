@@ -39,7 +39,15 @@ DANGEROUS_NAME = 'Plant <Market> "2026" & \'x\'</script>'
 
 
 def _event(**over) -> dict:
-    """テスト用のイベント行を返す（over で項目を上書きする）。"""
+    """テスト用のイベント行を返し、指定された項目を上書きする。
+
+    Args:
+        over: イベント行に追加または上書きするフィールド。
+
+    Returns:
+        イベント情報をまとめた辞書。
+    """
+    # 変数の内容: ev: テスト用イベントレコード。
     ev = {
         'id': EVENT_ID,
         'slug': 'plant-market',
@@ -57,7 +65,15 @@ def _event(**over) -> dict:
 
 
 def _article(**over) -> dict:
-    """テスト用の公開済み記事の行を返す。"""
+    """テスト用の公開済み記事レコードを返す。
+
+    Args:
+        over: 記事レコードに追加または上書きするフィールド。
+
+    Returns:
+        記事情報をまとめた辞書。
+    """
+    # 変数の内容: a: テスト対象のレコード。
     a = {
         'id': ARTICLE_ID,
         'title': '記事A',
@@ -74,7 +90,15 @@ def _article(**over) -> dict:
 
 
 def _product(**over) -> dict:
-    """テスト用の公開中の商品の行を返す。"""
+    """テスト用の公開商品レコードを返す。
+
+    Args:
+        over: 商品レコードに追加または上書きするフィールド。
+
+    Returns:
+        商品情報をまとめた辞書。
+    """
+    # 変数の内容: p: テストデータの公開商品レコード。
     p = {
         'id': PRODUCT_ID,
         'name': 'アガベ',
@@ -95,11 +119,26 @@ class FakeDB:
     """
 
     def __init__(self, tables=None, errors=None):
+        """指定されたテーブルデータ・例外条件を保持するテスト用 Supabase モックを初期化する。
+
+        引数:
+            tables: テスト用テーブル名の一覧。
+            errors: テストで例外を発生させるテーブル名の集合。"""
+        # 変数の内容: self.calls: モックの呼び出し履歴、self.errors: テスト用の例外一覧、self.tables: DB モックが返すテーブル別データ。
         self.tables = tables or {}
+        # 変数の内容: self.errors: モックが投げるテーブル別の例外。
         self.errors = set(errors or [])
+        # 変数の内容: self.calls: モックの呼び出し履歴。
         self.calls = []
 
     def table(self, name):
+        """指定したテーブル名に対応するクエリモックを返す。
+
+        引数:
+            name: FakeDB から取得するテーブル名。
+
+        戻り値:
+            指定されたテーブル名に対応するクエリモックを返す。"""
         return _FakeQuery(self, name)
 
 
@@ -107,38 +146,95 @@ class _FakeQuery:
     """FakeDB のクエリ1回分。"""
 
     def __init__(self, db, name):
+        """指定されたテーブルデータ・例外条件を保持するテスト用 Supabase モックを初期化する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            name: このクエリモックが参照するテーブル名。"""
+        # 変数の内容: self.db: このクエリが参照する DB モック、self.filters: DB モックへ渡す絞り込み条件、self.name: DB モックのテーブル名。
         self.db = db
+        # 変数の内容: self.name: DB モックのテーブル名。
         self.name = name
+        # 変数の内容: self.filters: DB モックへ渡す絞り込み条件。
         self.filters = {}
 
     def select(self, *a, **k):
+        """select の引数を受け取り、クエリモック自身を返す。
+
+        Args:
+            *a: 選択対象の列など、クエリに渡された位置引数。
+            **k: クエリに渡されたキーワード引数。
+
+        Returns:
+            クエリモック自身。
+        """
         return self
 
     def eq(self, key, value):
+        """テーブル行の絞り込み条件を記録し、連鎖呼び出し用に自身を返す。
+
+        引数:
+            key: 読み書き対象の設定キー。
+            value: 設定キーに保存する値。
+
+        戻り値:
+            eq 条件を記録してクエリモック自身を返す。"""
         self.filters[key] = value
         return self
 
     def limit(self, *a, **k):
+        """取得件数の引数を受け取り、クエリモック自身を返す。
+
+        Args:
+            *a: limit 件数など、クエリに渡された位置引数。
+            **k: クエリに渡されたキーワード引数。
+
+        Returns:
+            クエリモック自身。
+        """
         return self
 
     def order(self, *a, **k):
+        """並び順の引数を受け取り、クエリモック自身を返す。
+
+        Args:
+            *a: 並び替え対象など、クエリに渡された位置引数。
+            **k: 昇順・降順などのキーワード引数。
+
+        Returns:
+            クエリモック自身。
+        """
         return self
 
     def execute(self):
+        """設定したエラーまたは結果を返すクエリ実行関数を作る。
+
+        戻り値:
+            設定した PostgREST 例外またはデータを含む応答を返す。"""
         self.db.calls.append((self.name, dict(self.filters)))
         if self.name in self.db.errors:
             raise RuntimeError(f'{self.name} の読み取りに失敗')
+        # 変数の内容: res: DB クエリの実行結果、rows: DB から取得した行の一覧。
         rows = [
             r for r in self.db.tables.get(self.name, [])
             if all(r.get(k) == v for k, v in self.filters.items())
         ]
         res = MagicMock()
+        # 変数の内容: res.data: モックのクエリ応答に含めるデータ。
         res.data = [dict(r) for r in rows]
         return res
 
 
 def _default_db(**over) -> FakeDB:
-    """イベント・画像・記事・商品が1件ずつ入った FakeDB を返す。"""
+    """イベント・画像・記事・商品が1件ずつ入った FakeDB を返す。
+
+    Args:
+        over: FakeDB の初期データを上書きするテーブル別設定。
+
+    Returns:
+        テスト用データを格納した FakeDB。
+    """
+    # 変数の内容: tables: テスト用テーブルデータ。
     tables = {
         'events': [_event()],
         'event_images': [
@@ -162,7 +258,11 @@ def _default_db(**over) -> FakeDB:
 
 @pytest.fixture(autouse=True)
 def _clear_seo_cache():
-    """各テストの前後でメモリキャッシュを空にする。"""
+    """各テストの前後でメモリキャッシュを空にする。
+
+    Returns:
+        なし。
+    """
     seo.clear_cache()
     yield
     seo.clear_cache()
@@ -173,7 +273,11 @@ def _never_real_db():
     """どのテストでも seo の DB クライアントを空の FakeDB に差し替えておく（本番へ読み取りが飛ばないようにする保険）。
 
     db フィクスチャや各テストの patch はこの内側でさらに差し替える。
+
+    Returns:
+        なし。
     """
+    # 変数の内容: empty: 空の応答または一覧。
     empty = FakeDB()
     with patch.object(seo, 'supabase', empty), patch.object(seo, 'admin_supabase', empty):
         yield
@@ -181,7 +285,12 @@ def _never_real_db():
 
 @pytest.fixture
 def db():
-    """seo の supabase / admin_supabase を FakeDB に差し替える。"""
+    """seo の supabase / admin_supabase を FakeDB に差し替える。
+
+    Returns:
+        なし。
+    """
+    # 変数の内容: fake: テスト用の代替オブジェクト。
     fake = _default_db()
     with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
         yield fake
@@ -193,30 +302,69 @@ needs_dist = pytest.mark.skipif(not HAS_DIST, reason='frontend/dist/index.html �
 
 
 def _head(text: str) -> str:
-    """HTML の <head> 部分を返す。"""
+    """HTML の <head> 部分を返す。
+
+    Args:
+        text: 検証対象のテキスト。
+
+    Returns:
+        str を返す。
+    """
     return text.split('</head>')[0]
 
 
 def _meta(head: str, attr: str, name: str):
-    """<meta {attr}="{name}" content="..."> の content（エスケープを戻した値）を返す。無ければ None。"""
+    """<meta {attr}="{name}" content="..."> の content（エスケープを戻した値）を返す。無ければ None。
+
+    Args:
+        head: 検証対象の HTML head 要素。
+        attr: 検証対象の HTML 属性名。
+        name: meta タグの name 属性値。
+
+    Returns:
+        指定した属性名と値に一致する meta タグの content を返し、見つからない場合は None を返す。
+    """
+    # 変数の内容: m: 正規表現の一致結果または対象モデル。
     m = re.search(rf'<meta {attr}="{re.escape(name)}" content="([^"]*)"', head)
     return html.unescape(m.group(1)) if m else None
 
 
 def _title(head: str) -> str:
-    """<title> の中身（エスケープを戻した値）を返す。"""
+    """<title> の中身（エスケープを戻した値）を返す。
+
+    Args:
+        head: 検証対象の HTML head 要素。
+
+    Returns:
+        str を返す。
+    """
+    # 変数の内容: titles: 抽出したページタイトルの一覧。
     titles = re.findall(r'<title>(.*?)</title>', head, flags=re.S)
     assert len(titles) == 1, f'<title> が1つではない: {titles}'
     return html.unescape(titles[0])
 
 
 def _canonical(head: str):
+    """canonical リンクの URL を抽出し、無ければ None を返す。
+
+    引数:
+        head: 検証対象の HTML head 要素。
+
+    戻り値:
+        head 内の canonical link の URL を返す。"""
     m = re.search(r'<link rel="canonical" href="([^"]*)"', head)
     return html.unescape(m.group(1)) if m else None
 
 
 def _json_ld(head: str) -> list:
-    """<script type="application/ld+json"> の中身を JSON として読んだリストを返す。"""
+    """<script type="application/ld+json"> の中身を JSON として読んだリストを返す。
+
+    Args:
+        head: 検証対象の HTML head 要素。
+
+    Returns:
+        list を返す。
+    """
     return [json.loads(s) for s in re.findall(r'<script type="application/ld\+json">(.*?)</script>', head, flags=re.S)]
 
 
@@ -229,9 +377,18 @@ class TestServeSpaMeta:
     """パスごとに <head> の title・description・canonical・OGP・twitter・JSON-LD が入る。"""
 
     def test_トップページを開くとサイト名のタイトルとOrganizationの構造化データが入る(self, db):
+        """トップページを開くとサイト名のタイトルとOrganizationの構造化データが入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/')
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('text/html')
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(resp.text)
         assert _title(head) == 'ei8ht plants'
         assert _meta(head, 'name', 'description') == seo.STATIC_PAGES['/'].description
@@ -244,6 +401,7 @@ class TestServeSpaMeta:
         # 既定のロゴなので summary
         assert _meta(head, 'name', 'twitter:card') == 'summary'
         assert _meta(head, 'name', 'robots') is None
+        # 変数の内容: lds: HTML から抽出した JSON-LD の一覧。
         lds = _json_ld(head)
         assert len(lds) == 1
         assert lds[0]['@type'] == 'Organization'
@@ -259,6 +417,19 @@ class TestServeSpaMeta:
     def test_ブランド専用ドメインのトップと公開ページに専用SEO情報が入る(
         self, db, host, path, title, canonical, site_name,
     ):
+        """ブランド専用ドメインのトップと公開ページに専用SEO情報が入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            host: 接続元として設定するホスト名。
+            path: 検証対象のファイルパスまたは URL パス。
+            title: ページまたは記事のタイトル。
+            canonical: 検証する canonical URL。
+            site_name: サイト識別名。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get(path, headers={'host': host})
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -279,6 +450,18 @@ class TestServeSpaMeta:
         ('/official/privacy', 'プライバシーポリシー | ei8ht plants', 'ei8ht plants のプライバシーポリシー（個人情報の取り扱い・アクセス解析について）', 'https://ei8htplants.com/official/privacy'),
     ])
     def test_固定ページを開くと決まったタイトルと説明が入る(self, db, path, title, desc, canonical):
+        """固定ページを開くと決まったタイトルと説明が入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+            title: ページまたは記事のタイトル。
+            desc: 説明文。
+            canonical: 検証する canonical URL。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get(path).text)
         assert _title(head) == title
         assert _meta(head, 'property', 'og:title') == title
@@ -295,26 +478,66 @@ class TestServeSpaMeta:
             assert _json_ld(head) == []
 
     def test_チャットのタイトルはサイト名が二重にならない(self, db):
+        """チャットのタイトルはサイト名が二重にならないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get('/chat').text)
         assert _title(head) == 'AI コンシェルジュ | ei8ht plants'
         assert _title(head).count('ei8ht plants') == 1
 
     def test_末尾スラッシュ付きでも同じ固定ページの値になりcanonicalはスラッシュなし(self, db):
+        """末尾スラッシュ付きでも同じ固定ページの値になりcanonicalはスラッシュなしことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get('/official/gallery/').text)
         assert _title(head) == 'Gallery | ei8ht plants'
         assert _canonical(head) == 'https://ei8htplants.com/official/gallery'
 
     def test_固有画像のある固定ページはtwitter_cardがsummary_large_imageになる(self, db):
+        """固有画像のある固定ページはtwitter cardがsummary large imageになることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get('/habitatoides').text)
         assert _meta(head, 'property', 'og:image') == 'https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg'
         assert _meta(head, 'name', 'twitter:image') == 'https://ei8htplants.com/img/habitatOides/habitat_oides_hero.jpg'
         assert _meta(head, 'name', 'twitter:card') == 'summary_large_image'
 
     def test_events_page_pastを開くとタイトルがPast_Eventsになる(self, db):
+        """events page pastを開くとタイトルがPast Eventsになることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get('/events?page=past').text)
         assert _title(head) == 'Past Events | ei8ht plants'
 
     def test_イベントをslugで開くとイベント名と説明と画像と構造化データが入る(self, db):
+        """イベントをslugで開くとイベント名と説明と画像と構造化データが入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get('/events/plant-market')
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -324,6 +547,7 @@ class TestServeSpaMeta:
         assert _meta(head, 'property', 'og:image') == 'https://cdn.example.com/a.jpg'
         assert _meta(head, 'name', 'twitter:card') == 'summary_large_image'
         assert _canonical(head) == 'https://ei8htplants.com/official/events/plant-market'
+        # 変数の内容: ld: JSON-LD の構造化データ、lds: HTML から抽出した JSON-LD の一覧。
         lds = _json_ld(head)
         assert len(lds) == 1
         ld = lds[0]
@@ -346,42 +570,76 @@ class TestServeSpaMeta:
         assert ld['organizer']['@type'] == 'Organization'
 
     def test_slugのあるイベントをUUIDで開くとcanonicalとog_urlとJSON_LDのurlがslugのURLになる(self, db):
+        """slugのあるイベントをUUIDで開くとcanonicalとog urlとJSON LDのurlがslugのURLになることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get(f'/events/{EVENT_ID}').text)
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
         assert _canonical(head) == 'https://ei8htplants.com/official/events/plant-market'
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/plant-market'
+        # 変数の内容: ld: JSON-LD の構造化データ。
         ld = _json_ld(head)[0]
         assert ld['@type'] == 'Event'
         assert ld['url'] == 'https://ei8htplants.com/official/events/plant-market'
         assert _meta(head, 'name', 'robots') is None
 
     def test_slugの無いイベントをUUIDで開くとcanonicalはUUIDのURLのまま(self):
+        """slugの無いイベントをUUIDで開くとcanonicalはUUIDのURLのままことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(slug=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get(f'/events/{EVENT_ID}').text)
         assert _canonical(head) == f'https://ei8htplants.com/official/events/{EVENT_ID}'
         assert _meta(head, 'property', 'og:url') == f'https://ei8htplants.com/official/events/{EVENT_ID}'
         assert _json_ld(head)[0]['url'] == f'https://ei8htplants.com/official/events/{EVENT_ID}'
 
     def test_日本語のslugのイベントはcanonicalでパーセントエンコードされる(self):
+        """日本語のslugのイベントはcanonicalでパーセントエンコードされることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(slug='植物')])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/植物').text)
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
         assert _canonical(head) == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
 
     def test_時刻のないイベントは構造化データの日付が日付だけになる(self):
+        """時刻のないイベントは構造化データの日付が日付だけになることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(time=None, daily_times=None, end_date=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/plant-market').text)
+        # 変数の内容: ld: JSON-LD の構造化データ。
         ld = _json_ld(head)[0]
         assert ld['startDate'] == '2026-11-03'
         assert ld['endDate'] == '2026-11-03'
 
     def test_住所の無いイベントは構造化データを出さないがメタ情報は入る(self):
+        """住所の無いイベントは構造化データを出さないがメタ情報は入ることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(address=None, page_content={'hero': {'tagline': '植物の市'}})])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/plant-market').text)
         assert _json_ld(head) == []
         assert _title(head) == 'Plant Market 2026 | ei8ht plants'
@@ -389,9 +647,16 @@ class TestServeSpaMeta:
         assert _meta(head, 'name', 'robots') is None
 
     def test_eventsのaddressが無くても会場ページの住所があれば構造化データを出す(self):
+        """eventsのaddressが無くても会場ページの住所があれば構造化データを出すことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(address='  ', page_content={'venue': {'address': '大阪府大阪市'}})])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/plant-market').text)
+        # 変数の内容: ld: JSON-LD の構造化データ。
         ld = _json_ld(head)[0]
         assert ld['location']['address']['streetAddress'] == '大阪府大阪市'
 
@@ -408,9 +673,22 @@ class TestServeSpaMeta:
         ('終日', None, '2026-11-03', '2026-11-04'),
     ])
     def test_構造化データの開始と終了は同じ形式になる(self, time_value, daily, expected_start, expected_end):
+        """構造化データの開始と終了は同じ形式になることを確認する。
+
+        引数:
+            time_value: 検証対象の時刻。
+            daily: 日別の集計値。
+            expected_start: 期待する開始日時。
+            expected_end: 期待する終了日時。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(time=time_value, daily_times=daily)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/plant-market').text)
+        # 変数の内容: ld: JSON-LD の構造化データ。
         ld = _json_ld(head)[0]
         assert ld['startDate'] == expected_start
         assert ld['endDate'] == expected_end
@@ -418,8 +696,14 @@ class TestServeSpaMeta:
         assert ('T' in ld['startDate']) == ('T' in ld['endDate'])
 
     def test_説明の無いイベントは開催日と会場が説明になる(self):
+        """説明の無いイベントは開催日と会場が説明になることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(page_content=None)], event_images=[])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/plant-market').text)
         assert _meta(head, 'name', 'description') == '2026年11月3日〜4日 / 代々木公園'
         # 画像が無いときは既定のロゴと summary
@@ -428,16 +712,32 @@ class TestServeSpaMeta:
         assert _json_ld(head)[0]['image'] == [seo.DEFAULT_OG_IMAGE]
 
     def test_長いイベント説明は120文字で切られて末尾に省略記号が付く(self):
+        """長いイベント説明は120文字で切られて末尾に省略記号が付くことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト、long: 上限超過を確認する長文。
         long = 'あ' * 300
         fake = _default_db(events=[_event(page_content={'concept': long})])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/plant-market').text)
+        # 変数の内容: desc: ページ説明文。
         desc = _meta(head, 'name', 'description')
         assert len(desc) == 120
         assert desc.endswith('…')
 
     @pytest.mark.parametrize('path', ['/events/nope', f'/events/{MISSING_ID}', '/events/%3Cscript%3E'])
     def test_存在しないイベントは既定値で200を返しnoindexでcanonicalなし構造化データなし(self, db, path):
+        """存在しないイベントは既定値で200を返しnoindexでcanonicalなし構造化データなしことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get(path)
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -450,11 +750,27 @@ class TestServeSpaMeta:
         assert _meta(head, 'property', 'og:url', ).startswith('https://ei8htplants.com/official/events/')
 
     def test_UUIDでないイベントキーはidでの検索をしない(self, db):
+        """UUIDでないイベントキーはidでの検索をしないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
         TestClient(app).get('/events/nope')
+        # 変数の内容: event_calls: イベントテーブルの DB 呼び出し記録。
         event_calls = [c for c in db.calls if c[0] == 'events']
         assert event_calls == [('events', {'slug': 'nope'})]
 
     def test_公開済みの記事を開くと記事名とJournalのタイトルと本文の冒頭と画像が入る(self, db):
+        """公開済みの記事を開くと記事名とJournalのタイトルと本文の冒頭と画像が入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get(f'/journal/{ARTICLE_ID}').text)
         assert _title(head) == '記事A | Journal | ei8ht plants'
         assert _meta(head, 'name', 'description') == '本文です 次の行'
@@ -468,6 +784,15 @@ class TestServeSpaMeta:
         '/journal/not-a-uuid',  # 不正な ID
     ])
     def test_非公開や存在しない記事は既定値で200を返しnoindexでcanonicalなし(self, db, path):
+        """非公開や存在しない記事は既定値で200を返しnoindexでcanonicalなしことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get(path)
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -477,10 +802,25 @@ class TestServeSpaMeta:
         assert '下書き' not in resp.text
 
     def test_不正な記事IDではDBを読まない(self, db):
+        """不正な記事IDではDBを読まないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
         TestClient(app).get('/journal/not-a-uuid')
         assert [c for c in db.calls if c[0] == 'articles'] == []
 
     def test_公開中の商品を開くと商品名とShopのタイトルと説明と画像が入る(self, db):
+        """公開中の商品を開くと商品名とShopのタイトルと説明と画像が入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get(f'/shop/{PRODUCT_ID}').text)
         assert _title(head) == 'アガベ | Shop | ei8ht plants'
         # 古いテキスト形式（## 見出し）も読める
@@ -493,6 +833,15 @@ class TestServeSpaMeta:
         '/shop/not-uuid',
     ])
     def test_非公開や存在しない商品は既定値で200を返しnoindexでcanonicalなし(self, db, path):
+        """非公開や存在しない商品は既定値で200を返しnoindexでcanonicalなしことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get(path)
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -506,6 +855,15 @@ class TestServeSpaMeta:
         '/cancel', '/cancel/xyz', '/checkout', '/order/complete',
     ])
     def test_管理画面や手続きのページにはnoindexが入る(self, db, path):
+        """管理画面や手続きのページにはnoindexが入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get(path)
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -513,11 +871,29 @@ class TestServeSpaMeta:
 
     @pytest.mark.parametrize('path', ['/admin', '/admin/events', '/admin/events/abc/edit'])
     def test_管理画面にはcanonicalが入らない(self, db, path):
+        """管理画面にはcanonicalが入らないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get(path).text)
         assert _canonical(head) is None
 
     @pytest.mark.parametrize('path', ['/official/cancel', '/official/checkout', '/official/order/complete'])
     def test_現行の手続き画面はnoindexで正規URLのcanonicalが入る(self, db, path):
+        """現行の手続き画面はnoindexで正規URLのcanonicalが入ることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get(path).text)
         assert _meta(head, 'name', 'robots') == 'noindex'
         assert _canonical(head) == f'https://ei8htplants.com{path}'
@@ -526,13 +902,35 @@ class TestServeSpaMeta:
     @pytest.mark.parametrize('path', ['/administrator', '/orders-info', '/cancellation', '/checkouts', '/admins/x'])
     def test_接頭辞が似ているだけのパスは除外対象と判定されない(self, path):
         # 不明なパスはどのみちソフト 404 として noindex になるので、判定の関数そのもので確かめる
+        """接頭辞が似ているだけのパスは除外対象と判定されないことを確認する。
+
+        引数:
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
         assert seo._is_noindex(path) is False
 
     @pytest.mark.parametrize('path', ['/admin', '/admin/x', '/cancel', '/cancel/abc', '/checkout', '/order', '/order/complete'])
     def test_除外対象のパスと配下は除外対象と判定される(self, path):
+        """除外対象のパスと配下は除外対象と判定されることを確認する。
+
+        引数:
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
         assert seo._is_noindex(path) is True
 
     def test_不明なパスは既定のタイトルと説明で200を返しnoindexでcanonicalなし(self, db):
+        """不明なパスは既定のタイトルと説明で200を返しnoindexでcanonicalなしことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get('/unknown/page/here')
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -543,18 +941,33 @@ class TestServeSpaMeta:
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/unknown/page/here'
 
     def test_元のindex_htmlのtitleは置き換えられて1つだけになる(self, db):
+        """元のindex htmlのtitleは置き換えられて1つだけになることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: text: 生成または解析する本文。
         text = TestClient(app).get('/events').text
         assert text.count('<title>') == 1
         # 元の index.html の script などは残る
         assert '<div id="root">' in text
 
     def test_イベント名や説明に含まれる記号はHTMLエスケープされる(self):
+        """イベント名や説明に含まれる記号はHTMLエスケープされることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(
             name=DANGEROUS_NAME,
             page_content={'hero': {'tagline': '植物の市 </script><script>alert(1)</script>'}},
         )])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: text: 生成または解析する本文。
             text = TestClient(app).get('/events/plant-market').text
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(text)
         # 生の値はどこにも出ない
         assert '<Market>' not in head
@@ -567,12 +980,19 @@ class TestServeSpaMeta:
         assert _meta(head, 'name', 'description').startswith('植物の市 </script>')
 
     def test_構造化データはscriptを閉じる文字列を含まず読み戻すと元の値になる(self):
+        """構造化データはscriptを閉じる文字列を含まず読み戻すと元の値になることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(
             name=DANGEROUS_NAME + '\u2028\u2029<!--',
             page_content={'hero': {'tagline': '</script><script>alert(1)</script>'}},
         )])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: head: 解析対象の HTML head 部分。
             head = _head(TestClient(app).get('/events/plant-market').text)
+        # 変数の内容: body: リクエスト本文、raw: エスケープ前または加工前の値。
         raw = re.findall(r'<script type="application/ld\+json">(.*?)</script>', head, flags=re.S)
         assert len(raw) == 1
         body = raw[0]
@@ -581,16 +1001,33 @@ class TestServeSpaMeta:
             assert ch not in body
         assert '\\u003c' in body and '\\u003e' in body and '\\u0026' in body
         assert '\\u2028' in body and '\\u2029' in body
+        # 変数の内容: ld: JSON-LD の構造化データ。
         ld = json.loads(body)
         assert ld['name'] == DANGEROUS_NAME + '\u2028\u2029<!--'
         assert ld['description'].startswith('</script><script>alert(1)')
 
     def test_日本語を含む存在しないパスはog_urlでパーセントエンコードされる(self, db):
+        """日本語を含む存在しないパスはog urlでパーセントエンコードされることを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分。
         head = _head(TestClient(app).get('/events/植物').text)
         assert _meta(head, 'property', 'og:url') == 'https://ei8htplants.com/official/events/%E6%A4%8D%E7%89%A9'
         assert _canonical(head) is None
 
     def test_HTMLにはキャッシュ制御とセキュリティヘッダーが付く(self, db):
+        """HTMLにはキャッシュ制御とセキュリティヘッダーが付くことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/events/plant-market')
         assert resp.headers['cache-control'] == 'public, s-maxage=60, max-age=0, must-revalidate'
         assert resp.headers['x-frame-options'] == 'SAMEORIGIN'
@@ -598,16 +1035,32 @@ class TestServeSpaMeta:
         assert resp.headers['strict-transport-security'] == 'max-age=31536000'
 
     def test_distにある静的ファイルはそのまま返す(self, db):
+        """distにある静的ファイルはそのまま返すことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/manifest.webmanifest')
         assert resp.status_code == 200
         assert '<title>' not in resp.text
         assert db.calls == []
 
     def test_DBの読み取りで例外が出たら既定値のメタ情報で200を返す(self):
+        """DBの読み取りで例外が出たら既定値のメタ情報で200を返すことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = FakeDB(errors={'events', 'articles', 'products'})
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: client: テスト対象の API クライアント。
             client = TestClient(app)
+            # 変数の内容: path: 現在処理するファイルまたは URL パス。
             for path in ('/events/plant-market', f'/journal/{ARTICLE_ID}', f'/shop/{PRODUCT_ID}'):
+                # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
                 resp = client.get(path)
                 assert resp.status_code == 200
                 head = _head(resp.text)
@@ -618,9 +1071,19 @@ class TestServeSpaMeta:
                 assert _canonical(head) == f'https://ei8htplants.com/official{path}'
 
     def test_埋め込み処理で例外が出たらindex_htmlをそのまま返す(self, db):
+        """埋め込み処理で例外が出たらindex htmlをそのまま返すことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: f: 読み書きするファイルまたは応答。
         with open(app_main.INDEX_HTML, encoding='utf-8') as f:
+            # 変数の内容: original: 変更前の元データ。
             original = f.read()
         with patch.object(seo, 'render_spa_index', side_effect=RuntimeError('boom')):
+            # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).get('/events/plant-market')
         assert resp.status_code == 200
         assert resp.text == original
@@ -644,7 +1107,17 @@ class TestLegacyStructuredDataConstants:
     def test_DESCRIPTION_MAX_LENを差し替えるとイベント説明の長さに反映される(
         self, monkeypatch, limit, expected,
     ):
+        """DESCRIPTION MAX LENを差し替えるとイベント説明の長さに反映されることを確認する。
+
+        引数:
+            monkeypatch: 環境変数や属性を一時差し替えする pytest フィクスチャ。
+            limit: 取得件数または許容上限。
+            expected: 検証する期待値。
+
+        戻り値:
+            なし。"""
         monkeypatch.setattr(seo, 'DESCRIPTION_MAX_LEN', limit)
+        # 変数の内容: event: 処理対象のイベント。
         event = {'page_content': {'hero': {'tagline': 'あいうえおかきくけこさしすせそ'}}}
         assert seo._event_description(event) == expected
 
@@ -657,7 +1130,17 @@ class TestLegacyStructuredDataConstants:
     def test_EVENT_JSONLD_MAX_IMAGESを差し替えると画像の上限に反映される(
         self, monkeypatch, max_images, expected_count,
     ):
+        """EVENT JSONLD MAX IMAGESを差し替えると画像の上限に反映されることを確認する。
+
+        引数:
+            monkeypatch: 環境変数や属性を一時差し替えする pytest フィクスチャ。
+            max_images: 許可する画像の最大数。
+            expected_count: 期待する件数。
+
+        戻り値:
+            なし。"""
         monkeypatch.setattr(seo, 'EVENT_JSONLD_MAX_IMAGES', max_images)
+        # 変数の内容: event: 処理対象のイベント、images: 対象画像の一覧、ld: JSON-LD の構造化データ、meta: ページの title・description・画像などの SEO 情報。
         images = [f'https://cdn.example.com/{index}.jpg' for index in range(7)]
         event = _event(image_urls=images)
         meta = seo.PageMeta(
@@ -682,7 +1165,19 @@ class TestLegacyStructuredDataConstants:
     def test_TIME_REを差し替えるとEventの開始終了時刻に反映される(
         self, monkeypatch, pattern, time_text, expected_start, expected_end,
     ):
+        """TIME REを差し替えるとEventの開始終了時刻に反映されることを確認する。
+
+        引数:
+            monkeypatch: 環境変数や属性を一時差し替えする pytest フィクスチャ。
+            pattern: 検証に使う正規表現パターン。
+            time_text: 時刻を表す文字列。
+            expected_start: 期待する開始日時。
+            expected_end: 期待する終了日時。
+
+        戻り値:
+            なし。"""
         monkeypatch.setattr(seo, '_TIME_RE', re.compile(pattern))
+        # 変数の内容: event: 処理対象のイベント、ld: JSON-LD の構造化データ、meta: ページの title・description・画像などの SEO 情報。
         event = _event(time=time_text, daily_times=None)
         meta = seo.PageMeta(
             title='Plant Market | ei8ht plants',
@@ -700,6 +1195,14 @@ class TestSeoCache:
     """イベント・記事・商品の読み取りは 60 秒キャッシュされる。"""
 
     def test_同じイベントを2回開いてもDBは1回しか読まない(self, db):
+        """同じイベントを2回開いてもDBは1回しか読まないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: client: API 応答を取得する TestClient、n: Supabase モックの呼び出し回数。
         client = TestClient(app)
         client.get('/events/plant-market')
         n = len(db.calls)
@@ -708,6 +1211,14 @@ class TestSeoCache:
         assert len(db.calls) == n
 
     def test_存在しないイベントも覚えておき2回目はDBを読まない(self, db):
+        """存在しないイベントも覚えておき2回目はDBを読まないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: client: API 応答を取得する TestClient、n: Supabase モックの呼び出し回数。
         client = TestClient(app)
         client.get('/events/nope')
         n = len(db.calls)
@@ -715,6 +1226,14 @@ class TestSeoCache:
         assert len(db.calls) == n
 
     def test_clear_cacheを呼ぶとDBの最新の値を読み直す(self, db):
+        """clear cacheを呼ぶとDBの最新の値を読み直すことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: client: テスト対象の API クライアント。
         client = TestClient(app)
         client.get('/events/plant-market')
         db.tables['events'] = [_event(name='名前を変更')]
@@ -724,9 +1243,18 @@ class TestSeoCache:
         assert _title(_head(client.get('/events/plant-market').text)) == '名前を変更 | ei8ht plants'
 
     def test_期限の60秒を過ぎるとDBを読み直す(self, db):
+        """期限の60秒を過ぎるとDBを読み直すことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: client: テスト対象の API クライアント。
         client = TestClient(app)
         with patch.object(seo.time, 'monotonic', return_value=1000.0):
             client.get(f'/journal/{ARTICLE_ID}')
+        # 変数の内容: n: Supabase モックの呼び出し回数。
         n = len(db.calls)
         with patch.object(seo.time, 'monotonic', return_value=1059.0):
             client.get(f'/journal/{ARTICLE_ID}')
@@ -736,7 +1264,13 @@ class TestSeoCache:
         assert len(db.calls) == n + 1
 
     def test_キャッシュの件数は上限を超えない(self):
+        """キャッシュの件数は上限を超えないことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: cache: 対象キャッシュの値。
         cache = seo._TTLCache(ttl=60, max_entries=3)
+        # 変数の内容: i: 現在処理する一覧要素の番号。
         for i in range(10):
             cache.set(i, i)
         assert len(cache._data) <= 3
@@ -745,6 +1279,11 @@ class TestSeoCache:
         assert cache.get(0) == (False, None)
 
     def test_Noneの値も見つかったものとして返す(self):
+        """Noneの値も見つかったものとして返すことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: cache: 対象キャッシュの値。
         cache = seo._TTLCache(ttl=60, max_entries=10)
         cache.set('k', None)
         assert cache.get('k') == (True, None)
@@ -759,18 +1298,33 @@ class TestSeoHelpers:
     """inject_head・_json_for_script の単体の動き。"""
 
     def test_titleが無いindex_htmlではhead閉じタグの前に入れる(self):
+        """titleが無いindex htmlではhead閉じタグの前に入れることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: meta: ページの title・description・画像などの SEO 情報、out: 組み立てた出力内容。
         meta = seo._make_meta('/gallery', 'Gallery', None, None)
         out = seo.inject_head('<html><head><meta charset="utf-8"></head><body></body></html>', meta)
         assert '<title>Gallery | ei8ht plants</title>' in out
         assert out.index('<title>') < out.index('</head>')
 
     def test_置き換え文字列のバックスラッシュが正規表現として解釈されない(self):
+        """置き換え文字列のバックスラッシュが正規表現として解釈されないことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: meta: ページの title・description・画像などの SEO 情報、out: 組み立てた出力内容。
         meta = seo._make_meta('/x', 'a\\1\\g<0>', None, None)
         out = seo.inject_head('<head><title>old</title></head>', meta)
         assert '<title>a\\1\\g&lt;0&gt; | ei8ht plants</title>' in out
         assert 'old' not in out
 
     def test_json_for_scriptは危険な文字をすべてエスケープする(self):
+        """json for scriptは危険な文字をすべてエスケープすることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: s: 現在処理する行または文字列。
         s = seo._json_for_script({'v': '</script><!-- & \u2028\u2029'})
         assert s == '{"v":"\\u003c/script\\u003e\\u003c!-- \\u0026 \\u2028\\u2029"}'
         assert json.loads(s) == {'v': '</script><!-- & \u2028\u2029'}
@@ -784,23 +1338,40 @@ class TestRobotsTxt:
     """GET /robots.txt"""
 
     def test_robots_txtはtext_plainで管理画面などをDisallowしSitemap行を含む(self):
+        """robots txtはtext plainで管理画面などをDisallowしSitemap行を含むことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/robots.txt')
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('text/plain')
+        # 変数の内容: lines: 本文や応答に使う行の一覧。
         lines = resp.text.splitlines()
         assert 'User-agent: *' in lines
         assert 'Allow: /' in lines
+        # 変数の内容: p: robots.txt で拒否対象として検証する URL パス。
         for p in ('/admin', '/cancel', '/checkout', '/order'):
             assert f'Disallow: {p}' in lines
         assert 'Sitemap: https://ei8htplants.com/sitemap.xml' in lines
 
     def test_robots_txtはapiをDisallowしない(self):
+        """robots txtはapiをDisallowしないことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: disallows: robots.txt から抽出した除外パス一覧、text: 生成または解析する本文。
         text = TestClient(app).get('/robots.txt').text
         assert 'Disallow: /api' not in text
         disallows = [l for l in text.splitlines() if l.startswith('Disallow:')]
         assert disallows == [f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW]
 
     def test_robots_txtはindex_htmlではない(self):
+        """robots txtはindex htmlではないことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: text: 生成または解析する本文。
         text = TestClient(app).get('/robots.txt').text
         assert '<html' not in text.lower()
 
@@ -811,6 +1382,15 @@ class TestRobotsTxt:
         ('www.huebyei8htplants.com', 'https://huebyei8htplants.com'),
     ])
     def test_ブランドドメインのrobotsは同じブランドのsitemapを案内する(self, host, origin):
+        """ブランドドメインのrobotsは同じブランドのsitemapを案内することを確認する。
+
+        引数:
+            host: 接続元として設定するホスト名。
+            origin: リクエスト元または生成 URL の origin。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/robots.txt', headers={'host': host})
         assert resp.status_code == 200
         assert f'Sitemap: {origin}/sitemap.xml' in resp.text.splitlines()
@@ -821,6 +1401,13 @@ class TestRobotsTxt:
 # ---------------------------------------------------------------------------
 
 def _locs(xml: str) -> list:
+    """サイトマップ XML から loc 要素の値を抽出する。
+
+    引数:
+        xml: 解析対象の sitemap XML。
+
+    戻り値:
+        サイトマップ XML に含まれる loc URL の一覧を返す。"""
     return re.findall(r'<loc>(.*?)</loc>', xml)
 
 
@@ -828,13 +1415,24 @@ class TestSitemapXml:
     """GET /sitemap.xml"""
 
     def test_sitemapは固定ページとイベントと公開記事と公開商品を含む(self, db):
+        """sitemapは固定ページとイベントと公開記事と公開商品を含むことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/sitemap.xml')
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('application/xml')
+        # 変数の内容: xml: 生成した sitemap XML。
         xml = resp.text
         assert xml.startswith('<?xml version="1.0" encoding="UTF-8"?>')
         assert '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' in xml
+        # 変数の内容: locs: サイトマップから抽出した URL 一覧。
         locs = _locs(xml)
+        # 変数の内容: p: sitemap に含める固定ページの URL パス。
         for p in seo.SITEMAP_STATIC_PATHS:
             assert f'https://ei8htplants.com{p}' in locs
         # ブランド専用ドメインへ転送する旧URLは載せず、現在のブランド階層を掲載する。
@@ -851,25 +1449,53 @@ class TestSitemapXml:
         assert 'https://ei8htplants.com/official/shop/55555555-5555-5555-5555-555555555555' not in locs
 
     def test_記事と商品にはlastmodの日付が付く(self, db):
+        """記事と商品にはlastmodの日付が付くことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: xml: 生成した sitemap XML。
         xml = TestClient(app).get('/sitemap.xml').text
         assert f'<loc>https://ei8htplants.com/official/journal/{ARTICLE_ID}</loc><lastmod>2026-01-02</lastmod>' in xml
         assert f'<loc>https://ei8htplants.com/official/shop/{PRODUCT_ID}</loc><lastmod>2026-02-01</lastmod>' in xml
 
     def test_slugの無いイベントはidのURLになる(self):
+        """slugの無いイベントはidのURLになることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(slug=None)])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: locs: サイトマップから抽出した URL 一覧。
             locs = _locs(TestClient(app).get('/sitemap.xml').text)
         assert f'https://ei8htplants.com/official/events/{EVENT_ID}' in locs
 
     def test_URLに入る記号はXMLエスケープされる(self):
+        """URLに入る記号はXMLエスケープされることを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db(events=[_event(slug='a&b')])
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: xml: 生成した sitemap XML。
             xml = TestClient(app).get('/sitemap.xml').text
         assert '<loc>https://ei8htplants.com/official/events/a%26b</loc>' in xml or \
             '<loc>https://ei8htplants.com/official/events/a&amp;b</loc>' in xml
         assert 'a&b' not in xml
 
     def test_sitemapは60秒キャッシュされ2回目はDBを読まない(self, db):
+        """sitemapは60秒キャッシュされ2回目はDBを読まないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: client: API 応答を取得する TestClient、n: Supabase モックの呼び出し回数。
         client = TestClient(app)
         client.get('/sitemap.xml')
         n = len(db.calls)
@@ -877,9 +1503,16 @@ class TestSitemapXml:
         assert len(db.calls) == n
 
     def test_一部の読み取りに失敗しても読めた分を返しキャッシュしない(self):
+        """一部の読み取りに失敗しても読めた分を返しキャッシュしないことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = _default_db()
+        # 変数の内容: fake.errors: テスト用の例外一覧。
         fake.errors = {'articles'}
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: client: テスト対象の API クライアント、locs: サイトマップから抽出した URL 一覧、resp: API から返されたレスポンス。
             client = TestClient(app)
             resp = client.get('/sitemap.xml')
             assert resp.status_code == 200
@@ -889,12 +1522,19 @@ class TestSitemapXml:
             assert not any('/official/journal/' in l for l in locs)
             # キャッシュされていないので、失敗が直ると次で記事も入る
             fake.errors = set()
+            # 変数の内容: locs2: 別応答から抽出した sitemap URL 一覧。
             locs2 = _locs(client.get('/sitemap.xml').text)
             assert f'https://ei8htplants.com/official/journal/{ARTICLE_ID}' in locs2
 
     def test_全部の読み取りに失敗しても固定ページだけで返す(self):
+        """全部の読み取りに失敗しても固定ページだけで返すことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: fake: テスト用の代替オブジェクト。
         fake = FakeDB(errors={'events', 'articles', 'products'})
         with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
+            # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).get('/sitemap.xml')
         assert resp.status_code == 200
         assert len(_locs(resp.text)) == len(seo.SITEMAP_STATIC_PATHS)
@@ -904,6 +1544,16 @@ class TestSitemapXml:
         ('huebyei8htplants.com', 'https://huebyei8htplants.com', ('/', '/about', '/choose', '/living')),
     ])
     def test_ブランド専用サイトのsitemapは自ブランドの公開URLだけを含む(self, host, origin, paths):
+        """ブランド専用サイトのsitemapは自ブランドの公開URLだけを含むことを確認する。
+
+        引数:
+            host: 接続元として設定するホスト名。
+            origin: リクエスト元または生成 URL の origin。
+            paths: 検証対象のファイルパス一覧。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: locs: サイトマップから抽出した URL 一覧、resp: API から返されたレスポンス。
         resp = TestClient(app).get('/sitemap.xml', headers={'host': host})
         assert resp.status_code == 200
         locs = _locs(resp.text)
@@ -916,6 +1566,16 @@ class TestSitemapXml:
         ('/living', '植物のある部屋 | HUE by ei8ht plants'),
     ])
     def test_HUEの各編集ページに正規canonicalと個別メタ情報を返す(self, db, path, title):
+        """HUEの各編集ページに正規canonicalと個別メタ情報を返すことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+            title: ページまたは記事のタイトル。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: head: 解析対象の HTML head 部分、resp: API から返されたレスポンス。
         resp = TestClient(app).get(path, headers={'host': 'huebyei8htplants.com'})
         assert resp.status_code == 200
         head = _head(resp.text)
@@ -936,11 +1596,25 @@ class TestLegacyBrandRedirects:
         ('/hue', 'https://huebyei8htplants.com/'),
     ])
     def test_旧ブランドURLは専用ドメインへ301転送する(self, path, destination):
+        """旧ブランドURLは専用ドメインへ301転送することを確認する。
+
+        引数:
+            path: 検証対象のファイルパスまたは URL パス。
+            destination: ファイルの保存先。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get(path, headers={'host': 'ei8htplants.com'}, follow_redirects=False)
         assert resp.status_code == 301
         assert resp.headers['location'] == destination
 
     def test_旧ブランドURLのクエリ文字列を転送先へ引き継ぐ(self):
+        """旧ブランドURLのクエリ文字列を転送先へ引き継ぐことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get(
             '/habitatoides/workshop?source=legacy&lang=en',
             headers={'host': 'www.ei8htplants.com'}, follow_redirects=False,
@@ -949,6 +1623,11 @@ class TestLegacyBrandRedirects:
         assert resp.headers['location'] == 'https://habitatoides.com/workshop?source=legacy&lang=en'
 
     def test_独立ブランド以外の既存URLは転送しない(self):
+        """独立ブランド以外の既存URLは転送しないことを確認する。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/events', headers={'host': 'ei8htplants.com'}, follow_redirects=False)
         assert resp.status_code == 200
 
@@ -958,6 +1637,15 @@ class TestLegacyBrandRedirects:
     ])
     @pytest.mark.parametrize('path', ['/admin', '/admin/site-images'])
     def test_ブランドドメインから管理画面を本体ドメインへ転送する(self, host, path):
+        """ブランドドメインから管理画面を本体ドメインへ転送することを確認する。
+
+        引数:
+            host: 接続元として設定するホスト名。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get(
             f'{path}?from=brand', headers={'host': host}, follow_redirects=False,
         )
@@ -967,12 +1655,28 @@ class TestLegacyBrandRedirects:
 
     @pytest.mark.parametrize('host', ['habitatoides.com', 'www.habitatoides.com'])
     def test_HabitatドメインのhueパスはHUE専用ドメインへ301転送する(self, host):
+        """HabitatドメインのhueパスはHUE専用ドメインへ301転送することを確認する。
+
+        引数:
+            host: 接続元として設定するホスト名。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/hue?from=habitat', headers={'host': host}, follow_redirects=False)
         assert resp.status_code == 301
         assert resp.headers['location'] == 'https://huebyei8htplants.com/?from=habitat'
 
     @pytest.mark.parametrize('host', ['habitatoides.com', 'huebyei8htplants.com'])
     def test_ブランドドメインの旧PWA登録スクリプトは解除用に差し替わりキャッシュしない(self, host):
+        """ブランドドメインの旧PWA登録スクリプトは解除用に差し替わりキャッシュしないことを確認する。
+
+        引数:
+            host: 接続元として設定するホスト名。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/registerSW.js', headers={'host': host})
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('application/javascript')
@@ -981,6 +1685,14 @@ class TestLegacyBrandRedirects:
 
     @pytest.mark.parametrize('host', ['habitatoides.com', 'huebyei8htplants.com'])
     def test_ブランドドメインの旧ServiceWorkerはキャッシュ削除と自身の登録解除を行う(self, host):
+        """ブランドドメインの旧ServiceWorkerはキャッシュ削除と自身の登録解除を行うことを確認する。
+
+        引数:
+            host: 接続元として設定するホスト名。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/sw.js', headers={'host': host})
         assert resp.status_code == 200
         assert resp.headers['content-type'].startswith('application/javascript')
@@ -992,6 +1704,15 @@ class TestLegacyBrandRedirects:
 
     @pytest.mark.parametrize('host', ['habitatoides.com', 'huebyei8htplants.com'])
     def test_ブランドトップHTMLはPWAを登録せず既存登録とキャッシュを解除する(self, db, host):
+        """ブランドトップHTMLはPWAを登録せず既存登録とキャッシュを解除することを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            host: 接続元として設定するホスト名。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/', headers={'host': host})
         assert resp.status_code == 200
         assert 'no-store' in resp.headers.get('cache-control', '')
@@ -1022,14 +1743,33 @@ class TestServeSpaPathTraversal:
     ])
     def test_distの外を指すパスではSPAのindex_htmlを返し外のファイルの中身を返さない(self, db, raw_path):
         # 1. パスがそのまま serve_spa に届いたことを確かめるため、render_spa_index に渡ったパスを記録する
+        """distの外を指すパスではSPAのindex htmlを返し外のファイルの中身を返さないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            raw_path: クエリ文字列を含まない元の URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: original: 変更前の元データ、seen: 既に確認済みの項目集合。
         seen = []
         original = seo.render_spa_index
 
         def spy(index_path, path, query=None):
+            """呼び出しを記録して元の関数を実行するスパイを作る。
+
+            引数:
+                index_path: SPA の index.html のパス。
+                path: 検証対象のファイルパスまたは URL パス。
+                query: 検索クエリ文字列。
+
+            戻り値:
+                指定属性の呼び出しを記録する spy を作成する。"""
             seen.append(path)
             return original(index_path, path, query)
 
         with patch.object(seo, 'render_spa_index', side_effect=spy):
+            # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).get(raw_path)
         # 2. SPA の index.html（メタ情報入り）が返る
         assert resp.status_code == 200
@@ -1047,9 +1787,21 @@ class TestServeSpaPathTraversal:
     ])
     def test_distの外に実在するファイルを指しても中身は返らない(self, db, raw_path, outside):
         # 1. 対策が無ければ返ってしまうファイルが実在することを先に確かめる（テストが空振りしないように）
+        """distの外に実在するファイルを指しても中身は返らないことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            raw_path: クエリ文字列を含まない元の URL パス。
+            outside: 対象ディレクトリ外を示すパス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: target: 処理対象のファイルまたは値。
         target = os.path.join(app_main.DIST, outside)
         assert os.path.isfile(target)
+        # 変数の内容: f: 読み書きするファイルまたは応答。
         with open(target, 'rb') as f:
+            # 変数の内容: secret: ログに出てはいけない秘密テスト値。
             secret = f.read()
         # 2. 返るのは SPA の index.html で、そのファイルの中身ではない
         resp = TestClient(app).get(raw_path)
@@ -1059,20 +1811,46 @@ class TestServeSpaPathTraversal:
         assert secret[:200] not in resp.content
 
     def test_distの中を指す相対パスなら正規の静的ファイルを返す(self, db):
-        """dist/foo/../manifest.webmanifest のように dist の中で完結するパスはそのまま返す。"""
+        """dist/foo/../manifest.webmanifest のように dist の中で完結するパスはそのまま返す。
+
+        Args:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/nothing%2F..%2Fmanifest.webmanifest')
         assert resp.status_code == 200
         assert '<div id="root">' not in resp.text
 
     @pytest.mark.parametrize('path', ['/manifest.webmanifest', '/registerSW.js', '/sw.js'])
     def test_dist直下の静的ファイルはそのまま返す(self, db, path):
+        """dist直下の静的ファイルはそのまま返すことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+            path: 検証対象のファイルパスまたは URL パス。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get(path)
         assert resp.status_code == 200
         assert '<div id="root">' not in resp.text
+        # 変数の内容: f: 読み書きするファイルまたは応答。
         with open(os.path.join(app_main.DIST, path.lstrip('/')), 'rb') as f:
             assert resp.content == f.read()
 
     def test_distそのものを指すパスはindex_htmlのメタ情報入りを返す(self, db):
+        """distそのものを指すパスはindex htmlのメタ情報入りを返すことを確認する。
+
+        引数:
+            db: テスト対象が使う Supabase クライアントのモック。
+
+        戻り値:
+            なし。"""
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/.')
         assert resp.status_code == 200
         assert '<div id="root">' in resp.text

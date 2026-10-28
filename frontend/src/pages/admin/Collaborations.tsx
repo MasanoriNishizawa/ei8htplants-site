@@ -67,6 +67,7 @@ export default function AdminCollaborations() {
    * 2. 追加できたらフォームを空にして一覧を読み込み直す
    * 3. 失敗したら入力を残したまま文言を出す
    * @param e - フォームの送信イベント
+   * @returns 戻り値なし。
    */
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,6 +100,7 @@ export default function AdminCollaborations() {
    * 画像を選んだらアップロードする（blob URL ですぐに仮の値を入れ、アップロード後に本当の URL へ差し替える）
    * 失敗したら画像を外して文言を出す。仮の blob URL は終わったら解放する
    * @param e - ファイル選択欄の変更イベント
+   * @returns 戻り値なし。
    */
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     /** 選ばれたファイル（選ぶのをやめたときは undefined） */
@@ -126,6 +128,7 @@ export default function AdminCollaborations() {
    * 動画を選んだらアップロードする（画像と同じく blob URL で仮の値を入れ、アップロード後に差し替える）
    * 失敗したら動画を外して文言を出す
    * @param e - ファイル選択欄の変更イベント
+   * @returns 戻り値なし。
    */
   const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     /** 選ばれたファイル（選ぶのをやめたときは undefined） */
@@ -152,6 +155,7 @@ export default function AdminCollaborations() {
   /**
    * 確認してから 1 件削除する。失敗したら一覧はそのままにして文言を出す
    * @param id - 削除するコラボレーションの id
+   * @returns 戻り値なし。
    */
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return

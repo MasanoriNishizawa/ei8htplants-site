@@ -77,6 +77,7 @@ export default function AdminOrders() {
   /**
    * 発送情報の入力モーダルを開く（入力は初期値に戻す）
    * @param orderId - 発送済みにする注文の id
+   * @returns 戻り値なし。
    */
   const openShipModal = (orderId: string) => {
     setCarrier(CARRIERS[0])
@@ -90,6 +91,7 @@ export default function AdminOrders() {
    * 1. 送信中にする
    * 2. 成功したら一覧と詳細モーダルの両方に status・carrier・tracking_number を反映し、モーダルを閉じる
    * 3. 失敗したらモーダルを開いたまま（入力は残る）エラーを出す。もう一度押して再送できる
+   * @returns 戻り値なし。
    */
   const confirmShip = async () => {
     if (!shipModal) return
@@ -116,6 +118,7 @@ export default function AdminOrders() {
    * 失敗したら表示は元のまま（select も元の値に戻る）にしてエラーを出す
    * @param id - 注文の id
    * @param status - 新しいステータス
+   * @returns 戻り値なし。
    */
   const handleStatusChange = async (id: string, status: string) => {
     if (status === 'shipped') { openShipModal(id); return }
@@ -136,6 +139,7 @@ export default function AdminOrders() {
   /**
    * 注文の詳細（明細つき）を取得してモーダルを開く。失敗したら一覧の上にエラーを出す
    * @param id - 注文の id
+   * @returns 戻り値なし。
    */
   const openDetail = async (id: string) => {
     setPageError('')

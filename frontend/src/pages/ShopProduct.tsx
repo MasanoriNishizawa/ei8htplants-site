@@ -59,14 +59,20 @@ export default function ShopProduct() {
   const cartQty = items.find((i) => i.product.id === id)?.quantity ?? 0
   const cartCount = items.reduce((s, i) => s + i.quantity, 0)
 
-  /** 選んだ数量をカートに入れ、「追加しました」を少しのあいだ出す */
+  /**
+   *  選んだ数量をカートに入れ、「追加しました」を少しのあいだ出す
+   * @returns 戻り値なし。
+   */
   const handleAdd = () => {
     if (!product) return
     add(product, qty)
     setAdded(true)
   }
 
-  /** 選んだ数量をカートに入れて、そのまま購入手続きへ進む */
+  /**
+   *  選んだ数量をカートに入れて、そのまま購入手続きへ進む
+   * @returns 戻り値なし。
+   */
   const handleBuyNow = () => {
     if (!product) return
     add(product, qty)

@@ -79,7 +79,9 @@ def _credentials() -> tuple[str, str]:
     Raises:
         RuntimeError: 必要な値がないとき
     """
+    # 変数の内容: url: Supabase 接続先 URL を環境変数から取得する。
     url = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
+    # 変数の内容: key: データ取得に使う Supabase サービスキーを環境変数から取得する。
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     if not url or not key:
         raise RuntimeError("環境変数（ローカルでは .env）に NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY がありません")
@@ -113,7 +115,9 @@ def _hash_emails(df: pd.DataFrame, column: str) -> pd.DataFrame:
         customer_key 列を持ち、メールアドレス列を持たないデータ
     """
     if column in df.columns:
+        # 変数の内容: customer_key: 元メールアドレスを復元できない顧客識別ハッシュ。
         df["customer_key"] = df[column].map(hash_email)
+        # 変数の内容: df: メール列を匿名化キーへ置き換えた分析用データフレーム。
         df = df.drop(columns=[column])
     return df
 
@@ -133,10 +137,15 @@ def _fetch_all(table: str) -> list[dict]:
     Raises:
         requests.HTTPError: 416 以外のエラーの応答が返ったとき
     """
+    # 変数の内容: url, key: 全件取得リクエストの送信先となる Supabase URL。
     url, key = _credentials()
+    # 変数の内容: headers: Supabase REST API に必要な API キーと Bearer 認証ヘッダー。
     headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+    # 変数の内容: params: テーブルごとの取得列・並び順を指定する REST API パラメーター。
     params = {"select": COLUMNS[table], "order": ORDER.get(table, DEFAULT_ORDER)}
+    # 変数の内容: rows: ページングしながら取得したレコードを蓄積するリスト。
     rows: list[dict] = []
+    # 変数の内容: offset: 次に取得するページの開始位置。
     offset = 0
     while True:
         # 1. Range ヘッダーで取得範囲を指定して1ページ分を GET する（並び順は毎回同じ）
@@ -155,6 +164,7 @@ def _fetch_all(table: str) -> list[dict]:
         if not page:
             return rows
         rows.extend(page)
+        # 変数の内容: offset: 次に取得するページの開始位置。
         offset += len(page)
 
 

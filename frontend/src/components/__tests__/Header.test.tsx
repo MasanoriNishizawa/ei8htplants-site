@@ -10,7 +10,10 @@ import { MemoryRouter } from 'react-router-dom'
 import Header from '../Header'
 import { LangProvider, useLang } from '../../lib/lang'
 
-/** 今の表示言語を画面に出す（切り替わったかを確かめるため） */
+/**
+ * 現在の表示言語をテスト用の段落に表示し、切り替わりを確認できるようにする。
+ * @returns 言語コードを表示する段落
+ */
 function LangProbe() {
   const { lang } = useLang()
   return <p data-testid="lang">{lang}</p>

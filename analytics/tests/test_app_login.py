@@ -64,7 +64,13 @@ def _response(status: int, body: dict | None = None) -> MagicMock:
 
 @pytest.fixture
 def post(monkeypatch):
-    """requests.post を差し替える（既定はログイン成功。メールは EMAIL）。"""
+    """requests.post を差し替える（既定はログイン成功。メールは EMAIL）。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        requests.post のモック応答を返す。"""
     mock = MagicMock(return_value=_response(200, {"access_token": "tok-SECRET", "user": {"email": EMAIL}}))
     monkeypatch.setattr(requests, "post", mock)
     return mock
@@ -76,7 +82,9 @@ def data_get(monkeypatch):
 
     Returns:
         (load_all のモック, requests.get のモック)。どちらも本番には届かない
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
     # 1. 概要画面などが呼ぶ load_all は失敗させる（画面には「データを読み込めませんでした」が出る）
     load_all = MagicMock(side_effect=RuntimeError("テスト用：データ取得はしない"))
     monkeypatch.setattr(lib.context, "load_all", load_all)
@@ -112,12 +120,24 @@ def _submit(at: AppTest, email: str = EMAIL, password: str = PASSWORD) -> AppTes
 
 
 def _errors(at: AppTest) -> list[str]:
-    """画面に出ているエラーメッセージの一覧。"""
+    """画面に出ているエラーメッセージの一覧。
+
+    Args:
+        at: 描画済みの Streamlit AppTest。
+
+    Returns:
+        list[str] を返す。"""
     return [e.value for e in at.error]
 
 
 def _is_login_form(at: AppTest) -> bool:
-    """ログインフォームだけが出ている状態かどうか。"""
+    """ログインフォームだけが出ている状態かどうか。
+
+    Args:
+        at: 描画済みの Streamlit AppTest。
+
+    Returns:
+        bool を返す。"""
     labels = [t.label for t in at.text_input]
     return labels == ["メールアドレス", "パスワード"] and len(at.sidebar.button) == 0
 
@@ -138,6 +158,15 @@ def _internal_state_text(at: AppTest) -> str:
 
 
 def test_未ログインで開くとログインフォームだけが出てダッシュボードもデータ取得も行わない(fake_env, post, data_get):
+    """未ログインで開くとログインフォームだけが出てダッシュボードもデータ取得も行わないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     load_all, get = data_get
     at = _new_app()
     assert not at.exception
@@ -170,6 +199,16 @@ def test_未ログインで開くとログインフォームだけが出てダ�
     ids=["両方なし", "anonキーなし", "URLなし", "空白だけ"],
 )
 def test_接続情報が無いと設定不足のメッセージを出してフォームを出さずに止まる(monkeypatch, post, data_get, env):
+    """接続情報が無いと設定不足のメッセージを出してフォームを出さずに止まることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+        env: 環境変数の名前と値。
+
+    Returns:
+        なし。"""
     load_all, _ = data_get
     for k, v in env.items():
         monkeypatch.setenv(k, v)
@@ -188,6 +227,15 @@ def test_接続情報が無いと設定不足のメッセージを出してフ�
 def test_ログインに成功するとauth_emailが入りサイドバーにログイン中とログアウトが出てダッシュボードが描かれる(
     fake_env, post, data_get
 ):
+    """ログインに成功するとauth emailが入りサイドバーにログイン中とログアウトが出てダッシュボードが描かれることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     load_all, _ = data_get
     at = _submit(_new_app())
     assert not at.exception
@@ -210,6 +258,15 @@ def test_ログインに成功するとauth_emailが入りサイドバーにロ�
 
 
 def test_ログイン後はセッションにパスワードもトークンも残らない(fake_env, post, data_get):
+    """ログイン後はセッションにパスワードもトークンも残らないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     at = _submit(_new_app())
     # 1. アプリが置いたセッションのキーは auth_email だけ（ログイン成功後は失敗回数も消える）
     app_keys = {k for k in at.session_state.keys() if not k.startswith("FormSubmitter")}
@@ -230,11 +287,29 @@ def test_ログイン後はセッションにパスワードもトークンも�
 
 
 def test_入力したメールの前後の空白は除いて認証に送る(fake_env, post, data_get):
+    """入力したメールの前後の空白は除いて認証に送ることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     _submit(_new_app(), email="  admin@example.com  ")
     assert post.call_args.kwargs["json"]["email"] == EMAIL
 
 
 def test_ログイン後に再描画しても認証を呼び直さない(fake_env, post, data_get):
+    """ログイン後に再描画しても認証を呼び直さないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     at = _submit(_new_app())
     at.run()
     assert at.session_state[SESSION_EMAIL] == EMAIL
@@ -242,6 +317,15 @@ def test_ログイン後に再描画しても認証を呼び直さない(fake_en
 
 
 def test_ログイン前に失敗していても成功すれば失敗回数が消える(fake_env, post, data_get):
+    """ログイン前に失敗していても成功すれば失敗回数が消えることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     at = _new_app()
     post.return_value = _response(400)
     at = _submit(at)
@@ -257,6 +341,15 @@ def test_ログイン前に失敗していても成功すれば失敗回数が�
 
 
 def test_パスワードが違うとエラーが出て失敗回数が1増えフォームのまま(fake_env, post, data_get):
+    """パスワードが違うとエラーが出て失敗回数が1増えフォームのままことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     load_all, _ = data_get
     post.return_value = _response(400, {"error": "invalid_grant"})
     at = _submit(_new_app())
@@ -270,6 +363,15 @@ def test_パスワードが違うとエラーが出て失敗回数が1増えフ�
 
 
 def test_失敗を続けると回数が1ずつ増える(fake_env, post, data_get):
+    """失敗を続けると回数が1ずつ増えることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     post.return_value = _response(401)
     at = _new_app()
     for n in range(1, 4):
@@ -279,6 +381,16 @@ def test_失敗を続けると回数が1ずつ増える(fake_env, post, data_get
 
 @pytest.mark.parametrize("exc", [requests.Timeout("t"), requests.ConnectionError("c")], ids=["Timeout", "ConnectionError"])
 def test_通信エラーは別のメッセージを出し失敗回数に数えない(fake_env, post, data_get, exc):
+    """通信エラーは別のメッセージを出し失敗回数に数えないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+        exc: 処理時に発生する例外。
+
+    Returns:
+        なし。"""
     post.side_effect = exc
     at = _submit(_new_app())
     assert MSG_NETWORK_ERROR in _errors(at)
@@ -289,6 +401,17 @@ def test_通信エラーは別のメッセージを出し失敗回数に数え�
 
 @pytest.mark.parametrize("email,password", [("", PASSWORD), ("   ", PASSWORD), (EMAIL, "")], ids=["メール空", "メール空白", "パスワード空"])
 def test_未入力で送ると入力を促すエラーを出し認証を呼ばず失敗回数にも数えない(fake_env, post, data_get, email, password):
+    """未入力で送ると入力を促すエラーを出し認証を呼ばず失敗回数にも数えないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+        email: ログインに使うメールアドレス。
+        password: ログインに使うパスワード。
+
+    Returns:
+        なし。"""
     at = _submit(_new_app(), email=email, password=password)
     assert "メールアドレスとパスワードを入力してください。" in _errors(at)
     post.assert_not_called()
@@ -299,6 +422,15 @@ def test_未入力で送ると入力を促すエラーを出し認証を呼ば�
 
 
 def test_5回続けて失敗すると6回目はロック表示になりrequests_postを呼ばない(fake_env, post, data_get):
+    """5回続けて失敗すると6回目はロック表示になりrequests postを呼ばないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     post.return_value = _response(400)
     at = _new_app()
     # 1. 5回失敗する（5回目まではふつうのエラー）
@@ -318,6 +450,15 @@ def test_5回続けて失敗すると6回目はロック表示になりrequests_
 
 
 def test_4回失敗のあとはまだロックされず5回目も認証を呼ぶ(fake_env, post, data_get):
+    """4回失敗のあとはまだロックされず5回目も認証を呼ぶことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     post.return_value = _response(400)
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 4
@@ -329,6 +470,15 @@ def test_4回失敗のあとはまだロックされず5回目も認証を呼ぶ
 
 
 def test_ロック時間が過ぎれば再びログインでき成功する(fake_env, post, data_get):
+    """ロック時間が過ぎれば再びログインでき成功することを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time() - LOCK_SECONDS - 1
@@ -339,6 +489,15 @@ def test_ロック時間が過ぎれば再びログインでき成功する(fake
 
 
 def test_ロック時間が過ぎた後の失敗は1回目から数え直し直後に再ロックしない(fake_env, post, data_get):
+    """ロック時間が過ぎた後の失敗は1回目から数え直し直後に再ロックしないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     post.return_value = _response(400)
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
@@ -355,6 +514,15 @@ def test_ロック時間が過ぎた後の失敗は1回目から数え直し直�
 
 
 def test_ロック中に通信エラーが起きる状況でもロック表示が優先される(fake_env, post, data_get):
+    """ロック中に通信エラーが起きる状況でもロック表示が優先されることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     post.side_effect = requests.ConnectionError("c")
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
@@ -368,6 +536,16 @@ def test_ロック中に通信エラーが起きる状況でもロック表示�
 
 
 def test_許可リストに無いアカウントは認証に成功しても拒否され失敗回数に数える(fake_env, monkeypatch, post, data_get):
+    """許可リストに無いアカウントは認証に成功しても拒否され失敗回数に数えることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     load_all, _ = data_get
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com, staff@example.com")
     at = _submit(_new_app())
@@ -379,6 +557,16 @@ def test_許可リストに無いアカウントは認証に成功しても拒�
 
 
 def test_許可リストにあるアカウントは大文字小文字が違ってもログインできる(fake_env, monkeypatch, post, data_get):
+    """許可リストにあるアカウントは大文字小文字が違ってもログインできることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", " ADMIN@example.com ,owner@example.com")
     at = _submit(_new_app())
     assert MSG_NOT_ALLOWED not in _errors(at)
@@ -387,6 +575,16 @@ def test_許可リストにあるアカウントは大文字小文字が違っ�
 
 def test_許可リストの判定は入力ではなくSupabaseが返したメールで行う(fake_env, monkeypatch, post, data_get):
     # 入力は許可リストのメールでも、Supabase が返したのが別のメールなら拒否する
+    """許可リストの判定は入力ではなくSupabaseが返したメールで行うことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com")
     post.return_value = _response(200, {"user": {"email": "other@example.com"}})
     at = _submit(_new_app(), email="owner@example.com")
@@ -398,6 +596,15 @@ def test_許可リストの判定は入力ではなくSupabaseが返したメー
 
 
 def test_ログアウトするとauth_emailが消えてログインフォームに戻る(fake_env, post, data_get):
+    """ログアウトするとauth emailが消えてログインフォームに戻ることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     load_all, _ = data_get
@@ -422,6 +629,16 @@ def test_ログアウトするとauth_emailが消えてログインフォーム�
 
 
 def test_ログイン後に許可リストからアドレスを外して再実行するとログアウトされフォームに戻る(fake_env, monkeypatch, post, data_get):
+    """ログイン後に許可リストからアドレスを外して再実行するとログアウトされフォームに戻ることを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     load_all, get = data_get
     # 1. 許可リストに入った状態でログインする
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", f"{EMAIL},owner@example.com")
@@ -444,6 +661,16 @@ def test_ログイン後に許可リストからアドレスを外して再実�
 
 def test_ログイン後に許可リストを別のアドレスだけにして再実行してもダッシュボードは描かれない(fake_env, monkeypatch, post, data_get):
     # 許可リストが未設定の状態でログインし、あとから別のアドレスだけを許可するよう設定された場合
+    """ログイン後に許可リストを別のアドレスだけにして再実行してもダッシュボードは描かれないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     load_all, _ = data_get
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
@@ -457,6 +684,17 @@ def test_ログイン後に許可リストを別のアドレスだけにして�
 
 @pytest.mark.parametrize("allowed", [None, "", "  "], ids=["未設定", "空文字", "空白だけ"])
 def test_許可リストが未設定や空のままなら再実行してもログイン状態が続く(fake_env, monkeypatch, post, data_get, allowed):
+    """許可リストが未設定や空のままなら再実行してもログイン状態が続くことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+        allowed: ログインを許可するメールアドレス一覧。
+
+    Returns:
+        なし。"""
     load_all, _ = data_get
     if allowed is not None:
         monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", allowed)
@@ -474,6 +712,16 @@ def test_許可リストが未設定や空のままなら再実行してもロ�
 
 
 def test_許可リストに残っていれば大文字小文字が違っても再実行後もログイン状態が続く(fake_env, monkeypatch, post, data_get):
+    """許可リストに残っていれば大文字小文字が違っても再実行後もログイン状態が続くことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", EMAIL)
     at = _submit(_new_app())
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", f" {EMAIL.upper()} , owner@example.com")
@@ -487,6 +735,15 @@ def test_許可リストに残っていれば大文字小文字が違っても�
 
 def test_送信後は入力欄が空に戻り同じパスワードは再送されない(fake_env, post, data_get):
     # clear_on_submit=True のため、失敗後に入力し直さず再送すると空のまま送られ、入力を促すエラーになる
+    """送信後は入力欄が空に戻り同じパスワードは再送されないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     post.return_value = _response(400)
     at = _submit(_new_app())
     assert MSG_BAD_CREDENTIALS in _errors(at)
@@ -499,6 +756,16 @@ def test_送信後は入力欄が空に戻り同じパスワードは再送さ�
 
 def test_ログイン後に画面を最後まで描くとパスワード欄の値がセッションの内部状態に残らない(fake_env, monkeypatch, post, data_get):
     # 概要ページを最後まで描き終える軽い関数に差し替える（データ取得もしない）
+    """ログイン後に画面を最後まで描くとパスワード欄の値がセッションの内部状態に残らないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     import views.overview
 
     monkeypatch.setattr(views.overview, "render", lambda: st.write("概要（テスト用）"))
@@ -513,6 +780,15 @@ def test_ログイン直後の描画がst_stopで終わってもパスワード�
     # 概要ページはデータを読み込めず st.stop() で終わる（data_get のモック）。
     # Streamlit はこのとき古いウィジェットを片付けないが、require_login がログイン済みの実行の最初に
     # パスワード欄の値（auth_password_input）を消すので残らない
+    """ログイン直後の描画がst stopで終わってもパスワードは内部状態にもsession stateにも残らないことを確認する。
+
+    Args:
+        fake_env: 架空の Supabase 接続情報を設定する pytest フィクスチャ。
+        post: requests.post を差し替えた認証リクエストのモック。
+        data_get: load_all と requests.get を遮断する pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert any(MSG_DATA_ERROR in e for e in _errors(at))  # st.stop() で終わったことの確認
@@ -529,6 +805,10 @@ def test_ログイン直後の描画がst_stopで終わってもパスワード�
 
 
 def test_パスワード欄のキーはauth_password_input():
+    """パスワード欄のキーはauth password inputことを確認する。
+
+    Returns:
+        なし。"""
     assert SESSION_PASSWORD_INPUT == "auth_password_input"
 
 
@@ -536,6 +816,10 @@ def test_パスワード欄のキーはauth_password_input():
 
 
 def test_config_tomlでエラーの詳細を画面に出さない設定になっている():
+    """config tomlでエラーの詳細を画面に出さない設定になっていることを確認する。
+
+    Returns:
+        なし。"""
     import tomllib
 
     config_path = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"

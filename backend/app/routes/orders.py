@@ -37,6 +37,7 @@ from ..utils.errors import error_summary
 from ..utils.formatting import fmt_yen
 from .shipping import RATES
 
+# 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/orders', tags=['orders'])
@@ -148,6 +149,7 @@ def _charge_square(source_id: str, amount_yen: int) -> str:
     """
     # 1. Square に決済を頼む
     try:
+        # 変数の内容: data: Square 決済 API の応答 JSON。、res: DB クエリの実行結果。
         res = http.post(
             f'{_SQUARE_BASE}/v2/payments',
             json={
@@ -164,18 +166,22 @@ def _charge_square(source_id: str, amount_yen: int) -> str:
             timeout=_SQUARE_TIMEOUT_SECONDS,
         )
         data = res.json()
+    # 変数の内容: e: except で捕捉した処理例外。
     except ConnectTimeout as e:
         # つながる前の時間切れなので、決済はされていない
         logger.error('Square への接続が時間切れになりました: %s', error_summary(e))
         raise HTTPException(502, '決済サービスにつながりませんでした。時間をおいて再度お試しください。')
+    # 変数の内容: e: except で捕捉した処理例外。
     except Timeout as e:
         # 送ったあとの時間切れなので、決済されたかどうか分からない
         raise _PaymentUncertain() from e
+    # 変数の内容: e: except で捕捉した処理例外。
     except (RequestException, ValueError) as e:
         logger.error('Square の決済 API の呼び出しに失敗しました: %s', error_summary(e))
         raise HTTPException(502, '決済サービスでエラーが発生しました。時間をおいて再度お試しください。')
     # 2. 失敗の応答なら Square の説明を 402 で返す（カードの拒否など、利用者向けの文言）
     if not res.ok or 'errors' in data:
+        # 変数の内容: detail: 利用者へ返すエラー説明、errors: 発生したエラーの一覧。
         errors = data.get('errors', []) if isinstance(data, dict) else []
         detail = errors[0].get('detail', '決済に失敗しました') if errors else '決済に失敗しました'
         raise HTTPException(402, detail)
@@ -189,13 +195,18 @@ def _rollback_stock(reserved: list[tuple[str, int]]) -> None:
 
     Args:
         reserved: ロールバック対象の (product_id, quantity) タプルのリスト
+
+    Returns:
+        なし。
     """
+    # 変数の内容: pid: pid の反復ごとの値、qty: qty の反復ごとの値。
     for pid, qty in reserved:
         try:
             admin_supabase.rpc('increment_stock', {
                 'p_product_id': pid,
                 'p_quantity': qty,
             }).execute()
+        # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             logger.critical('在庫の戻しに失敗しました（商品 %s・数 %s）: %s', pid, qty, error_summary(e))
 
@@ -208,6 +219,9 @@ def _notify_admin_critical(subject: str, text: str) -> None:
     Args:
         subject: 件名（先頭に [ei8ht plants] CRITICAL: を付ける）
         text: 本文
+
+    Returns:
+        なし。
     """
     if not (RESEND_API_KEY and CONTACT_TO_EMAIL):
         return
@@ -218,6 +232,7 @@ def _notify_admin_critical(subject: str, text: str) -> None:
             'subject': f'[ei8ht plants] CRITICAL: {subject}',
             'text': text,
         })
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.critical('CRITICAL の管理者通知の送信に失敗しました: %s', error_summary(e))
 
@@ -232,6 +247,9 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
         body: 注文リクエストボディ（顧客情報・商品リスト・配送先など）
         product_map: product_id をキーとする商品情報の辞書
         payment_id: Square が発行した支払いID
+
+    Returns:
+        なし。
     """
     if not RESEND_API_KEY:
         return
@@ -250,6 +268,7 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
         ]
         if body.address_line2:
             address_parts.append(body.address_line2)
+        # 変数の内容: address_text: 配送先住所をまとめた表示文字列、text: 生成または解析する本文。
         address_text = '\n'.join(address_parts)
         # 2. 本文を組み立てて送る
         text = (
@@ -280,6 +299,7 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
             'subject': f'ご注文ありがとうございます（注文番号: {order_no}）| ei8ht plants',
             'text': text,
         })
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('注文確認メールの送信に失敗しました: %s', error_summary(e))
 
@@ -293,10 +313,14 @@ def _notify_admin(order: dict, body: OrderBody, product_map: dict) -> None:
         order: 作成された注文レコード
         body: 注文リクエストボディ（顧客情報・商品リストなど）
         product_map: product_id をキーとする商品情報の辞書
+
+    Returns:
+        なし。
     """
     if not RESEND_API_KEY or not CONTACT_TO_EMAIL:
         return
     try:
+        # 1. 注文番号と商品明細を含む管理者向けメールを組み立てて送る。
         order_no = _order_no(order['id'])
         items_lines = '\n'.join(
             f'  {product_map[item.product_id]["name"]} × {item.quantity}'
@@ -312,12 +336,14 @@ def _notify_admin(order: dict, body: OrderBody, product_map: dict) -> None:
             f'【商品】\n{items_lines}\n\n'
             f'管理画面で確認してください: {SITE_ORIGIN}/admin'
         )
+        # 2. 通知メールを送信し、失敗時は秘密情報を含めずエラーを記録する。
         send_mail(RESEND_API_KEY, {
             'from': SENDER,
             'to': [CONTACT_TO_EMAIL],
             'subject': f'[ei8ht plants] 新規注文 {order_no}',
             'text': text,
         })
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('新規注文の管理者通知の送信に失敗しました: %s', error_summary(e))
 
@@ -346,6 +372,7 @@ def _load_products(body: OrderBody) -> dict[str, dict]:
     product_map = {p['id']: p for p in rows}
     # 2. 存在しない・非公開の商品が無いか
     for item in body.items:
+        # 変数の内容: p: 注文対象商品の在庫情報。。
         p = product_map.get(item.product_id)
         if not p:
             raise HTTPException(404, '商品が見つかりません')
@@ -375,20 +402,26 @@ def _reserve_stock(body: OrderBody, product_map: dict[str, dict]) -> list[tuple[
     Raises:
         HTTPException(409): 他の注文と競合して在庫が足りなくなった場合
     """
+    # 変数の内容: reserved: 確保済み在庫の一覧。
     reserved: list[tuple[str, int]] = []
     try:
+        # 1. 商品ごとに DB 関数で在庫を減らし、確保済みの数量を記録する。
         for item in body.items:
+            # 変数の内容: ok: 処理の成功可否。
             ok = admin_supabase.rpc('decrement_stock', {
                 'p_product_id': item.product_id,
                 'p_quantity': item.quantity,
             }).execute().data
             if not ok:
+                # 変数の内容: p: 注文対象商品の在庫情報。。
                 p = product_map[item.product_id]
                 raise HTTPException(409, f'在庫が不足しています: {p["name"]}（他の注文と競合しました）')
             reserved.append((item.product_id, item.quantity))
+    # 2. 途中で失敗したら、確保済みの在庫を戻して元の例外を送出する。
     except Exception:
         _rollback_stock(reserved)
         raise
+    # 3. 成功時は決済失敗時に戻すための確保一覧を返す。
     return reserved
 
 
@@ -408,6 +441,7 @@ def _save_order(body: OrderBody, product_map: dict[str, dict], subtotal: int, sh
     Raises:
         Exception: 保存に失敗した場合（呼び出し元で CRITICAL として扱う）
     """
+    # 変数の内容: order: 処理対象の注文。
     order = admin_supabase.table('orders').insert({
         'customer_name': body.customer_name,
         'customer_email': body.customer_email,
@@ -464,6 +498,7 @@ def create_order(body: OrderBody, request: Request) -> dict:
     order_limiter.check(client_ip(request))
     if not SQUARE_ACCESS_TOKEN:
         raise HTTPException(500, 'Square が設定されていません')
+    # 変数の内容: shipping_fee: 注文に適用する送料。
     shipping_fee = RATES.get(body.prefecture)
     if shipping_fee is None:
         raise HTTPException(400, f'未対応の都道府県です: {body.prefecture}')
@@ -476,6 +511,7 @@ def create_order(body: OrderBody, request: Request) -> dict:
 
     # 3. Square 決済（失敗したら在庫を戻す。時間切れのときは決済された可能性があるので戻さない）
     try:
+        # 変数の内容: payment_id: 決済サービスが返した支払い ID。
         payment_id = _charge_square(body.source_id, total)
     except _PaymentUncertain:
         logger.critical('Square の決済の応答が時間切れになりました（金額 %s）。決済されたか確認が必要です', total)
@@ -498,7 +534,9 @@ def create_order(body: OrderBody, request: Request) -> dict:
 
     # 4. 注文の保存（失敗したら課金済みなので管理者に知らせる）
     try:
+        # 変数の内容: order: 処理対象の注文。
         order = _save_order(body, product_map, subtotal, shipping_fee, payment_id)
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.critical('決済は成功したが注文の保存に失敗しました（Square Payment ID: %s）: %s', payment_id, error_summary(e))
         _notify_admin_critical(
@@ -524,6 +562,9 @@ def list_orders(_=Depends(require_auth)) -> list[dict]:
 
     Returns:
         注文の行のリスト
+
+    Args:
+        _: 認証依存として注入される値（この関数では使用しません）。
     """
     return admin_supabase.table('orders').select('*').order('created_at', desc=True).execute().data
 
@@ -541,6 +582,7 @@ def get_order(order_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): 注文が存在しない場合
     """
+    # 変数の内容: items: 応答へ返す項目の一覧、order: 処理対象の注文。
     order = fetch_one_or_404(admin_supabase.table('orders').select('*').eq('id', order_id))
     items = admin_supabase.table('order_items').select('*').eq('order_id', order_id).execute().data
     return {**order, 'items': items}
@@ -553,6 +595,9 @@ def _send_shipping_notification(order: dict) -> None:
 
     Args:
         order: 注文レコード（customer_name・customer_email・carrier・tracking_number などを含む）
+
+    Returns:
+        なし。
     """
     if not RESEND_API_KEY:
         return
@@ -562,6 +607,7 @@ def _send_shipping_notification(order: dict) -> None:
         address = f"〒{order['postal_code']} {order['prefecture']}{order['city']}{order['address_line1']}"
         if order.get('address_line2'):
             address += f" {order['address_line2']}"
+        # 変数の内容: carrier: 発送に使う配送会社、tracking_lines: 追跡情報のメール本文行、tracking_number: 配送会社の追跡番号。
         tracking_lines = ''
         carrier = order.get('carrier')
         tracking_number = order.get('tracking_number')
@@ -571,6 +617,7 @@ def _send_shipping_notification(order: dict) -> None:
                 tracking_lines += f'  配送会社: {carrier}\n'
             if tracking_number:
                 tracking_lines += f'  お問い合わせ番号: {tracking_number}\n'
+                # 変数の内容: url_template: 配送会社の追跡 URL テンプレート。
                 url_template = _CARRIER_TRACKING_URL.get(carrier or '')
                 if url_template:
                     tracking_lines += f'  追跡URL: {url_template.format(tracking_number)}\n'
@@ -596,6 +643,7 @@ def _send_shipping_notification(order: dict) -> None:
             'subject': f'発送のお知らせ（注文番号: {order_no}）| ei8ht plants',
             'text': text,
         })
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('発送のお知らせメールの送信に失敗しました: %s', error_summary(e))
 
@@ -614,13 +662,16 @@ def update_order_status(order_id: str, body: OrderStatusPatch, _=Depends(require
     Raises:
         HTTPException(404): 注文が存在しない場合
     """
+    # 1. ステータスと、発送時だけ使う配送情報を更新内容にまとめる。
     patch: dict = {'status': body.status}
     if body.status == 'shipped':
         if body.carrier is not None:
             patch['carrier'] = body.carrier
         if body.tracking_number is not None:
             patch['tracking_number'] = body.tracking_number
+    # 2. 対象注文を更新し、存在しない ID は 404 にする。
     updated = first_or_404(execute_or_404(admin_supabase.table('orders').update(patch).eq('id', order_id)))
+    # 3. 発送済みへの変更なら通知メールを送り、更新後の行を返す。
     if body.status == 'shipped':
         _send_shipping_notification(updated)
     return updated

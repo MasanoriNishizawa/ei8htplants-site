@@ -18,8 +18,7 @@ class PostgrestError(Exception):
 
         Args:
             code: PostgREST / PostgreSQL のエラーコード（例 'PGRST116'）
-            message: 例外の文字列
-        """
+            message: 例外の文字列"""
         super().__init__(message)
         # db_utils が見るエラーコード
         self.code = code
@@ -49,6 +48,9 @@ def as_admin() -> Iterator[None]:
 
     Yields:
         なし
+
+    Returns:
+        なし。
     """
     # 1. 依存関数を差し替える
     app.dependency_overrides[optional_auth] = lambda: True

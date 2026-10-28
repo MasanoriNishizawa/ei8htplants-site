@@ -52,7 +52,10 @@ export function preloadAdminPages(): void {
   // 単体テスト（Vitest）では先読みしない。テストの終わったあとに全ページの読み込みが走り、遅くなったり後始末の邪魔になったりするため
   if (preloadStarted || import.meta.env.MODE === 'test') return
   preloadStarted = true
-  /** 全ページの読み込みを始める */
+  /**
+   *  全ページの読み込みを始める
+   * @returns 戻り値なし。
+   */
   const run = () => {
     for (const load of Object.values(adminPageLoaders)) {
       load().catch(() => {})

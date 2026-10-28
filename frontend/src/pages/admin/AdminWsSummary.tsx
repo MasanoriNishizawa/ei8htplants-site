@@ -67,6 +67,7 @@ export default function AdminWsSummary() {
    * 2. 保存できたら画面の状態も更新する（失敗したら文言を出し、チェックは元のまま）
    * 3. 成功・失敗どちらでも保存中の表示を解く
    * @param row - 切り替える行
+   * @returns 戻り値なし。
    */
   const togglePayment = async (row: WsRow) => {
     setSaving(row.eventId)

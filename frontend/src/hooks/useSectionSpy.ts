@@ -37,6 +37,7 @@ export function useSectionSpy(ids: readonly string[]): SectionSpy {
     )
     // 描画済みのセクション要素を見張る
     idsKey.split('|').forEach((id) => {
+      // この id に対応する現在の DOM 要素
       const el = refs.current[id]
       if (el) obs.observe(el)
     })

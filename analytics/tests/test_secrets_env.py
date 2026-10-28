@@ -45,7 +45,12 @@ def clean_env(monkeypatch):
 
     Streamlit は os.environ を直接書き換えるため、monkeypatch に「元は無かった」ことを記録させておく
     （一度 setenv してから delenv すると、テストの後に削除される）。
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     for name in TEST_ENV_NAMES:
         monkeypatch.setenv(name, "placeholder")
         monkeypatch.delenv(name)
@@ -58,13 +63,30 @@ def use_secrets_files(monkeypatch, clean_env):
 
     Returns:
         探す場所（文字列のリスト）を受け取って設定する関数
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        clean_env: 環境変数の名前と値。"""
 
     def apply(paths: list[str]) -> Secrets:
         # 1. secrets.files の値だけを差し替える（ほかの設定はそのまま）
+        """apply のテスト用処理を行う。
+
+        Args:
+            paths: secrets.toml の検索対象パス一覧。
+
+        Returns:
+            なし。"""
         original_get_option = st_config.get_option
 
         def fake_get_option(key: str):
+            """fake_get_option のテスト用処理を行う。
+
+            Args:
+                key: 検証対象のキー値。
+
+            Returns:
+                なし。"""
             if key == "secrets.files":
                 return paths
             return original_get_option(key)
@@ -81,6 +103,14 @@ def use_secrets_files(monkeypatch, clean_env):
 
 
 def test_secrets_tomlが無いとFalseを返し環境変数は変わらない(use_secrets_files, tmp_path):
+    """secrets tomlが無いとFalseを返し環境変数は変わらないことを確認する。
+
+    Args:
+        use_secrets_files: Streamlit の secrets 読み込み先を一時領域へ切り替えるフィクスチャ。
+        tmp_path: テスト用の一時ディレクトリ。
+
+    Returns:
+        なし。"""
     use_secrets_files([str(tmp_path / ".streamlit" / "secrets.toml"), str(tmp_path / "missing" / "secrets.toml")])
     before = dict(os.environ)
     assert load_secrets_into_env() is False
@@ -89,6 +119,14 @@ def test_secrets_tomlが無いとFalseを返し環境変数は変わらない(us
 
 def test_ダミーのsecrets_tomlがあるとTrueを返しトップレベルの値が環境変数に入る(use_secrets_files, tmp_path):
     # 1. Community Cloud の Secrets 欄と同じ形の TOML を一時フォルダに置く
+    """ダミーのsecrets tomlがあるとTrueを返しトップレベルの値が環境変数に入ることを確認する。
+
+    Args:
+        use_secrets_files: Streamlit の secrets 読み込み先を一時領域へ切り替えるフィクスチャ。
+        tmp_path: テスト用の一時ディレクトリ。
+
+    Returns:
+        なし。"""
     path = tmp_path / "secrets.toml"
     path.write_text(
         "\n".join(
@@ -118,6 +156,15 @@ def test_ダミーのsecrets_tomlがあるとTrueを返しトップレベルの�
 
 
 def test_secrets_tomlの値は同じ名前の環境変数より優先される(use_secrets_files, tmp_path, monkeypatch):
+    """secrets tomlの値は同じ名前の環境変数より優先されることを確認する。
+
+    Args:
+        use_secrets_files: Streamlit の secrets 読み込み先を一時領域へ切り替えるフィクスチャ。
+        tmp_path: テスト用の一時ディレクトリ。
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("ANALYTICS_TEST_SECRET_STR", "value-from-shell")
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}"\n', encoding="utf-8")
@@ -127,6 +174,14 @@ def test_secrets_tomlの値は同じ名前の環境変数より優先される(u
 
 
 def test_2回呼んでもTrueを返し値は変わらない(use_secrets_files, tmp_path):
+    """2回呼んでもTrueを返し値は変わらないことを確認する。
+
+    Args:
+        use_secrets_files: Streamlit の secrets 読み込み先を一時領域へ切り替えるフィクスチャ。
+        tmp_path: テスト用の一時ディレクトリ。
+
+    Returns:
+        なし。"""
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}"\n', encoding="utf-8")
     use_secrets_files([str(path)])
@@ -136,6 +191,14 @@ def test_2回呼んでもTrueを返し値は変わらない(use_secrets_files, t
 
 
 def test_secrets_tomlの書き方が誤っているとFalseを返し環境変数は変わらない(use_secrets_files, tmp_path):
+    """secrets tomlの書き方が誤っているとFalseを返し環境変数は変わらないことを確認する。
+
+    Args:
+        use_secrets_files: Streamlit の secrets 読み込み先を一時領域へ切り替えるフィクスチャ。
+        tmp_path: テスト用の一時ディレクトリ。
+
+    Returns:
+        なし。"""
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}\nBROKEN = \n', encoding="utf-8")
     use_secrets_files([str(path)])
@@ -151,9 +214,20 @@ class _UnreadableSecrets:
     """
 
     def __init__(self, error: OSError) -> None:
+        """__init__ で必要なテスト状態を初期化する。
+
+        Args:
+            error: テスト対象に渡す例外。
+
+        Returns:
+            なし。"""
         self.error = error
 
     def __len__(self) -> int:
+        """テスト用オブジェクトの要素数を返す。
+
+        Returns:
+            なし。"""
         raise self.error
 
 
@@ -164,6 +238,16 @@ class _UnreadableSecrets:
 )
 def test_secrets_tomlを読み取れないとFalseを返しログには例外の種類だけが出る(monkeypatch, caplog, error_type, error_no):
     # 1. 例外のメッセージに秘密の値と場所を入れておき、ログに出ないことを確かめる
+    """secrets tomlを読み取れないとFalseを返しログには例外の種類だけが出ることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        caplog: ログを取得する pytest フィクスチャ。
+        error_type: 発生させる例外クラス。
+        error_no: 検証するエラーコード。
+
+    Returns:
+        なし。"""
     error = error_type(error_no, f"Permission denied: /fake/secret/path {FAKE_SECRET_VALUE}")
     monkeypatch.setattr(streamlit, "secrets", _UnreadableSecrets(error))
     with caplog.at_level(logging.ERROR, logger=secrets_env.logger.name):
@@ -182,8 +266,20 @@ def test_secrets_tomlを読み取れないとFalseを返しログには例外の
 
 def test_OSError以外の予期しない例外は握りつぶさない(monkeypatch):
     # 想定外の不具合を隠さないよう、OSError と StreamlitSecretNotFoundError 以外はそのまま上に伝わる
+    """OSError以外の予期しない例外は握りつぶさないことを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     class _Broken:
+        """例外時のテスト用応答を扱うクラス。"""
         def __len__(self) -> int:
+            """テスト用オブジェクトの要素数を返す。
+
+            Returns:
+                なし。"""
             raise RuntimeError("想定外")
 
     monkeypatch.setattr(streamlit, "secrets", _Broken())

@@ -25,6 +25,7 @@ vi.mock('../../../lib/api', () => ({
 
 /** モックした API（型付き） */
 const mockStats = vi.mocked(api.stats)
+// ダッシュボードの管理情報取得 API を型付きモックとして扱う
 const mockDashboard = vi.mocked(api.events.getAdminInfoDashboard)
 
 /**
@@ -50,14 +51,20 @@ function item(over: Partial<AdminInfoDashboardItem>): AdminInfoDashboardItem {
   }
 }
 
-/** 確認画面の代わりに表示する部品。state.from を画面に出す */
+/**
+ *  確認画面の代わりに表示する部品。state.from を画面に出す
+ * @returns 表示する React 要素。
+ */
 function AdminInfoProbe() {
   const loc = useLocation()
   const from = (loc.state as { from?: string } | null)?.from ?? '(なし)'
   return <div>確認画面 {loc.pathname} from={from}</div>
 }
 
-/** Dashboard を /admin で描画する */
+/**
+ *  Dashboard を /admin で描画する
+ * @returns 処理結果。
+ */
 function renderDashboard() {
   return render(
     <MemoryRouter initialEntries={['/admin']}>
@@ -69,12 +76,18 @@ function renderDashboard() {
   )
 }
 
-/** 「出店料の支払い」のセクション */
+/**
+ *  「出店料の支払い」のセクション
+ * @returns 処理結果。
+ */
 function paymentSection() {
   return screen.getByRole('region', { name: '出店料の支払い' })
 }
 
-/** 「今後の搬入予定」のセクション */
+/**
+ *  「今後の搬入予定」のセクション
+ * @returns 処理結果。
+ */
 function carryInSection() {
   return screen.getByRole('region', { name: '今後の搬入予定' })
 }

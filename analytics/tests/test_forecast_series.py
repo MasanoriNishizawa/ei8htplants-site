@@ -166,12 +166,22 @@ def _legacy_forecast_samples(fin: pd.DataFrame, events: pd.DataFrame, today: pd.
     ("マルシェ（12）", "マルシェ"),
 ])
 def test_series_keyは回ごとの番号を取り除いて同じイベントのキーになる(name, expected):
-    """回ごとに変わる番号（vol・第N回・序数・西暦・#N・no.N・(N)）を取り除いたキーになること。"""
+    """回ごとに変わる番号（vol・第N回・序数・西暦・#N・no.N・(N)）を取り除いたキーになること。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert series_key(name) == expected
 
 
 def test_series_keyは番号違いの同じイベントを同じキーにする():
-    """「奇天烈 vol.5」と「奇天烈 Vol.12」、「第3回」と「第三回」が同じキーになること。"""
+    """「奇天烈 vol.5」と「奇天烈 Vol.12」、「第3回」と「第三回」が同じキーになること。
+
+    Returns:
+        なし。"""
     assert series_key("奇天烈 vol.5") == series_key("奇天烈 Vol.12")
     assert series_key("第3回 〇〇") == series_key("第三回 〇〇")
     assert series_key("Habitat Exhibition 2025") == series_key("Habitat Exhibition 2026")
@@ -189,7 +199,14 @@ def test_series_keyは番号違いの同じイベントを同じキーにする(
     ("A12026", "a12026"),
 ])
 def test_series_keyは単語の一部の数字や英字を消さない(name, expected):
-    """「ブース2」「3Dプリント展」の数字や、「Volcano」「Nordic」の vol・no を消さないこと。"""
+    """「ブース2」「3Dプリント展」の数字や、「Volcano」「Nordic」の vol・no を消さないこと。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert series_key(name) == expected
 
 
@@ -198,7 +215,14 @@ def test_series_keyは単語の一部の数字や英字を消さない(name, exp
     ("2026", "2026"),
 ])
 def test_series_keyは番号を除くと空になる名前を元の名前で返す(name, expected):
-    """番号を取り除くと何も残らない名前は、NFKC・小文字・空白除去だけをした元の名前になること。"""
+    """番号を取り除くと何も残らない名前は、NFKC・小文字・空白除去だけをした元の名前になること。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert series_key(name) == expected
     # 別の番号の名前とは同じキーにならない
     assert series_key("Vol.1") != series_key("Vol.2")
@@ -206,7 +230,13 @@ def test_series_keyは番号を除くと空になる名前を元の名前で返�
 
 @pytest.mark.parametrize("name", [None, 1, 3.5, "", "   ", "　"])
 def test_series_keyは文字列でない名前や空の名前を空文字にする(name):
-    """文字列でない・空・空白だけの名前は空文字になること。"""
+    """文字列でない・空・空白だけの名前は空文字になること。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+
+    Returns:
+        なし。"""
     assert series_key(name) == ""
 
 
@@ -223,7 +253,14 @@ def test_series_keyは文字列でない名前や空の名前を空文字にす�
     ("12回目", "12回目"),
 ])
 def test_series_keyは番号を除いた残りが空か数字だけか英字1文字なら元の名前を返す(name, expected):
-    """番号を除いた残りが空・数字だけ・ASCII 英数字だけで2文字未満なら、NFKC・小文字・空白除去の元の名前になること。"""
+    """番号を除いた残りが空・数字だけ・ASCII 英数字だけで2文字未満なら、NFKC・小文字・空白除去の元の名前になること。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert _SERIES_KEY_MIN_ASCII_LENGTH == 2
     assert series_key(name) == expected
 
@@ -238,12 +275,22 @@ def test_series_keyは番号を除いた残りが空か数字だけか英字1文
     ("AB", "ab"),
 ])
 def test_series_keyは日本語1文字やASCII2文字の名前をキーとして残す(name, expected):
-    """日本語1文字（「祭」「灯」）や ASCII 2文字は短くてもキーとして使うこと。"""
+    """日本語1文字（「祭」「灯」）や ASCII 2文字は短くてもキーとして使うこと。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert series_key(name) == expected
 
 
 def test_series_keyは英字1文字の別々のイベントを同じキーにしない():
-    """「A 2026」と「A 2025」は元の名前になるので別のキーになり、「B 2026」とも違うこと。"""
+    """「A 2026」と「A 2025」は元の名前になるので別のキーになり、「B 2026」とも違うこと。
+
+    Returns:
+        なし。"""
     assert series_key("A 2026") != series_key("A 2025")
     assert series_key("A 2026") != series_key("B 2026")
     # 日本語1文字は番号違いでも同じイベントにまとまる
@@ -260,7 +307,13 @@ def test_series_keyは英字1文字の別々のイベントを同じキーにし
     "Market 2026",
 ])
 def test_series_keyは西暦と月や日付の番号を取り除く(name):
-    """「2026.4」「2025/10」「2026-04」「2026.4.12」「2026年4月」などの年月・日付を取り除いて「market」になること。"""
+    """「2026.4」「2025/10」「2026-04」「2026.4.12」「2026年4月」などの年月・日付を取り除いて「market」になること。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+
+    Returns:
+        なし。"""
     assert series_key(name) == "market"
 
 
@@ -273,7 +326,14 @@ def test_series_keyは西暦と月や日付の番号を取り除く(name):
     ("第3回 〇〇", "〇〇"),
 ])
 def test_series_keyはN回目と第N回目を取り除く(name, expected):
-    """「5回目」「第5回目」を取り除き、「第N回」と同じキーになること。"""
+    """「5回目」「第5回目」を取り除き、「第N回」と同じキーになること。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert series_key(name) == expected
 
 
@@ -286,17 +346,30 @@ def test_series_keyはN回目と第N回目を取り除く(name, expected):
     ("Holiday1 Fes", "holiday1fes"),
 ])
 def test_series_keyは複数日開催のday番号を取り除き単語の一部のdayは消さない(name, expected):
-    """「day2」「Day 2」「day.3」は取り除き、「Sunday1」「Holiday1」の day は消さないこと。"""
+    """「day2」「Day 2」「day.3」は取り除き、「Sunday1」「Holiday1」の day は消さないこと。
+
+    Args:
+        name: テスト対象のイベント・商品・系列名。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert series_key(name) == expected
 
 
 def test_series_keyはday番号違いの日を同じイベントにまとめる():
-    """複数日開催の「day1」「day2」が、日付のないイベント名と同じキーになること。"""
+    """複数日開催の「day1」「day2」が、日付のないイベント名と同じキーになること。
+
+    Returns:
+        なし。"""
     assert series_key("奇天烈 vol.5 day1") == series_key("奇天烈 vol.5 day2") == series_key("奇天烈 vol.6")
 
 
 def test_series_keyは年月日の日付も日まで取り除く():
-    """「2026年4月12日」も「2026.4.12」と同じく日まで取り除き、「2026年4月」と同じイベントにまとめる。"""
+    """「2026年4月12日」も「2026.4.12」と同じく日まで取り除き、「2026年4月」と同じイベントにまとめる。
+
+    Returns:
+        なし。"""
     # 1. 年月日の書き方でも日まで消える
     assert series_key("Market 2026年4月12日") == "market"
     # 2. 書き方の違う同じイベントが、すべて同じキーになる
@@ -317,14 +390,25 @@ def test_series_keyは年月日の日付も日まで取り除く():
     (3, 10, 5),
 ])
 def test_month_distanceは12月と1月をとなり合う円環で月の差を数える(a, b, expected):
-    """月の差を 0〜6 の円環で数えること（12月と1月は1、4月と10月は6）。"""
+    """月の差を 0〜6 の円環で数えること（12月と1月は1、4月と10月は6）。
+
+    Args:
+        a: 比較する月または数値の1つ目。
+        b: 比較する月または数値の2つ目。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert month_distance(a, b) == expected
     # 順番を入れ替えても同じ
     assert month_distance(b, a) == expected
 
 
 def test_month_distanceは全ての組み合わせで0から6に収まる():
-    """1〜12 のどの組み合わせでも 0〜6 の範囲に収まること。"""
+    """1〜12 のどの組み合わせでも 0〜6 の範囲に収まること。
+
+    Returns:
+        なし。"""
     for a in range(1, 13):
         for b in range(1, 13):
             assert 0 <= month_distance(a, b) <= 6
@@ -340,14 +424,24 @@ def test_month_distanceは全ての組み合わせで0から6に収まる():
     (6, 0.00033546262790251185),
 ])
 def test_season_weightは月の差dからexpの重みを返す(d, expected):
-    """σ=1.5 で exp(−d²/(2σ²)) の値になること（同じ月 1.0、1か月差 約0.80、半年差 ほぼ0）。"""
+    """σ=1.5 で exp(−d²/(2σ²)) の値になること（同じ月 1.0、1か月差 約0.80、半年差 ほぼ0）。
+
+    Args:
+        d: 基準月からの月差。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert SEASON_SIGMA_MONTHS == 1.5
     assert season_weight(d) == pytest.approx(expected)
     assert season_weight(d) == pytest.approx(math.exp(-(d ** 2) / (2 * 1.5 ** 2)))
 
 
 def test_season_weightは月が離れるほど小さくなりsigmaを広げると大きくなる():
-    """d が増えるほど重みが単調に下がり、sigma を大きくすると同じ d でも重みが大きくなること。"""
+    """d が増えるほど重みが単調に下がり、sigma を大きくすると同じ d でも重みが大きくなること。
+
+    Returns:
+        なし。"""
     weights = [season_weight(d) for d in range(7)]
     assert all(a > b for a, b in zip(weights, weights[1:]))
     assert season_weight(3, sigma=3.0) > season_weight(3)
@@ -357,14 +451,20 @@ def test_season_weightは月が離れるほど小さくなりsigmaを広げる�
 
 
 def test_weighted_medianは重みが同じならふつうの中央値になる():
-    """重みがすべて同じとき、奇数個は真ん中、偶数個は真ん中2つの平均になること。"""
+    """重みがすべて同じとき、奇数個は真ん中、偶数個は真ん中2つの平均になること。
+
+    Returns:
+        なし。"""
     assert weighted_median([30, 10, 20], [1, 1, 1]) == 20
     assert weighted_median([40, 10, 30, 20], [1, 1, 1, 1]) == 25
     assert weighted_median([5], [0.3]) == 5
 
 
 def test_weighted_medianは重いほうの値に寄る():
-    """重みの大きい値が中央値になること（並びが不順でも値の小さい順に数える）。"""
+    """重みの大きい値が中央値になること（並びが不順でも値の小さい順に数える）。
+
+    Returns:
+        なし。"""
     assert weighted_median([300000, 100000], [0.001, 1.0]) == 100000
     assert weighted_median([100000, 300000], [1.0, 3.0]) == 300000
     # 10 の重み 1、20 の重み 1、30 の重み 3 → 累計が半分(2.5)に達するのは 30
@@ -372,7 +472,10 @@ def test_weighted_medianは重いほうの値に寄る():
 
 
 def test_weighted_medianは値が無いか重みの合計が0ならNoneを返す():
-    """値が空・重みが全部 0 のときは None になること。"""
+    """値が空・重みが全部 0 のときは None になること。
+
+    Returns:
+        なし。"""
     assert weighted_median([], []) is None
     assert weighted_median([1, 2], [0, 0]) is None
 
@@ -385,19 +488,35 @@ def test_weighted_medianは値が無いか重みの合計が0ならNoneを返す
     (0.5, 0.2),
 ])
 def test_series_weightは回数nからn割るn足すKを返す(n, expected):
-    """K=2 で n/(n+K) になること（1回 33%、2回 50%、4回 67%、8回 80%）。"""
+    """K=2 で n/(n+K) になること（1回 33%、2回 50%、4回 67%、8回 80%）。
+
+    Args:
+        n: 検証対象の件数または数値。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert SERIES_PRIOR_K == 2
     assert series_weight(n) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("n", [0, 0.0, -1])
 def test_series_weightは回数が0以下なら0を返す(n):
-    """n が 0 以下なら 0.0 になること（全イベントの実績だけで見込む）。"""
+    """n が 0 以下なら 0.0 になること（全イベントの実績だけで見込む）。
+
+    Args:
+        n: 検証対象の件数または数値。
+
+    Returns:
+        なし。"""
     assert series_weight(n) == 0.0
 
 
 def test_series_weightはKを大きくすると小さくなる():
-    """k を大きくするほど同じイベントの重みが下がること。"""
+    """k を大きくするほど同じイベントの重みが下がること。
+
+    Returns:
+        なし。"""
     assert series_weight(2, k=6) == pytest.approx(0.25)
     assert series_weight(2, k=6) < series_weight(2)
 
@@ -413,19 +532,35 @@ def test_series_weightはKを大きくすると小さくなる():
     (0.0, None),
 ])
 def test_displayed_medianは重みが0点5パーセント未満なら中央値を出さない(weight, expected):
-    """重みが MIN_DISPLAY_SERIES_WEIGHT（0.005）未満なら None、以上なら中央値をそのまま返すこと。"""
+    """重みが MIN_DISPLAY_SERIES_WEIGHT（0.005）未満なら None、以上なら中央値をそのまま返すこと。
+
+    Args:
+        weight: 中央値計算に使う重み。
+        expected: 比較する期待値。
+
+    Returns:
+        なし。"""
     assert MIN_DISPLAY_SERIES_WEIGHT == 0.005
     assert displayed_median(120000, weight) == expected
 
 
 @pytest.mark.parametrize("median", [None, float("nan"), np.nan])
 def test_displayed_medianは中央値が無ければ重みに関係なくNoneを返す(median):
-    """中央値が None・NaN なら、重みが大きくても None になること。"""
+    """中央値が None・NaN なら、重みが大きくても None になること。
+
+    Args:
+        median: 検証対象の件数または数値。
+
+    Returns:
+        なし。"""
     assert displayed_median(median, 0.9) is None
 
 
 def test_displayed_medianはmin_weightを変えるとしきい値が変わり値はfloatで返す():
-    """min_weight を指定するとそのしきい値で判定し、返す値は float になること。"""
+    """min_weight を指定するとそのしきい値で判定し、返す値は float になること。
+
+    Returns:
+        なし。"""
     assert displayed_median(100000, 0.3, min_weight=0.5) is None
     shown = displayed_median(np.int64(100000), 0.5, min_weight=0.5)
     assert shown == 100000.0 and isinstance(shown, float)
@@ -439,7 +574,10 @@ REF_COLUMNS = ["event_id", "name", "start_date", "series_key", "n_past", "n_eff"
 
 
 def test_series_referencesは同じキーの過去の回だけを開催日順に集める():
-    """同じイベント（番号違い）の回だけが集まり、別のイベントは混ざらず、過去の回は開催日順に並ぶこと。"""
+    """同じイベント（番号違い）の回だけが集まり、別のイベントは混ざらず、過去の回は開催日順に並ぶこと。
+
+    Returns:
+        なし。"""
     history = _history([
         ("奇天烈 vol.3", "2025-11-10", 120000),
         ("別のマルシェ", "2025-11-12", 50000),
@@ -466,7 +604,10 @@ def test_series_referencesは同じキーの過去の回だけを開催日順に
 
 
 def test_series_referencesは残りのイベントを開催日とidの順に並べる():
-    """残りのイベントの行が開催日順（同じ日なら id 順）に並ぶこと。"""
+    """残りのイベントの行が開催日順（同じ日なら id 順）に並ぶこと。
+
+    Returns:
+        なし。"""
     history = _history([("A", "2025-05-01", 10000)])
     remaining = _remaining([
         ("r3", "C", "2027-01-10"),
@@ -483,7 +624,10 @@ def test_series_referencesは残りのイベントを開催日とidの順に並�
 
 
 def test_series_referencesは開催月の近さで時期の重みとn_effとweightを計算する():
-    """同じ月 1.0・1か月差 約0.80・3か月差 約0.14 の重みが付き、n_eff はその合計、weight は n_eff/(n_eff+2) になること。"""
+    """同じ月 1.0・1か月差 約0.80・3か月差 約0.14 の重みが付き、n_eff はその合計、weight は n_eff/(n_eff+2) になること。
+
+    Returns:
+        なし。"""
     history = _history([
         ("マルシェ 2025", "2025-11-03", 100000),  # 同じ月（d=0）
         ("マルシェ 2024", "2024-10-03", 200000),  # 1か月差（d=1）
@@ -502,14 +646,20 @@ def test_series_referencesは開催月の近さで時期の重みとn_effとweig
 
 
 def test_series_referencesは12月と1月をとなりの月として重みを付ける():
-    """残りが1月・過去が12月のとき、1か月差の重み（約0.80）になること。"""
+    """残りが1月・過去が12月のとき、1か月差の重み（約0.80）になること。
+
+    Returns:
+        なし。"""
     history = _history([("冬市", "2025-12-20", 50000)])
     row = series_references(_remaining([("r1", "冬市", "2027-01-15")]), history).iloc[0]
     assert row["past_season_weights"] == pytest.approx([season_weight(1)])
 
 
 def test_series_referencesは季節の違う回しか無いとweightを0にする():
-    """時期の重みの合計がしきい値未満（半年差の回だけ）なら、weight=0・中央値なしになること。"""
+    """時期の重みの合計がしきい値未満（半年差の回だけ）なら、weight=0・中央値なしになること。
+
+    Returns:
+        なし。"""
     history = _history([
         ("春秋フェス", "2024-10-05", 300000),
         ("春秋フェス", "2025-10-05", 300000),
@@ -526,7 +676,10 @@ def test_series_referencesは季節の違う回しか無いとweightを0にす�
 
 
 def test_series_referencesは時期の重みの合計がしきい値以上ならweightを付ける():
-    """n_eff がしきい値以上（5か月差 約0.0039）なら weight が 0 より大きくなること。"""
+    """n_eff がしきい値以上（5か月差 約0.0039）なら weight が 0 より大きくなること。
+
+    Returns:
+        なし。"""
     history = _history([("春秋フェス", "2025-11-05", 300000)])
     row = series_references(_remaining([("r1", "春秋フェス", "2027-04-10")]), history).iloc[0]
     assert row["n_eff"] == pytest.approx(season_weight(5))
@@ -536,7 +689,10 @@ def test_series_referencesは時期の重みの合計がしきい値以上なら
 
 
 def test_series_referencesは過去の回の開催日が不明なら重み1とする():
-    """開催日が分からない過去の回は時期で差をつけず s=1.0、開催月は None になること。"""
+    """開催日が分からない過去の回は時期で差をつけず s=1.0、開催月は None になること。
+
+    Returns:
+        なし。"""
     history = _history([
         ("夏祭り", None, 70000),
         ("夏祭り", "2025-01-10", 90000),  # 7月の残りに対して 6か月差
@@ -549,7 +705,10 @@ def test_series_referencesは過去の回の開催日が不明なら重み1と�
 
 
 def test_series_referencesは残りのイベントの開催日が不明なら全部の回を重み1とする():
-    """残りのイベントの開催日が分からないときは、すべての過去の回を s=1.0 で数えること。"""
+    """残りのイベントの開催日が分からないときは、すべての過去の回を s=1.0 で数えること。
+
+    Returns:
+        なし。"""
     history = _history([
         ("夏祭り", "2025-01-10", 90000),
         ("夏祭り", "2025-07-10", 70000),
@@ -562,7 +721,10 @@ def test_series_referencesは残りのイベントの開催日が不明なら全
 
 
 def test_series_referencesは過去の回に名前の列が無いと同じイベントを探さない():
-    """history に name 列が無いとき、どの残りのイベントも回数 0・重み 0 になること。"""
+    """history に name 列が無いとき、どの残りのイベントも回数 0・重み 0 になること。
+
+    Returns:
+        なし。"""
     history = pd.DataFrame({"start_date": pd.to_datetime(["2025-11-01"]), "sales": [10000.0]})
     ref = series_references(_remaining([("r1", "A", "2026-11-01")]), history)
     row = ref.iloc[0]
@@ -570,7 +732,10 @@ def test_series_referencesは過去の回に名前の列が無いと同じイベ
 
 
 def test_series_referencesは残りのイベントに名前の列が無いと同じイベントを探さない():
-    """remaining に name 列が無いとき、キーは空文字・回数 0・重み 0 になること。"""
+    """remaining に name 列が無いとき、キーは空文字・回数 0・重み 0 になること。
+
+    Returns:
+        なし。"""
     history = _history([("A", "2025-11-01", 10000)])
     remaining = pd.DataFrame({"id": ["r1"], "start_date": pd.to_datetime(["2026-11-01"])})
     row = series_references(remaining, history).iloc[0]
@@ -578,14 +743,20 @@ def test_series_referencesは残りのイベントに名前の列が無いと同
 
 
 def test_series_referencesは名前が空のイベント同士を同じとみなさない():
-    """残りのイベントも過去の回も名前が None のとき、同じイベントとして扱わないこと。"""
+    """残りのイベントも過去の回も名前が None のとき、同じイベントとして扱わないこと。
+
+    Returns:
+        なし。"""
     history = _history([(None, "2025-11-01", 10000)])
     row = series_references(_remaining([("r1", None, "2026-11-01")]), history).iloc[0]
     assert row["series_key"] == "" and row["n_past"] == 0 and row["weight"] == 0.0
 
 
 def test_series_referencesは過去の回に開催日の列が無いと全部を重み1とする():
-    """history に start_date 列が無いとき、開催月は None・時期の重みは 1.0 になること。"""
+    """history に start_date 列が無いとき、開催月は None・時期の重みは 1.0 になること。
+
+    Returns:
+        なし。"""
     history = pd.DataFrame({"name": ["A", "A"], "sales": [10000.0, 30000.0]})
     row = series_references(_remaining([("r1", "A", "2026-11-01")]), history).iloc[0]
     assert row["past_months"] == [None, None]
@@ -594,14 +765,20 @@ def test_series_referencesは過去の回に開催日の列が無いと全部を
 
 
 def test_series_referencesは残りが無ければ列だけの空の表を返す():
-    """残りのイベントが 0 件なら、決まった列を持つ空の表になること。"""
+    """残りのイベントが 0 件なら、決まった列を持つ空の表になること。
+
+    Returns:
+        なし。"""
     remaining = pd.DataFrame({"id": [], "name": [], "start_date": _EMPTY_DATES})
     ref = series_references(remaining, _history([("A", "2025-11-01", 1)]))
     assert ref.empty and list(ref.columns) == REF_COLUMNS
 
 
 def test_series_referencesは過去の回が空でも残りのイベントの行を作る():
-    """history が空でも、残りのイベントごとに回数 0・重み 0 の行ができること。"""
+    """history が空でも、残りのイベントごとに回数 0・重み 0 の行ができること。
+
+    Returns:
+        なし。"""
     history = pd.DataFrame({"name": [], "start_date": _EMPTY_DATES, "sales": []})
     ref = series_references(_remaining([("r1", "A", "2026-11-01"), ("r2", "B", "2026-12-01")]), history)
     assert list(ref["event_id"]) == ["r1", "r2"]
@@ -636,7 +813,13 @@ def _no_series_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 @pytest.mark.parametrize("seed", [0, 1, 42])
 def test_forecastは同じイベントが無ければ従来版とsamplesが完全に一致する(seed):
-    """同じイベントの過去の実績が無いデータでは、変更前の計算と samples が完全一致すること。"""
+    """同じイベントの過去の実績が無いデータでは、変更前の計算と samples が完全一致すること。
+
+    Args:
+        seed: 基準月からの月差。
+
+    Returns:
+        なし。"""
     fin, events = _no_series_data()
     fc = forecast_fiscal_year(fin, events, TODAY, n_boot=3000, seed=seed)
     legacy = _legacy_forecast_samples(fin, events, TODAY, n_boot=3000, seed=seed)
@@ -649,7 +832,10 @@ def test_forecastは同じイベントが無ければ従来版とsamplesが完�
 
 
 def test_forecastは名前の列が無いデータでも従来版と一致する():
-    """収支・イベントの表に name 列が無いデータでも、従来版と samples が完全一致すること。"""
+    """収支・イベントの表に name 列が無いデータでも、従来版と samples が完全一致すること。
+
+    Returns:
+        なし。"""
     fin, events = _no_series_data()
     fin = fin.drop(columns=["name"])
     events = events.drop(columns=["name"])
@@ -674,7 +860,10 @@ def _series_data(series_name_for_remaining: str) -> tuple[pd.DataFrame, pd.DataF
 
 
 def test_forecastは同じイベントがあると見込みのp50がその実績側に寄る():
-    """同じイベントの実績が 10万円なら p50 が 10万円に寄り、同じイベントが無ければ全体の 2万円のままになること。"""
+    """同じイベントの実績が 10万円なら p50 が 10万円に寄り、同じイベントが無ければ全体の 2万円のままになること。
+
+    Returns:
+        なし。"""
     fin, events = _series_data("奇天烈 vol.5")
     fc = forecast_fiscal_year(fin, events, TODAY, n_boot=5000, seed=0)
     assert fc["actual"] == 0 and fc["remaining"] == 1
@@ -692,7 +881,10 @@ def test_forecastは同じイベントがあると見込みのp50がその実績
 
 
 def test_forecastは季節の違う同じイベントの回をほとんど選ばない():
-    """春の残りに対し、4月の回(10万)と10月の回(30万)があると、同じイベントから引いた売上のほとんどが10万になること。"""
+    """春の残りに対し、4月の回(10万)と10月の回(30万)があると、同じイベントから引いた売上のほとんどが10万になること。
+
+    Returns:
+        なし。"""
     today = pd.Timestamp("2026-04-01")
     done = [(f"g{i}", f"いろいろ市{chr(65 + i)}", f"2025-0{i + 5}-10", 1000 * (i + 1)) for i in range(5)]
     # 同じイベント（年2回開催）: 4月の回は 10万円、10月の回は 30万円
@@ -731,7 +923,10 @@ def test_forecastは季節の違う同じイベントの回をほとんど選ば
 
 
 def test_forecastはseedが同じなら同じ結果になり違えば変わる():
-    """同じ seed なら samples と p10/p50/p90 が完全に同じ、違う seed なら samples が変わること。"""
+    """同じ seed なら samples と p10/p50/p90 が完全に同じ、違う seed なら samples が変わること。
+
+    Returns:
+        なし。"""
     fin, events = _series_data("奇天烈 vol.5")
     a = forecast_fiscal_year(fin, events, TODAY, n_boot=2000, seed=11)
     b = forecast_fiscal_year(fin, events, TODAY, n_boot=2000, seed=11)
@@ -742,7 +937,10 @@ def test_forecastはseedが同じなら同じ結果になり違えば変わる()
 
 
 def test_forecastのdetailsは残りのイベントごとに参考にした実績を持つ():
-    """details に残りのイベントが開催日順に並び、今日以降の回や実績の無い回は過去の実績に含まれないこと。"""
+    """details に残りのイベントが開催日順に並び、今日以降の回や実績の無い回は過去の実績に含まれないこと。
+
+    Returns:
+        なし。"""
     done = [(f"g{i}", f"いろいろ市{chr(65 + i)}", f"2025-0{i + 4}-10", 20000) for i in range(5)]
     done += [
         ("k1", "奇天烈 vol.1", "2024-11-10", 80000),
@@ -778,7 +976,10 @@ def test_forecastのdetailsは残りのイベントごとに参考にした実�
 
 
 def test_forecastは残りのイベントが無ければdetailsが空になる():
-    """今期の残りが 0 回なら、見込みは実績合計と同じで details は空の表になること。"""
+    """今期の残りが 0 回なら、見込みは実績合計と同じで details は空の表になること。
+
+    Returns:
+        なし。"""
     done = [(f"g{i}", f"市{i}", f"2026-0{i + 4}-10", 10000) for i in range(5)]
     fin, events = _fin_and_events(done, [])
     fc = forecast_fiscal_year(fin, events, TODAY, n_boot=500)
@@ -795,7 +996,9 @@ def _details_script(details):
 
     Args:
         details: 表示する details（series_references の結果の形）
-    """
+
+    Returns:
+        なし。"""
     from views.advanced import _forecast_details
 
     _forecast_details(details)
@@ -821,7 +1024,10 @@ def _sample_details() -> pd.DataFrame:
 
 
 def test_画面の表は残りのイベントごとに参考にした実績を列に並べて表示する():
-    """_forecast_details が見出し・決まった列・値の表示形式（円・%・小数1桁・過去の回の説明）で表を出すこと。"""
+    """_forecast_details が見出し・決まった列・値の表示形式（円・%・小数1桁・過去の回の説明）で表を出すこと。
+
+    Returns:
+        なし。"""
     at = AppTest.from_function(_details_script, kwargs={"details": _sample_details()}, default_timeout=30).run()
     assert not at.exception
     assert [s.value for s in at.subheader] == ["残りのイベントと参考にした実績"]
@@ -858,7 +1064,10 @@ def test_画面の表は残りのイベントごとに参考にした実績を�
 
 
 def test_画面の表は季節の違う回しか無い行の中央値をなしと表示する():
-    """weight=0（半年差の回だけ）の行は、中央値が「なし（全体の実績で見込み）」、重みが 0% と出ること。"""
+    """weight=0（半年差の回だけ）の行は、中央値が「なし（全体の実績で見込み）」、重みが 0% と出ること。
+
+    Returns:
+        なし。"""
     history = _history([("春秋フェス", "2025-10-05", 300000)])
     details = series_references(_remaining([("r1", "春秋フェス", "2027-04-10")]), history)
     at = AppTest.from_function(_details_script, kwargs={"details": details}, default_timeout=30).run()
@@ -871,7 +1080,10 @@ def test_画面の表は季節の違う回しか無い行の中央値をなし�
 
 
 def test_画面の表は残りのイベントが無ければその旨を表示する():
-    """details が空なら表を出さず「今期の残りのイベントはありません。」と表示すること。"""
+    """details が空なら表を出さず「今期の残りのイベントはありません。」と表示すること。
+
+    Returns:
+        なし。"""
     empty = series_references(pd.DataFrame({"id": [], "name": [], "start_date": _EMPTY_DATES}),
                               _history([("A", "2025-01-01", 1)]))
     at = AppTest.from_function(_details_script, kwargs={"details": empty}, default_timeout=30).run()
@@ -882,7 +1094,10 @@ def test_画面の表は残りのイベントが無ければその旨を表示�
 
 
 def test_画面の表は重みが0点5パーセント未満の行の中央値をなしと表示する():
-    """中央値があっても重みが 0.5% 未満なら「なし（全体の実績で見込み）」、0.5% ちょうどなら金額を出すこと（境界）。"""
+    """中央値があっても重みが 0.5% 未満なら「なし（全体の実績で見込み）」、0.5% ちょうどなら金額を出すこと（境界）。
+
+    Returns:
+        なし。"""
     # 1. 中央値のある行を3つ作り、重みを 0.0049・0.005・0.3 に置き換える
     history = _history([("市", "2025-11-01", 50000)])
     details = series_references(_remaining([
@@ -896,7 +1111,10 @@ def test_画面の表は重みが0点5パーセント未満の行の中央値を
 
 
 def test_画面の表は5か月差の回だけだと中央値をなしと表示し4か月差なら表示する():
-    """実データの形で、5か月差の回だけ（重み約0.19%）は「なし」、4か月差の回（重み約1.4%）は金額を出すこと。"""
+    """実データの形で、5か月差の回だけ（重み約0.19%）は「なし」、4か月差の回（重み約1.4%）は金額を出すこと。
+
+    Returns:
+        なし。"""
     history = _history([
         ("五月市", "2025-11-05", 300000),  # 4月の残りに対して 5か月差
         ("四月差市", "2025-12-05", 200000),  # 4月の残りに対して 4か月差
@@ -923,7 +1141,9 @@ def _forecast_script(fin, events, today):
         fin: 収支の表
         events: イベントの表
         today: 基準日
-    """
+
+    Returns:
+        なし。"""
     from types import SimpleNamespace
 
     from views.advanced import _forecast
@@ -934,7 +1154,10 @@ def _forecast_script(fin, events, today):
 
 
 def test_着地見込みの説明文は何から引くかと実績が無いときの扱いを説明する():
-    """_forecast の説明文に、2つのくじ・時期の重み・n÷(n+2)・実績が無いときの扱いが書かれていること。"""
+    """_forecast の説明文に、2つのくじ・時期の重み・n÷(n+2)・実績が無いときの扱いが書かれていること。
+
+    Returns:
+        なし。"""
     fin, events = _series_data("奇天烈 vol.5")
     at = AppTest.from_function(_forecast_script, kwargs={"fin": fin, "events": events, "today": TODAY},
                                default_timeout=30).run()

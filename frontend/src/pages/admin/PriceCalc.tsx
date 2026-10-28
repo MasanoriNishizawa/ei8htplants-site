@@ -72,7 +72,7 @@ const wholesalePrice = (sellingPrice: number) => Math.ceil(sellingPrice / WHOLES
 /**
  * 計算結果（小数を含む）を四捨五入して「¥1,234」の形にする
  * @param n - 金額（円）
- * @returns 整形した金額
+ * @returns 四捨五入した金額を円表示にした文字列
  */
 const yenRounded = (n: number) => formatYen(Math.round(n))
 
@@ -829,12 +829,12 @@ function CostRateField({ value, onChange, brand }: { value: string; onChange: (v
 
 /**
  * 切り替えタブの並び（ブランドのタブ・2 段目の生産・仕入れ・実生のタブ・登録リストの絞り込みで共通）
+ *   計算フォームのブランドのタブと同じ文言のボタンが並ぶとき、テストや読み上げで区別できるようにする）
  * @param tabs - タブの id と表示名
  * @param current - 選んでいるタブの id
  * @param onSelect - 選んでいないタブを押したときのコールバック（書きかけの確認は呼び出し側で行う）
  * @param small - 2 段目のタブとして小さく出すか（文字 13px・下線 1px・余白を詰める）
  * @param groupLabel - 指定すると role="group" と aria-label を付ける（登録リストの絞り込みのように、
- *   計算フォームのブランドのタブと同じ文言のボタンが並ぶとき、テストや読み上げで区別できるようにする）
  * @returns タブのボタンの並び
  */
 function TabBar<T extends string>({ tabs, current, onSelect, small = false, groupLabel }: {
@@ -911,6 +911,7 @@ export default function PriceCalc() {
   /**
    * 表示中のブランドの目標原価率の入力を変え、正しい値ならこのブラウザに覚えさせる
    * @param v - 入力欄の文字列（% の数値）
+   * @returns 戻り値なし。
    */
   const handleCostRateChange = (v: string) => {
     setCostRateInputs((prev) => ({ ...prev, [tab]: v }))
@@ -947,6 +948,7 @@ export default function PriceCalc() {
   /**
    * 確認してから登録を 1 件削除する。失敗したらリストはそのままにして文言を出す
    * @param id - 削除する登録の id
+   * @returns 戻り値なし。
    */
   const handleDelete = async (id: string) => {
     if (!confirm('この登録を削除しますか？')) return

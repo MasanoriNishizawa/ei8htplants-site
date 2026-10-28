@@ -37,6 +37,7 @@ function BrandCheckboxes({ value, onChange }: { value: string[]; onChange: (v: s
   /**
    * ブランドの選択を切り替える（選ばれていれば外し、無ければ足す）
    * @param b - 切り替えるブランド
+   * @returns 戻り値なし。
    */
   const toggle = (b: string) =>
     onChange(value.includes(b) ? value.filter((x) => x !== b) : [...value, b])
@@ -92,6 +93,7 @@ export default function AdminStockists() {
   /**
    * 追加フォームの内容を登録する。失敗したら入力を残したまま文言を出す
    * @param e - フォームの送信イベント
+   * @returns 戻り値なし。
    */
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,6 +113,7 @@ export default function AdminStockists() {
   /**
    * 編集のダイアログを開き、取扱店の今の値を入力欄に入れる
    * @param s - 編集する取扱店
+   * @returns 戻り値なし。
    */
   const startEdit = (s: Stockist) => {
     /** 編集のダイアログに入れる値 */
@@ -120,7 +123,10 @@ export default function AdminStockists() {
     resetBaseline({ ...next, brands: [...next.brands].sort() })
   }
 
-  /** 編集のダイアログを閉じる（キャンセル・幕・Esc。保存中は閉じず、書きかけなら確認し、閉じたら失敗の文言も消す） */
+  /**
+   *  編集のダイアログを閉じる（キャンセル・幕・Esc。保存中は閉じず、書きかけなら確認し、閉じたら失敗の文言も消す）
+   * @returns 戻り値なし。
+   */
   const closeEdit = () => {
     if (saving) return
     if (!confirmDiscard(editDirty)) return
@@ -133,6 +139,7 @@ export default function AdminStockists() {
   /**
    * 編集の内容を保存する。成功したらダイアログを閉じて一覧を読み込み直す。失敗したらダイアログを開いたまま文言を出す
    * @param e - フォームの送信イベント
+   * @returns 戻り値なし。
    */
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -153,6 +160,7 @@ export default function AdminStockists() {
   /**
    * 確認してから 1 件削除する。失敗したら一覧はそのままにして文言を出す
    * @param id - 削除する取扱店の id
+   * @returns 戻り値なし。
    */
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return

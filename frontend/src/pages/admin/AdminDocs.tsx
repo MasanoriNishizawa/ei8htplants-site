@@ -41,6 +41,7 @@ function FileTree({
   /**
    * フォルダの開閉を切り替える
    * @param path - フォルダのパス
+   * @returns 戻り値なし。
    */
   const toggle = (path: string) =>
     setOpen((prev) => ({ ...prev, [path]: !(prev[path] ?? selected.startsWith(`${path}/`)) }))
@@ -110,7 +111,10 @@ function FileTree({
   )
 }
 
-/** スマホ幅（index.css の .admin-docs の切り替えと同じ 768px 以下）かどうか */
+/**
+ *  スマホ幅（index.css の .admin-docs の切り替えと同じ 768px 以下）かどうか
+ * @returns 戻り値なし。
+ */
 const isNarrowScreen = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches
 
@@ -164,6 +168,7 @@ export default function AdminDocs() {
    * 2. スマホでは目次を閉じ、本文が見える位置までスクロールする
    * @param path - 選んだファイルのパス
    * @param anchor - 表示した後にスクロールする見出しの id（省略時は先頭を表示）
+   * @returns 戻り値なし。
    */
   const selectFile = (path: string, anchor = '') => {
     // 同じファイルを選び直したときは読み込み直さない（見出しの指定があればそこへスクロールするだけ）
@@ -198,6 +203,7 @@ export default function AdminDocs() {
    *    無害化の後で、本文の中のリンク（.md・外部・#見出し）と見出しの id を整える（docLinks.ts）
    * 3. その間に別のファイルが選ばれていたら、結果を捨てる（最後に選んだファイルだけを表示する）
    * @param path - 読み込むファイルのパス
+   * @returns 戻り値なし。
    */
   const loadFile = async (path: string) => {
     // 1. 番号を振る
@@ -263,6 +269,7 @@ export default function AdminDocs() {
    * 2. 同じファイルの中の見出しへのリンクは、URL を変えずにスクロールする
    * 3. 外部リンクなどはブラウザに任せる（外部は新しいタブで開く）
    * @param e - クリックのイベント
+   * @returns 戻り値なし。
    */
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Ctrl・Cmd を押しながらのクリック（新しいタブで開く操作）はブラウザに任せる

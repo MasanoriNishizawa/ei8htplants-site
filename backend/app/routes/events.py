@@ -20,6 +20,7 @@ from ..utils.dates import is_past_event, today_jst
 from ..utils.errors import error_summary
 from ..utils.ids import is_uuid
 
+# 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/events', tags=['events'])
@@ -82,6 +83,7 @@ def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
         過去のイベントであれば True。日付として読めないときは False
     """
     try:
+        # 変数の内容: last_day: イベント開催期間の最終日。
         last_day = date.fromisoformat(end_date or start_date).isoformat()
     except (TypeError, ValueError):
         return False
@@ -105,6 +107,9 @@ def _ensure_event_exists(event_id: str) -> None:
 
     Raises:
         HTTPException(404): イベントが無い・id が UUID の形でない場合
+
+    Returns:
+        なし。
     """
     if fetch_one_or_none(admin_supabase.table('events').select('id').eq('id', event_id)) is None:
         raise HTTPException(404, _EVENT_NOT_FOUND)
@@ -161,11 +166,15 @@ def _attach_images(events: list[dict]) -> list[dict]:
     """
     if not events:
         return events
+    # 変数の内容: ids: 検索に使う ID の一覧、img_map: イベント ID ごとの画像一覧、imgs: DB から取得した画像行の一覧。
     ids = [e['id'] for e in events]
+    # 1. 全イベントの画像を一括取得し、イベント ID ごとの辞書にまとめる。
     imgs = supabase.table('event_images').select('*').in_('event_id', ids).order('display_order').execute().data
     img_map: dict[str, list] = {}
+    # 変数の内容: img: img の反復ごとの値。
     for img in imgs:
         img_map.setdefault(img['event_id'], []).append(img)
+    # 2. 画像を付け、公開してはいけない管理情報を応答から除く。
     for e in events:
         e['images'] = img_map.get(e['id'], [])
         # 管理者専用の管理情報（搬入・宿泊・出店料・出店要項など）は公開 API の応答に含めない。
@@ -185,13 +194,17 @@ def list_events(past: bool = False) -> list[dict]:
     Returns:
         is_past・images を付けたイベントの行のリスト
     """
+    # 変数の内容: data: イベント一覧の DB 応答データ、result: 過去条件に一致したイベント行の一覧。、today: 過去イベント判定の基準となる日本時間の日付。
     today = today_jst()
+    # 1. 開始日順にイベントを取得し、過去かどうかで指定条件に合う行を選ぶ。
     data = supabase.table('events').select('*').order('start_date').execute().data
     result = []
+    # 変数の内容: e: 過去条件を判定するイベント行。
     for e in data:
         e['is_past'] = is_past_event(e, today)
         if e['is_past'] == past:
             result.append(e)
+    # 2. 選んだイベントに画像情報を加えて返す。
     return _attach_images(result)
 
 
@@ -203,6 +216,9 @@ def list_all_finances(_=Depends(require_auth)) -> list[dict]:
 
     Returns:
         event_finances の行のリスト
+
+    Args:
+        _: 認証依存として注入される値（この関数では使用しません）。
     """
     return admin_supabase.table('event_finances').select('*').execute().data
 
@@ -231,6 +247,9 @@ def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
 
     Raises:
         HTTPException(500): 読み取りに失敗した場合
+
+    Args:
+        _: 認証依存として注入される値（この関数では使用しません）。
     """
     try:
         # 1. イベントを開始日の昇順で読む（必要な列だけ）
@@ -246,13 +265,16 @@ def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
         # 3. 対象のイベントだけ残して、返す形にする
         today = today_jst()
         items = []
+        # 変数の内容: e: 過去条件を判定するイベント行。
         for e in events:
+            # 変数の内容: has_unpaid_fee: 未払いの出店料があるかの判定、info: イベントに紐づく管理情報、is_upcoming: 開催中または今後のイベントかの判定、paid: 出店料が支払済みかの判定。
             info = info_map.get(e.get('id')) or {}
             paid = bool(info.get('booth_fee_paid'))
             is_upcoming = not is_past_event(e, today)
             has_unpaid_fee = not paid and (bool(info.get('booth_fee')) or bool(info.get('booth_fee_due')))
             if not (is_upcoming or has_unpaid_fee):
                 continue
+            # 変数の内容: item: 一覧から処理する単一項目。
             item = {
                 'event_id': e.get('id'),
                 'name': e.get('name'),
@@ -266,6 +288,7 @@ def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
         # 4. 開始日の昇順にそろえる（DB の並びに頼らず、念のためここでも並べる）
         items.sort(key=lambda i: i.get('start_date') or '')
         return {'items': items}
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('get_admin_info_dashboard 取得エラー: %s', error_summary(e))
         raise HTTPException(status_code=500, detail='ダッシュボードの管理情報の取得に失敗しました')
@@ -328,32 +351,41 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
     Returns:
         reserved_count が付加されたセッションレコードのリスト
     """
+    # 1. 対象イベントの時間枠を取得し、枠が無ければ空一覧を返す。
     sessions = admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).order('display_order').execute().data
     if not sessions:
         return []
 
+    # 変数の内容: session_id_set: 有効な時間枠 ID の集合、time_to_sid: 表示時刻から時間枠 ID への対応表。
     session_id_set = {s['id'] for s in sessions}
     # time_label → session_id のマップ（session_id が無効な予約をフォールバックで照合するため）
     time_to_sid = {s['time_label']: s['id'] for s in sessions}
 
-    # event_id 単位で全予約を取得（session_id が古くなった予約も漏れなく拾う）
+    # 2. event_id 単位で予約を取得し、必要なら日付で絞る。
     query = admin_supabase.table('workshop_reservations') \
         .select('session_id, participants, preferred_time') \
         .eq('event_id', event_id) \
         .neq('status', 'cancelled')
     if date:
+        # 変数の内容: query: DB へ渡す検索条件。
         query = query.eq('preferred_date', date)
+    # 変数の内容: reservations: 取得した予約の一覧。
     reservations = query.execute().data or []
 
+    # 3. session_id または旧予約の preferred_time で照合して人数を集計する。
     count_map: dict[str, int] = {}
+    # 変数の内容: r: r の反復ごとの値。
     for r in reservations:
+        # 変数の内容: sid: 照合対象の時間枠 ID。
         sid = r.get('session_id')
         # session_id が存在しないか、セッション再作成で無効化された場合は preferred_time で照合
         if not sid or sid not in session_id_set:
+            # 変数の内容: sid: 照合対象の時間枠 ID。
             sid = time_to_sid.get(r.get('preferred_time') or '')
         if sid:
             count_map[sid] = count_map.get(sid, 0) + (r.get('participants') or 1)
 
+    # 4. 集計人数を各時間枠に付けて返す。
     for s in sessions:
         s['reserved_count'] = count_map.get(s['id'], 0)
     return sessions
@@ -384,6 +416,7 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) 
 
     # 2. 送られた順に、既存の枠は更新・新しい枠は作成する
     incoming_ids: set[str] = set()
+    # 変数の内容: i: 現在処理する一覧要素の番号、s: s の反復ごとの値。
     for i, s in enumerate(body.sessions):
         # id が送られてきた場合はそれを優先、なければ time_label で照合
         sid = s.id if s.id and s.id in existing_by_id else existing_by_label.get(s.time_label)
@@ -395,6 +428,7 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) 
                 'display_order': i,
             }).eq('id', sid).execute()
         else:
+            # 変数の内容: result: 新規セッションの INSERT 応答。
             result = admin_supabase.table('ws_sessions').insert({
                 'event_id': event_id,
                 'time_label': s.time_label,
@@ -459,6 +493,7 @@ def get_event(event_id: str) -> dict:
     data = result.data[0] if result.data else None
     # 2. 無ければ、UUID の形のときだけ id で探す
     if not data and is_uuid(event_id):
+        # 変数の内容: data: 対象イベントの DB 応答データ、result: イベント ID を指定した検索の Supabase 応答。
         result = supabase.table('events').select('*').eq('id', event_id).execute()
         data = result.data[0] if result.data else None
     if not data:
@@ -478,6 +513,7 @@ def create_event(body: EventBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成したイベント（get_event と同じ形）
     """
+    # 変数の内容: result: INSERT で作成されたイベント行。、row: DB から取得した単一レコード。
     row = body.model_dump(exclude={'image_urls'})
     row['is_past'] = _calc_is_past(body.start_date, body.end_date)
     result = admin_supabase.table('events').insert(row).execute().data[0]
@@ -540,6 +576,7 @@ def get_finances(event_id: str, _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(404): id が UUID の形でない場合
     """
+    # 変数の内容: result: 収支レコード検索の Supabase 応答。
     result = execute_or_404(admin_supabase.table('event_finances').select('*').eq('event_id', event_id), _EVENT_NOT_FOUND)
     if result.data:
         return result.data[0]
@@ -564,6 +601,7 @@ def save_finances(event_id: str, body: FinanceBody, _=Depends(require_auth)) -> 
         HTTPException(404): イベントが存在しない場合（無い id で保存すると外部キー違反で 500 になるため先に確かめる）
     """
     _ensure_event_exists(event_id)
+    # 変数の内容: data: 保存処理へ渡すイベント収支のリクエストデータ。。
     data = {**body.model_dump(), 'event_id': event_id, 'updated_at': datetime.now(timezone.utc).isoformat()}
     return admin_supabase.table('event_finances').upsert(data, on_conflict='event_id').execute().data[0]
 
@@ -595,6 +633,7 @@ def get_admin_info(event_id: str, _=Depends(require_auth)) -> dict:
         return info if info is not None else {}
     except HTTPException:
         raise
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         logger.error('get_admin_info 取得エラー: %s', error_summary(e))
         raise HTTPException(status_code=500, detail='管理情報の取得に失敗しました')
@@ -603,6 +642,7 @@ def get_admin_info(event_id: str, _=Depends(require_auth)) -> dict:
 class AdminInfoBody(BaseModel):
     """イベント管理情報の入力スキーマ。全フィールド任意。"""
 
+    # 変数の内容: booth_fee: イベント出店料、booth_fee_due: 出店料の支払期限、booth_fee_paid: 出店料の支払済み状態、booth_fee_pay_method: 出店料の支払方法、carry_in_time: イベントの搬入時刻、carry_out_time: イベントの搬出時刻、guidelines_image_urls: 出店要項に添付する画像 URL 一覧、guidelines_text: イベントの出店要項本文、hotel_fee: イベント宿泊費、hotel_name: イベント宿泊先名、notes: イベント管理用の備考。
     carry_in_time: Optional[str] = None       # 搬入日時（例: "2026-10-24T09:00"）
     carry_out_time: Optional[str] = None      # 搬出日時
     hotel_name: Optional[str] = None          # 宿泊ホテル名
@@ -647,6 +687,7 @@ def save_admin_info(event_id: str, body: AdminInfoBody, _=Depends(require_auth))
         return {'ok': True}
     except HTTPException:
         raise
+    # 変数の内容: e: except で捕捉した処理例外。
     except Exception as e:
         # 例外の文字列には保存しようとした管理情報が入りうるので、型名とコードだけを出す
         logger.error('save_admin_info 保存エラー: %s', error_summary(e))
@@ -659,8 +700,12 @@ def _save_images(event_id: str, urls: list[str]) -> None:
     Args:
         event_id: 画像を紐付けるイベントのID
         urls: 挿入する画像URLのリスト（順序がそのまま display_order になる）
+
+    Returns:
+        なし。
     """
     if not urls:
         return
+    # 変数の内容: rows: DB から取得した行の一覧。
     rows = [{'event_id': event_id, 'url': url, 'display_order': i} for i, url in enumerate(urls)]
     admin_supabase.table('event_images').insert(rows).execute()

@@ -159,6 +159,7 @@ body {
 .ep-editorial-page { background: #f8f7f3; color: #292c25; }
 .ep-editorial-page h1,
 .ep-editorial-page h2 { font-family: 'Cormorant Garamond', 'Noto Serif JP', serif; font-weight: 300; }
+/* ブランドトップのヒーロー、写真、ロゴ、キャッチコピー、導線の配置と文字表現 */
 .ep-home-hero { min-height: min(760px, calc(100svh - 64px)); display: grid; grid-template-columns: .94fr 1.06fr; background: #f0efe8; }
 .ep-home-visual { position: relative; min-height: 620px; margin: 0; overflow: hidden; background: #dce2d9; }
 .ep-home-visual img { display: block; width: 100%; height: 100%; min-height: inherit; object-fit: cover; object-position: 56% center; }
@@ -193,6 +194,7 @@ body {
 .ep-home-store-action .ep-home-primary { margin-top: 24px; background: #f0efe8; color: #30392d; }
 .ep-home-store-action .ep-home-primary:hover { background: #fff; }
 .ep-home-store-mark { position: absolute; right: 7%; bottom: -150px; width: min(38vw, 460px); aspect-ratio: 1; border: 1px solid #ffffff12; border-radius: 50%; box-shadow: 0 0 0 38px #ffffff08, 0 0 0 76px #ffffff05; }
+/* ブランド紹介・About ページのヒーロー、本文、写真、下部リンクの2列構成 */
 .ep-editorial-hero { min-height: min(720px, calc(100svh - 64px)); display: grid; grid-template-columns: 0.95fr 1.05fr; align-items: center; gap: clamp(44px, 8vw, 130px); padding: 90px max(7vw, calc((100vw - 1240px) / 2)); }
 .ep-editorial-hero-copy { max-width: 590px; }
 .ep-editorial-kicker { margin: 0 0 28px; color: #85877a; font: var(--brand-type-meta)/1.6 'Cormorant Garamond', 'Noto Sans JP', serif; letter-spacing: .18em; text-transform: uppercase; }
@@ -216,6 +218,7 @@ body {
 .ep-editorial-endcap > span { color: #85877a; font-size: var(--brand-type-meta); letter-spacing: .18em; }
 .ep-editorial-endcap h2 { margin: 15px 0 0; font-size: var(--brand-type-title); line-height: 1.35; }
 .ep-editorial-endcap a { margin-top: 22px; }
+/* Plants ページの品種インデックスと、交互に配置する植物紹介行 */
 .ep-plants-intro { padding: 105px max(7vw, calc((100vw - 1120px) / 2)) 72px; background: #e9e8df; }
 .ep-plants-intro .ep-editorial-lead { max-width: 660px; }
 .ep-plants-index { display: flex; flex-wrap: wrap; gap: 12px 30px; margin-top: 45px; }
@@ -798,6 +801,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
 .home-action-mark span { position: absolute; z-index: 1; top: 23%; font-size: var(--brand-type-caption); letter-spacing: .24em; }
 .home-action-mark i { position: absolute; width: 18%; height: 36%; border-radius: 100% 0 100% 0; transform: rotate(38deg); background: linear-gradient(130deg,#a2b493,#d5d9b8); }
 .home-action-mark b { position: absolute; z-index: 1; bottom: 20%; color: #f1efe5; font: 300 var(--brand-type-display) 'Cormorant Garamond', serif; }
+/* OUR BRANDS ページの導入、ブランドカード、各カード内の写真・説明・遷移リンク */
 .our-brands-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .65fr); align-items: center; gap: 6vw; min-height: min(630px, calc(100svh - 64px)); padding: 80px 10vw 94px; overflow: hidden; background: #f4f3ec; }
 .our-brands-hero-copy { position: relative; z-index: 1; max-width: 730px; }
 .our-brands-kicker { margin: 0 0 28px; color: #727b6b; font-size: var(--brand-type-label); letter-spacing: .2em; }

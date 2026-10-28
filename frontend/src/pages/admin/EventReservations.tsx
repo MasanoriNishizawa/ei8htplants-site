@@ -50,6 +50,7 @@ function buildPrintHtml(event: Event, rows: ReservationWithTime[]): string {
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <title>${esc(event.name)} 予約一覧</title>
 <style>
+/* 印刷用予約一覧の本文・タイトル・表見出し・行・合計欄の体裁 */
 body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;padding:16px 20px;color:#1c2417;}
 h1{font-size:15px;font-weight:normal;margin:0 0 3px;}
 p.meta{font-size:10px;color:#666;margin:0 0 14px;}
@@ -73,10 +74,11 @@ p.total{margin:8px 0 0;font-size:10px;color:#666;}
 /**
  * BOM 付き CSV としてダウンロードする（Excel での文字化けを防ぐため BOM を先頭に付与）
  * 各セルは csvCell で作る（= + - @ などで始まる値が Excel で数式として実行されないよう先頭に ' を付ける）
- * @param event - ファイル名に使用するイベント情報
- * @param rows - エクスポート対象の予約一覧
  * 1. 見出しと各行を CSV の文字列にする
  * 2. BOM を付けて blob にし、共通の saveBlob でダウンロードさせる
+ * @param event - ファイル名に使用するイベント情報
+ * @param rows - エクスポート対象の予約一覧
+ * @returns 戻り値なし。
  */
 function exportCsv(event: Event, rows: ReservationWithTime[]) {
   // 1. CSV の文字列
@@ -180,6 +182,7 @@ export default function AdminEventReservations() {
    * （満席で戻せない 409 は専用の文言にする）
    * @param reservationId - 予約の id
    * @param status - 新しいステータス
+   * @returns 戻り値なし。
    */
   const updateStatus = async (reservationId: string, status: string) => {
     setUpdating(reservationId)
@@ -240,6 +243,7 @@ export default function AdminEventReservations() {
    * 1. 送る内容を作る（入力のある項目だけ足す）
    * 2. 登録できたら一覧の末尾に足し、モーダルを閉じて入力を初期値に戻す
    * 3. 失敗したら文言を出す
+   * @returns 戻り値なし。
    */
   const submitWalkin = async () => {
     if (!id) return
@@ -271,7 +275,10 @@ export default function AdminEventReservations() {
     }
   }
 
-  /** 表示中（絞り込み後）の予約を新しいウィンドウに書き出して印刷する（ポップアップが止められたら何もしない） */
+  /**
+   *  表示中（絞り込み後）の予約を新しいウィンドウに書き出して印刷する（ポップアップが止められたら何もしない）
+   * @returns 戻り値なし。
+   */
   const handlePrint = () => {
     if (!event) return
     /** 印刷用に開いたウィンドウ */

@@ -23,6 +23,7 @@ vi.mock('../../lib/api', () => ({
 /**
  * テスト用 Stockist データのファクトリ関数
  * @param overrides - 上書きするフィールド
+ * @returns 戻り値なし。
  */
 const makeStockist = (overrides: Partial<Stockist> = {}): Stockist => ({
   id: 'store-1',

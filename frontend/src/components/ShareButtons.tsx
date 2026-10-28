@@ -70,6 +70,7 @@ export default function ShareButtons({ url, text }: Props) {
 
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* シェア操作のボタンを横並びにし、狭い幅では折り返すコンテナ */}
       {/* X に投稿（新しいタブで開く） */}
       <a
         href={xUrl} target="_blank" rel="noopener noreferrer"

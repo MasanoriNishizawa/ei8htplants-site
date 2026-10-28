@@ -64,7 +64,9 @@ def _assert_no_secret(text: str) -> None:
 
     Args:
         text: 確かめる文字列（エラーメッセージなど）
-    """
+
+    Returns:
+        なし。"""
     for secret in SECRET_VALUES:
         assert secret not in text
 
@@ -73,6 +75,10 @@ def _assert_no_secret(text: str) -> None:
 
 
 def test_鍵ファイルの中身をそのまま渡すと鍵の辞書が返る():
+    """鍵ファイルの中身をそのまま渡すと鍵の辞書が返ることを確認する。
+
+    Returns:
+        なし。"""
     info = parse_credentials_json(FAKE_KEY_JSON)
     assert info == FAKE_KEY_INFO
     # private_key は本物の改行を含む PEM の形になる
@@ -81,6 +87,10 @@ def test_鍵ファイルの中身をそのまま渡すと鍵の辞書が返る()
 
 def test_Secretsでシングルクォート3つで囲むと改行がそのまま残り鍵として読める():
     # 1. Secrets の書き方（''' は「\n」を変換しないリテラル文字列）で TOML を作り、Streamlit と同じく tomllib で読む
+    """Secretsでシングルクォート3つで囲むと改行がそのまま残り鍵として読めることを確認する。
+
+    Returns:
+        なし。"""
     toml_text = f"GA_CREDENTIALS_JSON = '''\n{FAKE_KEY_JSON}\n'''\n"
     value = tomllib.loads(toml_text)["GA_CREDENTIALS_JSON"]
     # 2. 「\n」の2文字のまま残っている
@@ -91,6 +101,10 @@ def test_Secretsでシングルクォート3つで囲むと改行がそのまま
 
 def test_Secretsでダブルクォート3つで囲むと改行が本物になっても鍵として読める():
     # 1. \"\"\" は基本文字列なので、JSON の中の「\n」が TOML の段階で本物の改行に変わる
+    """Secretsでダブルクォート3つで囲むと改行が本物になっても鍵として読めることを確認する。
+
+    Returns:
+        なし。"""
     toml_text = f'GA_CREDENTIALS_JSON = """\n{FAKE_KEY_JSON}\n"""\n'
     value = tomllib.loads(toml_text)["GA_CREDENTIALS_JSON"]
     # 2. 文字列の中に本物の改行が入っている（通常の json.loads では読めない形）
@@ -105,6 +119,10 @@ def test_Secretsでダブルクォート3つで囲むと改行が本物になっ
 
 def test_JSONでない文字列を渡すとCredentialsErrorになり位置だけが伝わり中身は出ない():
     # 1. 途中で切れた JSON（鍵の中身を含む）
+    """JSONでない文字列を渡すとCredentialsErrorになり位置だけが伝わり中身は出ないことを確認する。
+
+    Returns:
+        なし。"""
     broken = FAKE_KEY_JSON[: FAKE_KEY_JSON.index(FAKE_PRIVATE_KEY_BODY) + len(FAKE_PRIVATE_KEY_BODY)]
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(broken)
@@ -119,12 +137,23 @@ def test_JSONでない文字列を渡すとCredentialsErrorになり位置だけ
 
 
 def test_空文字を渡すとCredentialsErrorになる():
+    """空文字を渡すとCredentialsErrorになることを確認する。
+
+    Returns:
+        なし。"""
     with pytest.raises(CredentialsError, match="JSON として読めません"):
         parse_credentials_json("")
 
 
 @pytest.mark.parametrize("text", ['["service_account"]', '"service_account"', "123"])
 def test_JSONでもオブジェクトでないとCredentialsErrorになる(text):
+    """JSONでもオブジェクトでないとCredentialsErrorになることを確認する。
+
+    Args:
+        text: 検証対象の表示テキスト。
+
+    Returns:
+        なし。"""
     with pytest.raises(CredentialsError, match="サービスアカウントの鍵の形"):
         parse_credentials_json(text)
 
@@ -132,6 +161,13 @@ def test_JSONでもオブジェクトでないとCredentialsErrorになる(text)
 @pytest.mark.parametrize("field", ["client_email", "private_key", "token_uri"])
 def test_必須項目が欠けているとCredentialsErrorになり項目名だけが伝わる(field):
     # 1. 1項目を抜いた鍵
+    """必須項目が欠けているとCredentialsErrorになり項目名だけが伝わることを確認する。
+
+    Args:
+        field: 基準月からの月差。
+
+    Returns:
+        なし。"""
     info = {k: v for k, v in FAKE_KEY_INFO.items() if k != field}
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(json.dumps(info))
@@ -142,12 +178,20 @@ def test_必須項目が欠けているとCredentialsErrorになり項目名だ�
 
 
 def test_必須項目が空文字だと欠けているのと同じ扱いになる():
+    """必須項目が空文字だと欠けているのと同じ扱いになることを確認する。
+
+    Returns:
+        なし。"""
     info = {**FAKE_KEY_INFO, "private_key": ""}
     with pytest.raises(CredentialsError, match="必要な項目がありません: private_key"):
         parse_credentials_json(json.dumps(info))
 
 
 def test_必須項目が複数欠けているとすべての項目名が伝わる():
+    """必須項目が複数欠けているとすべての項目名が伝わることを確認する。
+
+    Returns:
+        なし。"""
     info = {"type": "service_account"}
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(json.dumps(info))
@@ -156,6 +200,10 @@ def test_必須項目が複数欠けているとすべての項目名が伝わ�
 
 def test_typeがservice_accountでないとCredentialsErrorになり中身は出ない():
     # 1. OAuth クライアントの鍵など、別の種類の JSON を貼った場合
+    """typeがservice accountでないとCredentialsErrorになり中身は出ないことを確認する。
+
+    Returns:
+        なし。"""
     info = {**FAKE_KEY_INFO, "type": "authorized_user"}
     with pytest.raises(CredentialsError) as exc_info:
         parse_credentials_json(json.dumps(info))
@@ -183,6 +231,14 @@ def key_file(tmp_path):
 
 
 def test_GA_CREDENTIALS_JSONとGA_CREDENTIALSの両方があるとJSONを優先する(monkeypatch, key_file):
+    """GA CREDENTIALS JSONとGA CREDENTIALSの両方があるとJSONを優先することを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        key_file: 架空の Google サービスアカウント鍵ファイル。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
@@ -195,6 +251,13 @@ def test_GA_CREDENTIALS_JSONとGA_CREDENTIALSの両方があるとJSONを優先�
 
 
 def test_GA_CREDENTIALS_JSONだけでも設定が作られる(monkeypatch):
+    """GA CREDENTIALS JSONだけでも設定が作られることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     cfg, problem = ga_config()
@@ -203,6 +266,14 @@ def test_GA_CREDENTIALS_JSONだけでも設定が作られる(monkeypatch):
 
 
 def test_GA_CREDENTIALSのパスだけだと鍵ファイルの場所が目印になる(monkeypatch, key_file):
+    """GA CREDENTIALSのパスだけだと鍵ファイルの場所が目印になることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        key_file: 架空の Google サービスアカウント鍵ファイル。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     cfg, problem = ga_config()
@@ -212,6 +283,14 @@ def test_GA_CREDENTIALSのパスだけだと鍵ファイルの場所が目印に
 
 
 def test_GA_CREDENTIALS_JSONが空白だけなら無いものとしてパスを使う(monkeypatch, key_file):
+    """GA CREDENTIALS JSONが空白だけなら無いものとしてパスを使うことを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        key_file: 架空の Google サービスアカウント鍵ファイル。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, "  \n  ")
@@ -221,6 +300,13 @@ def test_GA_CREDENTIALS_JSONが空白だけなら無いものとしてパスを�
 
 
 def test_鍵がどちらも無いと両方の名前を挙げたメッセージが返る(monkeypatch):
+    """鍵がどちらも無いと両方の名前を挙げたメッセージが返ることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     cfg, problem = ga_config()
     assert cfg is None
@@ -229,6 +315,14 @@ def test_鍵がどちらも無いと両方の名前を挙げたメッセージ�
 
 
 def test_GA_CREDENTIALSの場所にファイルが無いとメッセージが返る(monkeypatch, tmp_path):
+    """GA CREDENTIALSの場所にファイルが無いとメッセージが返ることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        tmp_path: テスト用の一時ディレクトリ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(tmp_path / "missing.json"))
     cfg, problem = ga_config()
@@ -237,6 +331,13 @@ def test_GA_CREDENTIALSの場所にファイルが無いとメッセージが返
 
 
 def test_GA_CREDENTIALS_JSONが壊れていると読めない理由が返り中身は出ない(monkeypatch):
+    """GA CREDENTIALS JSONが壊れていると読めない理由が返り中身は出ないことを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON[:-5])
     cfg, problem = ga_config()
@@ -247,6 +348,14 @@ def test_GA_CREDENTIALS_JSONが壊れていると読めない理由が返り中�
 
 def test_GA_CREDENTIALS_JSONが壊れているとパスが正しくてもパスに切り替えずエラーになる(monkeypatch, key_file):
     # JSON を優先するので、壊れた JSON に気づけるよう黙ってパスに切り替えない
+    """GA CREDENTIALS JSONが壊れているとパスが正しくてもパスに切り替えずエラーになることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        key_file: 架空の Google サービスアカウント鍵ファイル。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, json.dumps({**FAKE_KEY_INFO, "type": "authorized_user"}))
@@ -257,6 +366,13 @@ def test_GA_CREDENTIALS_JSONが壊れているとパスが正しくてもパス�
 
 
 def test_GA_CREDENTIALS_JSONがあってもプロパティIDが無ければプロパティIDのメッセージが返る(monkeypatch):
+    """GA CREDENTIALS JSONがあってもプロパティIDが無ければプロパティIDのメッセージが返ることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     cfg, problem = ga_config()
     assert cfg is None
@@ -272,7 +388,9 @@ def credentials_factories(monkeypatch):
 
     Returns:
         (from_service_account_info のモック, from_service_account_file のモック)
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
     from_info = MagicMock(return_value="credentials-from-info")
     from_file = MagicMock(return_value="credentials-from-file")
     monkeypatch.setattr(service_account.Credentials, "from_service_account_info", from_info)
@@ -281,6 +399,14 @@ def credentials_factories(monkeypatch):
 
 
 def test_envの目印を渡すとGA_CREDENTIALS_JSONの中身から読み取り専用の認証情報を作る(monkeypatch, credentials_factories):
+    """envの目印を渡すとGA CREDENTIALS JSONの中身から読み取り専用の認証情報を作ることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        credentials_factories: Google 認証情報の生成を差し替えるモック。
+
+    Returns:
+        なし。"""
     from_info, from_file = credentials_factories
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     assert load_credentials(JSON_CREDENTIALS_REF) == "credentials-from-info"
@@ -292,6 +418,14 @@ def test_envの目印を渡すとGA_CREDENTIALS_JSONの中身から読み取り�
 
 
 def test_パスを渡すと鍵ファイルから読み取り専用の認証情報を作る(credentials_factories, key_file):
+    """パスを渡すと鍵ファイルから読み取り専用の認証情報を作ることを確認する。
+
+    Args:
+        credentials_factories: Google 認証情報の生成を差し替えるモック。
+        key_file: 架空の Google サービスアカウント鍵ファイル。
+
+    Returns:
+        なし。"""
     from_info, from_file = credentials_factories
     assert load_credentials(str(key_file)) == "credentials-from-file"
     from_file.assert_called_once_with(str(key_file), scopes=SCOPES)
@@ -299,6 +433,13 @@ def test_パスを渡すと鍵ファイルから読み取り専用の認証情�
 
 
 def test_envの目印なのにGA_CREDENTIALS_JSONが無いとCredentialsErrorになる(credentials_factories):
+    """envの目印なのにGA CREDENTIALS JSONが無いとCredentialsErrorになることを確認する。
+
+    Args:
+        credentials_factories: Google 認証情報の生成を差し替えるモック。
+
+    Returns:
+        なし。"""
     from_info, from_file = credentials_factories
     with pytest.raises(CredentialsError):
         load_credentials(JSON_CREDENTIALS_REF)
@@ -307,6 +448,14 @@ def test_envの目印なのにGA_CREDENTIALS_JSONが無いとCredentialsErrorに
 
 
 def test_envの目印でGA_CREDENTIALS_JSONの改行が本物でも認証情報を作れる(monkeypatch, credentials_factories):
+    """envの目印でGA CREDENTIALS JSONの改行が本物でも認証情報を作れることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        credentials_factories: Google 認証情報の生成を差し替えるモック。
+
+    Returns:
+        なし。"""
     from_info, _ = credentials_factories
     value = tomllib.loads(f'GA_CREDENTIALS_JSON = """\n{FAKE_KEY_JSON}\n"""\n')["GA_CREDENTIALS_JSON"]
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, value)
@@ -323,7 +472,9 @@ def fake_client(monkeypatch):
 
     Returns:
         ga._client のモック（呼ばれた引数を確かめる）
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
     # 1. run_report の結果をテストごとにやり直すため、キャッシュを空にする
     ga.run_report.clear()
     client = MagicMock()
@@ -340,11 +491,24 @@ def cache_key_args(monkeypatch):
 
     Returns:
         記録のリスト（1回の呼び出しごとに (位置引数, キーワード引数)）
-    """
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
     records: list[tuple[tuple, dict]] = []
     original = cache_utils._make_value_key  # noqa: SLF001
 
     def spy(cache_type, func, func_args, func_kwargs, hash_funcs):
+        """spy のテスト補助処理を行う。
+
+        Args:
+            cache_type: 検証するキャッシュの種類。
+            func: 呼び出しを記録する関数。
+            func_args: 対象関数へ渡す位置引数。
+            func_kwargs: 対象関数へ渡すキーワード引数。
+            hash_funcs: Streamlit キャッシュへ渡す型別ハッシュ関数。
+
+        Returns:
+            なし。"""
         records.append((func_args, func_kwargs))
         return original(cache_type, func, func_args, func_kwargs, hash_funcs)
 
@@ -354,6 +518,15 @@ def cache_key_args(monkeypatch):
 
 def test_run_reportのキャッシュのキーに鍵の中身が入らない(monkeypatch, fake_client, cache_key_args):
     # 1. Community Cloud と同じく、鍵は GA_CREDENTIALS_JSON に入っている
+    """run reportのキャッシュのキーに鍵の中身が入らないことを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        fake_client: GA Data API クライアントを生成するモック。
+        cache_key_args: キャッシュキー生成時に記録された呼び出し引数。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     cfg, _ = ga_config()
@@ -372,6 +545,14 @@ def test_run_reportのキャッシュのキーに鍵の中身が入らない(mon
 
 def test_GA_CREDENTIALS_JSONの中身を変えても同じ引数ならキャッシュが使われる(monkeypatch, fake_client):
     # 中身がキャッシュのキーに入っていないことを、動きの面からも確かめる
+    """GA CREDENTIALS JSONの中身を変えても同じ引数ならキャッシュが使われることを確認する。
+
+    Args:
+        monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。
+        fake_client: GA Data API クライアントを生成するモック。
+
+    Returns:
+        なし。"""
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     args = (FAKE_PROPERTY_ID, JSON_CREDENTIALS_REF, (), ("activeUsers",), "7daysAgo")
     ga.run_report(*args)
@@ -382,6 +563,10 @@ def test_GA_CREDENTIALS_JSONの中身を変えても同じ引数ならキャッ�
 
 def test_trafficの画面はrun_reportに鍵の中身ではなくcredentials_refを渡している():
     # traffic.py のソースで、run_report の呼び出しが cfg.credentials_ref を使っていることを確かめる
+    """trafficの画面はrun reportに鍵の中身ではなくcredentials refを渡していることを確認する。
+
+    Returns:
+        なし。"""
     from pathlib import Path
 
     source = (Path(__file__).resolve().parents[1] / "views" / "traffic.py").read_text(encoding="utf-8")

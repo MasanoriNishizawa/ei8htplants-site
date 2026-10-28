@@ -86,7 +86,9 @@ function ChatFab() {
  * @returns ヘッダー・ページ本体（Outlet）・フッター・チャットボタン
  */
 export default function Layout() {
+  // 今の URL を確認し、ei8ht plants ブランドページ専用のヘッダーを選ぶ
   const { pathname } = useLocation()
+  // ei8ht plants の複数ページだけブランド専用ヘッダーを使う判定
   const isEi8htPlantsBrandPage = pathname === '/' || pathname === '/about' || pathname === '/plants'
   return (
     <>

@@ -332,6 +332,7 @@ def month_distance(a: int, b: int) -> int:
     Returns:
         0〜6 の整数（例: 4月と4月は 0、12月と1月は 1、4月と10月は 6）
     """
+    # 変数の内容: d: 月差を12か月の円環上で計算するための絶対値。
     d = abs(int(a) - int(b)) % 12
     return min(d, 12 - d)
 
@@ -361,13 +362,17 @@ def weighted_median(values: list[float], weights: list[float]) -> float | None:
     Returns:
         重み付き中央値。値が無い・重みの合計が 0 のときは None
     """
+    # 変数の内容: v: 中央値計算に使う数値配列と対応する重み配列を準備する。
     v = np.asarray(values, dtype=float)
+    # 変数の内容: w: 各数値に対応する重みを浮動小数点配列へそろえる。
     w = np.asarray(weights, dtype=float)
+    # 変数の内容: total: 有効な重みの合計。空配列では 0 とする。
     total = float(w.sum()) if len(w) else 0.0
     if len(v) == 0 or total <= 0:
         return None
     # 1. 値の小さい順に並べ、重みを累計する
     order = np.argsort(v, kind="stable")
+    # 変数の内容: v, w: 中央値計算に使う数値配列と対応する重み配列を準備する。
     v, w = v[order], w[order]
     cum = np.cumsum(w)
     half = total / 2
@@ -440,6 +445,7 @@ def series_references(
         past_sales（その売上のリスト）, past_season_weights（その時期の重み s のリスト）
         past_ で始まる列はすべて同じ順に並ぶ
     """
+    # 変数の内容: columns: series_references が返す表の列と順序。
     columns = ["event_id", "name", "start_date", "series_key", "n_past", "n_eff", "median_past", "weight",
                "past_names", "past_dates", "past_months", "past_sales", "past_season_weights"]
     if remaining.empty:
@@ -599,7 +605,9 @@ def fit_linear(x: pd.Series, y: pd.Series) -> LinearFit | None:
         slope（傾き）, intercept（切片）, r2（決定係数。1 に近いほど直線でよく説明できる）。
         点が3つ未満、または x がすべて同じときは None
     """
+    # 変数の内容: mask: 傾き計算に使える、x と y の両方が欠損していない行。
     mask = x.notna() & y.notna()
+    # 変数の内容: x, y: 有効行に絞った説明変数と目的変数を数値化する。
     x, y = x[mask].astype(float), y[mask].astype(float)
     if len(x) < 3 or x.nunique() < 2:
         return None
@@ -639,6 +647,7 @@ def simulate_event(
     Returns:
         compute_finances の結果
     """
+    # 変数の内容: fin: 入力条件から算出した対象イベントの収支内訳。
     fin = finance_row(
         expected_sales, booth_fee, distance, gas_price, expressway_toll, accommodation, other_expenses,
         ws_participants, payment_flag,

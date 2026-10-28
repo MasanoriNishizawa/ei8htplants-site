@@ -34,6 +34,7 @@ def _truncate(text: str, max_len: int = DESCRIPTION_MAX_LEN) -> str:
     Returns:
         max_len 文字以内の文字列。
     """
+    # 変数の内容: normalized: 空白や形式を整えた値。
     normalized = re.sub(r'\s+', ' ', text).strip()
     if len(normalized) <= max_len:
         return normalized
@@ -49,6 +50,7 @@ def parse_date(value: Any) -> Optional[date]:
     Returns:
         読み取れた日付。形式が不正な場合は None。
     """
+    # 変数の内容: value_text: 文字列へ変換した入力値。
     value_text = _str(value)[:10]
     try:
         return date.fromisoformat(value_text)
@@ -66,15 +68,25 @@ def format_date_label(start: Any, end: Any) -> str:
     Returns:
         開催日の文字列。開始日を読めない場合は空文字。
     """
+    # 1. 開始日を解析し、必要なら終了日も解析する。
     start_date = parse_date(start)
     if start_date is None:
         return ''
+    # 変数の内容: end_date: 解析した終了日。
     end_date = parse_date(end)
 
     def format_one(day: date) -> str:
-        """日付を年・月・日を含む日本語表記にする。"""
+        """日付を年・月・日を含む日本語表記にする。
+
+        Args:
+            day: 表示形式に変換する日付。
+
+        Returns:
+            注釈に示した形式の応答（str）。
+        """
         return f'{day.year}年{day.month}月{day.day}日'
 
+    # 2. 単日・同月・別月の順で画面用の日付表記を選ぶ。
     if end_date is None or end_date == start_date:
         return format_one(start_date)
     if start_date.year == end_date.year and start_date.month == end_date.month:
@@ -92,7 +104,9 @@ def times_in(text: str, time_pattern: Pattern[str] = _TIME_RE) -> list[str]:
     Returns:
         24時・60分未満の時刻を HH:MM で並べたリスト。
     """
+    # 変数の内容: result: 正常な時刻を HH:MM 形式で集める結果リスト。
     result = []
+    # 変数の内容: hour: hour の反復ごとの値、minute: minute の反復ごとの値。
     for hour, minute in time_pattern.findall(text):
         if int(hour) < 24 and int(minute) < 60:
             result.append(f'{int(hour):02d}:{minute}')
@@ -130,11 +144,14 @@ def event_description(
     Returns:
         hero の文言、concept、開催日と会場の順で採用した説明文。
     """
+    # 1. ページ本文から hero と concept の文言を取り出して連結する。
     page_content = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
     hero = page_content.get('hero') if isinstance(page_content.get('hero'), dict) else {}
     parts = [_str(hero.get('tagline')), _str(hero.get('subtitle')), _str(page_content.get('concept'))]
     text = ' '.join(part.strip() for part in parts if part.strip())
+    # 2. 本文が空なら開催日と会場で補い、上限を適用して既定文とともに返す。
     if not text:
+        # 変数の内容: date_label: 利用者に表示する開催日、text: 生成または解析する本文。
         date_label = format_date_label(event.get('start_date'), event.get('end_date'))
         text = ' / '.join(part for part in (date_label, _str(event.get('location'))) if part)
     return _truncate(text, description_max_len) if text else default_description
@@ -166,9 +183,11 @@ def event_json_ld(
     Returns:
         Event の dict。開始日が読めない、または住所が無ければ None。
     """
+    # 変数の内容: start: 開催開始日または時刻。
     start = parse_date(event.get('start_date'))
     if start is None:
         return None
+    # 変数の内容: daily: 日別の開催時間設定、end: 解析対象の終了位置、end_hhmm: 終了時刻の HH:MM 表記、end_text: 終了時刻の文字列、end_times: 終了時刻の候補一覧、start_hhmm: 開始時刻の HH:MM 表記、start_text: 開始時刻の文字列、start_times: 開始時刻の候補一覧。
     end = parse_date(event.get('end_date')) or start
     daily = event.get('daily_times') if isinstance(event.get('daily_times'), dict) else {}
     # 1. 開始日・終了日の個別時間帯を優先し、なければイベント共通の時刻を使う。
@@ -180,6 +199,7 @@ def event_json_ld(
     start_hhmm: Optional[str] = start_times[0] if start_times else None
     end_hhmm: Optional[str] = end_times[1] if len(end_times) >= 2 else None
     if not (start_hhmm and end_hhmm):
+        # 変数の内容: end_hhmm: 終了時刻の HH:MM 表記、start_hhmm: 開始時刻の HH:MM 表記。
         start_hhmm = end_hhmm = None
     # 3. Google の必須項目を満たす住所がない場合は Event を出さない。
     page_content = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
@@ -187,6 +207,7 @@ def event_json_ld(
     address = _str(event.get('address')).strip() or _str(venue.get('address')).strip()
     if not address:
         return None
+    # 変数の内容: images: 対象画像の一覧、location: イベントまたは店舗の場所。
     location: dict[str, Any] = {
         '@type': 'Place',
         'name': _str(event.get('location')) or site_name,

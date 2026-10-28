@@ -12,6 +12,7 @@ from ..auth import require_auth
 from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404, first_or_404, next_display_order
 
+# 変数の内容: router: この API 群のルーター。
 router = APIRouter(prefix='/stockists', tags=['stockists'])
 
 
@@ -50,6 +51,7 @@ def add_stockist(body: StockistBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
+    # 変数の内容: order: 処理対象の注文。
     order = next_display_order(admin_supabase, 'stockists')
     return admin_supabase.table('stockists').insert({**body.model_dump(), 'display_order': order}).execute().data[0]
 

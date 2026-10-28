@@ -12,6 +12,7 @@ from typing import Any
 
 import resend
 
+# 変数の内容: logger: モジュール名を使って記録するロガー。
 logger = logging.getLogger(__name__)
 
 # resend.api_key の設定と送信をひとまとまりにするロック（キーの入れ替わりを防ぐ）
@@ -33,7 +34,9 @@ def send_mail(api_key: str, payload: dict[str, Any]) -> str | None:
     """
     # 1. キーの設定と送信を同じロックの中で行う
     with _send_lock:
+        # 変数の内容: resend.api_key: メール送信 SDK に設定する API キー。
         resend.api_key = api_key
+        # 変数の内容: result: Resend SDK が返す送信結果（メール ID を含む）。
         result = resend.Emails.send(payload)
     # 2. 戻り値は版によって dict かオブジェクトなので、どちらからも ID を取り出す
     if isinstance(result, dict):

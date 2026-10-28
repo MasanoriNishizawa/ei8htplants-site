@@ -76,6 +76,7 @@ export function ImageViewer({ urls, index, onChange, onClose }: {
     /**
      * 押されたキーに応じて閉じる・前後の画像に切り替える
      * @param e - キーボードのイベント
+     * @returns 戻り値なし。
      */
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()

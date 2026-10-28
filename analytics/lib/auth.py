@@ -149,12 +149,18 @@ def _record_failure() -> None:
     """ログインの失敗を1回分 st.session_state に記録する。
 
     ロックの時間が過ぎたあとの失敗は、回数を 1 から数え直す。
-    """
+
+    Returns:
+        なし。"""
+    # 変数の内容: now: 現在時刻。ログイン失敗時刻とロック期限の比較に使う。
     now = time.time()
+    # 変数の内容: count: セッションに記録された連続ログイン失敗回数。
     count = st.session_state.get(SESSION_FAIL_COUNT, 0)
+    # 変数の内容: last: セッションに記録された直近のログイン失敗時刻。
     last = st.session_state.get(SESSION_LAST_FAIL)
     # ロックが明けたあとなら回数をリセットしてから数える（明けた直後の1回で再ロックしないように）
     if count >= MAX_FAILS and last is not None and now - last >= LOCK_SECONDS:
+        # 変数の内容: count: セッションに記録された連続ログイン失敗回数。
         count = 0
     st.session_state[SESSION_FAIL_COUNT] = count + 1
     st.session_state[SESSION_LAST_FAIL] = now
@@ -234,7 +240,10 @@ def require_login() -> str:
 
 
 def logout() -> None:
-    """ログイン状態を消す（ログアウトボタンから呼ぶ）。"""
+    """ログイン状態を消す（ログアウトボタンから呼ぶ）。
+
+    Returns:
+        なし。"""
     st.session_state.pop(SESSION_EMAIL, None)
 
 
@@ -243,7 +252,9 @@ def render_sidebar(email: str) -> None:
 
     Args:
         email: ログイン中のメールアドレス
-    """
+
+    Returns:
+        なし。"""
     with st.sidebar:
         st.caption(f"ログイン中: {email}")
         if st.button("ログアウト", icon=":material/logout:", width="stretch"):

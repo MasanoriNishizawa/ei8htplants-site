@@ -13,8 +13,14 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { useState } from 'react'
 import { UnsavedChangesProvider, useConfirmLeave, useUnsavedChanges, UNSAVED_LEAVE_MESSAGE } from '../UnsavedChanges'
 
-/** 編集画面の代わり。チェックボックスで未保存の状態を切り替える */
+/**
+ *  編集画面の代わり。チェックボックスで未保存の状態を切り替える
+ * @param label - 表示ラベル
+ * @param initial - 初期状態
+ * @returns 表示する React 要素。
+ */
 function Editor({ label, initial = false }: { label: string; initial?: boolean }) {
+  // チェックボックスで切り替える未保存状態
   const [dirty, setDirty] = useState(initial)
   useUnsavedChanges(dirty)
   return (
@@ -25,9 +31,13 @@ function Editor({ label, initial = false }: { label: string; initial?: boolean }
   )
 }
 
-/** useConfirmLeave の結果を画面に出すボタン */
+/**
+ *  useConfirmLeave の結果を画面に出すボタン
+ * @returns 表示する React 要素。
+ */
 function LeaveButton() {
   const confirmLeave = useConfirmLeave()
+  // 「移動」ボタンを押した後に確認処理の結果を表示する文字列
   const [result, setResult] = useState('未押下')
   return (
     <>
@@ -37,8 +47,14 @@ function LeaveButton() {
   )
 }
 
-/** Provider の中に編集画面（表示の切り替え可）と移動ボタンを置く */
+/**
+ *  Provider の中に編集画面（表示の切り替え可）と移動ボタンを置く
+ * @param withProvider - Provider を描画するかどうか
+ * @param editors - 未保存状態を切り替える編集画面のラベル一覧
+ * @returns 表示する React 要素。
+ */
 function Harness({ withProvider = true, editors = ['A'] }: { withProvider?: boolean; editors?: string[] }) {
+  // 編集画面を閉じる操作をテストするための表示状態
   const [shown, setShown] = useState(true)
   const body = (
     <>
@@ -50,13 +66,19 @@ function Harness({ withProvider = true, editors = ['A'] }: { withProvider?: bool
   return withProvider ? <UnsavedChangesProvider>{body}</UnsavedChangesProvider> : body
 }
 
-/** 移動ボタンを押して結果の文字を返す */
+/**
+ *  移動ボタンを押して結果の文字を返す
+ * @returns 処理結果。
+ */
 function pressLeave(): string {
   fireEvent.click(screen.getByRole('button', { name: '移動' }))
   return screen.getByTestId('result').textContent ?? ''
 }
 
-/** beforeunload を発火し、preventDefault されたかを返す */
+/**
+ *  beforeunload を発火し、preventDefault されたかを返す
+ * @returns 処理結果。
+ */
 function fireBeforeUnload(): boolean {
   const ev = new Event('beforeunload', { cancelable: true })
   window.dispatchEvent(ev)

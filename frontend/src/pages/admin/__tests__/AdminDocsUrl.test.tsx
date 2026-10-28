@@ -32,7 +32,10 @@ const CONTENTS: Record<string, string> = {
   '02_DD/06_API仕様.md': '# API 仕様\n\n本文',
 }
 
-/** 今の URL（pathname + search）を出し、戻る・進むのボタンを持つ部品（ブラウザの戻る・進むの代わり） */
+/**
+ *  今の URL（pathname + search）を出し、戻る・進むのボタンを持つ部品（ブラウザの戻る・進むの代わり）
+ * @returns 表示する React 要素。
+ */
 function HistoryProbe() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -61,7 +64,10 @@ function renderAt(url = '/admin/docs') {
   )
 }
 
-/** 今の URL のクエリ */
+/**
+ *  今の URL のクエリ
+ * @returns 戻り値なし。
+ */
 const search = () => screen.getByTestId('search').textContent
 
 beforeEach(() => {
@@ -77,6 +83,7 @@ beforeEach(() => {
  * 目次で設計書を選ぶ（フォルダを開いてからファイルを押す）
  * @param folder - フォルダ名
  * @param file - ファイルの表示名（.md を除く）
+ * @returns 戻り値なし。
  */
 async function pick(folder: string, file: string) {
   const fileButton = screen.queryByRole('button', { name: file })
@@ -150,9 +157,15 @@ describe('AdminDocs の ?path=', () => {
 })
 
 describe('AdminDocs のエラーの出し分け', () => {
-  /** 目次の欄（aside） */
+  /**
+   *  目次の欄（aside）
+   * @returns 戻り値なし。
+   */
   const tocArea = () => document.querySelector('aside.admin-docs-toc') as HTMLElement
-  /** 本文の欄（aside の次の要素） */
+  /**
+   *  本文の欄（aside の次の要素）
+   * @returns 戻り値なし。
+   */
   const bodyArea = () => tocArea().nextElementSibling as HTMLElement
 
   it('目次の取得に失敗すると、目次の欄にエラーが出て、本文の欄には出ない', async () => {

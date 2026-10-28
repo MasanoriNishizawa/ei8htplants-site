@@ -43,9 +43,11 @@ export default function CheckoutOrderSummary({
 }: CheckoutOrderSummaryProps) {
   return (
     <div style={{ background: '#fff', border: '1px solid #e8e3da', padding: 28 }}>
+      {/* 注文概要を白い面と境界線で区切り、項目ごとの余白を整える */}
       <p style={{ fontFamily: serif, fontSize: 14, color: '#1c1c1c', margin: '0 0 20px', letterSpacing: '0.05em', borderBottom: '1px solid #e8e3da', paddingBottom: 12 }}>
         {t('ご注文内容', 'Order Summary')}
       </p>
+      {/* 商品画像・商品名・数量・商品ごとの金額を横並びで表示する一覧 */}
       <div style={{ marginBottom: 20 }}>
         {items.map((i) => (
           <div key={i.product.id} style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'flex-start' }}>
@@ -62,6 +64,7 @@ export default function CheckoutOrderSummary({
           </div>
         ))}
       </div>
+      {/* 小計・送料・合計と、送料の確認状態や再取得操作を表示する金額欄 */}
       <div style={{ borderTop: '1px solid #e8e3da', paddingTop: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontFamily: sans, fontSize: 13, color: '#717171' }}>
           <span>{t('小計', 'Subtotal')}</span><span>{formatYen(subtotal)}</span>
