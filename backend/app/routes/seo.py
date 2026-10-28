@@ -41,6 +41,7 @@ from .seo_html import (
     json_for_script as _json_for_script,
     render_head_tags,
 )
+from .seo_paths import normalize_legacy_path
 from .seo_robots import build_robots_txt as _build_robots_txt
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 from .seo_structured_data import (
@@ -665,29 +666,9 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     if host in BRAND_DOMAINS:
         return _brand_domain_meta(path, *BRAND_DOMAINS[host])
 
-    # パスを "/a/b" の形にそろえ、旧公式ページURLは新しい場所へ寄せる。
-    norm = '/' + path.strip('/')
-    if norm == '/ei8htplants':
-        # 変数の内容: norm: 正規化したパスまたは文字列。
-        norm = '/'
-    elif norm == '/brands' or norm.startswith('/brands/'):
-        # 変数の内容: norm: 正規化したパスまたは文字列。
-        norm = '/official' + norm
-    elif norm == '/events' or norm.startswith('/events/'):
-        # 変数の内容: norm: 正規化したパスまたは文字列。
-        norm = '/official' + norm
-    elif norm == '/shop' or norm.startswith('/shop/'):
-        # 変数の内容: norm: 正規化したパスまたは文字列。
-        norm = '/official' + norm
-    elif norm == '/journal' or norm.startswith('/journal/'):
-        # 変数の内容: norm: 正規化したパスまたは文字列。
-        norm = '/official' + norm
-    elif norm == '/order' or norm.startswith('/order/'):
-        # 変数の内容: norm: 正規化したパスまたは文字列。
-        norm = '/official' + norm
-    elif norm in {'/gallery', '/concept', '/contact', '/stockists', '/collaborations', '/media', '/legal', '/privacy', '/chat', '/reserve', '/cancel', '/checkout'}:
-        # 変数の内容: norm: 正規化したパスまたは文字列。
-        norm = '/official' + norm
+    # ブランド専用 host の処理後、旧公式 URL を現行パスへ正規化する。
+    # 変数の内容: norm: 正規化したパスまたは文字列。
+    norm = normalize_legacy_path(path)
     # 変数の内容: query: DB へ渡す検索条件、segments: 分割した URL パス要素。
     segments = [s for s in norm.split('/') if s]
     query = query or {}

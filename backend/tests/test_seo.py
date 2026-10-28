@@ -20,6 +20,7 @@ from app import main as app_main
 from app.main import app
 from app.routes import seo
 from app.routes import seo_robots
+from app.routes.seo_paths import normalize_legacy_path
 
 
 # ---------------------------------------------------------------------------
@@ -37,6 +38,100 @@ MISSING_ID = '99999999-9999-9999-9999-999999999999'
 
 # HTML・script を壊しうる文字を含むイベント名
 DANGEROUS_NAME = 'Plant <Market> "2026" & \'x\'</script>'
+
+
+class TestNormalizeLegacyPath:
+    """旧URLパスを正規化する純関数の境界を確認する。"""
+
+    @pytest.mark.parametrize('path,expected', [
+        ('', '/'),
+        ('/', '/'),
+        ('///', '/'),
+        ('events', '/official/events'),
+        ('/events/', '/official/events'),
+        ('//official/events///', '/official/events'),
+    ])
+    def test_先頭末尾のslashを正規化する(self, path, expected):
+        """先頭・末尾のslashを整理し、常にslash始まりのパスを返す。
+
+        Args:
+            path: 正規化する入力パス。
+            expected: 期待する正規化後のパス。
+
+        Returns:
+            なし。
+        """
+        # 1. パスの区切り文字だけを正規化し、期待値と比較する。
+        assert normalize_legacy_path(path) == expected
+
+    @pytest.mark.parametrize('path', ['/ei8htplants', 'ei8htplants/', '//ei8htplants///'])
+    def test_ei8htplants単独の旧URLだけをルートへ変換する(self, path):
+        """ei8htplants単独の旧URLをトップページへ変換する。
+
+        Args:
+            path: 変換対象の旧パス。
+
+        Returns:
+            なし。
+        """
+        # 1. 旧ブランドトップの表記ゆれをルートへ統一する。
+        assert normalize_legacy_path(path) == '/'
+
+    @pytest.mark.parametrize('path,expected', [
+        ('/brands', '/official/brands'),
+        ('/brands/our-brands', '/official/brands/our-brands'),
+        ('/events', '/official/events'),
+        ('/events/plant-market', '/official/events/plant-market'),
+        ('/shop/item', '/official/shop/item'),
+        ('/journal/story', '/official/journal/story'),
+        ('/order/complete', '/official/order/complete'),
+        ('/gallery', '/official/gallery'),
+        ('/concept', '/official/concept'),
+        ('/contact', '/official/contact'),
+        ('/stockists', '/official/stockists'),
+        ('/collaborations', '/official/collaborations'),
+        ('/media', '/official/media'),
+        ('/legal', '/official/legal'),
+        ('/privacy', '/official/privacy'),
+        ('/chat', '/official/chat'),
+        ('/reserve', '/official/reserve'),
+        ('/cancel', '/official/cancel'),
+        ('/checkout', '/official/checkout'),
+    ])
+    def test_旧公式サイトのルート群にofficialを付ける(self, path, expected):
+        """旧公式サイトのルート群だけにofficial階層を付ける。
+
+        Args:
+            path: 変換対象の旧公式サイトパス。
+            expected: 期待する新しい公式サイトパス。
+
+        Returns:
+            なし。
+        """
+        # 1. 旧公式URLを新しい公式サイト階層へ移し、既存の下位パスも保つ。
+        assert normalize_legacy_path(path) == expected
+
+    @pytest.mark.parametrize('path', [
+        '/events-extra',
+        '/events-extra/plant-market',
+        '/brands-old',
+        '/ei8htplants-extra',
+        '/official',
+        '/official/events',
+        '/official/events/plant-market',
+    ])
+    def test_類似pathとofficial配下を誤変換しない(self, path):
+        """旧ルートに似たパスや既にofficial配下のパスを再変換しない。
+
+        Args:
+            path: 変換境界を確認する入力パス。
+
+        Returns:
+            なし。
+        """
+        # 1. 完全なルート境界だけを旧URLと認識し、他のパスは正規化のみ行う。
+        expected = '/' + path.strip('/')
+        assert normalize_legacy_path(path) == expected
 
 
 def _event(**over) -> dict:
