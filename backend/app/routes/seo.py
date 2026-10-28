@@ -44,6 +44,7 @@ from .seo_html import (
 from .seo_paths import normalize_legacy_path
 from .seo_brand_meta import resolve_brand_page
 from .seo_static_meta import STATIC_PAGES, StaticPage
+from .seo_spa import render_spa_html
 from .seo_page_data import (
     SeoDataDeps,
     _EVENT_COLUMNS,
@@ -692,16 +693,24 @@ def render_spa_index(index_path: str, path: str, query: Optional[dict] = None, h
     Returns:
         メタ情報入りの HTML 文字列
     """
-    # 1. HTML にページ固有の SEO 情報を埋め込む。
+    # 1. 旧処理と同じ順にホスト名を正規化してから、キャッシュ対応の index.html を読む。
+    #    hostname の正規化で例外が起きた場合も、ファイル読み込みを先行させない。
+    # 変数の内容: host: 小文字化してポート番号を除いたホスト名。
     host = hostname.lower().split(':', 1)[0]
-    page = inject_head(_read_index(index_path), build_page_meta(path, query, host))
-    # 2. ブランド独立ドメインでは古い PWA 登録を解除するスクリプトを加える。
-    if host in BRAND_DOMAINS:
-        # ブランド専用ドメイン向けのPWA後始末を、HTML文字列変換関数へ委譲する。
-        # 変数の内容: site_name: BRAND_DOMAINSで定義したこのブランドの表示名。
-        site_name = BRAND_DOMAINS[host][0]
-        page = cleanup_brand_pwa_html(page, site_name)
-    return page
+    # 変数の内容: index_html: キャッシュ対応の既存読み込み関数が返した SPA HTML。
+    index_html = _read_index(index_path)
+
+    # 2. HTML と既存の差し替え可能な処理・設定をオーケストレーターへ渡す。
+    return render_spa_html(
+        index_html=index_html,
+        path=path,
+        query=query,
+        hostname=host,
+        build_page_meta=build_page_meta,
+        inject_head=inject_head,
+        brand_domains=BRAND_DOMAINS,
+        cleanup_brand_pwa_html=cleanup_brand_pwa_html,
+    )
 
 
 # ---------------------------------------------------------------------------
