@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import SITE_ORIGIN
 from .router_registry import register_routers
 from .spa_files import create_dist_file_response
+from .spa_pwa import create_brand_pwa_response
 from .spa_redirects import resolve_spa_redirect
 from .spa_normalization import normalize_spa_host, normalize_spa_path
 from .utils.errors import error_summary
@@ -23,6 +24,7 @@ from .routes import seo
 # 変数の内容: app: FastAPI アプリケーション、logger: モジュール名を使って記録するロガー。
 logger = logging.getLogger(__name__)
 
+# 変数の内容: app: ミドルウェア・API ルーター・公開 SPA 配信を登録する FastAPI アプリ。
 app = FastAPI(title='ei8ht plants API')
 
 # 予期しない例外のときに利用者へ返す文言（内部の例外の文字列は返さない）
@@ -58,9 +60,11 @@ async def catch_unhandled_errors(request: Request, call_next) -> Response:
     Returns:
         ルートの応答、または 500 の JSON 応答（{"detail": INTERNAL_ERROR_MESSAGE}）
     """
+    # 1. 下流のルート処理を実行し、正常に応答した場合はその結果を返す。
     try:
         return await call_next(request)
     except Exception:
+        # 2. 想定外の例外は詳細をサーバーログに残し、利用者には共通の 500 応答を返す。
         # 例外の型と場所はログで追えるようにする（利用者には内部の情報を返さない）
         logger.exception('未処理の例外（%s %s）', request.method, request.url.path)
         return JSONResponse(status_code=500, content={'detail': INTERNAL_ERROR_MESSAGE})
@@ -87,9 +91,11 @@ async def redirect_render_domain(request: Request, call_next) -> Response:
     Returns:
         転送の応答、または次の処理の応答
     """
+    # 1. 転送元の host を読み取り、Render の既定ドメインか判定する。
     # 変数の内容: host: リクエスト元のホスト名。
     host = request.headers.get('host', '')
     if 'onrender.com' in host:
+        # 2. Render の既定ドメインなら本番ドメインへ転送し、それ以外は次の処理に渡す。
         # 変数の内容: url: 公開または転送に使う URL。
         url = str(request.url).replace(f'https://{host}', SITE_ORIGIN, 1)
         return RedirectResponse(url=url, status_code=301)
@@ -148,6 +154,7 @@ async def cache_control(request: Request, call_next) -> Response:
         return response
     if path.startswith('/api/'):
         # 1. API
+        # 変数の内容: is_public_get: ログイン情報を伴わない GET かどうか。
         is_public_get = (
             request.method == 'GET'
             and not request.headers.get('authorization')
@@ -175,9 +182,11 @@ async def cache_control(request: Request, call_next) -> Response:
 register_routers(app)
 
 # 本番: Viteビルド済みSPAを配信
+# 変数の内容: DIST: backend/app から見たフロントエンドのビルド出力ディレクトリ。
 DIST = os.path.join(os.path.dirname(__file__), '../../frontend/dist')
 if os.path.isdir(DIST):
     # ビルド結果の中で、そのまま静的ファイルとして配信するフォルダ
+    # 変数の内容: _subdir: 静的配信対象にする assets・img・favicon のフォルダ名。
     for _subdir in ['assets', 'img', 'favicon']:
         # 変数の内容: _path: 確認対象の内部パス。
         _path = os.path.join(DIST, _subdir)
@@ -220,37 +229,18 @@ if os.path.isdir(DIST):
                 headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
             )
 
-        # 独立ブランドドメインに残っている旧PWAのService Workerとキャッシュを一度だけ解除する。
-        if host in seo.BRAND_DOMAINS and path == 'sw.js':
-            # 変数の内容: cleanup_worker: 一時ファイルを削除するバックグラウンド処理。
-            cleanup_worker = """self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
-self.addEventListener('activate', event => event.waitUntil((async () => {
-  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-  await Promise.all((await caches.keys()).map(key => caches.delete(key)));
-  await self.registration.unregister();
-  await self.clients.claim();
-  await Promise.all(windows.map(client => client.navigate(client.url).catch(() => undefined)));
-})()));"""
-            return Response(
-                content=cleanup_worker,
-                media_type='application/javascript',
-                headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
-            )
-        if host in seo.BRAND_DOMAINS and path == 'registerSW.js':
-            # 変数の内容: register_cleanup_worker: バックグラウンド処理を登録する関数。
-            register_cleanup_worker = "if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {})); }"
-            return Response(
-                content=register_cleanup_worker,
-                media_type='application/javascript',
-                headers={'Cache-Control': 'no-store, no-cache, must-revalidate'},
-            )
+        # 2. ブランド用の旧 PWA 解除応答を確認し、対象外なら静的ファイル判定へ進む。
+        # 変数の内容: pwa_response: 旧 PWA ファイルの解除応答。対象外の host/path なら None。
+        pwa_response = create_brand_pwa_response(host, path, seo.BRAND_DOMAINS)
+        if pwa_response is not None:
+            return pwa_response
 
-        # 2. 安全な dist 内の通常ファイルがあれば返し、それ以外は従来どおり SPA HTML へ進む。
+        # 3. 安全な dist 内の通常ファイルがあれば返し、それ以外は従来どおり SPA HTML へ進む。
         # 変数の内容: static_response: 静的ファイルが配信可能な場合の FileResponse。
         static_response = create_dist_file_response(DIST, full_path)
         if static_response is not None:
             return static_response
-        # 3. パスに応じたメタ情報を index.html に入れて返す
+        # 4. パスに応じたメタ情報を index.html に入れて返す
         try:
             if host in seo.BRAND_DOMAINS:
                 # 変数の内容: page_html: メタ情報を埋め込む HTML ページ。
@@ -263,7 +253,7 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
             return HTMLResponse(page_html, headers=headers)
         # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
-            # 4. 失敗しても SPA は表示できるよう、元の index.html を返す
+            # 5. 失敗しても SPA は表示できるよう、元の index.html を返す
             # 例外の文字列には利用者の入力（パス）が入りうるので、型名とコードだけを出す
             logger.error('serve_spa メタ情報の埋め込みエラー（%r）: %s', full_path, error_summary(e))
             return FileResponse(INDEX_HTML)
