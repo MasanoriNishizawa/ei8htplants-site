@@ -44,6 +44,13 @@ from .seo_html import (
 from .seo_paths import normalize_legacy_path
 from .seo_brand_meta import resolve_brand_page
 from .seo_static_meta import STATIC_PAGES, StaticPage
+from .seo_page_data import (
+    SeoDataDeps,
+    _EVENT_COLUMNS,
+    fetch_article as _fetch_article_data,
+    fetch_event as _fetch_event_data,
+    fetch_product as _fetch_product_data,
+)
 from .seo_robots import build_robots_txt as _build_robots_txt
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 from .seo_structured_data import (
@@ -303,108 +310,60 @@ def _is_noindex(path: str) -> bool:
 # DB の読み取り（メモリキャッシュ付き）
 # ---------------------------------------------------------------------------
 
-# イベントのメタ情報に使う列（管理情報 admin_info は読まない）
-_EVENT_COLUMNS = 'id, slug, name, start_date, end_date, time, location, address, page_content, daily_times'
+def _seo_data_deps() -> SeoDataDeps:
+    """従来の seo モジュールの差し替え可能な参照から取得依存を作る。
+
+    テストや既存呼び出しが ``seo._cache``・``seo.supabase`` などを差し替える契約を
+    維持するため、依存はモジュール読み込み時ではなく各呼び出し時に組み立てる。
+
+    Returns:
+        現在の seo モジュール参照を保持する不変な依存オブジェクト。
+    """
+    # 1. 呼び出し時点のキャッシュ・DB・変換関数・UUID 判定を依存へ束ねる。
+    return SeoDataDeps(
+        cache=_cache,
+        public_db=supabase,
+        admin_db=admin_supabase,
+        rows=_rows,
+        absolute_url=_absolute_url,
+        uuid_pattern=_UUID_RE,
+    )
 
 
 def _fetch_event(key: str) -> Optional[dict]:
-    """イベントを slug または id で読み、画像 URL のリスト（'image_urls'）を付けて返す。
-
-    公開 API（GET /api/events/{event_id}）と同じく slug を先に探し、無ければ id で探す。
-    結果（見つからなかったことも含む）は CACHE_TTL_SECONDS 秒だけメモリに残す。
-    DB の読み取りは公開用クライアント（anon）で行う。
+    """従来の関数名を保ち、現在の SEO モジュール依存でイベントを取得する。
 
     Args:
-        key: URL の /official/events/ の後ろの部分（slug または UUID）
+        key: イベントの slug または UUID。
 
     Returns:
-        イベントの dict（image_urls 付き）。見つからなければ None
+        画像 URL 一覧を付けたイベント行。未登録なら None。
     """
-    # 変数の内容: cache_key: メモリキャッシュを参照するキー、cached: キャッシュから取得した値、found: キャッシュに値があるかを示すフラグ。
-    cache_key = ('event', key)
-    found, cached = _cache.get(cache_key)
-    if found:
-        return cached
-    # 1. slug で探す
-    rows = _rows(supabase.table('events').select(_EVENT_COLUMNS).eq('slug', key).limit(1).execute())
-    # 2. 無ければ、UUID の形のときだけ id で探す
-    if not rows and _UUID_RE.match(key):
-        # 変数の内容: rows: DB から取得した行の一覧。
-        rows = _rows(supabase.table('events').select(_EVENT_COLUMNS).eq('id', key).limit(1).execute())
-    # 変数の内容: event: 処理対象のイベント。
-    event = rows[0] if rows else None
-    # 3. 見つかったら画像を表示順で読み、外から見られる URL だけ残す
-    if event is not None:
-        # 変数の内容: imgs: DB から取得した画像行の一覧。
-        imgs = _rows(
-            supabase.table('event_images').select('url').eq('event_id', event.get('id')).order('display_order').execute()
-        )
-        event['image_urls'] = [u for u in (_absolute_url(i.get('url')) for i in imgs) if u]
-    _cache.set(cache_key, event)
-    return event
+    return _fetch_event_data(key, _seo_data_deps())
 
 
 def _fetch_article(article_id: str) -> Optional[dict]:
-    """公開済みの記事を id で読んで返す。非公開・存在しない・id の形でない場合は None。
-
-    記事の公開 API（GET /api/articles）と同じく、管理用クライアントに is_published=true の
-    条件を付けて読む（記事テーブルには anon 向けの読み取り設定が見当たらないため）。
-    読むのはメタ情報に必要な列だけにする。
+    """従来の関数名を保ち、現在の SEO モジュール依存で公開記事を取得する。
 
     Args:
-        article_id: URL の /official/journal/ の後ろの部分
+        article_id: 記事の UUID。
 
     Returns:
-        記事の dict（id・title・content・image_urls・published_at・created_at）。無ければ None
+        公開済みの記事行。未登録・非公開・ID 不正なら None。
     """
-    # 1. ID の形式を確認し、キャッシュに値があれば DB を読まずに返す。
-    if not _UUID_RE.match(article_id):
-        return None
-    # 変数の内容: cache_key: メモリキャッシュを参照するキー、cached: キャッシュから取得した値、found: キャッシュに値があるかを示すフラグ。
-    cache_key = ('article', article_id)
-    found, cached = _cache.get(cache_key)
-    if found:
-        return cached
-    # 2. 公開済みの記事のメタ情報だけ取得し、見つからない結果もキャッシュする。
-    rows = _rows(
-        admin_supabase.table('articles')
-        .select('id, title, content, image_urls, published_at, created_at')
-        .eq('id', article_id).eq('is_published', True).limit(1).execute()
-    )
-    article = rows[0] if rows else None
-    _cache.set(cache_key, article)
-    return article
+    return _fetch_article_data(article_id, _seo_data_deps())
 
 
 def _fetch_product(product_id: str) -> Optional[dict]:
-    """公開中の商品を id で読んで返す。非公開・存在しない・id の形でない場合は None。
-
-    商品の公開 API（GET /api/products）と同じく、管理用クライアントに is_published=true の
-    条件を付けて読む。読むのはメタ情報に必要な列だけにする。
+    """従来の関数名を保ち、現在の SEO モジュール依存で公開商品を取得する。
 
     Args:
-        product_id: URL の /official/shop/ の後ろの部分
+        product_id: 商品の UUID。
 
     Returns:
-        商品の dict（id・name・description・image_urls・created_at）。無ければ None
+        公開中の商品行。未登録・非公開・ID 不正なら None。
     """
-    # 1. ID の形式を確かめ、キャッシュに値があれば DB を読まずに返す。
-    if not _UUID_RE.match(product_id):
-        return None
-    # 変数の内容: cache_key: メモリキャッシュを参照するキー、cached: キャッシュから取得した値、found: キャッシュに値があるかを示すフラグ。
-    cache_key = ('product', product_id)
-    found, cached = _cache.get(cache_key)
-    if found:
-        return cached
-    # 2. 公開中の商品情報だけ取得し、見つからない結果もキャッシュする。
-    rows = _rows(
-        admin_supabase.table('products')
-        .select('id, name, description, image_urls, created_at')
-        .eq('id', product_id).eq('is_published', True).limit(1).execute()
-    )
-    product = rows[0] if rows else None
-    _cache.set(cache_key, product)
-    return product
+    return _fetch_product_data(product_id, _seo_data_deps())
 
 
 # ---------------------------------------------------------------------------

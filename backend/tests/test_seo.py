@@ -20,6 +20,7 @@ from app import main as app_main
 from app.main import app
 from app.routes import seo
 from app.routes import seo_robots
+from app.routes.seo_page_data import SeoDataDeps, fetch_article, fetch_event, fetch_product
 from app.routes.seo_paths import normalize_legacy_path
 
 
@@ -1606,6 +1607,443 @@ class TestSeoCache:
         # 2. キャッシュ有効期限とDB再読込 を応答から確認する。
         assert cache.get('k') == (True, None)
         assert cache.get('other') == (False, None)
+
+
+class _FetchCache:
+    """SEOデータ取得関数へ注入する、最小の辞書キャッシュ。"""
+
+    def __init__(self):
+        """空のキャッシュを作る。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: self.values: キーとキャッシュ値を対応付ける辞書。
+        self.values = {}
+
+    def get(self, key):
+        """指定キーの有無と値をキャッシュ契約の形式で返す。
+
+        Args:
+            key: キャッシュから探すキー。
+
+        Returns:
+            キーの有無と値の組。
+        """
+        # 1. Noneを含む保存値と未登録を区別して返す。
+        return (True, self.values[key]) if key in self.values else (False, None)
+
+    def set(self, key, value):
+        """指定キーと値を保存する。
+
+        Args:
+            key: キャッシュへ保存するキー。
+            value: キーに対応付ける値。
+
+        Returns:
+            なし。
+        """
+        # 1. 呼び出し側が指定した値をそのまま保存する。
+        self.values[key] = value
+
+
+class _QueryRecordingDB(FakeDB):
+    """クエリ列・上限・並び順まで記録するSEO単体テスト用DB。"""
+
+    def __init__(self, tables=None, errors=None):
+        """既存FakeDBの行データにクエリ詳細の記録領域を加える。
+
+        Args:
+            tables: テーブル名ごとのテスト行。
+            errors: execute時に例外を出すテーブル名。
+
+        Returns:
+            なし。
+        """
+        # 1. 既存のDB応答と呼び出し履歴を初期化する。
+        super().__init__(tables=tables, errors=errors)
+        # 変数の内容: self.query_details: 各クエリの列・件数上限・順序を保持する一覧。
+        self.query_details = []
+
+    def table(self, name):
+        """記録機能付きのクエリを指定テーブル向けに作る。
+
+        Args:
+            name: 参照するテーブル名。
+
+        Returns:
+            クエリ条件を記録するテスト用クエリ。
+        """
+        return _QueryRecordingQuery(self, name)
+
+
+class _QueryRecordingQuery(_FakeQuery):
+    """select・limit・orderの条件と、order適用結果を再現するクエリ。"""
+
+    def __init__(self, db, name):
+        """通常のFakeQuery条件に列・上限・順序の記録値を加える。
+
+        Args:
+            db: 呼び出し履歴を保持するFakeDB。
+            name: 参照するテーブル名。
+
+        Returns:
+            なし。
+        """
+        # 1. 既存の絞り込み条件を初期化する。
+        super().__init__(db, name)
+        # 変数の内容: self.selected_columns: selectで指定された列、self.limit_count: 最大取得件数、self.order_column: 並び替え列。
+        self.selected_columns = None
+        self.limit_count = None
+        self.order_column = None
+
+    def select(self, *args, **kwargs):
+        """select列を記録してクエリ連鎖を続ける。
+
+        Args:
+            *args: 選択する列などの位置引数。
+            **kwargs: selectへ渡されたキーワード引数。
+
+        Returns:
+            クエリモック自身。
+        """
+        # 1. 今回のSEOクエリが要求した列を保存する。
+        self.selected_columns = args[0] if args else None
+        return self
+
+    def limit(self, *args, **kwargs):
+        """取得上限を記録してクエリ連鎖を続ける。
+
+        Args:
+            *args: 最大取得件数。
+            **kwargs: limitへ渡されたキーワード引数。
+
+        Returns:
+            クエリモック自身。
+        """
+        # 1. 指定された取得上限を保存する。
+        self.limit_count = args[0] if args else kwargs.get('count')
+        return self
+
+    def order(self, *args, **kwargs):
+        """並び替え列を記録してクエリ連鎖を続ける。
+
+        Args:
+            *args: 並び替え列。
+            **kwargs: 昇順・降順などの並び替え指定。
+
+        Returns:
+            クエリモック自身。
+        """
+        # 1. 並び替え列を保存する。
+        self.order_column = args[0] if args else None
+        return self
+
+    def execute(self):
+        """クエリ条件を記録し、指定されたorderを反映した行を返す。
+
+        Returns:
+            絞り込みと並び替えを適用したFakeDB形式の応答。
+        """
+        # 1. テーブル名と絞り込み条件の履歴、および選択列等の詳細を保存する。
+        self.db.calls.append((self.name, dict(self.filters)))
+        self.db.query_details.append({
+            'table': self.name,
+            'select': self.selected_columns,
+            'limit': self.limit_count,
+            'order': self.order_column,
+            'filters': dict(self.filters),
+        })
+        if self.name in self.db.errors:
+            raise RuntimeError(f'{self.name} の読み取りに失敗')
+
+        # 2. テーブル行を絞り込み、指定された列の順に並べて応答へ入れる。
+        rows = [
+            row for row in self.db.tables.get(self.name, [])
+            if all(row.get(key) == value for key, value in self.filters.items())
+        ]
+        if self.order_column is not None:
+            rows.sort(key=lambda row: row.get(self.order_column))
+        response = MagicMock()
+        response.data = [dict(row) for row in rows]
+        return response
+
+
+def _page_data_deps(
+    public_db=None,
+    admin_db=None,
+    cache=None,
+    rows=None,
+    absolute_url=None,
+    uuid_pattern=None,
+):
+    """新しいSEOデータ関数向けにテスト依存を組み立てる。
+
+    Args:
+        public_db: イベント読み取りに使うテスト用公開DB。
+        admin_db: 記事・商品読み取りに使うテスト用管理DB。
+        cache: テスト専用キャッシュ。省略時は空の辞書キャッシュ。
+        rows: execute結果から行を取り出すテスト用関数。
+        absolute_url: 画像URLを変換するテスト用関数。
+        uuid_pattern: ID判定に使う正規表現。省略時はSEOの既定値。
+
+    Returns:
+        SEOデータ取得関数へ渡す依存オブジェクト。
+    """
+    # 変数の内容: deps: DB・行変換・URL変換・ID判定を注入する依存一式。
+    deps = SeoDataDeps(
+        cache=cache if cache is not None else _FetchCache(),
+        public_db=public_db if public_db is not None else FakeDB(),
+        admin_db=admin_db if admin_db is not None else FakeDB(),
+        rows=rows if rows is not None else seo._rows,
+        absolute_url=absolute_url if absolute_url is not None else seo._absolute_url,
+        uuid_pattern=uuid_pattern if uuid_pattern is not None else seo._UUID_RE,
+    )
+    return deps
+
+
+class TestSeoPageDataFetch:
+    """公開契約のデータ取得関数を注入依存だけで直接確認する。"""
+
+    def test_イベントをslugで取得し画像URLを変換して結果をキャッシュする(self):
+        """slug検索のイベント情報・公開画像変換・キャッシュ利用を確かめる。
+
+        Returns:
+            なし。
+        """
+        # 1. slugと画像行を持つ公開DB、および独立した管理DBを用意する。
+        public_db = _QueryRecordingDB({
+            'events': [_event()],
+            'event_images': [
+                {'event_id': EVENT_ID, 'display_order': 2, 'url': 'https://cdn.example.com/hero.jpg'},
+                {'event_id': EVENT_ID, 'display_order': 1, 'url': '/img/detail.jpg'},
+                {'event_id': EVENT_ID, 'display_order': 3, 'url': 'blob:http://localhost/hidden'},
+            ],
+        })
+        admin_db = FakeDB()
+        rows = MagicMock(side_effect=seo._rows)
+        absolute_url = MagicMock(side_effect=seo._absolute_url)
+        deps = _page_data_deps(
+            public_db=public_db,
+            admin_db=admin_db,
+            rows=rows,
+            absolute_url=absolute_url,
+        )
+
+        # 2. イベントを2回取得し、返却値とキャッシュヒットを確認する。
+        first = fetch_event('plant-market', deps)
+        calls_after_first = list(public_db.calls)
+        second = fetch_event('plant-market', deps)
+
+        assert first == second
+        assert first['id'] == EVENT_ID
+        assert first['image_urls'] == [
+            f'{seo.SITE_ORIGIN}/img/detail.jpg',
+            'https://cdn.example.com/hero.jpg',
+        ]
+        assert [call[0] for call in calls_after_first] == ['events', 'event_images']
+        assert public_db.calls == calls_after_first
+        assert admin_db.calls == []
+        assert rows.call_count == 2
+        assert absolute_url.call_count == 3
+        assert public_db.query_details == [
+            {
+                'table': 'events',
+                'select': 'id, slug, name, start_date, end_date, time, location, address, page_content, daily_times',
+                'limit': 1,
+                'order': None,
+                'filters': {'slug': 'plant-market'},
+            },
+            {
+                'table': 'event_images',
+                'select': 'url',
+                'limit': None,
+                'order': 'display_order',
+                'filters': {'event_id': EVENT_ID},
+            },
+        ]
+
+    def test_イベントはslug検索後にUUIDならid検索へ進む(self):
+        """slugが無いUUIDは同じ公開DBでid検索されることを確かめる。
+
+        Returns:
+            なし。
+        """
+        # 1. slugが異なるUUIDイベントを公開DBに用意する。
+        event_id = 'event-42'
+        public_db = _QueryRecordingDB({
+            'events': [_event(id=event_id, slug='other-event')],
+            'event_images': [],
+        })
+        deps = _page_data_deps(
+            public_db=public_db,
+            uuid_pattern=re.compile(r'event-[0-9]+'),
+        )
+
+        # 2. UUIDを渡し、slug検索後にid検索が実行されることを確認する。
+        event = fetch_event(event_id, deps)
+
+        assert event['id'] == event_id
+        assert public_db.calls == [
+            ('events', {'slug': event_id}),
+            ('events', {'id': event_id}),
+            ('event_images', {'event_id': event_id}),
+        ]
+        assert public_db.query_details == [
+            {
+                'table': 'events',
+                'select': 'id, slug, name, start_date, end_date, time, location, address, page_content, daily_times',
+                'limit': 1,
+                'order': None,
+                'filters': {'slug': event_id},
+            },
+            {
+                'table': 'events',
+                'select': 'id, slug, name, start_date, end_date, time, location, address, page_content, daily_times',
+                'limit': 1,
+                'order': None,
+                'filters': {'id': event_id},
+            },
+            {
+                'table': 'event_images',
+                'select': 'url',
+                'limit': None,
+                'order': 'display_order',
+                'filters': {'event_id': event_id},
+            },
+        ]
+
+    def test_不正なイベントキーはslugだけを検索してNoneをキャッシュする(self):
+        """UUID形式でないキーはid検索せず、見つからない結果を再利用する。
+
+        Returns:
+            なし。
+        """
+        # 1. イベントがない公開DBと独立したキャッシュを用意する。
+        public_db = FakeDB({'events': []})
+        deps = _page_data_deps(public_db=public_db)
+
+        # 2. 不正キーを繰り返し渡し、slugのみの検索とNoneのキャッシュを確かめる。
+        assert fetch_event('not-a-uuid', deps) is None
+        calls_after_first = list(public_db.calls)
+        assert fetch_event('not-a-uuid', deps) is None
+
+        assert calls_after_first == [('events', {'slug': 'not-a-uuid'})]
+        assert public_db.calls == calls_after_first
+
+    def test_記事は公開条件を付けて管理DBから取得し結果をキャッシュする(self):
+        """記事は管理DBで公開済みに限定され、2回目はDBを読まない。
+
+        Returns:
+            なし。
+        """
+        # 1. 公開記事と非公開記事を管理DBへ置き、公開DBを分けて用意する。
+        admin_db = _QueryRecordingDB({'articles': [
+            {**_article(), 'is_published': True},
+            {**_article(id=MISSING_ID), 'is_published': False},
+        ]})
+        public_db = FakeDB()
+        deps = _page_data_deps(public_db=public_db, admin_db=admin_db)
+
+        # 2. 公開記事を2回取得し、公開条件・返却値・キャッシュを確認する。
+        article = fetch_article(ARTICLE_ID, deps)
+        calls_after_first = list(admin_db.calls)
+        cached_article = fetch_article(ARTICLE_ID, deps)
+
+        assert article == cached_article
+        assert article['id'] == ARTICLE_ID
+        assert calls_after_first == [('articles', {'id': ARTICLE_ID, 'is_published': True})]
+        assert admin_db.calls == calls_after_first
+        assert public_db.calls == []
+        assert admin_db.query_details == [{
+            'table': 'articles',
+            'select': 'id, title, content, image_urls, published_at, created_at',
+            'limit': 1,
+            'order': None,
+            'filters': {'id': ARTICLE_ID, 'is_published': True},
+        }]
+
+    @pytest.mark.parametrize('fetcher,table_name', [
+        (fetch_article, 'articles'),
+        (fetch_product, 'products'),
+    ])
+    def test_記事と商品はUUIDでないIDをDBへ送らない(self, fetcher, table_name):
+        """記事と商品はUUID形式でないIDを受け付けずDBを呼ばない。
+
+        Args:
+            fetcher: 対象の記事または商品の取得関数。
+            table_name: DB呼び出しが発生しないことを確かめるテーブル名。
+
+        Returns:
+            なし。
+        """
+        # 1. 対象データがない管理DBと公開DBを分けて依存へ注入する。
+        admin_db = FakeDB()
+        public_db = FakeDB()
+        deps = _page_data_deps(public_db=public_db, admin_db=admin_db)
+
+        # 2. 不正IDがNoneになり、どちらのDBにも検索が発生しないことを確認する。
+        assert fetcher('not-a-uuid', deps) is None
+        assert all(call[0] != table_name for call in admin_db.calls)
+        assert admin_db.calls == []
+        assert public_db.calls == []
+
+    def test_商品が存在しない結果も管理DBへ再問い合わせしない(self):
+        """有効なUUIDの商品が無い場合、Noneをキャッシュして再利用する。
+
+        Returns:
+            なし。
+        """
+        # 1. 商品行のない管理DBと専用キャッシュを依存へ注入する。
+        admin_db = _QueryRecordingDB({'products': []})
+        deps = _page_data_deps(admin_db=admin_db)
+
+        # 2. 同じ商品IDを2回取得し、Noneと1回だけの問い合わせを確認する。
+        assert fetch_product(PRODUCT_ID, deps) is None
+        calls_after_first = list(admin_db.calls)
+        assert fetch_product(PRODUCT_ID, deps) is None
+
+        assert calls_after_first == [('products', {'id': PRODUCT_ID, 'is_published': True})]
+        assert admin_db.calls == calls_after_first
+        assert admin_db.query_details == [{
+            'table': 'products',
+            'select': 'id, name, description, image_urls, created_at',
+            'limit': 1,
+            'order': None,
+            'filters': {'id': PRODUCT_ID, 'is_published': True},
+        }]
+
+    def test_公開中の商品を管理DBから取得し結果をキャッシュする(self):
+        """商品を管理DBの公開条件で読み、取得値をキャッシュする。
+
+        Returns:
+            なし。
+        """
+        # 1. 公開商品と非公開商品を管理DBへ置き、公開DBを分けて用意する。
+        admin_db = _QueryRecordingDB({'products': [
+            {**_product(), 'is_published': True},
+            {**_product(id=MISSING_ID), 'is_published': False},
+        ]})
+        public_db = FakeDB()
+        deps = _page_data_deps(public_db=public_db, admin_db=admin_db)
+
+        # 2. 公開商品を2回取得し、公開条件・返却値・キャッシュを確かめる。
+        product = fetch_product(PRODUCT_ID, deps)
+        calls_after_first = list(admin_db.calls)
+        cached_product = fetch_product(PRODUCT_ID, deps)
+
+        assert product == cached_product
+        assert product['id'] == PRODUCT_ID
+        assert calls_after_first == [('products', {'id': PRODUCT_ID, 'is_published': True})]
+        assert admin_db.calls == calls_after_first
+        assert public_db.calls == []
+        assert admin_db.query_details == [{
+            'table': 'products',
+            'select': 'id, name, description, image_urls, created_at',
+            'limit': 1,
+            'order': None,
+            'filters': {'id': PRODUCT_ID, 'is_published': True},
+        }]
 
 
 # ---------------------------------------------------------------------------
