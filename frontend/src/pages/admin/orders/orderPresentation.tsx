@@ -6,11 +6,13 @@ export const STATUS_LABELS: Record<string, string> = {
   paid: '支払済', shipped: '発送済', delivered: '配達完了', cancelled: 'キャンセル',
 }
 
+/** 注文詳細・発送モーダルでエラーを赤く目立たせる共通表示スタイル */
 export const ORDER_ERROR_BOX_STYLE: React.CSSProperties = {
   color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px',
   background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0',
 }
 
+/** 配送会社などの入力欄で使う、注文管理画面の共通入力スタイル */
 export const ORDER_INPUT_STYLE: React.CSSProperties = {
   padding: '6px 10px', border: '1px solid #dddde8', fontSize: 13,
   fontFamily: 'inherit', color: 'var(--c-ink)', background: '#fff',
