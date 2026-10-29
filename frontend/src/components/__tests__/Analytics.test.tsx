@@ -140,6 +140,10 @@ describe('Analytics', () => {
     const original = Object.getOwnPropertyDescriptor(window, 'localStorage')
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
+      /**
+       * localStorage が読み取れないブラウザー環境を再現する getter。
+       * @returns 値を返さず SecurityError を投げる。
+       */
       get() {
         throw new DOMException('The operation is insecure.', 'SecurityError')
       },

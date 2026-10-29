@@ -319,6 +319,11 @@ describe('AdminEventImages ページ — ダウンロード', () => {
     URL.createObjectURL = vi.fn(() => 'blob:mock-object-url')
     URL.revokeObjectURL = vi.fn()
     // 2. a.click() で jsdom が遷移しようとしないよう、クリック内容の記録だけにする
+    /**
+     * jsdom のリンク遷移を止め、ダウンロード用リンクの情報を記録する。
+     * @param this - クリック対象のリンク要素
+     * @returns 戻り値なし。記録配列へ属性値を追加する。
+     */
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       clicked.push({ download: this.download, href: this.getAttribute('href') ?? '' })
     })

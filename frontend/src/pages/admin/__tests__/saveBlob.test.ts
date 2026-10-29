@@ -22,6 +22,11 @@ describe('saveBlob', () => {
   it('download 属性とオブジェクト URL を持つリンクを body に足してクリックし、クリック後は取り除く', () => {
     // 1. クリックされたリンクを記録する
     const clicked: { href: string; download: string; inBody: boolean }[] = []
+    /**
+     * jsdom のリンク遷移を止め、クリック時の属性とDOMへの追加状態を記録する。
+     * @param this - クリック対象のリンク要素
+     * @returns 戻り値なし。クリック時の情報を記録する。
+     */
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       clicked.push({ href: this.getAttribute('href') ?? '', download: this.download, inBody: document.body.contains(this) })
     })

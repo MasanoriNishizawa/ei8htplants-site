@@ -200,6 +200,7 @@ describe('管理画面の発送情報', () => {
     const dialog = await openShippingModal()
     fireEvent.change(within(await dialog).getByLabelText('配送会社'), { target: { value: '日本郵便（ゆうパック）' } })
     fireEvent.change(within(await dialog).getByLabelText('お問い合わせ番号（任意）'), { target: { value: 'JP-001' } })
+    // 1. 初回の失敗後も入力を保ち、再送信できる状態であることを確認する。
     fireEvent.click(within(await dialog).getByRole('button', { name: '発送済みにする' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('発送済みへの変更に失敗しました（発送通知を送信できません）')
@@ -208,6 +209,7 @@ describe('管理画面の発送情報', () => {
     expect(screen.getByLabelText('お問い合わせ番号（任意）')).toHaveValue('JP-001')
     expect(screen.getByRole('button', { name: '発送済みにする' })).toBeEnabled()
 
+    // 2. 同じ内容で再試行し、成功後にモーダルが閉じることを確認する。
     fireEvent.click(screen.getByRole('button', { name: '発送済みにする' }))
     await waitFor(() => expect(api.orders.updateStatus).toHaveBeenCalledTimes(2))
     expect(api.orders.updateStatus).toHaveBeenLastCalledWith(ORDER.id, 'shipped', '日本郵便（ゆうパック）', 'JP-001')
@@ -221,6 +223,7 @@ describe('管理画面の発送情報', () => {
     }))
     const dialog = await openShippingModal()
     const submit = within(await dialog).getByRole('button', { name: '発送済みにする' })
+    // 1. 非同期の発送処理を開始し、処理中表示とボタン無効化を確認する。
     fireEvent.click(submit)
 
     const pendingButton = screen.getByRole('button', { name: '処理中...' })
@@ -228,6 +231,7 @@ describe('管理画面の発送情報', () => {
     fireEvent.click(pendingButton)
     expect(api.orders.updateStatus).toHaveBeenCalledTimes(1)
 
+    // 2. 保留中の API 応答を完了させ、成功後のモーダル終了を確認する。
     finishUpdate?.(SHIPPED_ORDER)
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '発送情報の入力' })).toBeNull())
   })

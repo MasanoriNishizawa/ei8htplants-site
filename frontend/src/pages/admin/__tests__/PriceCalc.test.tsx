@@ -339,9 +339,11 @@ describe('Habitat Oides の計算フォーム', () => {
 describe('実生の計算フォーム', () => {
   it('ei8ht plants は種子20粒の値段を上代、1粒分を原価として計算し、目標原価率によらず原価率だけを表示する', async () => {
     render(<PriceCalc />)
+    // 1. 仕入れモードの目標原価率を空にし、実生モードへ切り替える。
     fireEvent.click(screen.getByRole('button', { name: '仕入れ' }))
     fireEvent.change(screen.getByRole('textbox', { name: '目標原価率（%）' }), { target: { value: '' } })
     openSeedling()
+    // 2. 種子価格を入力し、20 粒の上代と 1 粒分の原価率を確認する。
     fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
 
     expect(screen.getByText('上代（種子 20粒の値段）')).toBeInTheDocument()
@@ -353,11 +355,13 @@ describe('実生の計算フォーム', () => {
 
   it('植物名を trim し、任意価格を上代の代わりに登録して成功後に入力を空にする', async () => {
     render(<PriceCalc />)
+    // 1. 前後に空白のある植物名、種子価格、上書き価格を入力する。
     openSeedling()
     fireEvent.change(screen.getByPlaceholderText('例: アガベ チタノタ'), { target: { value: '  アガベ  ' } })
     fireEvent.change(screen.getByPlaceholderText('例: 600'), { target: { value: '600' } })
     fireEvent.change(numberInputs()[1], { target: { value: '1200' } })
     expect(screen.getByText('登録価格: ¥1,200（原価率 2.5%）')).toBeInTheDocument()
+    // 2. 登録結果の値を確認し、成功後にフォームが初期化されることを確かめる。
     fireEvent.click(screen.getByRole('button', { name: /^登録\s+¥1,200$/ }))
 
     await waitFor(() => expect(api.priceCalcEntries.add).toHaveBeenCalledWith({

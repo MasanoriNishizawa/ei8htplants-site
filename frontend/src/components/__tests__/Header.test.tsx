@@ -143,10 +143,12 @@ describe('Header のスマホのメニュー（ダイアログ）', () => {
     const main = document.querySelector('main')!
     const footer = document.querySelector('footer')!
     const fab = document.querySelector('.chat-fab')!
+    // 1. メニューを開き、背面の操作対象が inert になることを確認する。
     fireEvent.click(openButton())
     expect(main).toHaveAttribute('inert')
     expect(footer).toHaveAttribute('inert')
     expect(fab).toHaveAttribute('inert')
+    // 2. メニューを閉じ、背面の操作対象が元に戻ることを確認する。
     fireEvent.click(screen.getByRole('button', { name: 'メニューを閉じる' }))
     expect(main).not.toHaveAttribute('inert')
     expect(footer).not.toHaveAttribute('inert')

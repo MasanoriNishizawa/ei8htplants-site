@@ -177,6 +177,10 @@ describe('hasAdminSession', () => {
   it('保存領域の length がエラーを投げると false になる（例外を外に出さない）', () => {
     const storage = makeStorage({ 'sb-abcdef-auth-token': 'x' })
     Object.defineProperty(storage, 'length', {
+      /**
+       * 保存領域の件数を読めない環境を再現する getter。
+       * @returns 値を返さず、SecurityError というメッセージの Error を投げる。
+       */
       get() {
         throw new Error('SecurityError')
       },

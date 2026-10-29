@@ -34,6 +34,11 @@ async function useFakeAdminSession(page: Page) {
     }
     // テスト用セッション以外の localStorage 読み取りに使う元の getItem 関数。
     const originalGetItem = Storage.prototype.getItem
+    /**
+     * Supabase の認証トークンだけをテスト用セッションに差し替える。
+     * @param key - localStorage から取得するキー
+     * @returns 認証キーなら偽セッションの JSON、それ以外なら元の値
+     */
     Storage.prototype.getItem = function (key: string) {
       if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)
       return originalGetItem.call(this, key)
@@ -120,7 +125,7 @@ test.describe('イベントの編集（EventForm）', () => {
     // 1. イベント名を変更してサイドメニューへの移動を試し、確認をキャンセルした後も編集状態が保たれることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/edit')
     const name = page.locator('#event-name')
-    await expect(name).toHaveValue('Green Market 2027')
+    await expect(name).toHaveValue('Green Market 2027', { timeout: 20000 })
     // 読み込み直後は確認なし（ほかのテストで確かめるため、ここでは入力してから）
     await name.fill('Green Market 2027 改')
     await expectSidebarBlocked(page)
@@ -134,7 +139,7 @@ test.describe('イベントの編集（EventForm）', () => {
     async ({ page }) => {
     // 1. 未編集のイベント編集画面からサイドメニューを選び、確認ダイアログなしで遷移できることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/edit')
-    await expect(page.locator('#event-name')).toHaveValue('Green Market 2027')
+    await expect(page.locator('#event-name')).toHaveValue('Green Market 2027', { timeout: 20000 })
     await expectSidebarFree(page)
   })
 

@@ -40,6 +40,11 @@ async function useFakeAdminSession(page: Page) {
     }
     // テスト用セッション以外の localStorage 読み取りに使う元の getItem 関数。
     const originalGetItem = Storage.prototype.getItem
+    /**
+     * Supabase の認証トークンだけをテスト用セッションに差し替える。
+     * @param key - localStorage から取得するキー
+     * @returns 認証キーなら偽セッションの JSON、それ以外なら元の値
+     */
     Storage.prototype.getItem = function (key: string) {
       if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)
       return originalGetItem.call(this, key)

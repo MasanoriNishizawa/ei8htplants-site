@@ -92,6 +92,7 @@ export function buildReservationPrintHtml(
           if (!dateMatches) return false
           // セッションIDが有効ならIDを優先し、未設定・古いIDの場合だけ希望時間で照合する。
           const directMatch = reservation.session_id === session.id
+          // fallbackMatch: セッションIDが未設定・無効な予約を希望時間で照合した結果。
           const fallbackMatch =
             (!reservation.session_id || !validSessionIds.has(reservation.session_id)) &&
             reservation.preferred_time === session.time_label

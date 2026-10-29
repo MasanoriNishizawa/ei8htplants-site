@@ -103,8 +103,10 @@ describe('Chat 画面', () => {
       { status: 200, body: { reply: 'OK' } },
     ])
     render(<Chat />)
+    // 1. 1 回目の上限エラーを表示し、案内が会話に残る状態を作る。
     await typeAndSend('質問1')
     expect(await screen.findByText(/送信回数が上限に達しました/)).toBeInTheDocument()
+    // 2. 2 回目を送信し、API 履歴から前の質問とエラー案内が除かれることを確認する。
     await typeAndSend('質問2')
     await screen.findByText('OK')
     expect(sent[1].messages.map((m) => m.content)).not.toContain('質問1')
