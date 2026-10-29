@@ -5,7 +5,6 @@ API のルーターを登録し、本番ではビルド済みの SPA（frontend/
 """
 import logging
 import os
-import re
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +15,7 @@ from .config import SITE_ORIGIN
 from .router_registry import register_routers
 from .spa_files import create_dist_file_response
 from .spa_pwa import create_brand_pwa_response
+from .spa_cache import resolve_cache_control_headers
 from .spa_redirects import resolve_spa_redirect
 from .spa_normalization import normalize_spa_host, normalize_spa_path
 from .utils.errors import error_summary
@@ -30,15 +30,6 @@ app = FastAPI(title='ei8ht plants API')
 # 予期しない例外のときに利用者へ返す文言（内部の例外の文字列は返さない）
 INTERNAL_ERROR_MESSAGE = 'サーバーでエラーが発生しました。時間をおいて再度お試しください。'
 
-# キャッシュさせない公開 GET（予約枠と、管理画面からの変更をすぐ反映するサイト画像）
-_NO_STORE_PATH_RE = re.compile(r'^/api/(?:events/[^/]+/sessions|site-assets/[^/]+)$')
-
-# 公開の GET API の Cache-Control（Cloudflare 5 分・ブラウザ 60 秒。管理画面は fetch 側で no-store にしている）
-_PUBLIC_API_CACHE = 'public, s-maxage=300, max-age=60'
-# 静的ファイル（assets・img・favicon）の Cache-Control（Cloudflare 1 年・ブラウザ 1 日。ファイル名にハッシュが付くもの以外は Cloudflare の削除で更新する）
-_STATIC_CACHE = 'public, s-maxage=31536000, max-age=86400, immutable'
-# HTML の Cache-Control（Cloudflare は 60 秒、ブラウザは毎回確認する）
-_HTML_CACHE = 'public, s-maxage=60, max-age=0, must-revalidate'
 # HSTS の有効期間（秒）。1 年
 _HSTS_MAX_AGE = 31536000
 
@@ -145,35 +136,18 @@ async def cache_control(request: Request, call_next) -> Response:
     Returns:
         ヘッダーを付けた応答
     """
-    # 変数の内容: path: 処理対象の URL パス、response: 下流へ返す HTTP 応答。
+    # 変数の内容: response: 下流へ返す HTTP 応答、cache_headers: キャッシュ規則が選んだヘッダー。
     response = await call_next(request)
-    path = request.url.path
-    # ルート側が明示した no-store は、汎用のHTML/静的キャッシュ設定で上書きしない。
-    # ブランド専用HTMLとService Workerの旧キャッシュ解除応答で必要。
-    if 'no-store' in response.headers.get('Cache-Control', '').lower():
-        return response
-    if path.startswith('/api/'):
-        # 1. API
-        # 変数の内容: is_public_get: ログイン情報を伴わない GET かどうか。
-        is_public_get = (
-            request.method == 'GET'
-            and not request.headers.get('authorization')
-        )
-        if is_public_get and response.status_code < 400 and not _NO_STORE_PATH_RE.match(path):
-            response.headers['Cache-Control'] = _PUBLIC_API_CACHE
-        elif is_public_get:
-            # エラーの応答と空き状況はキャッシュしない
-            response.headers['Cache-Control'] = 'no-store'
-            response.headers['CDN-Cache-Control'] = 'no-store'
-        else:
-            response.headers['Cache-Control'] = 'no-store'
-            response.headers['CDN-Cache-Control'] = 'no-store'
-    elif path.startswith(('/assets/', '/img/', '/favicon/')):
-        # 2. 静的ファイル
-        response.headers['Cache-Control'] = _STATIC_CACHE
-    else:
-        # 3. HTML
-        response.headers['Cache-Control'] = _HTML_CACHE
+    # 1. ヘッダー選択は純粋関数へ委譲し、None の場合は応答の既存ヘッダーを維持する。
+    cache_headers = resolve_cache_control_headers(
+        method=request.method,
+        path=request.url.path,
+        has_authorization=bool(request.headers.get('authorization')),
+        status_code=response.status_code,
+        existing_cache_control=response.headers.get('Cache-Control', ''),
+    )
+    if cache_headers is not None:
+        response.headers.update(cache_headers)
     return response
 
 
