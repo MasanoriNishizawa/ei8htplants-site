@@ -85,6 +85,41 @@ test.describe('Reserve', () => {
     await expect(page.getByText('Green Market 2027').first()).toBeVisible()
   })
 
+  // 左カラムのイベント・ワークショップ案内の表示契約を確認する
+  test('開催情報・ワークショップ案内・詳細リンク・問い合わせ案内が表示される', /**
+     * 予約ページでイベント概要とワークショップ案内を表示し、詳細・問い合わせリンクの遷移先が維持されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 日時・会場が登録されたイベントの予約ページを開く
+    await page.goto('/official/reserve?event_id=mock-upcoming-1')
+
+    // 2. イベント名・開催日・時刻・会場が表示される
+    await expect(page.getByText('Green Market 2027').first()).toBeVisible()
+    await expect(page.getByText('2027-04-05 〜 2027-04-06')).toBeVisible()
+    await expect(page.getByText('10:00〜17:00')).toBeVisible()
+    await expect(page.getByText('代々木公園 イベント広場')).toBeVisible()
+
+    // 3. ワークショップ説明、参加費と補足が表示される
+    await expect(page.getByText(/植物の自生地を鉢の中で再現するハビタットスタイルのワークショップです/))
+      .toBeVisible()
+    await expect(page.getByText('1,000円')).toBeVisible()
+    await expect(page.getByText('鉢・資材含む / 植物別')).toBeVisible()
+
+    // 4. 案内に含まれる内部リンクの遷移先と詳細リンクの別タブ設定を確認する
+    await expect(page.getByRole('link', { name: '詳しくはこちら' }))
+      .toHaveAttribute('href', '/habitatoides/workshop')
+    await expect(page.getByRole('link', { name: '詳しくはこちら' }))
+      .toHaveAttribute('target', '_blank')
+    await expect(page.getByRole('link', { name: '詳しくはこちら' }))
+      .toHaveAttribute('rel', 'noopener noreferrer')
+    await expect(page.getByRole('link', { name: 'お問い合わせ' }))
+      .toHaveAttribute('href', '/official/contact')
+    await expect(page.getByText(/ご記入いただいた内容を確認後、メールにて予約確認をお送りします。/))
+      .toBeVisible()
+  })
+
   // 終了したイベントは受付終了の案内を出す
   test('終了したイベントの event_id で開くと「受付を終了しました」が出て予約ボタンは出ない', /**
      * 「/official/reserve?event_id=mock-past-1」を開く、「受付を終了しました」が画面に表示されること、存在しないイベントIDでエラー案内を表示し、予約ボタンを表示しないことを確認する。

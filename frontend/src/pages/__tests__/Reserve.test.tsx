@@ -268,3 +268,30 @@ describe('Reserve の参加費の表示', () => {
     expect(screen.queryByText('1,000円')).toBeNull()
   })
 })
+
+describe('Reserve のイベント・ワークショップ案内', () => {
+  it('開催情報・ワークショップ案内・詳細リンク・問い合わせ案内を表示する', async () => {
+    // 1. 複数日・時間・会場が設定されたイベントを開く
+    renderReserve('mock-upcoming-1')
+
+    // 2. イベント名と開催情報が、イベント案内として表示される
+    expect(await screen.findByText('Green Market 2027')).toBeInTheDocument()
+    expect(screen.getByText('2027-04-05 〜 2027-04-06')).toBeInTheDocument()
+    expect(screen.getByText('10:00〜17:00')).toBeInTheDocument()
+    expect(screen.getByText('代々木公園 イベント広場')).toBeInTheDocument()
+
+    // 3. ワークショップの説明・参加費・補足が表示される
+    expect(screen.getByText(/植物の自生地を鉢の中で再現するハビタットスタイルのワークショップです/))
+      .toBeInTheDocument()
+    expect(screen.getByText('1,000円')).toBeInTheDocument()
+    expect(screen.getByText('鉢・資材含む / 植物別')).toBeInTheDocument()
+
+    // 4. 詳細リンクは別タブ、問い合わせリンクは公式サイト内の所定の遷移先を保つ
+    expect(screen.getByRole('link', { name: '詳しくはこちら' })).toHaveAttribute('href', '/habitatoides/workshop')
+    expect(screen.getByRole('link', { name: '詳しくはこちら' })).toHaveAttribute('target', '_blank')
+    expect(screen.getByRole('link', { name: '詳しくはこちら' })).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.getByRole('link', { name: 'お問い合わせ' })).toHaveAttribute('href', '/official/contact')
+    expect(screen.getByText(/ご記入いただいた内容を確認後、メールにて予約確認をお送りします。/))
+      .toBeInTheDocument()
+  })
+})
