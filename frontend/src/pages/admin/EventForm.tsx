@@ -4,6 +4,7 @@ import { api, type EventBody } from '../../lib/api'
 import { failMessage } from './errorMessage'
 import { confirmLeaveIfDirty, useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
 import EventBrandSelector from './EventBrandSelector'
+import EventImagesField from './eventForm/EventImagesField'
 import EventTimeRangeSelect from './EventTimeRangeSelect'
 import { formatJaMonthDayDow, listDates } from '../../lib/localDate'
 import { WS_DEFAULT_SESSION_CAPACITY } from '../../lib/constants'
@@ -410,59 +411,14 @@ export default function AdminEventForm() {
         <div><label htmlFor="event-official-url" style={labelStyle}>公式サイトURL</label><input id="event-official-url" type="url" style={inputStyle} value={form.official_url} onChange={(e) => set('official_url', e.target.value)} /></div>
         {/* 販売ブランド欄の表示を分離し、選択状態と切り替え処理はフォーム側で管理する */}
         <EventBrandSelector selectedBrands={form.brands} labelStyle={labelStyle} onToggle={toggleBrand} />
-        <div>
-          {/* 画像は一覧と「追加」のボタンの集まりなので、label ではなく見出しの文字にする */}
-          <p style={{ ...labelStyle, margin: '0 0 6px' }}>画像（複数可）</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' }}>
-            {imageUrls.map((url, i) => {
-              /** アップロードが終わる前の仮の画像か */
-              const isBlob = url.startsWith('blob:')
-              /** この画像をアップロード中か（中は薄く表示し、外すボタンを出さない） */
-              const isUploading = isBlob && uploadingIdx !== null
-              return (
-                <div key={i} style={{ position: 'relative', width: 88, height: 88, flexShrink: 0 }}>
-                  <img
-                    src={url}
-                    alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, border: '1px solid #dddde8', opacity: isUploading ? 0.5 : 1, display: 'block' }}
-                  />
-                  {isUploading && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--c-muted)' }}>...</div>
-                  )}
-                  {!isUploading && (
-                    <button
-                      type="button"
-                      onClick={() => setImageUrls((prev) => prev.filter((_, j) => j !== i))}
-                      aria-label={`${i + 1}枚目の画像を外す`}
-                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#c0392b', border: 'none', color: '#fff', fontSize: 12, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-            {/* 画像を追加する枠（押すとファイルを選べる。アップロード中は押せない） */}
-            <label style={{
-              width: 88, height: 88, border: '1.5px dashed #b0b0c4', borderRadius: 4,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 4, cursor: uploadingIdx !== null ? 'default' : 'pointer', color: 'var(--c-muted)', flexShrink: 0,
-              opacity: uploadingIdx !== null ? 0.5 : 1,
-            }}>
-              <span style={{ fontSize: 24, lineHeight: 1 }}>+</span>
-              <span style={{ fontSize: 11 }}>追加</span>
-              <input
-                type="file"
-                accept="image/*"
-                aria-label="画像を追加"
-                multiple
-                onChange={(e) => handleImageFiles(e.target.files)}
-                disabled={uploadingIdx !== null}
-                style={{ display: 'none' }}
-              />
-            </label>
-          </div>
-        </div>
+        {/* 画像の表示欄を分離し、画像 state とアップロード処理はフォーム側で管理する */}
+        <EventImagesField
+          imageUrls={imageUrls}
+          uploadingIdx={uploadingIdx}
+          onAddFiles={handleImageFiles}
+          onRemoveImage={(index) => setImageUrls((prev) => prev.filter((_, i) => i !== index))}
+          labelStyle={labelStyle}
+        />
 
         {/* フラグ（WS あり・予約必要） */}
         <div style={{ display: 'flex', gap: 20 }}>

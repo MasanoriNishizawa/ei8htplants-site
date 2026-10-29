@@ -9,7 +9,7 @@
  *    - 既存イベントのデータがフォームにロードされる
  *    - 保存すると api.events.update が呼ばれる
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AdminEventForm from '../EventForm'
@@ -31,6 +31,7 @@ vi.mock('../../../lib/api', async (importActual) => {
         getSessions: vi.fn(),
         saveSessions: vi.fn(),
       },
+      upload: vi.fn(),
     },
   }
 })
@@ -227,6 +228,12 @@ describe('イベントフォーム 編集', () => {
     vi.mocked(api.events.update).mockResolvedValue(MOCK_EVENT)
     // saveSessions もモックしておく
     vi.mocked(api.events.saveSessions).mockResolvedValue([])
+    vi.mocked(api.upload).mockResolvedValue('https://example.com/uploaded.png')
+  })
+
+  afterEach(() => {
+    // 画像アップロードのテスト用に差し替えた URL API を、次のテストへ残さない。
+    vi.unstubAllGlobals()
   })
 
   it('既存イベントのデータがフォームにロードされる（name フィールドが初期値を持つ）', async () => {
@@ -281,6 +288,103 @@ describe('イベントフォーム 編集', () => {
     expect(screen.queryByRole('button', { name: /削除/ })).toBeNull()
     // 3. 表示しただけで削除 API が呼ばれていないことを確認する
     expect(vi.mocked(api.events.delete)).not.toHaveBeenCalled()
+  })
+
+  it('既存画像を登録順に表示し、画像を外すと後続の順番が詰め直される', async () => {
+    // 1. 並び順が異なる画像を持つイベントを編集画面へ読み込む。
+    vi.mocked(api.events.get).mockResolvedValue({
+      ...MOCK_EVENT,
+      images: [
+        { id: 'image-1', url: 'https://example.com/first.png', display_order: 1 },
+        { id: 'image-2', url: 'https://example.com/second.png', display_order: 2 },
+        { id: 'image-3', url: 'https://example.com/third.png', display_order: 3 },
+      ],
+    })
+    const { container } = renderEditForm()
+
+    // 2. 画面上のサムネイル順と、画像を外す操作の番号が一致することを確認する。
+    await waitFor(() => {
+      expect(Array.from(container.querySelectorAll('img')).map((image) => image.getAttribute('src'))).toEqual([
+        'https://example.com/first.png',
+        'https://example.com/second.png',
+        'https://example.com/third.png',
+      ])
+    })
+    expect(screen.getByRole('button', { name: '1枚目の画像を外す' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '2枚目の画像を外す' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '3枚目の画像を外す' })).toBeInTheDocument()
+
+    // 3. 先頭画像を外し、残りの順番と操作名が更新されることを確かめる。
+    fireEvent.click(screen.getByRole('button', { name: '1枚目の画像を外す' }))
+    expect(Array.from(container.querySelectorAll('img')).map((image) => image.getAttribute('src'))).toEqual([
+      'https://example.com/second.png',
+      'https://example.com/third.png',
+    ])
+    expect(screen.getByRole('button', { name: '1枚目の画像を外す' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '2枚目の画像を外す' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '3枚目の画像を外す' })).toBeNull()
+  })
+
+  it('画像追加欄から複数画像を選ぶと、既存画像の後ろへ選択順にサムネイルが追加される', async () => {
+    // 1. テスト環境に未実装の blob URL API を仮実装し、アップロード応答を設定する。
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn().mockReturnValueOnce('blob:first').mockReturnValueOnce('blob:second'),
+      revokeObjectURL: vi.fn(),
+    })
+    vi.mocked(api.events.get).mockResolvedValue({
+      ...MOCK_EVENT,
+      images: [{ id: 'image-1', url: 'https://example.com/existing.png', display_order: 1 }],
+    })
+    vi.mocked(api.upload)
+      .mockResolvedValueOnce('https://example.com/uploaded-first.png')
+      .mockResolvedValueOnce('https://example.com/uploaded-second.png')
+    const { container } = renderEditForm()
+
+    // 2. ラベルから取得した file input が画像の複数選択を受け付けることを確認する。
+    const input = screen.getByLabelText('画像を追加') as HTMLInputElement
+    await waitFor(() => expect(Array.from(container.querySelectorAll('img')).map((image) => image.getAttribute('src'))).toEqual([
+      'https://example.com/existing.png',
+    ]))
+    expect(input).toHaveAttribute('type', 'file')
+    expect(input).toHaveAttribute('accept', 'image/*')
+    expect(input.multiple).toBe(true)
+
+    // 3. 2枚を選び、サーバー URL になった画像が既存画像の末尾へ選択順で並ぶことを確かめる。
+    const files = [new File(['first'], 'first.png', { type: 'image/png' }), new File(['second'], 'second.png', { type: 'image/png' })]
+    fireEvent.change(input, { target: { files } })
+    await waitFor(() => expect(Array.from(container.querySelectorAll('img')).map((image) => image.getAttribute('src'))).toEqual([
+      'https://example.com/existing.png',
+      'https://example.com/uploaded-first.png',
+      'https://example.com/uploaded-second.png',
+    ]))
+    expect(vi.mocked(api.upload).mock.calls.map(([file]) => (file as File).name)).toEqual(['first.png', 'second.png'])
+    expect(screen.getByRole('button', { name: '1枚目の画像を外す' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '2枚目の画像を外す' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '3枚目の画像を外す' })).toBeInTheDocument()
+  })
+
+  it('画像アップロード中は追加と削除を操作できず、完了すると画像を外せる', async () => {
+    // アップロードの完了をテストから操作するための resolve 関数。
+    let resolveUpload: (url: string) => void = () => {}
+    // 1. blob URL を用意し、アップロード応答を保留する。
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn().mockReturnValue('blob:uploading'),
+      revokeObjectURL: vi.fn(),
+    })
+    vi.mocked(api.upload).mockImplementation(() => new Promise<string>((resolve) => { resolveUpload = resolve }))
+    renderEditForm()
+    await waitFor(() => expect(screen.getAllByRole('textbox')[0]).toHaveValue('テストイベント'))
+
+    // 2. 画像を選ぶと、追加欄が無効になり、アップロード中画像の削除操作は表示されない。
+    const input = screen.getByLabelText('画像を追加') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(['upload'], 'upload.png', { type: 'image/png' })] } })
+    await waitFor(() => expect(input).toBeDisabled())
+    expect(screen.queryByRole('button', { name: '1枚目の画像を外す' })).toBeNull()
+
+    // 3. 完了後はサーバー URL が表示され、追加欄と削除操作が戻る。
+    resolveUpload('https://example.com/uploaded.png')
+    await waitFor(() => expect(input).toBeEnabled())
+    expect(screen.getByRole('button', { name: '1枚目の画像を外す' })).toBeInTheDocument()
   })
 })
 
