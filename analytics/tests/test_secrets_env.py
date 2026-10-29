@@ -52,6 +52,7 @@ def clean_env(monkeypatch):
 
     Returns:
         なし。"""
+    # 変数の内容: name: テスト前後に削除する環境変数名。
     for name in TEST_ENV_NAMES:
         monkeypatch.setenv(name, "placeholder")
         monkeypatch.delenv(name)
@@ -191,6 +192,7 @@ def test_2回呼んでもTrueを返し値は変わらない(use_secrets_files, t
     Returns:
         なし。"""
     # 1. 2回呼んでもTrueを返し値は変わらないことを確認する。
+    # 変数の内容: path: テスト用secrets.tomlファイルのパス。
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}"\n', encoding="utf-8")
     use_secrets_files([str(path)])
@@ -209,6 +211,7 @@ def test_secrets_tomlの書き方が誤っているとFalseを返し環境変数
     Returns:
         なし。"""
     # 1. secrets tomlの書き方が誤っているとFalseを返し環境変数は変わらないことを確認する。
+    # 変数の内容: path: テスト用secrets.tomlファイルのパス。
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}\nBROKEN = \n', encoding="utf-8")
     use_secrets_files([str(path)])
@@ -264,6 +267,7 @@ def test_secrets_tomlを読み取れないとFalseを返しログには例外の
     with caplog.at_level(logging.ERROR, logger=secrets_env.logger.name):
         assert load_secrets_into_env() is False
     # 2. エラーのログは1件で、例外の種類だけが入っている
+    # 変数の内容: records: ログに記録されたSecrets関連ログの一覧.
     records = [r for r in caplog.records if r.name == secrets_env.logger.name]
     assert len(records) == 1
     assert records[0].levelno == logging.ERROR

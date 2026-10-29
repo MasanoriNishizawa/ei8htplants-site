@@ -95,6 +95,7 @@ def _fin_and_events(done_rows: list[tuple], future_rows: list[tuple]) -> tuple[p
         has_result・fiscal_year の列を持つ。events は全部の回の id・name・start_date
     """
     # 1. 実績のある回の収支の表
+    # 変数の内容: fin: 予測計算へ渡すイベント収支のテスト表.
     fin = pd.DataFrame({
         "event_id": [r[0] for r in done_rows],
         "name": [r[1] for r in done_rows],
@@ -104,6 +105,7 @@ def _fin_and_events(done_rows: list[tuple], future_rows: list[tuple]) -> tuple[p
     fin["has_result"] = True
     fin["fiscal_year"] = fin["start_date"].map(fiscal_year)
     # 2. イベントの表（実績のある回と無い回をまとめる）
+    # 変数の内容: events: 予測対象と過去開催を含むイベントテスト表.
     events = pd.DataFrame({
         "id": [r[0] for r in done_rows] + [r[0] for r in future_rows],
         "name": [r[1] for r in done_rows] + [r[1] for r in future_rows],
@@ -127,6 +129,7 @@ def _legacy_forecast_samples(fin: pd.DataFrame, events: pd.DataFrame, today: pd.
         従来版の samples
     """
     # 1. 実績のある回・今期・実績合計・残り回数（変更前のコードと同じ手順）
+    # 変数の内容: done: 売上実績があるイベントのテスト行.
     done = fin[fin["has_result"]]
     # 変数の内容: fy: 対象データの会計年度。
     fy = fiscal_year(today)
@@ -139,6 +142,7 @@ def _legacy_forecast_samples(fin: pd.DataFrame, events: pd.DataFrame, today: pd.
     # 変数の内容: remaining: 残期間の予測データ。
     remaining = int((~in_fy["id"].isin(set(done["event_id"]))).sum())
     # 2. 全イベントの実績から残りの回数ぶん引いて足す
+    # 変数の内容: rng: 固定seedから作った再現可能な乱数生成器.
     rng = np.random.default_rng(seed)
     # 変数の内容: draws: 予測計算で得たサンプル系列。
     draws = rng.choice(done["sales"].to_numpy(), size=(n_boot, remaining), replace=True)
@@ -429,7 +433,9 @@ def test_month_distanceは全ての組み合わせで0から6に収まる():
     Returns:
         なし。"""
     # 1. 1〜12 のどの組み合わせでも 0〜6 の範囲に収まること。
+    # 変数の内容: a: 月差計算に渡す1〜12月の開始月。
     for a in range(1, 13):
+        # 変数の内容: b: 月差計算へ渡す1〜12月の対象月。
         for b in range(1, 13):
             assert 0 <= month_distance(a, b) <= 6
 
@@ -464,6 +470,7 @@ def test_season_weightは月が離れるほど小さくなりsigmaを広げる�
     Returns:
         なし。"""
     # 1. d が増えるほど重みが単調に下がり、sigma を大きくすると同じ d でも重みが大きくなること。
+    # 変数の内容: weights: 月差ごとの季節重み一覧.
     weights = [season_weight(d) for d in range(7)]
     assert all(a > b for a, b in zip(weights, weights[1:]))
     assert season_weight(3, sigma=3.0) > season_weight(3)
@@ -611,6 +618,7 @@ def test_series_referencesは同じキーの過去の回だけを開催日順に
     Returns:
         なし。"""
     # 1. 同じイベント（番号違い）の回だけが集まり、別のイベントは混ざらず、過去の回は開催日順に並ぶこと。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([
         ("奇天烈 vol.3", "2025-11-10", 120000),
         ("別のマルシェ", "2025-11-12", 50000),
@@ -645,6 +653,7 @@ def test_series_referencesは残りのイベントを開催日とidの順に並�
     Returns:
         なし。"""
     # 1. 残りのイベントの行が開催日順（同じ日なら id 順）に並ぶこと。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([("A", "2025-05-01", 10000)])
     # 変数の内容: remaining: 残期間の予測データ。
     remaining = _remaining([
@@ -656,6 +665,7 @@ def test_series_referencesは残りのイベントを開催日とidの順に並�
     ref = series_references(remaining, history)
     assert list(ref["event_id"]) == ["r1", "r2", "r3"]
     # 同じイベントの無い行は回数 0・重み 0・中央値なし
+    # 変数の内容: b: 参照結果から取り出した対象イベントの集計行。
     b = ref[ref["event_id"] == "r2"].iloc[0]
     assert b["n_past"] == 0 and b["n_eff"] == 0 and b["weight"] == 0.0
     assert b["median_past"] is None or pd.isna(b["median_past"])
@@ -668,6 +678,7 @@ def test_series_referencesは開催月の近さで時期の重みとn_effとweig
     Returns:
         なし。"""
     # 1. 同じ月 1.0・1か月差 約0.80・3か月差 約0.14 の重みが付き、n_eff はその合計、weight は n_eff/(n_eff+2…。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([
         ("マルシェ 2025", "2025-11-03", 100000),  # 同じ月（d=0）
         ("マルシェ 2024", "2024-10-03", 200000),  # 1か月差（d=1）
@@ -677,6 +688,7 @@ def test_series_referencesは開催月の近さで時期の重みとn_effとweig
     remaining = _remaining([("r1", "マルシェ 2026", "2026-11-20")])
     # 変数の内容: row: 処理対象のデータ行。
     row = series_references(remaining, history).iloc[0]
+    # 変数の内容: s: 開催月の差に対応する季節重みの一覧。
     s = [season_weight(3), season_weight(1), season_weight(0)]  # 開催日順（2023→2024→2025）
     assert row["past_months"] == [8, 10, 11]
     assert row["past_season_weights"] == pytest.approx(s)
@@ -693,6 +705,7 @@ def test_series_referencesは12月と1月をとなりの月として重みを付
     Returns:
         なし。"""
     # 1. 残りが1月・過去が12月のとき、1か月差の重み（約0.80）になること。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([("冬市", "2025-12-20", 50000)])
     # 変数の内容: row: 処理対象のデータ行。
     row = series_references(_remaining([("r1", "冬市", "2027-01-15")]), history).iloc[0]
@@ -705,6 +718,7 @@ def test_series_referencesは季節の違う回しか無いとweightを0にす�
     Returns:
         なし。"""
     # 1. 時期の重みの合計がしきい値未満（半年差の回だけ）なら、weight=0・中央値なしになること。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([
         ("春秋フェス", "2024-10-05", 300000),
         ("春秋フェス", "2025-10-05", 300000),
@@ -727,6 +741,7 @@ def test_series_referencesは時期の重みの合計がしきい値以上なら
     Returns:
         なし。"""
     # 1. n_eff がしきい値以上（5か月差 約0.0039）なら weight が 0 より大きくなること。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([("春秋フェス", "2025-11-05", 300000)])
     # 変数の内容: row: 処理対象のデータ行。
     row = series_references(_remaining([("r1", "春秋フェス", "2027-04-10")]), history).iloc[0]
@@ -742,6 +757,7 @@ def test_series_referencesは過去の回の開催日が不明なら重み1と�
     Returns:
         なし。"""
     # 1. 開催日が分からない過去の回は時期で差をつけず s=1.0、開催月は None になること。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([
         ("夏祭り", None, 70000),
         ("夏祭り", "2025-01-10", 90000),  # 7月の残りに対して 6か月差
@@ -760,6 +776,7 @@ def test_series_referencesは残りのイベントの開催日が不明なら全
     Returns:
         なし。"""
     # 1. 残りのイベントの開催日が分からないときは、すべての過去の回を s=1.0 で数えること。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([
         ("夏祭り", "2025-01-10", 90000),
         ("夏祭り", "2025-07-10", 70000),
@@ -792,6 +809,7 @@ def test_series_referencesは残りのイベントに名前の列が無いと同
     Returns:
         なし。"""
     # 1. remaining に name 列が無いとき、キーは空文字・回数 0・重み 0 になること。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([("A", "2025-11-01", 10000)])
     # 変数の内容: remaining: 残期間の予測データ。
     remaining = pd.DataFrame({"id": ["r1"], "start_date": pd.to_datetime(["2026-11-01"])})
@@ -806,6 +824,7 @@ def test_series_referencesは名前が空のイベント同士を同じとみな
     Returns:
         なし。"""
     # 1. 残りのイベントも過去の回も名前が None のとき、同じイベントとして扱わないこと。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([(None, "2025-11-01", 10000)])
     # 変数の内容: row: 処理対象のデータ行。
     row = series_references(_remaining([("r1", None, "2026-11-01")]), history).iloc[0]
@@ -832,6 +851,7 @@ def test_series_referencesは残りが無ければ列だけの空の表を返す
     Returns:
         なし。"""
     # 1. 残りのイベントが 0 件なら、決まった列を持つ空の表になること。
+    # 変数の内容: remaining: 売上予測が必要なイベントのテスト表.
     remaining = pd.DataFrame({"id": [], "name": [], "start_date": _EMPTY_DATES})
     # 変数の内容: ref: 残りイベントごとに参照する過去実績をまとめた表。
     ref = series_references(remaining, _history([("A", "2025-11-01", 1)]))
@@ -889,6 +909,7 @@ def test_forecastは同じイベントが無ければ従来版とsamplesが完�
     Returns:
         なし。"""
     # 1. 同じイベントの過去の実績が無いデータでは、変更前の計算と samples が完全一致すること。
+    # 変数の内容: fin: 予測計算へ渡すイベント収支のテスト表。events: 予測対象と過去開催を含むイベントテスト表。
     fin, events = _no_series_data()
     # 変数の内容: fc: テスト条件で計算した着地予測結果。
     fc = forecast_fiscal_year(fin, events, TODAY, n_boot=3000, seed=seed)
@@ -908,6 +929,7 @@ def test_forecastは名前の列が無いデータでも従来版と一致する
     Returns:
         なし。"""
     # 1. 収支・イベントの表に name 列が無いデータでも、従来版と samples が完全一致すること。
+    # 変数の内容: fin: 予測計算へ渡すイベント収支のテスト表。events: 予測対象と過去開催を含むイベントテスト表。
     fin, events = _no_series_data()
     # 変数の内容: fin: テスト対象関数へ渡す収支データ表。
     fin = fin.drop(columns=["name"])
@@ -943,6 +965,7 @@ def test_forecastは同じイベントがあると見込みのp50がその実績
     Returns:
         なし。"""
     # 1. 同じイベントの実績が 10万円なら p50 が 10万円に寄り、同じイベントが無ければ全体の 2万円のままになること。
+    # 変数の内容: fin: 予測計算へ渡すイベント収支のテスト表。events: 予測対象と過去開催を含むイベントテスト表。
     fin, events = _series_data("奇天烈 vol.5")
     # 変数の内容: fc: テスト条件で計算した着地予測結果。
     fc = forecast_fiscal_year(fin, events, TODAY, n_boot=5000, seed=0)
@@ -954,6 +977,7 @@ def test_forecastは同じイベントがあると見込みのp50がその実績
     assert share == pytest.approx(2 / 3 + (1 / 3) * (4 / 9), abs=0.03)
 
     # 比較: 同じイベントの無い名前なら全体の実績（2万円が 5/9）だけで引くので p50 は 2万円
+    # 変数の内容: fin2: 比較条件の予測計算へ渡す収支表。events2: 比較条件の予測計算へ渡すイベント表。
     fin2, events2 = _series_data("はじめての市")
     # 変数の内容: fc2: 比較条件で再計算した着地予測結果。
     fc2 = forecast_fiscal_year(fin2, events2, TODAY, n_boot=5000, seed=0)
@@ -980,18 +1004,20 @@ def test_forecastは季節の違う同じイベントの回をほとんど選ば
     ]
     # 変数の内容: fin: 計算に渡す売上・費用の入力値、events: API に返すイベントのテストデータ。
     fin, events = _fin_and_events(done, [("r1", "春秋フェス 2026", "2026-04-20")])
-    # 変数の内容: n_boot: 予測の反復回数。；seed: 予測を再現する乱数の種。
+    # 変数の内容: n_boot: 予測の反復回数。、seed: 予測を再現する乱数の種。
     n_boot, seed = 20000, 3
     # 変数の内容: fc: テスト条件で計算した着地予測結果。
     fc = forecast_fiscal_year(fin, events, today, n_boot=n_boot, seed=seed)
 
     # 1. details: 4月の回は重み 1、10月の回は半年差でほぼ 0、n_eff ≈ 2、weight ≈ 0.5
+    # 変数の内容: row: テスト結果表から取り出した対象行.
     row = fc["details"].iloc[0]
     assert row["past_months"] == [4, 10, 4, 10]
     assert row["past_season_weights"] == pytest.approx([1.0, season_weight(6), 1.0, season_weight(6)])
     assert row["weight"] == pytest.approx(0.5, abs=1e-3)
 
     # 2. 置き換え部分を同じ乱数の手順で再現し、同じイベントから引いた売上がほぼすべて 10万円であることを確かめる
+    # 変数の内容: rng: 固定seedから作った再現可能な乱数生成器.
     rng = np.random.default_rng(seed)
     rng.choice(fin["sales"].to_numpy(), size=(n_boot, 1), replace=True)
     # 変数の内容: use_same: 同一イベントの過去実績で置換するシミュレーション行。
@@ -1007,6 +1033,7 @@ def test_forecastは季節の違う同じイベントの回をほとんど選ば
 
     # 3. 全体として見ても、10万円は 30万円よりずっと多く出る
     #    （30万円は全体の実績から引いたときだけ: 約 0.5 × 2/9 ≈ 11%）
+    # 変数の内容: n100: 予測サンプル中で10万円になった件数.
     n100 = int(np.sum(fc["samples"] == 100000))
     # 変数の内容: n300: 予測サンプル中で30万円と一致する件数。
     n300 = int(np.sum(fc["samples"] == 300000))
@@ -1020,6 +1047,7 @@ def test_forecastはseedが同じなら同じ結果になり違えば変わる()
     Returns:
         なし。"""
     # 1. 同じ seed なら samples と p10/p50/p90 が完全に同じ、違う seed なら samples が変わること。
+    # 変数の内容: fin: 予測計算へ渡すイベント収支のテスト表。events: 予測対象と過去開催を含むイベントテスト表。
     fin, events = _series_data("奇天烈 vol.5")
     # 変数の内容: a: 同じ乱数種で計算した1つ目の予測結果。
     a = forecast_fiscal_year(fin, events, TODAY, n_boot=2000, seed=11)
@@ -1063,6 +1091,7 @@ def test_forecastのdetailsは残りのイベントごとに参考にした実�
     # 1. 開催日順
     assert list(d["event_id"]) == ["w1", "r1", "r2"]
     # 2. 奇天烈 vol.4: 今日の回(vol.3)と入力待ち(vol.0)は含まず、vol.1・vol.2 だけ
+    # 変数の内容: r1: 同じイベント系列に属する開催実績の集計行。
     r1 = d[d["event_id"] == "r1"].iloc[0]
     assert r1["past_names"] == ["奇天烈 vol.1", "奇天烈 vol.2"]
     assert r1["past_sales"] == [80000.0, 120000.0]
@@ -1071,6 +1100,7 @@ def test_forecastのdetailsは残りのイベントごとに参考にした実�
     assert r1["weight"] == pytest.approx(0.5)
     assert r1["median_past"] == pytest.approx(100000)
     # 3. 冬の市は同じイベントが無いので重み 0
+    # 変数の内容: r2: 過去実績のない冬の市について計算した参照詳細行。
     r2 = d[d["event_id"] == "r2"].iloc[0]
     assert r2["series_key"] == "冬の市" and r2["n_past"] == 0 and r2["weight"] == 0.0
     # 4. 今期の実績には今日の回(vol.3)も入る
@@ -1083,6 +1113,7 @@ def test_forecastは残りのイベントが無ければdetailsが空になる()
     Returns:
         なし。"""
     # 1. 今期の残りが 0 回なら、見込みは実績合計と同じで details は空の表になること。
+    # 変数の内容: done: 売上実績があるイベントのテスト行.
     done = [(f"g{i}", f"市{i}", f"2026-0{i + 4}-10", 10000) for i in range(5)]
     # 変数の内容: fin: 計算に渡す売上・費用の入力値、events: API に返すイベントのテストデータ。
     fin, events = _fin_and_events(done, [])
@@ -1148,6 +1179,7 @@ def test_画面の表は残りのイベントごとに参考にした実績を�
     # 変数の内容: rows: テスト用レコードの一覧。
     rows = table.to_dict("records")
     # 1. 同じイベントのある行
+    # 変数の内容: s1: 2025年10月開催分に適用する季節重み。
     s1 = season_weight(month_distance(11, 10))  # 2025年10月の回の重み（約0.80）
     # 変数の内容: n_eff: 時期の重みを加味した実績回数。
     n_eff = 1.0 + s1 + 1.0
@@ -1180,6 +1212,7 @@ def test_画面の表は季節の違う回しか無い行の中央値をなし�
     Returns:
         なし。"""
     # 1. weight=0（半年差の回だけ）の行は、中央値が「なし（全体の実績で見込み）」、重みが 0% と出ること。
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([("春秋フェス", "2025-10-05", 300000)])
     # 変数の内容: details: 残りイベントごとにまとめた過去実績・重みの表。
     details = series_references(_remaining([("r1", "春秋フェス", "2027-04-10")]), history)
@@ -1200,6 +1233,7 @@ def test_画面の表は残りのイベントが無ければその旨を表示�
     Returns:
         なし。"""
     # 1. details が空なら表を出さず「今期の残りのイベントはありません。」と表示すること。
+    # 変数の内容: empty: 残りイベントが0件のときに返される空の参照結果。
     empty = series_references(pd.DataFrame({"id": [], "name": [], "start_date": _EMPTY_DATES}),
                               _history([("A", "2025-01-01", 1)]))
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
@@ -1216,6 +1250,7 @@ def test_画面の表は重みが0点5パーセント未満の行の中央値を
     Returns:
         なし。"""
     # 1. 中央値のある行を3つ作り、重みを 0.0049・0.005・0.3 に置き換える
+    # 変数の内容: history: 過去開催のイベント名・開催日・売上を含む参照テストデータ.
     history = _history([("市", "2025-11-01", 50000)])
     # 変数の内容: details: 残りイベントごとにまとめた過去実績・重みの表。
     details = series_references(_remaining([
@@ -1273,6 +1308,7 @@ def _forecast_script(fin, events, today):
     from views.advanced import _forecast
 
     # get_context の結果のうち _forecast が使う raw と today だけを持つ代わりのもの
+    # 変数の内容: ctx: 画面関数が必要とするrawデータと基準日を持つ簡易コンテキスト.
     ctx = SimpleNamespace(raw={"events": events}, today=today)
     _forecast(ctx, fin)
 

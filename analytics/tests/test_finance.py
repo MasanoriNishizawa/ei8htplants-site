@@ -33,6 +33,7 @@ def test_compute_finances_matches_admin_formula():
     Returns:
         なし。"""
     # 1. 管理画面の computeFinances と同じ値になること（手計算と比較）。
+    # r: ワークショップありの収支計算結果。
     r = compute_finances(FIN, has_workshop=True)
     # 移動費 = 110×2÷10×160 = 3520、支出 = 4000+3520 = 7520
     assert r["transport"] == 3520
@@ -51,6 +52,7 @@ def test_compute_finances_without_workshop_ignores_participants():
     Returns:
         なし。"""
     # 1. WS を開催していないイベントでは参加人数を計算に使わないこと。
+    # r: 手伝い支払い・ワークショップなしの収支計算結果。
     r = compute_finances({**FIN, "payment_flag": False}, has_workshop=False)
     assert r["ws_cost"] == 0 and r["payment"] == 0
     assert r["net"] == 33900 - 7520
@@ -67,6 +69,7 @@ def test_rounding_matches_javascript():
                          has_workshop=False)
     assert r["payment"] == -6
     # 2.5 → 3（Python の round なら 2 になる）
+    # r2: 小数売上を含む入力での収支計算結果。
     r2 = compute_finances({**FIN, "sales": 12.5, "booth_fee": 0, "distance": 0, "ws_participants": 0},
                           has_workshop=False)
     assert r2["payment"] == 3
@@ -83,6 +86,7 @@ def test_break_even_gives_zero_net(payment_flag, has_ws):
     Returns:
         なし。"""
     # 1. 損益分岐の売上を入れると収支がほぼ 0 円になること。
+    # fin: パラメータで指定した手伝い支払い状態を反映した収支入力。
     fin = {**FIN, "payment_flag": payment_flag}
     # 変数の内容: be: 損益分岐点の計算結果。
     be = break_even_sales(fin, has_ws)
@@ -122,6 +126,7 @@ def test_build_event_finance_table_marks_unentered_sales():
     Returns:
         なし。"""
     # 1. 売上 0 円の回は has_result=False になり、日数が正しく数えられること。
+    # fin: 収支計算対象と、売上未入力イベントのテスト行。
     fin = pd.DataFrame([{**FIN, "event_id": "e1"}, {**FIN, "event_id": "e3", "sales": 0}])
     # 変数の内容: t: テスト用イベントと収支を結合して計算した DataFrame。
     t = build_event_finance_table(_events(), fin)
@@ -136,6 +141,7 @@ def test_forecast_needs_enough_results_and_counts_remaining():
     Returns:
         なし。"""
     # 1. 実績が少ないときは予測しないこと、十分あれば残り回数を足して見込みを出すこと。
+    # events: 開催日数・年度集計に使うイベント情報のテスト表。
     events = pd.DataFrame({
         "id": [f"e{i}" for i in range(7)],
         "start_date": pd.to_datetime(["2026-04-10", "2026-05-10", "2026-06-10", "2026-07-10", "2026-08-10",
@@ -164,6 +170,7 @@ def test_fit_linear_recovers_line():
     Returns:
         なし。"""
     # 1. きれいな直線のデータから傾きと切片を正しく求めること。
+    # fit: 既知の直線データから求める回帰結果。
     fit = fit_linear(pd.Series([1, 2, 3, 4]), pd.Series([12, 14, 16, 18]))
     assert fit["slope"] == pytest.approx(2) and fit["intercept"] == pytest.approx(10) and fit["r2"] == pytest.approx(1)
     assert fit_linear(pd.Series([1, 1, 1]), pd.Series([1, 2, 3])) is None
@@ -186,6 +193,7 @@ def test_repeat_summary_and_rfm():
     Returns:
         なし。"""
     # 1. リピーターの数え方と RFM の区分が正しいこと。
+    # orders: 顧客別集計に使う注文履歴のテスト表。
     orders = pd.DataFrame({
         "id": ["o1", "o2", "o3"],
         "customer_key": ["a", "a", "b"],
@@ -206,6 +214,7 @@ def test_co_purchase_pairs_counts_each_order_once():
     Returns:
         なし。"""
     # 1. 同じ注文の中の商品の組み合わせを1回として数えること。
+    # items: 同じ注文内の商品重複を含む併売分析用テスト明細。
     items = pd.DataFrame({"order_id": ["o1", "o1", "o1", "o2", "o2"], "product_name": ["鉢", "土", "鉢", "鉢", "土"]})
     # 変数の内容: pairs: テストで照合する値の組み合わせ。
     pairs = co_purchase_pairs(items)
@@ -218,6 +227,7 @@ def test_session_fill_rates_excludes_cancelled():
     Returns:
         なし。"""
     # 1. 時間枠の埋まり具合にキャンセルを含めないこと。
+    # sessions: 予約の充足率計算に使う時間枠テスト表。
     sessions = pd.DataFrame({"id": ["s1"], "event_id": ["e1"], "time_label": ["11:00"], "max_participants": [4]})
     # 変数の内容: res: 時間枠ごとの予約人数計算に渡す予約データ。
     res = pd.DataFrame({"session_id": ["s1", "s1"], "participants": [2, 1], "is_cancelled": [False, True]})
@@ -243,6 +253,7 @@ def test_ga_config_reports_missing_and_wrong_values(monkeypatch, tmp_path):
     Returns:
         なし。"""
     # 1. 接続設定の不足・取り違えを、わかる理由つきで返すこと。
+    # key: 架空のGAサービスアカウント鍵を保存する一時ファイル。
     key = tmp_path / "key.json"
     key.write_text("{}")
     monkeypatch.delenv("GA_PROPERTY_ID", raising=False)
@@ -256,7 +267,7 @@ def test_ga_config_reports_missing_and_wrong_values(monkeypatch, tmp_path):
     monkeypatch.setenv("GA_CREDENTIALS", str(tmp_path / "none.json"))
     assert "見つかりません" in ga_config()[1]
     monkeypatch.setenv("GA_CREDENTIALS", str(key))
-    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。、problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert problem is None and cfg.property_id == "123456789" and cfg.credentials_path == key
 
@@ -267,6 +278,7 @@ def test_response_to_frame_converts_types():
     Returns:
         なし。"""
     # 1. Data API の応答を、数値・日付に変換した表にすること。
+    # 変数の内容: row: テスト結果表から取り出した対象行.
     row = lambda d, m: SimpleNamespace(  # noqa: E731
         dimension_values=[SimpleNamespace(value=v) for v in d], metric_values=[SimpleNamespace(value=v) for v in m]
     )
@@ -285,6 +297,7 @@ def test_label_paths_names_pages_events_and_products():
     Returns:
         なし。"""
     # 1. 固定ページは日本語名、イベント・商品の詳細は名前にし、わからないパスはそのまま返すこと。
+    # events: slugあり・なし双方のイベントパス名解決に使うテスト表。
     events = pd.DataFrame({"id": ["e1", "e2"], "slug": ["kagoen-autumn", None], "name": ["花郷園 秋 ", "叢宴"]})
     # 変数の内容: products: 商品IDと商品名を対応させるテストデータ。
     products = pd.DataFrame({"id": ["p1"], "name": ["EG-90L"]})

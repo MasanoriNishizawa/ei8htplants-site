@@ -156,7 +156,7 @@ def test_authenticate_タイムアウトや接続エラーは通信エラーの�
         なし。"""
     # 1. authenticate タイムアウトや接続エラーは通信エラーのメッセージになり資格情報エラーと区別されることを確認する。
     post.side_effect = exc
-    # 変数の内容: ok: 認証が成功したかを示す結果。；msg: 認証処理が返した表示用メッセージ。
+    # 変数の内容: ok: 認証が成功したかを示す結果。、msg: 認証処理が返した表示用メッセージ。
     ok, msg = authenticate(EMAIL, PASSWORD, URL, ANON)
     assert ok is False
     assert msg == MSG_NETWORK_ERROR
@@ -292,6 +292,7 @@ def test_is_allowed_許可リストにあるメールは許可され無いメー
     Returns:
         なし。"""
     # 1. is allowed 許可リストにあるメールは許可され無いメールは拒否されることを確認する。
+    # env: 許可リスト解析に使う、空白を含まないメールアドレス設定。
     env = "a@example.com,b@example.com"
     assert is_allowed("a@example.com", env) is True
     assert is_allowed("b@example.com", env) is True
@@ -314,6 +315,7 @@ def test_is_allowed_リスト側とメール側の前後の空白を除いて比
     Returns:
         なし。"""
     # 1. is allowed リスト側とメール側の前後の空白を除いて比較することを確認する。
+    # env: 前後空白・タブ・空要素を含む許可リスト設定。
     env = "  a@example.com ,\tb@example.com  , "
     assert is_allowed("a@example.com", env) is True
     assert is_allowed("b@example.com", env) is True
@@ -326,6 +328,7 @@ def test_is_allowed_部分一致では許可しない():
     Returns:
         なし。"""
     # 1. is allowed 部分一致では許可しないことを確認する。
+    # env: 判定対象アドレスだけを含む許可リスト設定。
     env = "admin@example.com"
     assert is_allowed("admin@example.co", env) is False
     assert is_allowed("xadmin@example.com", env) is False

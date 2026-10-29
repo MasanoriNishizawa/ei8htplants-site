@@ -53,6 +53,7 @@ def test_リポジトリ直下のconfig_tomlでエラーの詳細を画面に出
     Returns:
         なし。"""
     # 1. リポジトリ直下のconfig tomlでエラーの詳細を画面に出さない設定になっていることを確認する。
+    # 変数の内容: cfg: 読み込んだStreamlit設定の辞書.
     cfg = _load(CLOUD_CONFIG)
     assert cfg["client"]["showErrorDetails"] == "none"
 
@@ -64,6 +65,7 @@ def test_リポジトリ直下のconfig_tomlにserverの設定が無い():
     Returns:
         なし。"""
     # 1. リポジトリ直下のconfig tomlにserverの設定が無いことを確認する。
+    # 変数の内容: cfg: 読み込んだStreamlit設定の辞書.
     cfg = _load(CLOUD_CONFIG)
     assert "server" not in cfg
     # 変数の内容: text: 設定ファイルの本文。
@@ -101,6 +103,7 @@ def test_ローカル用のconfig_tomlもエラーの詳細を出さずserverは
     Returns:
         なし。"""
     # 1. ローカル用のconfig tomlもエラーの詳細を出さずserverはlocalhostだけで待ち受けることを確認する。
+    # 変数の内容: cfg: 読み込んだStreamlit設定の辞書.
     cfg = _load(LOCAL_CONFIG)
     assert cfg["client"]["showErrorDetails"] == "none"
     assert cfg["server"]["address"] == "localhost"
@@ -117,7 +120,9 @@ def test_リポジトリ直下のconfig_tomlの項目はStreamlitが知ってい
     # 1. リポジトリ直下のconfig tomlの項目はStreamlitが知っている設定名だけことを確認する。
     from streamlit import config as st_config
 
+    # 変数の内容: section: 比較するStreamlit設定セクション名.、values: 設定セクション内の設定値一覧.
     for section, values in _load(CLOUD_CONFIG).items():
+        # 変数の内容: key: 設定項目を特定する section.key 形式のキー。
         for key in values:
             assert f"{section}.{key}" in st_config._config_options_template  # noqa: SLF001
 
@@ -139,6 +144,7 @@ def test_app_pyを動かすとshowErrorDetailsがnoneになる(fake_env):
     st.set_option("client.showErrorDetails", "full")
     try:
         # 2. 未ログインで1回描画する（ログインフォームで止まるので通信は起きない）
+        # 変数の内容: at: Streamlit AppTestで描画・操作した画面状態.
         at = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
         assert not at.exception
         assert st.get_option("client.showErrorDetails") == "none"
@@ -185,9 +191,11 @@ def test_app_pyでset_optionがlibとviewsのimportより前にある():
     # 変数の内容: set_option_at: エラー詳細設定の呼び出し位置。
     set_option_at = names.index("st.set_option")
     # 1. 呼び出しの引数が client.showErrorDetails と "none"
+    # 変数の内容: call: 構文木から取得した関数呼び出しノード.
     call = body[set_option_at].value
     assert [ast.literal_eval(a) for a in call.args] == ["client.showErrorDetails", "none"]
     # 2. lib・views の import はすべて set_option より後
+    # 変数の内容: node: app.pyのトップレベル構文ノード.
     for i, node in enumerate(body):
         if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in ("lib", "views"):
             assert i > set_option_at
@@ -199,6 +207,7 @@ def test_app_pyでload_secrets_into_envがrequire_loginより前に呼ばれる(
     Returns:
         なし。"""
     # 1. app pyでload secrets into envがrequire loginより前に呼ばれることを確認する。
+    # 変数の内容: names: app.pyのトップレベル呼び出し名一覧.
     names = [_call_name(n) for n in _app_tree().body]
     assert "load_secrets_into_env" in names
     assert names.index("load_secrets_into_env") < names.index("require_login")

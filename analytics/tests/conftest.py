@@ -98,6 +98,7 @@ def isolate_env(monkeypatch):
     Returns:
         なし。"""
     # 1. 接続情報を消す（シェルや .env から入っていても使わせない）
+    # name: 初期化時に削除する接続情報環境変数の名前。
     for name in ENV_NAMES:
         monkeypatch.delenv(name, raising=False)
     # 2. 通信は既定で失敗させる。必要なテストだけがモックで上書きする
@@ -143,6 +144,7 @@ def isolate_secrets(monkeypatch, tmp_path_factory):
     Returns:
         なし。"""
     # 1. 探す場所を空の一時フォルダに向ける（ほかの設定はそのまま）
+    # empty: secrets.tomlが存在しない状態を作るための一時ファイルパス。
     empty = tmp_path_factory.mktemp("no_secrets") / ".streamlit" / "secrets.toml"
     # 変数の内容: original_get_option: テスト後に復元する Streamlit 設定取得関数。
     original_get_option = st_config.get_option
@@ -162,6 +164,7 @@ def isolate_secrets(monkeypatch, tmp_path_factory):
     monkeypatch.setattr(st_config, "get_option", get_option)
 
     # 2. 本物の場所を読もうとしたら記録して止める
+    # attempts: テスト中に本物のSecretsパスを読もうとした記録。
     attempts: list[str] = []
     # 変数の内容: original_parse_file_path: テスト後に復元する Secrets のパス解決関数。
     original_parse_file_path = Secrets._parse_file_path

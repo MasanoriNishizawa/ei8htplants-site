@@ -171,7 +171,7 @@ def test_未ログインで開くとログインフォームだけが出てダ�
 
     Returns:
         なし。"""
-    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；get: 外部通信を防ぐ requests.get のモック。
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。、get: 外部通信を防ぐ requests.get のモック。
     load_all, get = data_get
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
@@ -216,7 +216,9 @@ def test_接続情報が無いと設定不足のメッセージを出してフ�
     Returns:
         なし。"""
     # 1. 接続情報が無いと設定不足のメッセージを出してフォームを出さずに止まることを確認する。
+    # load_all: データ読み込みモック。破棄値はこのテストでは検査しない。
     load_all, _ = data_get
+    # k / v: 接続設定として差し込む環境変数名と、そのテスト値。
     for k, v in env.items():
         monkeypatch.setenv(k, v)
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
@@ -244,7 +246,7 @@ def test_ログインに成功するとauth_emailが入りサイドバーにロ�
 
     Returns:
         なし。"""
-    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；_: このテストでは呼び出し回数を確認しない戻り値。
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。、_: このテストでは呼び出し回数を確認しない戻り値。
     load_all, _ = data_get
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
@@ -254,6 +256,7 @@ def test_ログインに成功するとauth_emailが入りサイドバーにロ�
     assert SESSION_FAIL_COUNT not in at.session_state
     assert SESSION_LAST_FAIL not in at.session_state
     # 2. サイドバーに「ログイン中: メール」とログアウト・再読み込みボタン
+    # captions: サイドバーに表示された説明文の一覧。
     captions = [c.value for c in at.sidebar.caption]
     assert f"ログイン中: {EMAIL}" in captions
     # 変数の内容: sidebar_buttons: サイドバーに表示された操作ボタン。
@@ -281,17 +284,20 @@ def test_ログイン後はセッションにパスワードもトークンも�
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     # 1. アプリが置いたセッションのキーは auth_email だけ（ログイン成功後は失敗回数も消える）
+    # app_keys: Streamlitフォーム管理用キーを除いた、アプリが保持するセッションキー。
     app_keys = {k for k in at.session_state.keys() if not k.startswith("FormSubmitter")}
     assert app_keys == {SESSION_EMAIL}
     # 2. アプリが置いた値にパスワード・トークンが含まれない
     # （Streamlit 内部のウィジェット状態にパスワードが残らないかは
     #   test_ログイン後に画面を最後まで描くとパスワード欄の値がセッションの内部状態に残らない で確かめる）
+    # key: パスワードやトークンが含まれないか確認するセッションキー。
     for key in app_keys:
         # 変数の内容: value: テストケースとして渡す値。
         value = str(at.session_state[key])
         assert PASSWORD not in value, key
         assert "tok-SECRET" not in value, key
     # 画面に出ている文字列にもパスワード・トークンが出ない
+    # shown: 画面に表示された説明・エラー・サイドバー文言を連結した検査対象。
     shown = " ".join(str(c.value) for c in at.caption) + " ".join(_errors(at)) + " ".join(
         str(c.value) for c in at.sidebar.caption
     )
@@ -325,6 +331,7 @@ def test_ログイン後に再描画しても認証を呼び直さない(fake_en
     Returns:
         なし。"""
     # 1. ログイン後に再描画しても認証を呼び直さないことを確認する。
+    # at: ログイン送信後に再描画されたアプリ状態。
     at = _submit(_new_app())
     at.run()
     assert at.session_state[SESSION_EMAIL] == EMAIL
@@ -342,6 +349,7 @@ def test_ログイン前に失敗していても成功すれば失敗回数が�
     Returns:
         なし。"""
     # 1. ログイン前に失敗していても成功すれば失敗回数が消えることを確認する。
+    # at: 初回描画直後のログイン画面状態。
     at = _new_app()
     post.return_value = _response(400)
     # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
@@ -369,6 +377,7 @@ def test_パスワードが違うとエラーが出て失敗回数が1増えフ�
     Returns:
         なし。"""
     # 1. パスワードが違うとエラーが出て失敗回数が1増えフォームのままことを確認する。
+    # load_all: 本番データ取得を置き換えるモック。破棄値は未使用。
     load_all, _ = data_get
     post.return_value = _response(400, {"error": "invalid_grant"})
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
@@ -396,6 +405,7 @@ def test_失敗を続けると回数が1ずつ増える(fake_env, post, data_get
     post.return_value = _response(401)
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
+    # n: 連続ログイン失敗回数の期待値。
     for n in range(1, 4):
         # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
         at = _submit(at)
@@ -438,6 +448,7 @@ def test_未入力で送ると入力を促すエラーを出し認証を呼ば�
     Returns:
         なし。"""
     # 1. 未入力で送ると入力を促すエラーを出し認証を呼ばず失敗回数にも数えないことを確認する。
+    # at: 指定した入力値を送信した後の画面状態。
     at = _submit(_new_app(), email=email, password=password)
     assert "メールアドレスとパスワードを入力してください。" in _errors(at)
     post.assert_not_called()
@@ -458,7 +469,7 @@ def test_5回続けて失敗すると6回目はロック表示になりrequests_
     Returns:
         なし。"""
     post.return_value = _response(400)
-    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
+    # 変数の内容: at: 初回描画後、ロック状態を設定するログイン画面。
     at = _new_app()
     # 1. 5回失敗する（5回目まではふつうのエラー）
     for _ in range(5):
@@ -469,7 +480,7 @@ def test_5回続けて失敗すると6回目はロック表示になりrequests_
     assert post.call_count == 5
     # 2. 6回目はロック。正しいパスワードでも Supabase に問い合わせない
     post.return_value = _response(200, {"user": {"email": EMAIL}})
-    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
+    # 変数の内容: at: ロック中の6回目送信後の Streamlit AppTest 画面。
     at = _submit(at)
     assert MSG_LOCKED in _errors(at)
     assert post.call_count == 5
@@ -495,6 +506,7 @@ def test_4回失敗のあとはまだロックされず5回目も認証を呼ぶ
     at.session_state[SESSION_FAIL_COUNT] = 4
     at.session_state[SESSION_LAST_FAIL] = time.time()
     # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
+    # at: 1回目の失敗を反映した画面状態。
     at = _submit(at)
     assert MSG_BAD_CREDENTIALS in _errors(at)
     assert post.call_count == 1
@@ -515,7 +527,7 @@ def test_ロック時間が過ぎれば再びログインでき成功する(fake
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time() - LOCK_SECONDS - 1
-    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
+    # 変数の内容: at: ロック期間終了後にログイン成功した Streamlit AppTest 画面。
     at = _submit(at)
     assert MSG_LOCKED not in _errors(at)
     assert post.call_count == 1
@@ -585,6 +597,7 @@ def test_許可リストに無いアカウントは認証に成功しても拒�
     Returns:
         なし。"""
     # 1. 許可リストに無いアカウントは認証に成功しても拒否され失敗回数に数えることを確認する。
+    # load_all: 本番データ取得を置き換えるモック。破棄値は未使用。
     load_all, _ = data_get
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com, staff@example.com")
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
@@ -652,11 +665,12 @@ def test_ログアウトするとauth_emailが消えてログインフォーム�
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
-    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；_: このテストでは呼び出し回数を確認しない戻り値。
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。、_: このテストでは呼び出し回数を確認しない戻り値。
     load_all, _ = data_get
     # 変数の内容: calls_before: ログアウトや再実行の前に記録したデータ取得呼び出し回数。
     calls_before = load_all.call_count
     # 1. サイドバーのログアウトを押す
+    # logout: AppTest上のサイドバーから見つけたログアウトボタン。
     logout = next(b for b in at.sidebar.button if b.label == "ログアウト")
     # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = logout.click().run()
@@ -668,6 +682,7 @@ def test_ログアウトするとauth_emailが消えてログインフォーム�
     # 3. ログアウト後の描画ではデータを読み込まない
     assert load_all.call_count == calls_before
     # 4. 再ログインには認証をもう一度通す
+    # at: ログアウト後に再ログインした画面状態。
     at = _submit(at)
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert post.call_count == 2
@@ -687,7 +702,7 @@ def test_ログイン後に許可リストからアドレスを外して再実�
 
     Returns:
         なし。"""
-    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；get: 外部通信を防ぐ requests.get のモック。
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。、get: 外部通信を防ぐ requests.get のモック。
     load_all, get = data_get
     # 1. 許可リストに入った状態でログインする
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", f"{EMAIL},owner@example.com")
@@ -723,6 +738,7 @@ def test_ログイン後に許可リストを別のアドレスだけにして�
     Returns:
         なし。"""
     # 1. ログイン後に許可リストを別のアドレスだけにして再実行してもダッシュボードは描かれないことを確認する。
+    # load_all: 本番データ取得を置き換えるモック。破棄値は未使用。
     load_all, _ = data_get
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
@@ -750,6 +766,7 @@ def test_許可リストが未設定や空のままなら再実行してもロ�
     Returns:
         なし。"""
     # 1. 許可リストが未設定や空のままなら再実行してもログイン状態が続くことを確認する。
+    # load_all: 本番データ取得を置き換えるモック。破棄値は未使用。
     load_all, _ = data_get
     if allowed is not None:
         monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", allowed)
@@ -810,6 +827,7 @@ def test_送信後は入力欄が空に戻り同じパスワードは再送さ�
     assert MSG_BAD_CREDENTIALS in _errors(at)
     assert post.call_count == 1
     # 入力し直さずにもう一度ログインを押す
+    # at: 入力し直さず再送信操作をした後の画面状態。
     at = at.button(key="FormSubmitter:login_form-ログイン").click().run()
     assert "メールアドレスとパスワードを入力してください。" in _errors(at)
     assert post.call_count == 1
@@ -832,6 +850,7 @@ def test_ログイン後に画面を最後まで描くとパスワード欄の�
 
     monkeypatch.setattr(views.overview, "render", lambda: st.write("概要（テスト用）"))
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
+    # at: ログイン後に概要ページまで描画されたアプリ状態。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert "概要（テスト用）" in [m.value for m in at.markdown]
@@ -864,6 +883,7 @@ def test_ログイン直後の描画がst_stopで終わってもパスワード�
     assert any(MSG_DATA_ERROR in e for e in _errors(at))
     assert PASSWORD not in _internal_state_text(at)
     assert SESSION_PASSWORD_INPUT not in at.session_state
+    # key: セッションに残る値をパスワードと照合するキー名。
     for key in at.session_state.keys():
         assert PASSWORD not in str(at.session_state[key]), key
 

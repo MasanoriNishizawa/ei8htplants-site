@@ -161,6 +161,7 @@ def normal_rows() -> dict[str, list[dict]]:
     # 変数の内容: today: 日付計算で固定する今日。
     today = pd.Timestamp.now(tz="Asia/Tokyo").tz_localize(None).normalize()
     # 1. イベント（id, 開始日のずれ, 日数, 名前, 会場, ブランド, WS の有無）
+    # 変数の内容: ev_specs: イベントAPI応答を組み立てるテスト仕様行.
     ev_specs = [
         ("e1", -400, 1, "Plant Market vol.1", "東京", ["ei8ht plants"], False),
         ("e2", -380, 2, "Green Fes", "大阪", ["ei8ht plants", "Habitat Oides"], False),
@@ -181,6 +182,7 @@ def normal_rows() -> dict[str, list[dict]]:
         for eid, off, days, name, loc, brands, ws in ev_specs
     ]
     # 2. 収支（e7 は売上 0 円＝入力前、e8 は未入力）
+    # 変数の内容: finances: イベント収支API応答のテスト行.
     finances = [
         _finance("e1", 80000),
         _finance("e2", 150000, booth_fee=15000, distance=300, expressway_toll=12000, accommodation=9000),
@@ -191,6 +193,7 @@ def normal_rows() -> dict[str, list[dict]]:
         _finance("e7", 0),
     ]
     # 3. WS の時間枠と予約（e5 は開催済み、e7 はこれから）
+    # 変数の内容: sessions: 予約画面用のテスト時間枠一覧.
     sessions = [
         {"id": "s1", "event_id": "e5", "time_label": "10:00〜", "max_participants": 6},
         {"id": "s2", "event_id": "e5", "time_label": "13:00〜", "max_participants": 6},
@@ -216,6 +219,7 @@ def normal_rows() -> dict[str, list[dict]]:
         for i, (rid, eid, sid, n, status, off, email, plant, pot) in enumerate(res_specs)
     ]
     # 4. 商品・注文（有効な注文は分析に必要な 5 件以上。キャンセル1件つき）
+    # 変数の内容: products: ショップ画面に使う公開・非公開商品データ.
     products = [
         {"id": "p1", "name": "アガベ A", "price": 5000, "stock": 2, "category": "plant", "tags": ["agave"],
          "is_published": True, "created_at": _ts(today, -300)},
@@ -240,6 +244,7 @@ def normal_rows() -> dict[str, list[dict]]:
     pname = {p["id"]: p["name"] for p in products}
     # 変数の内容: orders, items: 通常画面データに使う注文と注文商品明細の行リスト。
     orders, items = [], []
+    # 変数の内容: oid: 注文ID.、off: 基準日から注文日時をずらす日数.、email: 注文に紐づける架空メールアドレス.、pref: 注文者の都道府県.、status: 注文の支払い・処理状態.、lines: 注文に含まれる商品IDと数量.
     for oid, off, email, pref, status, lines in ord_specs:
         # 変数の内容: subtotal: 注文の商品明細から合計した商品金額。
         subtotal = sum(price[pid] * q for pid, q in lines)
@@ -249,6 +254,7 @@ def normal_rows() -> dict[str, list[dict]]:
         items += [{"order_id": oid, "product_id": pid, "product_name": pname[pid], "price": price[pid], "quantity": q}
                   for pid, q in lines]
     # 5. 問い合わせ・記事（下書き1本つき）
+    # 変数の内容: contacts: 問い合わせ件数・既読状態のテストデータ.
     contacts = [
         {"id": "c1", "is_read": True, "created_at": _ts(today, -90)},
         {"id": "c2", "is_read": False, "created_at": _ts(today, -20)},
@@ -303,6 +309,7 @@ def _to_frames(rows: dict[str, list[dict]]) -> dict[str, pd.DataFrame]:
     Returns:
         テーブル名 → DataFrame
     """
+    # 変数の内容: original: 差し替え前の本来の関数。フィクスチャ終了時に復元する。
     original = lib.data._fetch_all  # noqa: SLF001
     try:
         lib.data._fetch_all = lambda table: rows[table]  # noqa: SLF001
@@ -331,6 +338,7 @@ def _ga_rows(dims: list[str], metrics: list[str]) -> list[tuple[list[str], list[
         values = {"activeUsers": "120", "sessions": "150", "screenPageViews": "480", "averageSessionDuration": "95.5"}
         return [([], [values.get(m, "10") for m in metrics])]
     # 2. ディメンションごとの値（予約ページ /reserve と、イベント・商品の詳細ページを含める）
+    # 変数の内容: samples: 各画面へ渡す通常・空・キャンセル済みのサンプルデータ.
     samples = {
         "date": ["20261001", "20261002", "20261003"],
         "pagePath": ["/", "/reserve", "/reserve?event=e7", "/events/slug-e7", "/shop/p1", "/unknown"],
@@ -375,6 +383,7 @@ class FakeGaClient:
             rows[].dimension_values / metric_values を持つ応答
         """
         # 1. 呼ばれたレポートを記録する
+        # 変数の内容: dims: GAレポート要求に含まれるディメンション名.
         dims = [d.name for d in request.dimensions]
         # 変数の内容: metrics: GA リクエストに含まれる指標名一覧。
         metrics = [m.name for m in request.metrics]
@@ -384,6 +393,7 @@ class FakeGaClient:
         if self.fail_from is not None and len(self.calls) >= self.fail_from:
             raise RuntimeError("テスト用：GA のレポートの取得に失敗")
         # 3. 応答の形にそろえて返す
+        # 変数の内容: rows: dimension_values と metric_values を持つGA応答形式のレポート行一覧。
         rows = [
             SimpleNamespace(
                 dimension_values=[SimpleNamespace(value=v) for v in dv],
@@ -485,6 +495,7 @@ def _open(at: AppTest, url_path: str) -> AppTest:
     Returns:
         描画後の AppTest
     """
+    # 変数の内容: registered: Streamlit が登録したページ情報の辞書。
     registered = at._registered_pages  # noqa: SLF001
     # 変数の内容: hashes: 指定URLに対応する Streamlit 登録ページの識別子。
     hashes = [h for h, info in registered.items() if info.get("url_pathname") == url_path]
@@ -547,9 +558,11 @@ def _plotly_texts(spec: str) -> list[str]:
         Returns:
             なし。"""
         if isinstance(node, dict):
+            # 変数の内容: k: Plotly仕様の辞書キー、v: そのキーに対応する仕様値。
             for k, v in node.items():
                 walk(v, k)
         elif isinstance(node, list):
+            # 変数の内容: v: Plotly仕様のリスト内にある項目。
             for v in node:
                 walk(v, key)
         elif isinstance(node, str) and key in {"text", "title", "name", "y", "x", "ticksuffix"}:
@@ -571,15 +584,18 @@ def _texts(at: AppTest) -> list[str]:
     # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
     out: list[str] = []
     # 1. 見出し・説明・メッセージ
+    # 変数の内容: group: 画面状態から走査するウィジェット要素のグループ.
     for group in (at.title, at.header, at.subheader, at.caption, at.markdown, at.info, at.warning, at.error,
                   at.success):
         # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
         out += [str(e.value) for e in group]
     # 2. 数字のタイル（見出しと値）
+    # 変数の内容: m: 画面の指標要素.
     for m in at.metric:
         # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
         out += [str(m.label), str(m.value)]
     # 3. 表（中身の値をすべて文字にする。書式付きの表は表示用の値も見る）
+    # 変数の内容: df: AppTestの画面に表示されたDataFrame。
     for df in at.dataframe:
         # 変数の内容: value: テストケースとして渡す値。
         value = df.value
@@ -590,6 +606,7 @@ def _texts(at: AppTest) -> list[str]:
     # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
     out += _styler_texts(at)
     # 4. グラフの文字
+    # 変数の内容: chart: 描画されたPlotlyチャート要素.
     for chart in at.get("plotly_chart"):
         # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
         out += _plotly_texts(chart.proto.spec)
@@ -609,6 +626,7 @@ def _styler_texts(at: AppTest) -> list[str]:
 
     # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
     out: list[str] = []
+    # 変数の内容: df: AppTestの画面に表示されたDataFrame。
     for df in at.dataframe:
         # Streamlit 1.66 では proto.arrow_data.styler.display_values に arrow 形式で入る
         # （streamlit/elements/lib/pandas_styler_utils.py の _marshall_display_values）。書式なしの表は空
@@ -633,6 +651,7 @@ def _assert_clean(at: AppTest, where: str) -> None:
     # 1. 例外（画面の赤いエラー枠）が出ていない
     assert not at.exception, f"{where}: 例外が出ました: {[e.value for e in at.exception]}"
     # 2. nan・inf の文字が出ていない
+    # 変数の内容: bad: 画面内で不正な数値表示と一致した文字列一覧.
     bad = [t for t in _texts(at) if BAD_NUMBER.search(t)]
     assert not bad, f"{where}: 画面に nan / inf が出ています: {bad}"
 
@@ -668,6 +687,7 @@ def test_通常のデータで各画面を描くと例外もnanもinfも出ず�
     Returns:
         なし。"""
     # 1. 通常のデータで各画面を描くと例外もnanもinfも出ずタイトルが出ることを確認する。
+    # 変数の内容: at: Streamlit AppTestで描画・操作した画面状態.
     at = _render(url_path)
     _assert_clean(at, PAGES[url_path])
     # 開いた画面のタイトルが出ている（ページの切り替えが効いている）
@@ -745,6 +765,7 @@ def test_概要画面の予約人数はキャンセルを除いて数える(use_
     Returns:
         なし。"""
     # 1. 概要画面の予約人数はキャンセルを除いて数えることを確認する。
+    # 変数の内容: at: Streamlit AppTestで描画・操作した画面状態.
     at = _render("")
     assert not at.exception
     # 通常のデータの有効な予約は 2+3+4+2+1 = 12 人（キャンセル r3 の1人を除く）
@@ -772,6 +793,7 @@ def test_会計年度をすべての期と各年度に切り替えても各画�
     years = [o for o in box.options if o != ALL_YEARS]
     assert len(years) >= 2, box.options
     # 2. 各年度を選び、最後に「すべての期」に戻す
+    # 変数の内容: label: 年度選択欄に表示される年度名.
     for label in years + [ALL_YEARS]:
         # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
         at = _select_year(at, label)
@@ -792,6 +814,7 @@ def test_アクセス解析と予測の画面には会計年度の選択欄が�
     Returns:
         なし。"""
     # 1. アクセス解析と予測の画面には会計年度の選択欄が出ないことを確認する。
+    # 変数の内容: at: Streamlit AppTestで描画・操作した画面状態.
     at = _render(url_path)
     assert not at.exception
     # アクセス解析は GA の期間（直近7日など）で、予測はすべての実績で見るので、年度の選択欄は出さない
@@ -813,6 +836,7 @@ def test_予約がすべてキャンセルで年度を切り替えてもワー�
     use_data(all_cancelled_rows())
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("workshop")
+    # 変数の内容: label: 年度選択欄に表示される年度名.
     for label in at.sidebar.selectbox(key=YEAR_KEY).options:
         # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
         at = _select_year(at, label)
@@ -878,6 +902,7 @@ def test_GAの期間を切り替えてもアクセス解析画面に例外もnan
     # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("traffic")
     # 1. 期間の選択欄（segmented_control）で期間を選び直す
+    # 変数の内容: groups: 期間選択用のボタングループ要素.
     groups = [g for g in at.get("button_group") if g.key == "ga_period"]
     assert groups, "期間の選択欄がありません"
     assert groups[0].value == "直近28日"
@@ -948,6 +973,7 @@ def test_データの読み込みに失敗すると各画面はエラーを出�
         raise RuntimeError("テスト用：読み込み失敗")
 
     monkeypatch.setattr(lib.context, "load_all", fail)
+    # 変数の内容: url_path: 検証対象となるStreamlitページのURLパス.、title: ページに表示するタイトル.
     for url_path, title in PAGES.items():
         # 変数の内容: at: Streamlit AppTest の現在の画面状態。
         at = _render(url_path)

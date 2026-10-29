@@ -77,6 +77,7 @@ def test_本物のsecrets_tomlのフォルダを読もうとしても止める(i
     Returns:
         なし。"""
     # 1. 本物のsecrets tomlのフォルダを読もうとしても止めることを確認する。
+    # 変数の内容: folder: 本物のSecretsファイルを含むディレクトリ.
     folder = str(REAL_SECRETS_FILES[0].parent)
     with pytest.raises(AssertionError):
         Secrets()._parse_file_path(folder)  # noqa: SLF001
