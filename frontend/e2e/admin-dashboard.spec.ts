@@ -13,6 +13,7 @@ import { test, expect, type Page } from '@playwright/test'
  * @param page - 対象ページ（goto より前に呼ぶ）
  * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
+
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
   await page.addInitScript(() => {
@@ -37,6 +38,7 @@ async function useFakeAdminSession(page: Page) {
  * @param page - 対象ページ
  * @returns なし。横スクロールがないことを検証する。
  */
+
 async function expectNoHorizontalScroll(page: Page) {
   // 文書全体と、管理画面で中身だけがスクロールする <main> の両方を確かめる
   const widths = await page.evaluate(() => {
@@ -60,7 +62,12 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
     await page.clock.setFixedTime(new Date('2027-03-15T10:00:00+09:00'))
   })
 
-  test('出店料の支払いは期限切れ→期限間近→期限未設定の順に並び、支払い済みは出ない', async ({ page }) => {
+  test('出店料の支払いは期限切れ→期限間近→期限未設定の順に並び、支払い済みは出ない', /**
+     管理画面を開き、出店料一覧が期限切れ・期限間近・期限未設定の順で並び、支払い済みと時間未設定のイベントを含まないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 固定した日付でダッシュボードを開き、支払い一覧を読み込む
     await page.goto('/admin')
     const section = page.getByRole('region', { name: '出店料の支払い' })
@@ -82,7 +89,12 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
     await expect(section).not.toContainText('time 未設定のイベント')
   })
 
-  test('今後の搬入予定は今日から60日以内に始まるイベントだけが出る', async ({ page }) => {
+  test('今後の搬入予定は今日から60日以内に始まるイベントだけが出る', /**
+     管理画面を開き、60日以内に搬入が始まるイベントの名称・会場・日時・宿泊先を表示し、期間外のイベントを除外することを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 固定日付のダッシュボードを開き、搬入予定を読み込む
     await page.goto('/admin')
     const section = page.getByRole('region', { name: '今後の搬入予定' })
@@ -98,7 +110,12 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
     await expect(section).not.toContainText('Habitat Exhibition 2026')
   })
 
-  test('行を押すと管理情報の確認画面に移り、戻るリンクでダッシュボードに戻れる', async ({ page }) => {
+  test('行を押すと管理情報の確認画面に移り、戻るリンクでダッシュボードに戻れる', /**
+     * ダッシュボードの出店料支払い行からイベント管理情報を開き、戻るリンクでダッシュボードへ戻れることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. ダッシュボードの支払い行から対象イベントを開く
     await page.goto('/admin')
     await page.getByRole('region', { name: '出店料の支払い' }).getByTestId('dashboard-payment-row').first().click()
@@ -115,7 +132,12 @@ test.describe('ダッシュボードの出店料の支払い・今後の搬入�
   // 一覧の読み込みに失敗したときの表示は Vitest（Dashboard.test.tsx）で確かめる。
   // API は MSW のサービスワーカーが応答するため、page.route では 500 に差し替えられない
 
-  test('375px 幅でもダッシュボードに横スクロールが出ない', async ({ page }) => {
+  test('375px 幅でもダッシュボードに横スクロールが出ない', /**
+     * 画面幅を375pxにしてダッシュボードを開き、支払行3件・搬入予定1件が表示され、横スクロールと行のはみ出しがないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 375px の表示幅でダッシュボードを開く
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/admin')
@@ -138,13 +160,19 @@ test.describe('サイドメニューでの未保存の変更の確認', () => {
    * @param page - 対象の管理画面ページ
    * @returns なし。未保存の変更がある編集画面を用意する。
    */
+
   async function openDirtyEditor(page: Page) {
     await page.goto('/admin/events/mock-past-1/admin-info/edit')
     await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
     await page.locator('input[type="date"]').first().fill('2099-01-02')
   }
 
-  test('未保存でサイドメニューの別の画面を押し、キャンセルすると移動しない', async ({ page }) => {
+  test('未保存でサイドメニューの別の画面を押し、キャンセルすると移動しない', /**
+     * 編集画面で搬入日を変更し、ギャラリーへの移動を試みる。確認ダイアログをキャンセルした後、編集画面に留まり入力値が保持されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 編集画面に未保存変更を作り、移動確認をキャンセルする
     await openDirtyEditor(page)
     const messages: string[] = []
@@ -156,7 +184,12 @@ test.describe('サイドメニューでの未保存の変更の確認', () => {
     await expect(page.locator('input[type="date"]').first()).toHaveValue('2099-01-02')
   })
 
-  test('未保存でサイドメニューの別の画面を押し、OK すると移動する', async ({ page }) => {
+  test('未保存でサイドメニューの別の画面を押し、OK すると移動する', /**
+     * 未保存の日付変更がある状態でギャラリーへの移動を選び、確認ダイアログを承認するとギャラリーへ遷移することを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 編集画面に未保存変更を作り、移動確認を承認する
     await openDirtyEditor(page)
     page.once('dialog', (d) => d.accept())
@@ -165,7 +198,12 @@ test.describe('サイドメニューでの未保存の変更の確認', () => {
     await expect(page).toHaveURL(/\/admin\/gallery$/)
   })
 
-  test('未保存の変更が無ければ確認なしで移動する', async ({ page }) => {
+  test('未保存の変更が無ければ確認なしで移動する', /**
+     * 未編集の管理情報画面からギャラリーへ移動し、確認ダイアログが発生せず遷移できることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 変更を加えず編集画面を開き、確認ダイアログを監視する
     await page.goto('/admin/events/mock-past-1/admin-info/edit')
     await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
@@ -177,7 +215,12 @@ test.describe('サイドメニューでの未保存の変更の確認', () => {
     expect(dialogs).toBe(0)
   })
 
-  test('375px 幅のメニュー（ドロワー）でも未保存ならキャンセルで移動しない', async ({ page }) => {
+  test('375px 幅のメニュー（ドロワー）でも未保存ならキャンセルで移動しない', /**
+     * 375px幅で未保存変更を作りドロワーからギャラリーを選ぶ。確認をキャンセルすると編集画面とドロワーが開いたままで、再度選んで承認するとギャラリーへ遷移しドロワーが閉じることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 375px 幅で未保存変更を作り、ドロワーを開く
     await page.setViewportSize({ width: 375, height: 812 })
     await openDirtyEditor(page)

@@ -21,6 +21,7 @@ export function useLang(): LangCtxType { return useContext(LangCtx) }
  * @returns `t(ja, en)` 関数
  */
 export function useT() {
+  // 1. 言語コンテキストから現在の表示言語を取得する
   /** 翻訳対象の言語。t 関数が日本語・英語の値を選ぶときに使う */
   const { lang } = useLang()
   /**
@@ -29,5 +30,6 @@ export function useT() {
    * @param en - 英語で表示する値
    * @returns 現在の言語に対応する値
    */
+  // 2. 呼び出し時に現在の言語に対応する値を選ぶ関数を返す
   return function t<T>(ja: T, en: T): T { return lang === 'ja' ? ja : en }
 }

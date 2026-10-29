@@ -45,8 +45,8 @@ afterEach(() => {
 
 describe('取扱店の編集ダイアログ（Stockists）', () => {
   /**
-   *  編集ダイアログを開いて返す
-   * @returns 非同期処理の結果を返す Promise。
+   * 取扱店一覧から編集ダイアログを開いて取得する。
+     * @returns 表示された編集ダイアログ要素
    */
   async function openEdit() {
     vi.mocked(api.stockists.list).mockReset().mockResolvedValue([STOCKIST])
@@ -56,8 +56,8 @@ describe('取扱店の編集ダイアログ（Stockists）', () => {
   }
 
   /**
-   *  編集ダイアログ（閉じていれば null）
-   * @returns 戻り値なし。
+   * 現在表示中の取扱店編集ダイアログを取得する。
+     * @returns 編集ダイアログ要素。閉じていれば null
    */
   const editDialog = () => screen.queryByRole('dialog', { name: '取扱店を編集' })
 
@@ -129,8 +129,8 @@ describe('取扱店の編集ダイアログ（Stockists）', () => {
 
 describe('問い合わせの返信（Contacts）', () => {
   /**
-   *  返信のモーダルを開いて返す
-   * @returns 非同期処理の結果を返す Promise。
+   * 問い合わせ一覧から返信ダイアログを開いて取得する。
+     * @returns 表示された返信ダイアログ要素
    */
   async function openReply() {
     vi.mocked(api.contact.list).mockReset().mockResolvedValue([CONTACT])
@@ -140,8 +140,8 @@ describe('問い合わせの返信（Contacts）', () => {
   }
 
   /**
-   *  返信のモーダル（閉じていれば null）
-   * @returns 戻り値なし。
+   * 現在表示中の問い合わせ返信ダイアログを取得する。
+     * @returns 返信ダイアログ要素。閉じていれば null
    */
   const replyDialog = () => screen.queryByRole('dialog')
 
@@ -162,8 +162,8 @@ describe('問い合わせの返信（Contacts）', () => {
   })
 
   /**
-   *  一覧の「返信」をもう一度押してモーダルを返す
-   * @returns 非同期処理の結果を返す Promise。
+   * 返信ダイアログを閉じた後、一覧から再度開いて取得する。
+     * @returns 表示された返信ダイアログ要素
    */
   async function openReplyAgain() {
     fireEvent.click(screen.getByRole('button', { name: '返信' }))
@@ -205,8 +205,8 @@ describe('問い合わせの返信（Contacts）', () => {
 
 describe('チャットの Q&A のフォーム（AdminChatQA）', () => {
   /**
-   *  追加のフォームを開く
-   * @returns 戻り値なし。
+   * Q&A の新規追加フォームを開き、質問欄の表示を確認する。
+     * @returns 描画と表示確認が完了する Promise
    */
   async function openAdd() {
     vi.mocked(api.chatQa.list).mockReset().mockResolvedValue([])

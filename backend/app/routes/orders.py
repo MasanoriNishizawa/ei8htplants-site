@@ -130,6 +130,7 @@ def _order_no(order_id: str) -> str:
     Returns:
         UUID の最初の区切りを大文字にしたもの（例 '1A2B3C4D'）
     """
+    # 1. 注文 ID（UUID）から、メールや画面に出す短い注文番号を作る。
     return order_id.split('-')[0].upper()
 
 
@@ -579,6 +580,7 @@ def list_orders(_=Depends(require_auth)) -> list[dict]:
     Args:
         _: 認証依存として注入される値（この関数では使用しません）。
     """
+    # 1. 全注文を新着順で返す（管理者のみ）。
     return admin_supabase.table('orders').select('*').order('created_at', desc=True).execute().data
 
 

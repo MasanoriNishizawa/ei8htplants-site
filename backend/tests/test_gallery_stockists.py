@@ -37,6 +37,7 @@ def _make_stockists_mock(data: list):
 
     戻り値:
         テスト用の stockists Supabase クライアントモックを作成する。"""
+    # 1. stockists テーブルの読み取り結果を返す DB モックを作る。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。

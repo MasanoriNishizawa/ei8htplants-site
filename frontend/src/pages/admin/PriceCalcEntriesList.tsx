@@ -2,14 +2,14 @@ import { BRAND } from '../../lib/brands'
 import { formatYen } from '../../lib/format'
 import type { PriceCalcEntry, PriceCalcMode } from '../../lib/api'
 
-// ブランド識別子を、登録リストの絞り込みタブに表示する名称へ対応付ける
+/** 登録データのブランド識別子を、一覧の表示名へ対応付ける */
 const BRAND_LABELS: Readonly<Record<string, string>> = {
   ei8htplants: BRAND.ei8htPlants.shortName,
   habitatoides: BRAND.habitatOides.shortName,
   hue: BRAND.hue.shortName,
 }
 
-// 計算方式の識別子を、登録リストに表示する日本語名へ対応付ける
+/** 計算方式の識別子を、一覧に表示する日本語名へ対応付ける */
 const MODE_LABELS: Readonly<Record<PriceCalcMode, string>> = {
   production: '生産',
   purchase: '仕入れ',
@@ -19,7 +19,7 @@ const MODE_LABELS: Readonly<Record<PriceCalcMode, string>> = {
 /**
  * 金額を四捨五入して円表示に整える。
  * @param value - 対象の値
- * @returns 戻り値なし。
+ * @returns 四捨五入して円記号・桁区切りを付けた金額
  */
 const yenRounded = (value: number) => formatYen(Math.round(value))
 
@@ -35,10 +35,12 @@ export function PriceCalcEntriesList({ entries, emptyMessage, onDelete }: {
   emptyMessage: string
   onDelete: (id: string) => void
 }) {
+  // 1. 登録が無い場合は、呼び出し側から受け取った空状態の案内だけを表示する
   if (entries.length === 0) return (
     <p style={{ color: '#aaa', fontSize: 14 }}>{emptyMessage}</p>
   )
 
+  // 2. 登録がある場合は横スクロール可能な表にし、各行から削除操作を呼び出し側へ渡す
   return (
     <div style={{ overflowX: 'auto' }}>
       {/* 登録内容と削除操作を行ごとに表示する */}

@@ -37,6 +37,7 @@ APP_PATH = str(Path(__file__).resolve().parents[1] / "app.py")
 
 # テストで使う架空のアカウント
 EMAIL = "admin@example.com"
+# ログインフォームへ入力する架空パスワード
 PASSWORD = "S3cret-Pass!word"
 
 # ログインの設定がないときのメッセージ（require_login が出す文言の一部）
@@ -56,7 +57,7 @@ def _response(status: int, body: dict | None = None) -> MagicMock:
     Returns:
         応答のモック
     """
-    # 変数の内容: res: テスト対象処理が返した応答または結果。
+    # 変数の内容: res: requests.post の応答を模したオブジェクト。
     res = MagicMock()
     res.status_code = status
     res.json.return_value = body or {}
@@ -170,8 +171,9 @@ def test_未ログインで開くとログインフォームだけが出てダ�
 
     Returns:
         なし。"""
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；get: 外部通信を防ぐ requests.get のモック。
     load_all, get = data_get
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
     assert not at.exception
     # 1. タイトル・メールアドレス・パスワード・ログインボタンが出る
@@ -217,7 +219,7 @@ def test_接続情報が無いと設定不足のメッセージを出してフ�
     load_all, _ = data_get
     for k, v in env.items():
         monkeypatch.setenv(k, v)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
     assert not at.exception
     assert any(MSG_NO_SETTINGS in e for e in _errors(at))
@@ -242,8 +244,9 @@ def test_ログインに成功するとauth_emailが入りサイドバーにロ�
 
     Returns:
         なし。"""
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；_: このテストでは呼び出し回数を確認しない戻り値。
     load_all, _ = data_get
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert not at.exception
     # 1. セッションにはメールアドレスだけが入る
@@ -275,7 +278,7 @@ def test_ログイン後はセッションにパスワードもトークンも�
 
     Returns:
         なし。"""
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     # 1. アプリが置いたセッションのキーは auth_email だけ（ログイン成功後は失敗回数も消える）
     app_keys = {k for k in at.session_state.keys() if not k.startswith("FormSubmitter")}
@@ -341,9 +344,11 @@ def test_ログイン前に失敗していても成功すれば失敗回数が�
     # 1. ログイン前に失敗していても成功すれば失敗回数が消えることを確認する。
     at = _new_app()
     post.return_value = _response(400)
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = _submit(at)
     assert at.session_state[SESSION_FAIL_COUNT] == 1
     post.return_value = _response(200, {"user": {"email": EMAIL}})
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = _submit(at)
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert SESSION_FAIL_COUNT not in at.session_state
@@ -366,7 +371,7 @@ def test_パスワードが違うとエラーが出て失敗回数が1増えフ�
     # 1. パスワードが違うとエラーが出て失敗回数が1増えフォームのままことを確認する。
     load_all, _ = data_get
     post.return_value = _response(400, {"error": "invalid_grant"})
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert not at.exception
     assert MSG_BAD_CREDENTIALS in _errors(at)
@@ -389,9 +394,10 @@ def test_失敗を続けると回数が1ずつ増える(fake_env, post, data_get
         なし。"""
     # 1. 失敗を続けると回数が1ずつ増えることを確認する。
     post.return_value = _response(401)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
     for n in range(1, 4):
+        # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
         at = _submit(at)
         assert at.session_state[SESSION_FAIL_COUNT] == n
 
@@ -410,7 +416,7 @@ def test_通信エラーは別のメッセージを出し失敗回数に数え�
         なし。"""
     # 1. 通信エラーは別のメッセージを出し失敗回数に数えないことを確認する。
     post.side_effect = exc
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert MSG_NETWORK_ERROR in _errors(at)
     assert MSG_BAD_CREDENTIALS not in _errors(at)
@@ -452,16 +458,18 @@ def test_5回続けて失敗すると6回目はロック表示になりrequests_
     Returns:
         なし。"""
     post.return_value = _response(400)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
     # 1. 5回失敗する（5回目まではふつうのエラー）
     for _ in range(5):
+        # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
         at = _submit(at)
         assert MSG_BAD_CREDENTIALS in _errors(at)
     assert at.session_state[SESSION_FAIL_COUNT] == 5
     assert post.call_count == 5
     # 2. 6回目はロック。正しいパスワードでも Supabase に問い合わせない
     post.return_value = _response(200, {"user": {"email": EMAIL}})
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = _submit(at)
     assert MSG_LOCKED in _errors(at)
     assert post.call_count == 5
@@ -482,10 +490,11 @@ def test_4回失敗のあとはまだロックされず5回目も認証を呼ぶ
         なし。"""
     # 1. 4回失敗のあとはまだロックされず5回目も認証を呼ぶことを確認する。
     post.return_value = _response(400)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 4
     at.session_state[SESSION_LAST_FAIL] = time.time()
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = _submit(at)
     assert MSG_BAD_CREDENTIALS in _errors(at)
     assert post.call_count == 1
@@ -506,6 +515,7 @@ def test_ロック時間が過ぎれば再びログインでき成功する(fake
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time() - LOCK_SECONDS - 1
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = _submit(at)
     assert MSG_LOCKED not in _errors(at)
     assert post.call_count == 1
@@ -523,7 +533,7 @@ def test_ロック時間が過ぎた後の失敗は1回目から数え直し直�
     Returns:
         なし。"""
     post.return_value = _response(400)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time() - LOCK_SECONDS - 1
@@ -550,10 +560,11 @@ def test_ロック中に通信エラーが起きる状況でもロック表示�
         なし。"""
     # 1. ロック中に通信エラーが起きる状況でもロック表示が優先されることを確認する。
     post.side_effect = requests.ConnectionError("c")
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _new_app()
     at.session_state[SESSION_FAIL_COUNT] = 5
     at.session_state[SESSION_LAST_FAIL] = time.time()
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = _submit(at)
     assert MSG_LOCKED in _errors(at)
     post.assert_not_called()
@@ -576,7 +587,7 @@ def test_許可リストに無いアカウントは認証に成功しても拒�
     # 1. 許可リストに無いアカウントは認証に成功しても拒否され失敗回数に数えることを確認する。
     load_all, _ = data_get
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com, staff@example.com")
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert MSG_NOT_ALLOWED in _errors(at)
     assert SESSION_EMAIL not in at.session_state
@@ -598,7 +609,7 @@ def test_許可リストにあるアカウントは大文字小文字が違っ�
         なし。"""
     # 1. 許可リストにあるアカウントは大文字小文字が違ってもログインできることを確認する。
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", " ADMIN@example.com ,owner@example.com")
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert MSG_NOT_ALLOWED not in _errors(at)
     assert at.session_state[SESSION_EMAIL] == EMAIL
@@ -619,7 +630,7 @@ def test_許可リストの判定は入力ではなくSupabaseが返したメー
     # 1. 許可リストの判定は入力ではなくSupabaseが返したメールで行うことを確認する。
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com")
     post.return_value = _response(200, {"user": {"email": "other@example.com"}})
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app(), email="owner@example.com")
     assert MSG_NOT_ALLOWED in _errors(at)
     assert SESSION_EMAIL not in at.session_state
@@ -638,13 +649,16 @@ def test_ログアウトするとauth_emailが消えてログインフォーム�
 
     Returns:
         なし。"""
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；_: このテストでは呼び出し回数を確認しない戻り値。
     load_all, _ = data_get
+    # 変数の内容: calls_before: ログアウトや再実行の前に記録したデータ取得呼び出し回数。
     calls_before = load_all.call_count
     # 1. サイドバーのログアウトを押す
     logout = next(b for b in at.sidebar.button if b.label == "ログアウト")
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = logout.click().run()
     assert not at.exception
     # 2. セッションからメールが消え、ログインフォームだけになる
@@ -673,12 +687,14 @@ def test_ログイン後に許可リストからアドレスを外して再実�
 
     Returns:
         なし。"""
+    # 変数の内容: load_all: 本番データ取得を置き換えるモック関数。；get: 外部通信を防ぐ requests.get のモック。
     load_all, get = data_get
     # 1. 許可リストに入った状態でログインする
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", f"{EMAIL},owner@example.com")
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
+    # 変数の内容: calls_before: ログアウトや再実行の前に記録したデータ取得呼び出し回数。
     calls_before = load_all.call_count
     # 2. 許可リストからそのアドレスを外して描き直す
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com")
@@ -708,9 +724,10 @@ def test_ログイン後に許可リストを別のアドレスだけにして�
         なし。"""
     # 1. ログイン後に許可リストを別のアドレスだけにして再実行してもダッシュボードは描かれないことを確認する。
     load_all, _ = data_get
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
+    # 変数の内容: calls_before: ログアウトや再実行の前に記録したデータ取得呼び出し回数。
     calls_before = load_all.call_count
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", "owner@example.com")
     at.run()
@@ -736,10 +753,11 @@ def test_許可リストが未設定や空のままなら再実行してもロ�
     load_all, _ = data_get
     if allowed is not None:
         monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", allowed)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     # 2回描き直してもログインしたまま、ダッシュボードが描かれ続ける
     for _ in range(2):
+        # 変数の内容: calls_before: ログアウトや再実行の前に記録したデータ取得呼び出し回数。
         calls_before = load_all.call_count
         at.run()
         assert not at.exception
@@ -763,7 +781,7 @@ def test_許可リストに残っていれば大文字小文字が違っても�
         なし。"""
     # 1. 許可リストに残っていれば大文字小文字が違っても再実行後もログイン状態が続くことを確認する。
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", EMAIL)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     monkeypatch.setenv("ANALYTICS_ALLOWED_EMAILS", f" {EMAIL.upper()} , owner@example.com")
     at.run()
@@ -787,7 +805,7 @@ def test_送信後は入力欄が空に戻り同じパスワードは再送さ�
         なし。"""
     # 1. 送信後は入力欄が空に戻り同じパスワードは再送されないことを確認する。
     post.return_value = _response(400)
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert MSG_BAD_CREDENTIALS in _errors(at)
     assert post.call_count == 1
@@ -813,7 +831,7 @@ def test_ログイン後に画面を最後まで描くとパスワード欄の�
     import views.overview
 
     monkeypatch.setattr(views.overview, "render", lambda: st.write("概要（テスト用）"))
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert "概要（テスト用）" in [m.value for m in at.markdown]
@@ -834,7 +852,7 @@ def test_ログイン直後の描画がst_stopで終わってもパスワード�
 
     Returns:
         なし。"""
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _submit(_new_app())
     assert at.session_state[SESSION_EMAIL] == EMAIL
     assert any(MSG_DATA_ERROR in e for e in _errors(at))  # st.stop() で終わったことの確認
@@ -870,6 +888,7 @@ def test_config_tomlでエラーの詳細を画面に出さない設定になっ
     # 1. config tomlでエラーの詳細を画面に出さない設定になっていることを確認する。
     import tomllib
 
+    # 変数の内容: config_path: 確認対象の Streamlit 設定ファイルのパス。
     config_path = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
     # 変数の内容: config: テスト対象の設定。
     config = tomllib.loads(config_path.read_text(encoding="utf-8"))

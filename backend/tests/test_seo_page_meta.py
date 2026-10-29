@@ -28,6 +28,7 @@ class _MetaFactory:
 
         戻り値:
             なし。"""
+        # 1. 呼び出し履歴と既定のメタ情報を初期化する。
         # 変数の内容: calls: make_meta に渡された引数の履歴。
         self.calls = []
         # 変数の内容: result: 呼び出し元へ返すテスト用メタ情報。

@@ -22,6 +22,7 @@ class PostgrestError(Exception):
 
         Returns:
             なし。"""
+        # 1. 例外を作る。
         super().__init__(message)
         # db_utils が見るエラーコード
         self.code = code

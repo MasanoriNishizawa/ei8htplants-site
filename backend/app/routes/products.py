@@ -193,4 +193,5 @@ def update_stock(product_id: str, body: StockPatch, _=Depends(require_auth)) -> 
     Raises:
         HTTPException(404): 商品が存在しない場合
     """
+    # 1. 商品の在庫数だけを更新する（管理者のみ）。
     return first_or_404(execute_or_404(admin_supabase.table('products').update({'stock': body.stock}).eq('id', product_id)))

@@ -16,6 +16,7 @@ def today_jst() -> str:
     Returns:
         例 '2026-10-21'。DB の日付列（文字列）とそのまま大小を比べられる形
     """
+    # 1. 日本時間の今日の日付を 'YYYY-MM-DD' の文字列で返す。
     return datetime.now(JST).date().isoformat()
 
 
@@ -28,6 +29,7 @@ def event_end_date(event: dict[str, Any]) -> str:
     Returns:
         'YYYY-MM-DD' の文字列（無いときは ''）
     """
+    # 1. イベントの最終日を返す。終了日が無ければ開始日、どちらも無ければ空文字を返す。
     return event.get('end_date') or event.get('start_date') or ''
 
 
@@ -41,4 +43,5 @@ def is_past_event(event: dict[str, Any], today: Optional[str] = None) -> bool:
     Returns:
         最終日が今日より前なら True。今日が最終日のイベントはまだ終わっていない扱い（False）
     """
+    # 1. イベントが終わっている（最終日が今日より前）かどうかを返す。
     return event_end_date(event) < (today or today_jst())

@@ -20,10 +20,12 @@ from streamlit.testing.v1 import AppTest
 
 # analytics フォルダとリポジトリ直下
 ANALYTICS_DIR = Path(__file__).resolve().parents[1]
+# リポジトリのルートディレクトリ
 REPO_ROOT = ANALYTICS_DIR.parent
 
 # Community Cloud が読む設定（リポジトリ直下）とローカル用の設定
 CLOUD_CONFIG = REPO_ROOT / ".streamlit" / "config.toml"
+# 分析ダッシュボード用のローカル Streamlit 設定ファイル
 LOCAL_CONFIG = ANALYTICS_DIR / ".streamlit" / "config.toml"
 
 # 確かめる app.py の場所
@@ -64,6 +66,7 @@ def test_リポジトリ直下のconfig_tomlにserverの設定が無い():
     # 1. リポジトリ直下のconfig tomlにserverの設定が無いことを確認する。
     cfg = _load(CLOUD_CONFIG)
     assert "server" not in cfg
+    # 変数の内容: text: 設定ファイルの本文。
     text = CLOUD_CONFIG.read_text(encoding="utf-8")
     assert "enableXsrfProtection = false" not in text
     assert "enableCORS = false" not in text
@@ -131,6 +134,7 @@ def test_app_pyを動かすとshowErrorDetailsがnoneになる(fake_env):
 
     Returns:
         なし。"""
+    # 変数の内容: original: テスト前に保存する Streamlit の元設定値。
     original = st.get_option("client.showErrorDetails")
     st.set_option("client.showErrorDetails", "full")
     try:
@@ -176,7 +180,9 @@ def test_app_pyでset_optionがlibとviewsのimportより前にある():
         なし。"""
     # 変数の内容: body: API に渡すリクエスト本文。
     body = _app_tree().body
+    # 変数の内容: names: app.py のトップレベル文から抽出した呼び出し名。
     names = [_call_name(n) for n in body]
+    # 変数の内容: set_option_at: エラー詳細設定の呼び出し位置。
     set_option_at = names.index("st.set_option")
     # 1. 呼び出しの引数が client.showErrorDetails と "none"
     call = body[set_option_at].value

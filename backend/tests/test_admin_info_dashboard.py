@@ -66,6 +66,7 @@ def _make_sb(events, infos):
 
         戻り値:
             指定されたテーブル名に対応するクエリモックを返す。"""
+        # 1. 指定したテーブルに対応するクエリモックを返す。
         # 変数の内容: q: DB テーブルに対するクエリ。
         q = MagicMock()
         if name == 'events':
@@ -112,6 +113,7 @@ class TestAdminInfoDashboard:
         Returns:
             ダッシュボード API が返す集計データを辞書で返す。
         """
+        # 1. モックを差し替えて API を呼び、レスポンスを返す。
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
         sb = _make_sb(events, infos)
         with patch('app.routes.events.admin_supabase', sb), \

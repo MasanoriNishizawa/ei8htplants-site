@@ -31,7 +31,10 @@ const IconThreads = () => (
   </svg>
 )
 
-/** 3 つのボタン共通の見た目（枠線だけの小さなボタン。マウスを乗せると文字と枠が濃くなる） */
+/**
+ * X・Threads・共有シートの各ボタンに適用する共通スタイル。
+ * 枠線だけの小さなボタンとして表示し、マウスを乗せると文字色と枠線色を濃くする。
+ */
 const btnStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   fontFamily: SANS, fontSize: 10, letterSpacing: '1.5px', textTransform: 'uppercase',
@@ -53,6 +56,8 @@ export default function ShareButtons({ url, text }: Props) {
 
   // Web Share API が利用可能かをクライアントサイドで確認（SSR 対策で useEffect 内で判定）
   useEffect(() => {
+    // 1. navigator が存在するブラウザー環境かを確認する
+    // 2. 共有 API の有無を state に保存し、対応環境だけ共有ボタンを表示する
     setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
   }, [])
 
@@ -67,7 +72,7 @@ export default function ShareButtons({ url, text }: Props) {
   const threadsUrl = `https://www.threads.net/intent/post?text=${enc(text + '\n' + url)}`
 
   /** 端末の共有シートを開く。利用者が閉じた（キャンセルした）ときの例外は無視する。
-   * @returns なし。共有シートが閉じられても画面状態は変えない
+     * @returns 共有シートの処理が完了する Promise
    */
   const handleWebShare = async () => {
     try { await navigator.share({ title: text, url }) } catch { /* 共有シートを閉じただけなので何もしない */ }

@@ -19,6 +19,7 @@ const CLOSE_MESSAGE = '保存していない変更があります。破棄して
  * @param page - 対象ページ（goto より前に呼ぶ）
  * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
+
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
   await page.addInitScript(() => {
@@ -43,8 +44,9 @@ async function useFakeAdminSession(page: Page) {
  * @param page - 対象ページ
  * @returns ダイアログの文言
  */
+
 function dismissNextDialog(page: Page): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise      ((resolve) => {
     page.once('dialog', async (d) => {
       const message = d.message()
       await d.dismiss()
@@ -58,6 +60,7 @@ function dismissNextDialog(page: Page): Promise<string> {
  * @param page - 対象ページ
  * @returns なし。確認ダイアログをキャンセルした後も現在の画面に留まることを検証する。
  */
+
 async function expectSidebarBlocked(page: Page) {
   const url = page.url()
   const dialog = dismissNextDialog(page)
@@ -71,6 +74,7 @@ async function expectSidebarBlocked(page: Page) {
  * @param page - 対象ページ
  * @returns なし。確認ダイアログなしでダッシュボードへ移動できることを検証する。
  */
+
 async function expectSidebarFree(page: Page) {
   let dialogs = 0
   /**
@@ -93,6 +97,7 @@ async function expectSidebarFree(page: Page) {
  * @param name - ブランドの表示名
  * @returns 計算フォームのタブのボタン
  */
+
 function brandTab(page: Page, name: string) {
   return page.locator(':not([role="group"]) > button').filter({ hasText: new RegExp(`^${name}$`) })
 }
@@ -102,7 +107,12 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('イベントの編集（EventForm）', () => {
-  test('入力したあとサイドメニューで移ろうとすると確認が出て、キャンセルすると残る', async ({ page }) => {
+  test('入力したあとサイドメニューで移ろうとすると確認が出て、キャンセルすると残る', /**
+     イベント名を変更してサイドメニューへの移動を試み、未保存確認が出た後にキャンセルすると編集値が保持されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/events/mock-upcoming-1/edit')
     const name = page.locator('#event-name')
     await expect(name).toHaveValue('Green Market 2027')
@@ -111,14 +121,24 @@ test.describe('イベントの編集（EventForm）', () => {
     await expectSidebarBlocked(page)
   })
 
-  test('読み込み直後（何も入力していない）なら確認なしで移れる', async ({ page }) => {
-    // 1. 「読み込み直後（何も入力していない）なら確認なしで移れる」の期待状態が画面に表示されることを確認する。
+  test('読み込み直後（何も入力していない）なら確認なしで移れる', /**
+     未編集のイベント編集画面からサイドメニューへ移動し、確認を挟まず移動できることと初期値が保たれることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 未編集のイベント編集画面からサイドメニューを選び、確認ダイアログなしで遷移できることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/edit')
     await expect(page.locator('#event-name')).toHaveValue('Green Market 2027')
     await expectSidebarFree(page)
   })
 
-  test('画面の「キャンセル」でも確認が出て、キャンセルすると残る', async ({ page }) => {
+  test('画面の「キャンセル」でも確認が出て、キャンセルすると残る', /**
+     * 「/admin/events/mock-upcoming-1/edit」を開く、入力欄へ値を入力する、「キャンセル」をクリックする、URLが「\/edit$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. イベント編集フォームを変更し、画面内のキャンセル操作を行う
     await page.goto('/admin/events/mock-upcoming-1/edit')
     // 読み込みが終わってから入力する（読み込み前に入れると、読み込んだ値で上書きされる）
@@ -131,7 +151,12 @@ test.describe('イベントの編集（EventForm）', () => {
     await expect(page).toHaveURL(/\/edit$/)
   })
 
-  test('「管理情報」へのリンクでも確認が出る', async ({ page }) => {
+  test('「管理情報」へのリンクでも確認が出る', /**
+     * 「/admin/events/mock-upcoming-1/edit」を開く、入力欄へ値を入力する、「管理情報」をクリックする、URLが「\/edit$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/events/mock-upcoming-1/edit')
     // 読み込みが終わってから入力する（読み込み前に入れると、読み込んだ値で上書きされる）
     await expect(page.locator('#event-name')).toHaveValue('Green Market 2027')
@@ -142,7 +167,12 @@ test.describe('イベントの編集（EventForm）', () => {
     await expect(page).toHaveURL(/\/edit$/)
   })
 
-  test('保存に成功すると確認なしでイベント一覧へ移る', async ({ page }) => {
+  test('保存に成功すると確認なしでイベント一覧へ移る', /**
+     * 「/admin/events/mock-upcoming-1/edit」を開く、入力欄へ値を入力する、「保存する」をクリックする、URLが「\/admin\/events$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. イベント名を変更して保存する
     await page.goto('/admin/events/mock-upcoming-1/edit')
     // 読み込みが終わってから入力する（読み込み前に入れると、読み込んだ値で上書きされる）
@@ -158,8 +188,13 @@ test.describe('イベントの編集（EventForm）', () => {
 })
 
 test.describe('イベントの収支（EventFinance）', () => {
-  test('売上を入力したあとサイドメニュー・「← イベント管理」で移ろうとすると確認が出る', async ({ page }) => {
-    // 1. 「売上を入力したあとサイドメニュー・「← イベント管理」で移ろうとすると確認が出る」の期待状態が画面に表示されることを確認する。
+  test('売上を入力したあとサイドメニュー・「← イベント管理」で移ろうとすると確認が出る', /**
+     * 「/admin/events/mock-past-1/finances」を開く、入力欄へ値を入力する、「イベント管理」をクリックする、URLが「\/finances$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 売上を編集した状態でサイドメニューまたはイベント管理への移動を試み、未保存確認が出ることを確認する。
     await page.goto('/admin/events/mock-past-1/finances')
     const sales = page.getByText('売上', { exact: true }).locator('..').getByRole('textbox')
     await expect(sales).toBeVisible()
@@ -171,8 +206,13 @@ test.describe('イベントの収支（EventFinance）', () => {
     await expect(page).toHaveURL(/\/finances$/)
   })
 
-  test('保存に成功すると確認なしで元の画面へ戻る', async ({ page }) => {
-    // 1. 「保存に成功すると確認なしで元の画面へ戻る」の期待状態が画面に表示されることを確認する。
+  test('保存に成功すると確認なしで元の画面へ戻る', /**
+     * 「/admin/events/mock-past-1/finances」を開く、入力欄へ値を入力する、「保存」をクリックする、URLが「\/admin\/events$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 編集内容を保存し、保存成功後は未保存確認なしで元の画面へ戻れることを確認する。
     await page.goto('/admin/events/mock-past-1/finances')
     const sales = page.getByText('売上', { exact: true }).locator('..').getByRole('textbox')
     await sales.fill('12345')
@@ -185,8 +225,13 @@ test.describe('イベントの収支（EventFinance）', () => {
 })
 
 test.describe('イベントページの編集（AdminEventSite）', () => {
-  test('入力したあと移ろうとすると確認が出て、保存に成功したあとは確認なしで移れる', async ({ page }) => {
-    // 1. 「入力したあと移ろうとすると確認が出て、保存に成功したあとは確認なしで移れる」の期待状態が画面に表示されることを確認する。
+  test('入力したあと移ろうとすると確認が出て、保存に成功したあとは確認なしで移れる', /**
+     * 「/admin/events/mock-upcoming-1/site」を開く、入力欄へ値を入力する、「保存」をクリックする、「保存しました」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. フォームへ値を入力して移動時の確認を確かめ、保存後は確認なしで移動できることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/site')
     const tagline = page.getByLabel('キャッチコピー')
     await expect(tagline).toBeVisible()
@@ -199,8 +244,13 @@ test.describe('イベントページの編集（AdminEventSite）', () => {
 })
 
 test.describe('コラボレーション・鉢作家・メディア出演の追加欄', () => {
-  test('コラボレーション: タイトルを入れたら確認が出て、追加に成功したら確認なし', async ({ page }) => {
-    // 1. 「コラボレーション: タイトルを入れたら確認が出て、追加に成功したら確認なし」の期待状態が画面に表示されることを確認する。
+  test('コラボレーション: タイトルを入れたら確認が出て、追加に成功したら確認なし', /**
+     コラボレーション名を入力して移動時に未保存確認が出ること、登録後は入力欄が空になり確認なしで移動できることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. コラボレーション名を入力して移動確認を出し、追加後に入力欄が空になって確認なしで移れることを確認する。
     await page.goto('/admin/collaborations')
     await page.getByLabel('タイトル').fill('新しいコラボ')
     await expectSidebarBlocked(page)
@@ -209,8 +259,13 @@ test.describe('コラボレーション・鉢作家・メディア出演の追�
     await expectSidebarFree(page)
   })
 
-  test('鉢作家: 名前を入れたら確認が出て、追加に成功したら確認なし', async ({ page }) => {
-    // 1. 「鉢作家: 名前を入れたら確認が出て、追加に成功したら確認なし」の期待状態が画面に表示されることを確認する。
+  test('鉢作家: 名前を入れたら確認が出て、追加に成功したら確認なし', /**
+     * 鉢作家名を入力して登録し、未保存確認が出た後に入力欄が空になり、登録名が一覧に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 鉢作家名を入力して登録し、登録後は入力欄が空になり移動確認が出ないことを確認する。
     await page.goto('/admin/pot-artists')
     const input = page.getByPlaceholder('鉢作家名を入力')
     await input.fill('山田陶房')
@@ -221,7 +276,12 @@ test.describe('コラボレーション・鉢作家・メディア出演の追�
     await expectSidebarFree(page)
   })
 
-  test('メディア出演: タイトルを入れたら確認が出て、追加に成功したら確認なし', async ({ page }) => {
+  test('メディア出演: タイトルを入れたら確認が出て、追加に成功したら確認なし', /**
+     メディア出演のタイトルを入力して未保存確認を確認し、追加後に入力欄が空になって確認なしで移動できることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. メディア出演の追加フォームにタイトルと動画 URL を入力する
     await page.goto('/admin/media')
     await page.locator('#media-title').fill('テレビ出演')
@@ -235,7 +295,12 @@ test.describe('コラボレーション・鉢作家・メディア出演の追�
 })
 
 test.describe('チャットの Q&A（AdminChatQA）', () => {
-  test('追加のフォームに入力すると移るときに確認が出て、フォームの「キャンセル」でも閉じる確認が出る', async ({ page }) => {
+  test('追加のフォームに入力すると移るときに確認が出て、フォームの「キャンセル」でも閉じる確認が出る', /**
+     * 「/admin/chat-qa」を開く、「+ 追加」をクリックする、「質問」へ入力する、操作後に保存・更新結果が反映されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/chat-qa')
     await page.getByRole('button', { name: '+ 追加' }).click()
     await page.getByLabel('質問').fill('営業時間は？')
@@ -247,8 +312,13 @@ test.describe('チャットの Q&A（AdminChatQA）', () => {
     await expect(page.getByLabel('質問')).toHaveValue('営業時間は？')
   })
 
-  test('開いただけのフォームは確認なしで移れ、保存に成功したあとも確認なし', async ({ page }) => {
-    // 1. 「開いただけのフォームは確認なしで移れ、保存に成功したあとも確認なし」の期待状態が画面に表示されることを確認する。
+  test('開いただけのフォームは確認なしで移れ、保存に成功したあとも確認なし', /**
+     * 「/admin/chat-qa」を開く、「+ 追加」をクリックする、「質問」へ入力する、「質問」が画面に表示されること、質問欄へ入力後に追加を実行し、質問が一覧に登録されて入力欄が初期化されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. フォームを開いただけの状態と保存完了後の両方で、画面移動時に確認が出ないことを確認する。
     await page.goto('/admin/chat-qa')
     await page.getByRole('button', { name: '+ 追加' }).click()
     await expect(page.getByLabel('質問')).toBeVisible()
@@ -261,14 +331,24 @@ test.describe('チャットの Q&A（AdminChatQA）', () => {
 })
 
 test.describe('取扱店（Stockists）', () => {
-  test('追加欄に入力すると移るときに確認が出る', async ({ page }) => {
-    // 1. 「追加欄に入力すると移るときに確認が出る」の期待状態が画面に表示されることを確認する。
+  test('追加欄に入力すると移るときに確認が出る', /**
+     * 「/admin/stockists」を開く、「店舗名」へ入力する、操作後に保存・更新結果が反映されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 追加欄へ入力してサイドメニュー移動を試み、未保存確認が表示されることを確認する。
     await page.goto('/admin/stockists')
     await page.getByLabel('店舗名').first().fill('新しいお店')
     await expectSidebarBlocked(page)
   })
 
-  test('編集のダイアログで変えて「キャンセル」すると閉じる確認が出て、キャンセルすれば開いたまま', async ({ page }) => {
+  test('編集のダイアログで変えて「キャンセル」すると閉じる確認が出て、キャンセルすれば開いたまま', /**
+     取扱店の編集ダイアログでエリアを変更して閉じる操作を行い、確認をキャンセルするとダイアログが開いたままになることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/stockists')
     await page.getByRole('button', { name: '編集' }).first().click()
     const dialogBox = page.getByRole('dialog', { name: '取扱店を編集' })
@@ -280,8 +360,13 @@ test.describe('取扱店（Stockists）', () => {
     await expect(dialogBox).toBeVisible()
   })
 
-  test('編集のダイアログを開いただけなら「キャンセル」で確認なしに閉じ、移るときも確認なし', async ({ page }) => {
-    // 1. 「編集のダイアログを開いただけなら「キャンセル」で確認なしに閉じ、移るときも確認なし」の期待状態が画面に表示されることを確認する。
+  test('編集のダイアログを開いただけなら「キャンセル」で確認なしに閉じ、移るときも確認なし', /**
+     * 取扱店編集ダイアログを開き、変更せずキャンセルした場合はダイアログが閉じ、その後の画面移動に未保存確認が出ないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 変更していない編集ダイアログをキャンセルで閉じ、その後の画面移動にも確認が出ないことを確認する。
     await page.goto('/admin/stockists')
     await page.getByRole('button', { name: '編集' }).first().click()
     let dialogs = 0
@@ -294,7 +379,12 @@ test.describe('取扱店（Stockists）', () => {
 })
 
 test.describe('販売価格計算（PriceCalc）', () => {
-  test('植物名を入れると移るときに確認が出て、ブランドのタブを切り替えるときも確認が出る（キャンセルで残る）', async ({ page }) => {
+  test('植物名を入れると移るときに確認が出て、ブランドのタブを切り替えるときも確認が出る（キャンセルで残る）', /**
+     価格計算欄に植物名を入力し、画面移動とブランド切替の両方で未保存確認が出て、キャンセル後も入力値が残ることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/price-calc')
     const plant = page.getByPlaceholder('例: アガベ チタノタ')
     await plant.fill('アガベ')
@@ -306,8 +396,13 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(plant).toHaveValue('アガベ')
   })
 
-  test('何も入れていなければタブを確認なしで切り替えられる', async ({ page }) => {
-    // 1. 「何も入れていなければタブを確認なしで切り替えられる」の期待状態が画面に表示されることを確認する。
+  test('何も入れていなければタブを確認なしで切り替えられる', /**
+     * 価格計算画面で未入力のままブランドを切り替え、確認ダイアログを出さず切替先の入力欄を表示することを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 価格計算画面で未入力のままブランドタブを切り替え、確認ダイアログなしで切り替わることを確認する。
     await page.goto('/admin/price-calc')
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
@@ -316,7 +411,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
     expect(dialogs).toBe(0)
   })
 
-  test('HUE のタブで植物仕入れ値を入れると、移るときもタブを切り替えるときも確認が出る（キャンセルで HUE のまま残る）', async ({ page }) => {
+  test('HUE のタブで植物仕入れ値を入れると、移るときもタブを切り替えるときも確認が出る（キャンセルで HUE のまま残る）', /**
+     * HUEの仕入れフォームに植物仕入れ値を入力し、別ブランドへの切替を試みると確認が出て、キャンセル後も入力値とHUEのタブが維持されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. HUE の仕入れフォームを開き、植物仕入れ値を入力する
     await page.goto('/admin/price-calc')
     await brandTab(page, 'HUE').click()
@@ -337,7 +437,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(page.getByPlaceholder('例: アガベ チタノタ')).toHaveCount(0)
   })
 
-  test('HUE で登録すると登録リストに HUE の行が出て（植物名の下の 2 行目は無い）、そのあとは確認なしで移れる', async ({ page }) => {
+  test('HUE で登録すると登録リストに HUE の行が出て（植物名の下の 2 行目は無い）、そのあとは確認なしで移れる', /**
+     * HUEの仕入れフォームに植物名・原価・鉢代を入力して登録し、推奨原価率と登録行を確認した後、確認なしで画面移動できることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. HUE の仕入れフォームで植物名・原価・鉢代を入力し、推奨価格を確認する
     await page.goto('/admin/price-calc')
     await brandTab(page, 'HUE').click()
@@ -362,7 +467,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(page.getByPlaceholder('例: ユーフォルビア オベサ')).toHaveValue('')
     await expectSidebarFree(page)
   })
-  test('目標原価率はブランドごとに保存され、初期値と再読み込み後の値を保つ', async ({ page }) => {
+  test('目標原価率はブランドごとに保存され、初期値と再読み込み後の値を保つ', /**
+     * 「/admin/price-calc」を開く、「仕入れ」をクリックする、入力欄へ値を入力する、「推奨販売価格（原価率 35% 以下）」が画面に表示されること、「例: ユーフォルビア オベサ」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/price-calc')
     // 目標原価率の欄は仕入れのときだけ出る
     await page.getByRole('button', { name: '仕入れ' }).click()
@@ -402,7 +512,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expectSidebarFree(page)
   })
 
-  test('生産（初期）で卸価格を入れて「仕入れ」を押すと確認が出て、キャンセルすると生産のまま入力が残る', async ({ page }) => {
+  test('生産（初期）で卸価格を入れて「仕入れ」を押すと確認が出て、キャンセルすると生産のまま入力が残る', /**
+     * 生産フォームに卸価格を入力して販売価格が2倍になることを確かめる。仕入れへの切替をキャンセルした後、生産タブと入力値が保たれることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 生産フォームに卸価格を入力し、販売価格が2倍で表示されることを確認する
     await page.goto('/admin/price-calc')
     await expect(page.getByText('販売価格（卸価格の 2 倍）')).toBeVisible()
@@ -419,7 +534,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(page.getByText('販売価格（卸価格の 2 倍）')).toBeVisible()
   })
 
-  test('登録リストの絞り込みで HUE を選ぶと HUE の行だけになり、書きかけがあっても確認は出ない', async ({ page }) => {
+  test('登録リストの絞り込みで HUE を選ぶと HUE の行だけになり、書きかけがあっても確認は出ない', /**
+     * 「/admin/price-calc」を開く、「例: アガベ チタノタ」へ入力する、「例: 1500」へ入力する、「このブランドの登録はありません。」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/price-calc')
     // 1. ei8ht plants の生産で 1 件登録する
     await page.getByPlaceholder('例: アガベ チタノタ').fill('エイト E2E')
@@ -441,7 +561,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
     expect(dialogs).toBe(0)
   })
 
-  test('HUE の生産で登録すると登録リストに卸価格と 2 倍の販売価格の行が出て、そのあとは確認なしで仕入れに切り替えられる', async ({ page }) => {
+  test('HUE の生産で登録すると登録リストに卸価格と 2 倍の販売価格の行が出て、そのあとは確認なしで仕入れに切り替えられる', /**
+     * HUEの生産フォームに植物名と卸価格を入力して登録し、登録行にHUE・生産・卸価格・販売価格が表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. HUE の生産フォームに植物名と卸価格を入力し、登録する
     await page.goto('/admin/price-calc')
     await brandTab(page, 'HUE').click()

@@ -28,6 +28,7 @@ const EVENT_NAME = 'Habitat Exhibition 2026'
  * @param page - 対象ページ
  * @returns なし。横スクロールがないことを検証する。
  */
+
 async function expectNoHorizontalScroll(page: Page) {
   const sizes = await page.evaluate(() => {
     const main = document.querySelector('main')
@@ -51,6 +52,7 @@ async function expectNoHorizontalScroll(page: Page) {
  * @param label - 失敗時のメッセージに出す要素名
  * @returns なし。要素が画面の横幅内に収まることを検証する。
  */
+
 async function expectWithinViewportX(page: Page, locator: Locator, label: string) {
   await locator.scrollIntoViewIfNeeded()
   const box = await locator.boundingBox()
@@ -61,7 +63,12 @@ async function expectWithinViewportX(page: Page, locator: Locator, label: string
 }
 
 test.describe('イベント画像DLページ', () => {
-  test('イベント一覧の「画像DL」から画像一覧ページが開き、出どころ別に画像が並ぶ', async ({ page }) => {
+  test('イベント一覧の「画像DL」から画像一覧ページが開き、出どころ別に画像が並ぶ', /**
+     * 「/admin/events」を開く、「画像DL」をクリックする、「戻る」をクリックする、「画像ダウンロード」が画面に表示されること、「全 4 枚」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. イベント一覧で対象イベントの行の「画像DL」を押す（行 = イベント名の2つ上の要素）
     await page.goto('/admin/events')
     const row = page.getByText(EVENT_NAME, { exact: true }).locator('../..')
@@ -83,14 +90,24 @@ test.describe('イベント画像DLページ', () => {
     await expect(page).toHaveURL(/\/admin\/events$/)
   })
 
-  test('画像が登録されていないイベントでは「このイベントには画像が登録されていません」が出る', async ({ page }) => {
+  test('画像が登録されていないイベントでは「このイベントには画像が登録されていません」が出る', /**
+     * 「/admin/events/mock-upcoming-2/images」を開く、「このイベントには画像が登録されていません」が画面に表示されること、画像のないイベントでは空状態案内を表示し、ダウンロードボタンを出さないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // mock-upcoming-2 は images: [] / page_content: null / 管理情報 {}
     await page.goto('/admin/events/mock-upcoming-2/images')
     await expect(page.getByText('このイベントには画像が登録されていません')).toBeVisible()
     await expect(page.getByRole('button', { name: 'ダウンロード' })).toHaveCount(0)
   })
 
-  test('出店要項の画像の「ダウンロード」を押すと「イベント名_番号.拡張子」の名前で保存される', async ({ page }) => {
+  test('出店要項の画像の「ダウンロード」を押すと「イベント名_番号.拡張子」の名前で保存される', /**
+     * 出店要項画像のダウンロードボタンを押し、ブラウザーのダウンロードが発生してファイル名がイベント名・画像番号・拡張子の形式になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. ページを開き、出店要項の1枚目（全体の通し番号 02、/img/logo-ei8htplants.png）のボタンを押す
     await page.goto(`/admin/events/${EVENT_ID}/images`)
     const buttons = page.getByRole('button', { name: 'ダウンロード' })
@@ -106,7 +123,12 @@ test.describe('イベント画像DLページ', () => {
 })
 
 test.describe('管理情報ページ — 出店要項', () => {
-  test('出店要項セクションに文章と画像サムネイルが表示される', async ({ page }) => {
+  test('出店要項セクションに文章と画像サムネイルが表示される', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「出店要項」が画面に表示されること、「要項の画像（3 枚）」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     // 1. セクション見出しと文章
     await expect(page.getByText('出店要項', { exact: true })).toBeVisible()
@@ -117,7 +139,12 @@ test.describe('管理情報ページ — 出店要項', () => {
     await expect(page.getByRole('button', { name: '画像を追加' })).toBeVisible()
   })
 
-  test('サムネイルを押すと拡大表示が開き、前へ・次へで切り替わり、Esc と閉じるボタンで閉じる', async ({ page }) => {
+  test('サムネイルを押すと拡大表示が開き、前へ・次へで切り替わり、Esc と閉じるボタンで閉じる', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「出店要項の画像 1 を拡大表示」をクリックする、「次へ」をクリックする、「1 / 3」が画面に表示されること、「2 / 3」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
 
     // 1. 1枚目のサムネイルで拡大表示を開く
@@ -157,7 +184,12 @@ test.describe('管理情報ページ — 出店要項', () => {
 test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
-  test('管理情報ページで横スクロールが出ず、主要ボタンが画面内に収まる', async ({ page }) => {
+  test('管理情報ページで横スクロールが出ず、主要ボタンが画面内に収まる', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「要項の画像（3 枚）」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
 
@@ -176,7 +208,12 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
     await expectWithinViewportX(page, page.getByLabel('要項の文章'), '要項の文章欄')
   })
 
-  test('管理情報ページの拡大表示がスマホ幅でも画面内に収まり、閉じられる', async ({ page }) => {
+  test('管理情報ページの拡大表示がスマホ幅でも画面内に収まり、閉じられる', /**
+     スマホ幅で出店要項の2枚目を拡大し、画像と操作ボタンが画面幅内に収まり、閉じる操作でダイアログが閉じることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await page.getByRole('button', { name: '出店要項の画像 2 を拡大表示' }).click()
     const dialog = page.getByRole('dialog', { name: '出店要項の画像の拡大表示' })
@@ -194,7 +231,12 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
     await expect(dialog).toBeHidden()
   })
 
-  test('画像DLページで横スクロールが出ず、ダウンロードボタンが画面内に収まる', async ({ page }) => {
+  test('画像DLページで横スクロールが出ず、ダウンロードボタンが画面内に収まる', /**
+     * 「/admin/events/…/images」を開く、ページ幅が表示領域を超えないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/images`)
     const buttons = page.getByRole('button', { name: 'ダウンロード' })
     await expect(buttons).toHaveCount(4)
@@ -209,8 +251,13 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
     await expectWithinViewportX(page, page.getByRole('link', { name: /戻る/ }), '戻るリンク')
   })
 
-  test('イベント一覧で「画像DL」リンクが画面内に収まり、横スクロールが出ない', async ({ page }) => {
-    // 1. 「イベント一覧で「画像DL」リンクが画面内に収まり、横スクロールが出ない」の期待状態が画面に表示されることを確認する。
+  test('イベント一覧で「画像DL」リンクが画面内に収まり、横スクロールが出ない', /**
+     * 「/admin/events」を開く、ページ幅が表示領域を超えないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. イベント一覧の画像ダウンロードリンクが画面内に収まり、横スクロールがないことを確認する。
     await page.goto('/admin/events')
     const row = page.getByText(EVENT_NAME, { exact: true }).locator('../..')
     await expectWithinViewportX(page, row.getByRole('link', { name: '画像DL' }), '画像DLリンク')
@@ -223,6 +270,7 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
  * @param page - 対象ページ
  * @returns 要素の説明と font-size の一覧
  */
+
 async function collectFieldFontSizes(page: Page) {
   return page.evaluate(() => {
     const fields = Array.from(document.querySelectorAll('main input, main textarea, main select')) as HTMLElement[]
@@ -236,10 +284,16 @@ async function collectFieldFontSizes(page: Page) {
 }
 
 test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () => {
-  test.describe('スマホ幅（375x812）', () => {
+
+    test.describe('スマホ幅（375x812）', () => {
     test.use({ viewport: { width: 375, height: 812 } })
 
-    test('管理情報ページの input・textarea・select がすべて 16px になる', async ({ page }) => {
+    test('管理情報ページの input・textarea・select がすべて 16px になる', /**
+       * 「/admin/events/…/admin-info/edit」を開く、「要項の文章」が画面に表示されることを確認する。
+       * @param page 操作・検証対象の Playwright ページ。
+       * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+       */
+      async ({ page }) => {
       await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       await expect(page.getByLabel('要項の文章')).toBeVisible()
 
@@ -255,7 +309,12 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
       }
     })
 
-    test('チェックボックスとファイル選択欄は 16px の対象外', async ({ page }) => {
+    test('チェックボックスとファイル選択欄は 16px の対象外', /**
+       * 「/admin/events/…/admin-info/edit」を開く、1280×800px幅で表示する、「要項の文章」が画面に表示されることを確認する。
+       * @param page 操作・検証対象の Playwright ページ。
+       * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+       */
+      async ({ page }) => {
       await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       await expect(page.getByLabel('要項の文章')).toBeVisible()
       // ルールの :not() 指定どおり、checkbox と file はスマホ幅のルールの影響を受けない
@@ -279,10 +338,15 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
     })
   })
 
-  test.describe('デスクトップ幅（1280x800）', () => {
+    test.describe('デスクトップ幅（1280x800）', () => {
     test.use({ viewport: { width: 1280, height: 800 } })
 
-    test('管理情報ページの入力欄は各画面の指定どおり（16px に上書きされない）', async ({ page }) => {
+    test('管理情報ページの入力欄は各画面の指定どおり（16px に上書きされない）', /**
+       * 「/admin/events/…/admin-info/edit」を開く、「要項の文章」が画面に表示されることを確認する。
+       * @param page 操作・検証対象の Playwright ページ。
+       * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+       */
+      async ({ page }) => {
       await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       await expect(page.getByLabel('要項の文章')).toBeVisible()
 
@@ -303,8 +367,13 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
     })
   })
 
-  test.describe('境界の幅', () => {
-    test('767px では 16px、768px では元の値になる', async ({ page }) => {
+    test.describe('境界の幅', () => {
+    test('767px では 16px、768px では元の値になる', /**
+       管理情報編集画面の幅を767pxから768pxへ変え、textareaの文字サイズが境界で16pxから元の14pxへ戻ることを確認する。
+       * @param page 操作・検証対象の Playwright ページ。
+       * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+       */
+      async ({ page }) => {
       // 1. 767px（スマホ用ルールの上限）
       await page.setViewportSize({ width: 767, height: 900 })
       await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)

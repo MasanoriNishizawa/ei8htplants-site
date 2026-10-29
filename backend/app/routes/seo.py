@@ -145,6 +145,7 @@ def clear_cache() -> None:
     Returns:
         なし。
     """
+    # 1. メモリキャッシュを空にする（テストで DB のモックを差し替えるときに使う）。
     _cache.clear()
 
 
@@ -279,6 +280,7 @@ def _parse_date(value: Any) -> Optional[date]:
     Returns:
         読み取れた日付。形式が不正な場合は None。
     """
+    # 1. 従来の SEO モジュール名で日付変換関数を公開する互換ラッパー。
     return _build_parse_date(value)
 
 
@@ -292,6 +294,7 @@ def _format_date_label(start: Any, end: Any) -> str:
     Returns:
         開催日の表示文字列。開始日を読めない場合は空文字。
     """
+    # 1. 従来の関数名でイベント開催日の表示文字列を返す互換ラッパー。
     return _build_format_date_label(start, end)
 
 
@@ -304,6 +307,7 @@ def _times_in(text: str) -> list[str]:
     Returns:
         有効な時刻を HH:MM 形式で並べたリスト。
     """
+    # 1. 従来の関数名と正規表現差し替え境界を保ってイベント時刻を抽出する。
     return _build_times_in(text, _TIME_RE)
 
 
@@ -316,6 +320,7 @@ def _is_noindex(path: str) -> bool:
     Returns:
         NOINDEX_PREFIXES のどれかと一致するか、その下のパスなら True
     """
+    # 1. 検索結果に出さないページ（/admin・/cancel・/checkout・/order 以下）かどうかを返す。
     return any(path == p or path.startswith(p + '/') for p in NOINDEX_PREFIXES)
 
 
@@ -352,6 +357,7 @@ def _fetch_event(key: str) -> Optional[dict]:
     Returns:
         画像 URL 一覧を付けたイベント行。未登録なら None。
     """
+    # 1. 従来の関数名を保ち、現在の SEO モジュール依存でイベントを取得する。
     return _fetch_event_data(key, _seo_data_deps())
 
 
@@ -364,6 +370,7 @@ def _fetch_article(article_id: str) -> Optional[dict]:
     Returns:
         公開済みの記事行。未登録・非公開・ID 不正なら None。
     """
+    # 1. 従来の関数名を保ち、現在の SEO モジュール依存で公開記事を取得する。
     return _fetch_article_data(article_id, _seo_data_deps())
 
 
@@ -376,6 +383,7 @@ def _fetch_product(product_id: str) -> Optional[dict]:
     Returns:
         公開中の商品行。未登録・非公開・ID 不正なら None。
     """
+    # 1. 従来の関数名を保ち、現在の SEO モジュール依存で公開商品を取得する。
     return _fetch_product_data(product_id, _seo_data_deps())
 
 
@@ -416,6 +424,7 @@ def _full_title(title: Optional[str]) -> str:
     Returns:
         <title> に入れる文字列
     """
+    # 1. ページ名から <title> の文字列を作る（PageMeta.tsx と同じく "ページ名 | ei8ht plants"）。
     return f'{title} | {SITE_NAME}' if title else SITE_NAME
 
 
@@ -485,6 +494,7 @@ def _event_description(event: dict) -> str:
     Returns:
         説明文。材料が何も無ければ DEFAULT_DESCRIPTION。
     """
+    # 1. 従来の SEO モジュール名でイベント説明文を作る互換ラッパー。
     return _build_event_description(
         event,
         default_description=DEFAULT_DESCRIPTION,
@@ -502,6 +512,7 @@ def _event_json_ld(event: dict, meta: PageMeta) -> Optional[dict]:
     Returns:
         Event の dict。開始日が読めない、または住所が無いときは None。
     """
+    # 1. 従来の SEO モジュール名で Event JSON-LD を作る互換ラッパー。
     return _build_event_json_ld(
         event,
         description=meta.description,
@@ -520,6 +531,7 @@ def _organization_json_ld() -> dict:
     Returns:
         トップページに埋め込む Organization JSON-LD。
     """
+    # 1. 従来の SEO モジュール名で Organization JSON-LD を返す互換ラッパー。
     return _build_organization_json_ld(site_name=SITE_NAME, site_origin=SITE_ORIGIN, logo_url=LOGO_URL)
 
 
@@ -764,6 +776,7 @@ def _sitemap_url(path: str, lastmod: Any = None, origin: str = SITE_ORIGIN) -> s
     Returns:
         <url> 要素の文字列
     """
+    # 1. sitemap の <url> 要素を1つ作る。lastmod は日付として読めるときだけ入れる。
     return _make_sitemap_url(
         path,
         lastmod,
@@ -790,6 +803,7 @@ def _build_sitemap(site_name: Optional[str] = None, origin: str = SITE_ORIGIN) -
         site_name: サイト識別名。
         origin: リクエスト元または生成 URL の origin。
     """
+    # 1. sitemap.xml の中身を作る。
     return _build_sitemap_content(
         site_name,
         origin,

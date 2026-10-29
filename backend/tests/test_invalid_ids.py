@@ -51,6 +51,7 @@ class _Query:
 
         Returns:
             なし。"""
+        # 1. クエリのモックを作る。
         # execute() で投げる例外
         self.error = error
         # execute() の結果の .data
@@ -253,6 +254,7 @@ def _events_sb_missing() -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. イベントの存在確認（select().eq().single().execute()）が PGRST116 を投げる admin_supabase のモック。
     # 変数の内容: sb: Supabase クライアントまたはそのモック。
     sb = MagicMock()
     # 変数の内容: sb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect: モック呼び出し時に返す例外または副作用。
@@ -471,6 +473,7 @@ def _send(method: str, path: str, body: dict | None):
     Returns:
         応答
     """
+    # 1. 管理者として API を呼ぶ。
     # 変数の内容: client: テスト対象の API クライアント。
     client = TestClient(app)
     if body is None:

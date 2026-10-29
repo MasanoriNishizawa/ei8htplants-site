@@ -920,6 +920,7 @@ class TestEventSessions:
             Returns:
                 なし。
             """
+            # 1. テーブル名に応じて異なるモックを返す。
             # 変数の内容: tbl_mock: 対象テーブルのクエリモック。
             tbl_mock = MagicMock()
             if name == 'ws_sessions':
@@ -996,6 +997,7 @@ class TestEventSessions:
             Returns:
                 なし。
             """
+            # 1. テーブル名に応じて適切なモックを返す。
             # 変数の内容: tbl_mock: 対象テーブルのクエリモック。
             tbl_mock = MagicMock()
             if name == 'ws_sessions':

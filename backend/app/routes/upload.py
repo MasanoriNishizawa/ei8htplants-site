@@ -214,6 +214,7 @@ def upload_image(file: UploadFile = File(...), _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(400): 非対応のファイル形式・中身が形式と違う・サイズ超過の場合
     """
+    # 1. 画像ファイルをSupabaseストレージにアップロードし、公開URLを返す（管理者のみ）。
     return _store(file, _IMAGE)
 
 
@@ -233,4 +234,5 @@ def upload_video(file: UploadFile = File(...), _=Depends(require_auth)) -> dict:
     Raises:
         HTTPException(400): 非対応のファイル形式・中身が形式と違う・サイズ超過の場合
     """
+    # 1. 動画ファイルをSupabaseストレージにアップロードし、公開URLを返す（管理者のみ）。
     return _store(file, _VIDEO)

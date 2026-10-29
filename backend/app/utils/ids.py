@@ -16,4 +16,5 @@ def is_uuid(value: str) -> bool:
     Returns:
         UUID の形なら True
     """
+    # 1. 文字列が UUID の形かどうかを返す。
     return bool(UUID_RE.match(value or ''))

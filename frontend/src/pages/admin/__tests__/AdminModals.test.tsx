@@ -57,21 +57,21 @@ afterEach(() => {
 })
 
 /**
- *  モーダル（role=dialog）。閉じていれば null
- * @returns 戻り値なし。
+ * 画面に表示中の編集ダイアログを取得する。
+ * @returns 表示中のダイアログ要素。閉じていれば null
  */
 const dialog = () => screen.queryByRole('dialog')
 
 /**
- *  モーダルの後ろの幕（モーダルの親の固定の div）
- * @returns 戻り値なし。
+ * 表示中のダイアログを覆う背景幕の要素を取得する。
+ * @returns ダイアログの親要素である背景幕
  */
 const backdrop = () => dialog()!.parentElement as HTMLElement
 
 describe('記事の編集モーダル（Articles）', () => {
   /**
-   *  一覧から記事の編集モーダルを開く
-   * @returns 戻り値なし。
+   * 記事一覧から編集ダイアログを開き、表示されていることを確認する。
+     * @returns 描画と表示確認が完了する Promise
    */
   async function openEdit() {
     render(<AdminArticles />)
@@ -158,8 +158,8 @@ describe('記事の編集モーダル（Articles）', () => {
 
 describe('商品の編集モーダル（Products）', () => {
   /**
-   *  新規作成のモーダルを開く
-   * @returns 戻り値なし。
+   * 商品一覧から新規作成ダイアログを開き、表示されていることを確認する。
+     * @returns 描画と表示確認が完了する Promise
    */
   async function openNew() {
     render(<AdminProducts />)

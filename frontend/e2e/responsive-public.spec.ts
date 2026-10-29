@@ -12,6 +12,7 @@ import { test, expect, type Page } from '@playwright/test'
  * @param page - 対象ページ
  * @returns なし。横スクロールがないことを検証する。
  */
+
 async function expectNoHorizontalScroll(page: Page) {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
@@ -25,6 +26,7 @@ async function expectNoHorizontalScroll(page: Page) {
  * @param page - 対象ページ
  * @returns 1 列目（フォーム）と 2 列目（サマリー）の位置と大きさ
  */
+
 async function checkoutColumns(page: Page) {
   const layout = page.locator('.checkout-layout')
   await expect(layout).toBeVisible()
@@ -38,6 +40,7 @@ async function checkoutColumns(page: Page) {
  * @param page - 対象ページ
  * @returns なし。商品をカートに入れて注文手続き画面を表示する。
  */
+
 async function openCheckoutWithItem(page: Page) {
   await page.goto('/official/shop/p-1')
   await page.getByRole('button', { name: /カートに入れる/ }).click()
@@ -45,8 +48,13 @@ async function openCheckoutWithItem(page: Page) {
 }
 
 test.describe('ヘッダーの言語切り替えボタン', () => {
-  test('PC 幅（1280px）では言語切り替えボタンが読み上げ対象として 1 つだけ出る', async ({ page }) => {
-    // 1. 「PC 幅（1280px）では言語切り替えボタンが読み上げ対象として 1 つだけ出る」の期待状態が画面に表示されることを確認する。
+  test('PC 幅（1280px）では言語切り替えボタンが読み上げ対象として 1 つだけ出る', /**
+     * 「/official」を開く、1280×800px幅で表示する、1280px幅の公式トップでヘッダーを表示し、言語切替ボタンが1つだけ存在して操作可能なことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 1280px幅の公式トップで、言語切替ボタンが1つだけ表示されることを確認する。
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto('/official')
     await expect(page.getByRole('banner')).toBeVisible()
@@ -54,7 +62,12 @@ test.describe('ヘッダーの言語切り替えボタン', () => {
     await expect(page.getByRole('button', { name: 'Switch to English' })).toBeVisible()
   })
 
-  test('スマホ幅（375px）ではメニューを開くと言語切り替えボタンがあり、押すと英語になってメニューは開いたまま', async ({ page }) => {
+  test('スマホ幅（375px）ではメニューを開くと言語切り替えボタンがあり、押すと英語になってメニューは開いたまま', /**
+     * 公式トップを375×812pxで開き、メニュー内の言語切替を押すと英語表示に切り替わり、メニューが開いたまま「Menu」と表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/official')
     // 1. 閉じているあいだは読み上げ対象の言語ボタンは無い（PC のナビは隠れている）
@@ -73,7 +86,12 @@ test.describe('ヘッダーの言語切り替えボタン', () => {
 })
 
 test.describe('ブランドホームの見出し（スマホ幅）', () => {
-  test('3ブランドのトップ見出しが画面内に収まり、過度な折り返しや横スクロールがない', async ({ page }) => {
+  test('3ブランドのトップ見出しが画面内に収まり、過度な折り返しや横スクロールがない', /**
+     * 390×844px幅で表示する、ページ幅が表示領域を超えないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
 
     // 1. ブランドごとのトップを開き、見出しが描画されるまで待つ
@@ -111,7 +129,12 @@ test.describe('注文手続き（/official/checkout）の列', () => {
     await page.evaluate(() => localStorage.clear())
   })
 
-  test('スマホ幅（375px）ではフォームの下に注文サマリーが並ぶ 1 列になり、横スクロールが出ない', async ({ page }) => {
+  test('スマホ幅（375px）ではフォームの下に注文サマリーが並ぶ 1 列になり、横スクロールが出ない', /**
+     * 375×812px幅で表示する、ページ幅が表示領域を超えないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await openCheckoutWithItem(page)
     const { form, summary } = await checkoutColumns(page)
@@ -121,7 +144,12 @@ test.describe('注文手続き（/official/checkout）の列', () => {
     await expectNoHorizontalScroll(page)
   })
 
-  test('注文サマリーに商品金額を表示し、都道府県選択後に送料込み合計を更新する', async ({ page }) => {
+  test('注文サマリーに商品金額を表示し、都道府県選択後に送料込み合計を更新する', /**
+     * 1280×900px幅で表示する、「都道府県 *」で選択肢を変更する、「ご注文内容」が画面に表示されること、「Habitat Style Pot S」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 商品をカートに入れた状態で注文画面を開き、小計を確認する
     await page.setViewportSize({ width: 1280, height: 900 })
     await openCheckoutWithItem(page)
@@ -141,7 +169,12 @@ test.describe('注文手続き（/official/checkout）の列', () => {
     await expect(summary.getByText('¥4,600')).toBeVisible()
   })
 
-  test('767px でも 1 列、768px では 2 列（サマリーがフォームの右）になる', async ({ page }) => {
+  test('767px でも 1 列、768px では 2 列（サマリーがフォームの右）になる', /**
+     予約ページを768px幅で表示し、フォームとサマリーが横並びでサマリーがフォーム右側に配置されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 767px 幅で注文画面を開き、1 列配置を確かめる
     await page.setViewportSize({ width: 767, height: 900 })
     await openCheckoutWithItem(page)

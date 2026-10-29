@@ -21,6 +21,7 @@ def _str(value: Any) -> str:
     Returns:
         value が文字列ならそのまま、それ以外は空文字。
     """
+    # 1. 文字列ならそのまま、それ以外（None・数値・dict など）は空文字を返す。
     return value if isinstance(value, str) else ''
 
 
@@ -87,6 +88,7 @@ def format_date_label(start: Any, end: Any) -> str:
         Returns:
             注釈に示した形式の応答（str）。
         """
+        # 1. 日付を年・月・日を含む日本語表記にする。
         return f'{day.year}年{day.month}月{day.day}日'
 
     # 2. 単日・同月・別月の順で画面用の日付表記を選ぶ。
@@ -248,6 +250,7 @@ def organization_json_ld(*, site_name: str, site_origin: str, logo_url: str) -> 
     Returns:
         Organization の dict。
     """
+    # 1. トップページ用の schema.org Organization を作る。
     return {
         '@context': 'https://schema.org',
         '@type': 'Organization',

@@ -89,6 +89,7 @@ def _post_with_mocks(payload: dict, reply_text: str = 'テスト返答'):
     Returns:
         tuple: (レスポンス, genai モック)。genai モックで Gemini が呼ばれたかを確かめる
     """
+    # 1. Gemini・Supabase をモックした状態で POST /api/chat を送る。
     # 変数の内容: mock_genai: Gemini クライアントのモック。
     mock_genai = _make_genai_mock(reply_text)
     with patch('app.routes.chat.genai', mock_genai), \

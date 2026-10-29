@@ -42,6 +42,7 @@ test.beforeEach(async ({ page }) => {
  * @param page - 対象ページ
  * @returns 写真（img）と入れ物（img の親要素）のロケーター
  */
+
 async function findPhoto(page: Page) {
   // 1. 対象イベントの写真（alt = イベント名）を探す
   const img = page.getByRole('img', { name: EVENT_NAME }).first()
@@ -60,6 +61,7 @@ async function findPhoto(page: Page) {
  * @param page - 対象ページ
  * @returns なし
  */
+
 async function expectArrowsCentered(page: Page) {
   const { img, container } = await findPhoto(page)
   // 1. 写真の位置と大きさ
@@ -83,11 +85,17 @@ async function expectArrowsCentered(page: Page) {
 }
 
 for (const vp of VIEWPORTS) {
-  test.describe(`写真の左右矢印の位置（${vp.width}x${vp.height}）`, () => {
+
+    test.describe(`写真の左右矢印の位置（${vp.width}x${vp.height}）`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } })
 
     for (const p of PAGES) {
-      test(`${p.desc}で、前へ・次へのボタンを写真の上下の真ん中に置くと、縦の中心が写真の中心と ±2px で一致する`, async ({ page }) => {
+      test(`${p.desc}で、前へ・次へのボタンを写真の上下の真ん中に置くと、縦の中心が写真の中心と ±2px で一致する`, /**
+         各対象ページを開き、イベント名が表示され、写真送り矢印が画像の縦中央に揃うことを確認する。
+         * @param page 操作・検証対象の Playwright ページ。
+         * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+         */
+        async ({ page }) => {
         // 1. 画面を開き、イベント名が出るまで待つ
         await page.goto(p.path)
         await expect(page.getByText(EVENT_NAME).first()).toBeVisible()
@@ -96,7 +104,12 @@ for (const vp of VIEWPORTS) {
       })
     }
 
-    test('イベントサイトで「次へ」を押して写真が切り替わっても、矢印は写真の上下の真ん中にある', async ({ page }) => {
+    test('イベントサイトで「次へ」を押して写真が切り替わっても、矢印は写真の上下の真ん中にある', /**
+       イベントページで次の写真へ切り替え、切替後の画像と前後矢印の縦位置が画像中央に揃うことを確認する。
+       * @param page 操作・検証対象の Playwright ページ。
+       * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+       */
+      async ({ page }) => {
       // 1. イベントサイトを開く（1枚目は横長 2560x1608、2枚目は 1567x1045 で縦横比が違う）
       await page.goto(`/official/events/${EVENT_ID}`)
       const { img, container } = await findPhoto(page)

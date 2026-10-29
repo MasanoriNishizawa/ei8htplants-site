@@ -5,7 +5,12 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('管理画面の注文管理', () => {
-  test('/admin/orders — 注文0件でも見出し・一覧表・空状態を表示する', async ({ page }) => {
+  test('/admin/orders — 注文0件でも見出し・一覧表・空状態を表示する', /**
+     * 「/admin/orders」を開く、「注文管理」が画面に表示されること、「日時」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. MSW の空の注文一覧を使う管理画面を開く。
     await page.goto('/admin/orders')
 

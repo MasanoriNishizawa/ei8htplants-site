@@ -18,6 +18,7 @@ import logging
 import streamlit as st
 from streamlit.errors import StreamlitSecretNotFoundError
 
+# 変数の内容: logger: Secrets の読み込み失敗を秘密値なしで記録するロガー。
 logger = logging.getLogger(__name__)
 
 

@@ -53,4 +53,5 @@ def list_prefectures() -> list[str]:
     Returns:
         都道府県名のリスト（北から順）
     """
+    # 1. 送料の表にある都道府県の一覧を返す（注文フォームの選択肢用）。
     return PREFECTURES

@@ -537,6 +537,7 @@ class TestEnsureBucket:
         Returns:
             2 回分の応答
         """
+        # 1. JPEG を 2 回アップロードし、応答のリストを返す。
         with patch('app.routes.upload.admin_supabase', mock_admin_sb):
             # 変数の内容: client: テスト対象の API クライアント。
             client = TestClient(app)

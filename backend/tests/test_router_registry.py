@@ -61,6 +61,7 @@ class RecordingRouterApp:
         Returns:
             なし。
         """
+        # 1. 登録呼び出しの記録先を初期化する。
         # 変数の内容: calls: 登録された router object と prefix を順番に保持する一覧。
         self.calls = []
 

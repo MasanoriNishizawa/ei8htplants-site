@@ -97,7 +97,7 @@ export function ProductionCalc({ brand, withPotArtist, plantPlaceholder, potArti
 
   /**
    * 入力内容を登録し、成功したら入力欄を空にする
-   * @returns 登録が終わる Promise
+     * @returns 登録処理が終わる Promise
    */
   const handleRegister = async () => {
     // 1. 必須値がそろい、登録価格を計算できている場合だけ処理を続ける
@@ -217,7 +217,7 @@ export function Ei8htPlantsPurchaseCalc({ plantPlaceholder, maxRate, onRegister 
 
   /**
    * 入力内容を登録し、成功したら入力欄を空にする
-   * @returns 登録が終わる Promise
+     * @returns 登録処理が終わる Promise
    */
   const handleRegister = async () => {
     // 1. 必須値と目標原価率が有効で、登録価格を計算できている場合だけ続ける
@@ -356,7 +356,7 @@ export function SeedlingCalc({ brand, withPot, plantPlaceholder, potArtists, onR
 
   /**
    * 入力内容を登録し、成功したら入力欄を空にする
-   * @returns 登録が終わる Promise
+     * @returns 登録処理が終わる Promise
    */
   const handleRegister = async () => {
     // 1. 必須値がそろい、登録価格を計算できている場合だけ処理を続ける
@@ -605,12 +605,12 @@ export function PlantPotCalc({ brand, withPotArtist, plantPlaceholder, potArtist
 }
 
 /**
- * 目標原価率（%）の入力欄（仕入れで使う）。ブランドごとの設定で、値は親（PriceCalc）が持つ
- * 書きかけの確認（useUnsavedChanges）の対象にはしない（登録する内容ではなく、計算の設定のため）
- * @param value - 入力欄の文字列（% の数値）
- * @param onChange - 入力が変わったときのコールバック
- * @param brand - 表示中のブランド（「（既定値）% に戻す」の既定値に使う）
- * @returns 項目名・入力欄・「（既定値）% に戻す」ボタン・正しくない値のときの案内
+ * 仕入れ価格計算で使う目標原価率の入力欄を表示し、ブランド既定値への復帰操作を提供する。
+ * 値は親の PriceCalc が保持し、登録内容ではなく計算設定のため未保存確認の対象にしない。
+ * @param value - 入力欄の原価率。パーセント値を文字列で受け取る
+ * @param onChange - 入力値または既定値への変更を親へ通知するコールバック
+ * @param brand - 既定原価率の決定に使うブランド
+ * @returns 原価率の入力欄、既定値への復帰ボタン、無効値の案内
  */
 export function CostRateField({ value, onChange, brand }: { value: string; onChange: (v: string) => void; brand: Brand }) {
   /** そのブランドの既定値の入力（ei8ht plants は '33.4'、ほかは '40'） */

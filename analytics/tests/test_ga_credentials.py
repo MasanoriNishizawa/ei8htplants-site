@@ -34,8 +34,11 @@ from lib.ga import (
 
 # 架空の鍵の中身（本物の鍵ではない。エラーメッセージやキャッシュのキーに出ていないかの目印に使う）
 FAKE_PRIVATE_KEY_BODY = "FAKE-PRIVATE-KEY-BODY-FOR-TEST-ONLY"
+# 認証情報の形式を再現する架空の秘密鍵。実在する鍵は含めない
 FAKE_PRIVATE_KEY = f"-----BEGIN PRIVATE KEY-----\n{FAKE_PRIVATE_KEY_BODY}\n-----END PRIVATE KEY-----\n"
+# 認証情報JSONに含める架空の鍵ID
 FAKE_PRIVATE_KEY_ID = "fake-private-key-id-0123456789"
+# 認証情報JSONに含める架空サービスアカウント
 FAKE_CLIENT_EMAIL = "fake-sa@fake-project.iam.gserviceaccount.com"
 
 # 架空のサービスアカウントの鍵（鍵ファイルの中身と同じ形）
@@ -240,6 +243,7 @@ def key_file(tmp_path):
     Returns:
         鍵ファイルの場所
     """
+    # 変数の内容: path: テスト用の架空 GA 鍵ファイルのパス。
     path = tmp_path / "fake-ga-service-account.json"
     path.write_text(FAKE_KEY_JSON, encoding="utf-8")
     return path
@@ -257,6 +261,7 @@ def test_GA_CREDENTIALS_JSONとGA_CREDENTIALSの両方があるとJSONを優先�
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     # 1. 設定は作られ、鍵ファイルの場所は使わない
     assert problem is None
@@ -276,6 +281,7 @@ def test_GA_CREDENTIALS_JSONだけでも設定が作られる(monkeypatch):
     # 1. GA CREDENTIALS JSONだけでも設定が作られることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert problem is None
     assert cfg.credentials_ref == JSON_CREDENTIALS_REF
@@ -293,6 +299,7 @@ def test_GA_CREDENTIALSのパスだけだと鍵ファイルの場所が目印に
     # 1. GA CREDENTIALSのパスだけだと鍵ファイルの場所が目印になることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert problem is None
     assert cfg.credentials_path == key_file
@@ -312,6 +319,7 @@ def test_GA_CREDENTIALS_JSONが空白だけなら無いものとしてパスを�
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, "  \n  ")
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert problem is None
     assert cfg.credentials_ref == str(key_file)
@@ -327,6 +335,7 @@ def test_鍵がどちらも無いと両方の名前を挙げたメッセージ�
         なし。"""
     # 1. 鍵がどちらも無いと両方の名前を挙げたメッセージが返ることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert cfg is None
     assert "GA の鍵が設定されていません" in problem
@@ -345,6 +354,7 @@ def test_GA_CREDENTIALSの場所にファイルが無いとメッセージが返
     # 1. GA CREDENTIALSの場所にファイルが無いとメッセージが返ることを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(tmp_path / "missing.json"))
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert cfg is None
     assert problem == "GA_CREDENTIALS に書いた場所に鍵ファイルが見つかりません。"
@@ -361,6 +371,7 @@ def test_GA_CREDENTIALS_JSONが壊れていると読めない理由が返り中�
     # 1. GA CREDENTIALS JSONが壊れていると読めない理由が返り中身は出ないことを確認する。
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON[:-5])
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert cfg is None
     assert "GA_CREDENTIALS_JSON を JSON として読めません" in problem
@@ -381,6 +392,7 @@ def test_GA_CREDENTIALS_JSONが壊れているとパスが正しくてもパス�
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv("GA_CREDENTIALS", str(key_file))
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, json.dumps({**FAKE_KEY_INFO, "type": "authorized_user"}))
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert cfg is None
     assert "サービスアカウントの鍵ではありません" in problem
@@ -397,6 +409,7 @@ def test_GA_CREDENTIALS_JSONがあってもプロパティIDが無ければプ�
         なし。"""
     # 1. GA CREDENTIALS JSONがあってもプロパティIDが無ければプロパティIDのメッセージが返ることを確認する。
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert cfg is None
     assert "GA_PROPERTY_ID が設定されていません" in problem
@@ -414,7 +427,9 @@ def credentials_factories(monkeypatch):
 
     Args:
         monkeypatch: 依存値を一時差し替えする pytest フィクスチャ。"""
+    # 変数の内容: from_info: JSON形式の認証情報を生成するモック。
     from_info = MagicMock(return_value="credentials-from-info")
+    # 変数の内容: from_file: 鍵ファイルから認証情報を生成するモック。
     from_file = MagicMock(return_value="credentials-from-file")
     monkeypatch.setattr(service_account.Credentials, "from_service_account_info", from_info)
     monkeypatch.setattr(service_account.Credentials, "from_service_account_file", from_file)
@@ -430,6 +445,7 @@ def test_envの目印を渡すとGA_CREDENTIALS_JSONの中身から読み取り�
 
     Returns:
         なし。"""
+    # 変数の内容: from_info: JSON形式の認証情報を生成するモック。；from_file: 鍵ファイルから認証情報を生成するモック。
     from_info, from_file = credentials_factories
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
     assert load_credentials(JSON_CREDENTIALS_REF) == "credentials-from-info"
@@ -507,6 +523,7 @@ def fake_client(monkeypatch):
     # 変数の内容: client: テスト対象 API を呼び出す TestClient。
     client = MagicMock()
     client.run_report.return_value = MagicMock(rows=[])
+    # 変数の内容: make_client: GA API クライアント生成を置き換えるモック。
     make_client = MagicMock(return_value=client)
     monkeypatch.setattr(ga, "_client", make_client)
     yield make_client
@@ -558,12 +575,14 @@ def test_run_reportのキャッシュのキーに鍵の中身が入らない(mon
         なし。"""
     monkeypatch.setenv("GA_PROPERTY_ID", FAKE_PROPERTY_ID)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；_: 設定エラーがなかったことを示す None。
     cfg, _ = ga_config()
     # 2. traffic.py と同じ呼び方で取得する
     df = ga.run_report(cfg.property_id, cfg.credentials_ref, ("date",), ("sessions",), "28daysAgo", "today", None, 1000)
     assert list(df.columns) == ["date", "sessions"]
     # 3. キャッシュのキーに使われた引数は目印だけで、鍵の中身は含まれない
     assert len(cache_key_args) == 1
+    # 変数の内容: key_text: キャッシュキー引数を文字列にした検査対象。
     key_text = repr(cache_key_args)
     assert JSON_CREDENTIALS_REF in key_text
     _assert_no_secret(key_text)
@@ -584,6 +603,7 @@ def test_GA_CREDENTIALS_JSONの中身を変えても同じ引数ならキャッ�
         なし。"""
     # 1. GA CREDENTIALS JSONの中身を変えても同じ引数ならキャッシュが使われることを確認する。
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, FAKE_KEY_JSON)
+    # 変数の内容: args: GA レポート取得に渡す、秘密値を含まない引数の組。
     args = (FAKE_PROPERTY_ID, JSON_CREDENTIALS_REF, (), ("activeUsers",), "7daysAgo")
     ga.run_report(*args)
     monkeypatch.setenv(CREDENTIALS_JSON_ENV, json.dumps({**FAKE_KEY_INFO, "private_key_id": "another-fake-id"}))
@@ -600,6 +620,7 @@ def test_trafficの画面はrun_reportに鍵の中身ではなくcredentials_ref
     # 1. trafficの画面はrun reportに鍵の中身ではなくcredentials refを渡していることを確認する。
     from pathlib import Path
 
+    # 変数の内容: source: アクセス解析画面のソースコード。
     source = (Path(__file__).resolve().parents[1] / "views" / "traffic.py").read_text(encoding="utf-8")
     assert "run_report(cfg.property_id, cfg.credentials_ref," in source
     assert "GA_CREDENTIALS_JSON\")" not in source and "os.getenv" not in source

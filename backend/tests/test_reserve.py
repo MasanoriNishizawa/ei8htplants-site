@@ -76,6 +76,7 @@ def _make_supabase_mock() -> MagicMock:
     Returns:
         supabase モジュールのモック
     """
+    # 1. supabase のモックを生成して返す（公開イベント情報取得用）。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # table('events').select(...).eq(...).single().execute().data → FUTURE_EVENT
@@ -92,6 +93,7 @@ def _make_admin_sb_for_create() -> MagicMock:
     Returns:
         admin_supabase モジュールのモック
     """
+    # 1. 予約作成用の admin_supabase モックを生成して返す。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # table('workshop_reservations').insert(...).execute().data[0]

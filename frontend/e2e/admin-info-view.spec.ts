@@ -24,6 +24,7 @@ const FIXED_NOW = new Date('2026-10-16T12:00:00+09:00')
  * @param page - 対象ページ（goto より前に呼ぶ）
  * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
+
 async function useFakeAdminSession(page: Page) {
   // 1. Supabase（認証・DB）への通信をすべて遮断する
   await page.context().route(/supabase\.co/, (route) => route.abort())
@@ -50,6 +51,7 @@ async function useFakeAdminSession(page: Page) {
  * @param page - 対象ページ
  * @returns なし。横スクロールがないことを検証する。
  */
+
 async function expectNoHorizontalScroll(page: Page) {
   const sizes = await page.evaluate(() => {
     const main = document.querySelector('main')
@@ -73,6 +75,7 @@ async function expectNoHorizontalScroll(page: Page) {
  * @param label - 失敗時のメッセージに出す要素名
  * @returns なし。要素が画面の横幅内に収まることを検証する。
  */
+
 async function expectWithinViewportX(page: Page, locator: Locator, label: string) {
   await locator.scrollIntoViewIfNeeded()
   const box = await locator.boundingBox()
@@ -89,6 +92,7 @@ async function expectWithinViewportX(page: Page, locator: Locator, label: string
  * @param label - 行のラベル
  * @returns 確認画面で指定したラベルを持つ行の Locator。
  */
+
 function viewRow(page: Page, label: string): Locator {
   return page.getByText(label, { exact: true }).last().locator('..')
 }
@@ -100,6 +104,7 @@ function viewRow(page: Page, label: string): Locator {
  * @param tag - 取り出す要素（input または select）
  * @returns 指定したラベルに対応する input または select の Locator。
  */
+
 function editField(page: Page, label: string, tag: 'input' | 'select' = 'input'): Locator {
   return page.locator('label').filter({ hasText: new RegExp(`^${label}$`) }).locator('..').locator(tag)
 }
@@ -110,6 +115,7 @@ function editField(page: Page, label: string, tag: 'input' | 'select' = 'input')
  * @param page - 編集画面を開いたページ
  * @returns なし。管理情報を入力して保存し、確認画面を表示する。
  */
+
 async function fillAllAndSave(page: Page) {
   // 1. 搬入・搬出の日付・時・分
   const dates = page.locator('input[type="date"]')
@@ -140,6 +146,7 @@ async function fillAllAndSave(page: Page) {
  * @param name - ファイル名（拡張子なし）
  * @returns なし。指定名の画面キャプチャを保存する。
  */
+
 async function saveScreenshots(page: Page, name: string) {
   // 1. 開いたときに見える範囲
   await page.evaluate(() => document.querySelector('main')?.scrollTo(0, 0))
@@ -162,7 +169,12 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('管理情報 — 確認画面と編集画面の行き来', () => {
-  test('一覧 →「管理情報」→ 確認画面 →「編集」→ 保存 → 確認画面に「保存しました」と新しい値 →「← 戻る」で一覧に戻る', async ({ page }) => {
+  test('一覧 →「管理情報」→ 確認画面 →「編集」→ 保存 → 確認画面に「保存しました」と新しい値 →「← 戻る」で一覧に戻る', /**
+     * 「/admin/events」を開く、「管理情報」をクリックする、「編集」をクリックする、「管理情報」が画面に表示されること、「要項の画像（3 枚）」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. イベント一覧から対象イベントの「管理情報」を押す
     await page.goto('/admin/events')
     const listRow = page.getByText(EVENT_NAME, { exact: true }).locator('../..')
@@ -207,7 +219,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page.getByText(EVENT_NAME, { exact: true })).toBeVisible()
   })
 
-  test('編集画面の「← 戻る」は保存せずに確認画面へ戻り、確認画面の「← 戻る」は一覧へ戻る', async ({ page }) => {
+  test('編集画面の「← 戻る」は保存せずに確認画面へ戻り、確認画面の「← 戻る」は一覧へ戻る', /**
+     * 「/admin/events」を開く、「管理情報」をクリックする、「編集」をクリックする、「未保存の変更があります」が画面に表示されること、URLが「\/admin\/events$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 一覧 → 確認画面 → 編集画面
     await page.goto('/admin/events')
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
@@ -235,7 +252,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page).toHaveURL(/\/admin\/events$/)
   })
 
-  test('未保存の変更があるとき「← 戻る」の確認ダイアログでキャンセルすると編集画面に留まり、入力も残る', async ({ page }) => {
+  test('未保存の変更があるとき「← 戻る」の確認ダイアログでキャンセルすると編集画面に留まり、入力も残る', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「要項の文章」へ入力する、「← 戻る」をクリックする、「要項の画像（3 枚）」が画面に表示されること、要項の文章を編集して戻る操作を行い、要項画像と未保存確認が表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
     // 1. 変更なしでは「未保存の変更があります」は出ない
@@ -254,7 +276,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page.getByLabel('要項の文章')).toHaveValue('文章だけ変更')
   })
 
-  test('変更が無いとき編集画面の「← 戻る」は確認ダイアログを出さずに確認画面へ戻る', async ({ page }) => {
+  test('変更が無いとき編集画面の「← 戻る」は確認ダイアログを出さずに確認画面へ戻る', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「← 戻る」をクリックする、「要項の画像（3 枚）」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 未変更の編集画面を開き、確認ダイアログを監視する
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
@@ -267,7 +294,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     expect(dialogShown).toBe(false)
   })
 
-  test('保存後にブラウザの「戻る」を押しても編集画面には戻らず、確認画面 → イベント一覧の順に戻る（保存後の遷移が replace）', async ({ page }) => {
+  test('保存後にブラウザの「戻る」を押しても編集画面には戻らず、確認画面 → イベント一覧の順に戻る（保存後の遷移が replace）', /**
+     * 「/admin/events」を開く、「管理情報」をクリックする、「編集」をクリックする、イベント一覧から管理情報の確認・編集画面へ進み、保存後に確認画面へ戻ることを確かめる。ブラウザの戻る操作では編集画面を再表示せず、イベント一覧へ戻ることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 一覧 → 確認画面 →「編集」→ 編集画面
     await page.goto('/admin/events')
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
@@ -292,7 +324,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page.getByText(EVENT_NAME, { exact: true })).toBeVisible()
   })
 
-  test('編集画面の「← 戻る」の後にブラウザの「戻る」を押しても編集画面には戻らない（「← 戻る」が replace）。確認画面の「編集」は push なので戻ると確認画面', async ({ page }) => {
+  test('編集画面の「← 戻る」の後にブラウザの「戻る」を押しても編集画面には戻らない（「← 戻る」が replace）。確認画面の「編集」は push なので戻ると確認画面', /**
+     * 「/admin/events」を開く、「管理情報」をクリックする、「編集」をクリックする、「保存する」が画面に表示されること、管理情報の編集画面へ移動し、保存ボタンが表示されていることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 一覧 → 確認画面 →「編集」
     await page.goto('/admin/events')
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
@@ -318,7 +355,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page).toHaveURL(/\/admin\/events$/)
   })
 
-  test('管理情報の出店料が未入力のとき、確認画面は収支の出店料（モック 50,000円）を「（収支から）」付きで表示し、収支 0 の宿泊料金は「未入力」', async ({ page }) => {
+  test('管理情報の出店料が未入力のとき、確認画面は収支の出店料（モック 50,000円）を「（収支から）」付きで表示し、収支 0 の宿泊料金は「未入力」', /**
+     イベントの管理情報画面を開き、出店料に収支由来の50,000円、宿泊料金に「未入力」、支払い状況に「未払い」を表示することを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // MSW の mock-past-1 の収支は booth_fee: 50000・accommodation: 0、管理情報は出店要項だけ
     await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
     await expect(viewRow(page, '出店料')).toContainText('50,000円（収支から）')
@@ -327,13 +369,23 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(viewRow(page, '支払い状況')).toContainText('未払い')
   })
 
-  test('URL を直接開いた（遷移元なし）確認画面の「← 戻る」はイベント一覧へ戻る', async ({ page }) => {
-    // 1. 「URL を直接開いた（遷移元なし）確認画面の「← 戻る」はイベント一覧へ戻る」の期待状態が画面に表示されることを確認する。
+  test('URL を直接開いた（遷移元なし）確認画面の「← 戻る」はイベント一覧へ戻る', /**
+     * 「/admin/events/…/admin-info」を開く、管理情報確認ページを直接開き、「戻る」がイベント一覧へ遷移することを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 遷移元なしで管理情報確認URLを開き、「← 戻る」を押すとイベント一覧へ戻ることを確認する。
     await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
     await expect(page.getByRole('link', { name: '← 戻る' })).toHaveAttribute('href', '/admin/events')
   })
 
-  test('保存後に再読み込みしても「保存しました」は出ない（履歴から saved が消えている）', async ({ page }) => {
+  test('保存後に再読み込みしても「保存しました」は出ない（履歴から saved が消えている）', /**
+     * 「/admin/events/…/admin-info/edit」を開く、入力欄へ値を入力する、「保存する」をクリックする、「管理情報」が画面に表示されること、「要項の画像（3 枚）」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 編集画面から保存して確認画面へ
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await editField(page, 'ホテル名').fill('再読み込み確認')
@@ -347,7 +399,13 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page.getByRole('status')).toHaveCount(0)
   })
 
-  test('全項目を入力して保存すると、搬入・搬出（曜日つき）・金額・支払い方法・期限・「期限切れ」・メモが確認画面に表示される', async ({ page }) => {
+  test('全項目を入力して保存すると、搬入・搬出（曜日つき）・金額・支払い方法・期限・「期限切れ」・メモが確認画面に表示される', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「搬入日時」が画面に表示されること、「台車を持参する」に「台車を持参する
+駐車場は会場裏」が表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 管理情報の編集画面を開き、全項目を入力して保存する
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('搬入日時')).toBeVisible()
@@ -368,15 +426,25 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page.getByText(/台車を持参する/)).toHaveText('台車を持参する\n駐車場は会場裏')
   })
 
-  test('管理情報が未入力のイベントの確認画面では「まだ管理情報が登録されていません」が出る', async ({ page }) => {
-    // 1. 「管理情報が未入力のイベントの確認画面では「まだ管理情報が登録されていません」が出る」の期待状態が画面に表示されることを確認する。
+  test('管理情報が未入力のイベントの確認画面では「まだ管理情報が登録されていません」が出る', /**
+     * 「/admin/events/…/admin-info」を開く、「まだ管理情報が登録されていません」が画面に表示されること、未登録案内の下に編集操作が表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 管理情報未登録のイベントを開き、未登録案内と編集ボタンが表示されることを確認する。
     await page.goto(`/admin/events/${EMPTY_EVENT_ID}/admin-info`)
     await expect(page.getByText(/まだ管理情報が登録されていません/)).toBeVisible()
     await expect(viewRow(page, '支払い状況')).toContainText('未入力')
     await expect(page.getByRole('link', { name: '編集' })).toHaveCount(2)
   })
 
-  test('確認画面で出店要項のサムネイルを押すと拡大表示が開き、閉じるで閉じる', async ({ page }) => {
+  test('確認画面で出店要項のサムネイルを押すと拡大表示が開き、閉じるで閉じる', /**
+     * 「/admin/events/…/admin-info」を開く、「出店要項の画像 2 を拡大表示」をクリックする、「次へ」をクリックする、「2 / 3」が画面に表示されること、「3 / 3」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 確認画面で2枚目のサムネイルを拡大する
     await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
     await page.getByRole('button', { name: '出店要項の画像 2 を拡大表示' }).click()
@@ -395,7 +463,12 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
 test.describe('管理情報の確認画面 — スマホ幅（375x812）', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
-  test('確認画面で横スクロールが出ず、戻る・編集ボタン・サムネイルが画面内に収まる', async ({ page }) => {
+  test('確認画面で横スクロールが出ず、戻る・編集ボタン・サムネイルが画面内に収まる', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「搬入日時」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 全項目を入れた状態の確認画面にする
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('搬入日時')).toBeVisible()
@@ -424,8 +497,13 @@ test.describe('管理情報の確認画面 — スマホ幅（375x812）', () =>
     await saveScreenshots(page, 'admin-info-view-375x812')
   })
 
-  test('編集画面でも横スクロールが出ない', async ({ page }) => {
-    // 1. 「編集画面でも横スクロールが出ない」の期待状態が画面に表示されることを確認する。
+  test('編集画面でも横スクロールが出ない', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「要項の画像（3 枚）」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 管理情報編集画面を表示し、入力欄がビューポート幅に収まり横スクロールがないことを確認する。
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
     await expectNoHorizontalScroll(page)
@@ -433,8 +511,13 @@ test.describe('管理情報の確認画面 — スマホ幅（375x812）', () =>
     await expectWithinViewportX(page, page.getByRole('button', { name: '保存する' }), '保存するボタン')
   })
 
-  test('全部未入力の確認画面でも横スクロールが出ない（スクリーンショットも保存）', async ({ page }) => {
-    // 1. 「全部未入力の確認画面でも横スクロールが出ない（スクリーンショットも保存）」の期待状態が画面に表示されることを確認する。
+  test('全部未入力の確認画面でも横スクロールが出ない（スクリーンショットも保存）', /**
+     * 「/admin/events/…/admin-info」を開く、「まだ管理情報が登録されていません」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 全項目未入力の管理情報確認画面で横スクロールが発生しないことを確認し、画面キャプチャを保存する。
     await page.goto(`/admin/events/${EMPTY_EVENT_ID}/admin-info`)
     await expect(page.getByText(/まだ管理情報が登録されていません/)).toBeVisible()
     await expectNoHorizontalScroll(page)
@@ -445,7 +528,12 @@ test.describe('管理情報の確認画面 — スマホ幅（375x812）', () =>
 test.describe('管理情報の確認画面 — デスクトップ幅（1280x800）', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
-  test('確認画面の見た目のスクリーンショットを保存する（全項目入力・保存直後の「保存しました」あり）', async ({ page }) => {
+  test('確認画面の見た目のスクリーンショットを保存する（全項目入力・保存直後の「保存しました」あり）', /**
+     * 「/admin/events/…/admin-info/edit」を開く、「搬入日時」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await expect(page.getByText('搬入日時')).toBeVisible()
     await fillAllAndSave(page)

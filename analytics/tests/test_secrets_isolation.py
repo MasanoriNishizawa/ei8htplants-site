@@ -25,6 +25,7 @@ def test_secretsを探す場所は空の一時フォルダだけで本物の場�
 
     Returns:
         なし。"""
+    # 変数の内容: files: Streamlit が参照する Secrets ファイル一覧。
     files = st_config.get_option("secrets.files")
     # 1. 探す場所は1つだけで、本物の場所ではない
     assert len(files) == 1
@@ -57,6 +58,7 @@ def test_本物のsecrets_tomlを読もうとすると仕掛けが止めて記�
 
     Returns:
         なし。"""
+    # 変数の内容: real: 隔離テストで監視する本物の Secrets パス。
     real = str(REAL_SECRETS_FILES[index])
     # 1. 読もうとすると例外になり、中身は返らない
     with pytest.raises(AssertionError, match="本物の secrets.toml"):
@@ -104,7 +106,7 @@ def test_app_pyをAppTestで描いても本物のsecrets_tomlを読まない(iso
 
     Returns:
         なし。"""
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = AppTest.from_file(APP_PATH, default_timeout=30).run()
     assert not at.exception
     # 2. 本物の場所は読もうともしていない

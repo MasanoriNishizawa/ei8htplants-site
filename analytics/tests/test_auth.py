@@ -24,8 +24,11 @@ from lib.auth import (
 
 # テストで使う架空の接続情報とアカウント
 URL = "https://fake-project.example.invalid"
+# 認証リクエストに渡す架空 anon キー
 ANON = "fake-anon-key-for-test"
+# 認証に使う架空アカウントのメールアドレス
 EMAIL = "admin@example.com"
+# 認証に使う架空パスワード
 PASSWORD = "S3cret-Pass!word"
 
 
@@ -40,7 +43,7 @@ def _response(status: int, body=None, json_error: bool = False) -> MagicMock:
     Returns:
         応答のモック
     """
-    # 変数の内容: res: テスト対象処理が返した応答または結果。
+    # 変数の内容: res: requests.post の応答を模したオブジェクト。
     res = MagicMock()
     res.status_code = status
     if json_error:
@@ -153,6 +156,7 @@ def test_authenticate_タイムアウトや接続エラーは通信エラーの�
         なし。"""
     # 1. authenticate タイムアウトや接続エラーは通信エラーのメッセージになり資格情報エラーと区別されることを確認する。
     post.side_effect = exc
+    # 変数の内容: ok: 認証が成功したかを示す結果。；msg: 認証処理が返した表示用メッセージ。
     ok, msg = authenticate(EMAIL, PASSWORD, URL, ANON)
     assert ok is False
     assert msg == MSG_NETWORK_ERROR
@@ -169,6 +173,7 @@ def test_authenticate_送信先URL_apikeyヘッダー_本文_timeout10秒が正�
         なし。"""
     authenticate(EMAIL, PASSWORD, URL, ANON)
     post.assert_called_once()
+    # 変数の内容: args, kwargs: モックされた HTTP 呼び出しの位置引数と名前付き引数。
     args, kwargs = post.call_args
     # 1. 送信先は {url}/auth/v1/token、grant_type=password はクエリで渡す
     assert args[0] == f"{URL}/auth/v1/token"
@@ -208,6 +213,7 @@ def test_authenticate_service_roleキーではなく渡されたanonキーだけ
     # 1. authenticate service roleキーではなく渡されたanonキーだけを使うことを確認する。
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "fake-service-role-should-not-be-used")
     authenticate(EMAIL, PASSWORD, URL, ANON)
+    # 変数の内容: headers: 認証リクエストの HTTP ヘッダー。
     headers = post.call_args.kwargs["headers"]
     assert "fake-service-role-should-not-be-used" not in str(headers)
     assert "Authorization" not in headers
@@ -337,6 +343,7 @@ def test_is_allowed_空の要素が混ざっていても空文字のメールは
 
 # ---------------------------------------------------------------- is_locked
 
+# ロック期間を比較するときに固定する架空の現在時刻（秒）
 NOW = 1_000_000.0
 
 

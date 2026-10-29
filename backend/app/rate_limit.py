@@ -36,6 +36,7 @@ class RateLimiter:
         Returns:
             なし。作成した設定をインスタンスに保存する。
         """
+        # 1. 回数制限の条件と、受付履歴を保護する同期用の状態を初期化する。
         # window 秒の間に受け付ける最大回数
         self.limit = limit
         # 数える期間（秒）
@@ -158,8 +159,11 @@ PUBLIC_WRITE_WINDOW = 60
 
 # API ごとの回数制限（別の API の回数を食い合わないよう分けている）
 contact_limiter = RateLimiter(PUBLIC_WRITE_LIMIT, PUBLIC_WRITE_WINDOW)
+# 予約作成 API の IP ごとの受付回数を記録する制限器。
 reserve_limiter = RateLimiter(PUBLIC_WRITE_LIMIT, PUBLIC_WRITE_WINDOW)
+# 予約キャンセル API の IP ごとの受付回数を記録する制限器。
 cancel_limiter = RateLimiter(PUBLIC_WRITE_LIMIT, PUBLIC_WRITE_WINDOW)
+# 注文作成 API の IP ごとの受付回数を記録する制限器。
 order_limiter = RateLimiter(PUBLIC_WRITE_LIMIT, PUBLIC_WRITE_WINDOW)
 
 

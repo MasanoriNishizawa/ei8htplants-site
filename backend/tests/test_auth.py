@@ -28,6 +28,7 @@ def _make_auth_supabase_mock(user_obj=None, raise_exc: Exception = None) -> Magi
     Returns:
         supabase モック
     """
+    # 1. app.auth.supabase のモックを作成して返す。
     # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのモック。
     mock_auth_sb = MagicMock()
     if raise_exc is not None:

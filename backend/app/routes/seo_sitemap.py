@@ -150,6 +150,7 @@ def _urlset(entries: list[str]) -> str:
     Returns:
         注釈に示した形式の応答（str）。
     """
+    # 1. URL 要素の並びを既存形式の urlset 文書にする。
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

@@ -28,6 +28,7 @@ from .data import ENV_PATH
 # すでに環境変数にある値（Community Cloud の Secrets など）は上書きしない。.env が無ければ何もしない
 load_dotenv(ENV_PATH)
 
+# 変数の内容: logger: 認証処理で機密値を避けたエラー情報を記録するロガー。
 logger = logging.getLogger(__name__)
 
 # Supabase Auth への通信の待ち時間（秒）
@@ -51,8 +52,11 @@ SESSION_PASSWORD_INPUT = "auth_password_input"
 
 # 画面に出すメッセージ
 MSG_BAD_CREDENTIALS = "メールアドレスまたはパスワードが違います。"
+# 通信に失敗したときにログイン画面へ出す案内文
 MSG_NETWORK_ERROR = "認証サーバーに接続できませんでした。時間をおいてもう一度お試しください。"
+# ログインは成功したが閲覧許可リストに含まれないときの案内文
 MSG_NOT_ALLOWED = "このアカウントでは閲覧できません。"
+# 連続失敗による一時ロック中に表示する案内文
 MSG_LOCKED = "ログインの失敗が続いたため、しばらく待ってからもう一度お試しください。"
 
 

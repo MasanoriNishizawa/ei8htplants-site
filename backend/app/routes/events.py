@@ -70,6 +70,7 @@ class EventBody(BaseModel):
         Returns:
             空文字なら None、それ以外はそのまま
         """
+        # 1. 画面から空文字で送られた任意の項目を None（未設定）にする。
         return None if v == '' else v
 
 
@@ -225,6 +226,7 @@ def list_all_finances(_=Depends(require_auth)) -> list[dict]:
     Args:
         _: 認証依存として注入される値（この関数では使用しません）。
     """
+    # 1. 全イベントの収支情報一覧を返す（管理者のみ）。
     return admin_supabase.table('event_finances').select('*').execute().data
 
 

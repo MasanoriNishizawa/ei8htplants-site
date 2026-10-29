@@ -30,6 +30,7 @@ def list_pot_artists() -> list[dict]:
     Returns:
         鉢作家の行のリスト
     """
+    # 1. 鉢作家の一覧を登録順で返す。
     return supabase.table('pot_artists').select('*').order('created_at').execute().data
 
 
@@ -44,6 +45,7 @@ def add_pot_artist(body: PotArtistBody, _=Depends(require_auth)) -> dict:
     Returns:
         作成した行
     """
+    # 1. 鉢作家を追加する（管理者のみ）。
     return admin_supabase.table('pot_artists').insert(body.model_dump()).execute().data[0]
 
 

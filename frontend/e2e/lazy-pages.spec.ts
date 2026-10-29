@@ -9,6 +9,7 @@ import { test, expect, type Page } from '@playwright/test'
  * @param page - 対象ページ
  * @returns エラーの文を入れていく配列
  */
+
 function collectPageErrors(page: Page): string[] {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
@@ -20,6 +21,7 @@ function collectPageErrors(page: Page): string[] {
  * @param page - 対象ページ
  * @returns なし。読み込み中表示が消え、ページが表示されたことを検証する。
  */
+
 async function expectLoaded(page: Page) {
   await expect(page.getByRole('status').filter({ hasText: /読み込み中\.\.\.|Loading\.\.\./ })).toHaveCount(0)
 }
@@ -29,6 +31,7 @@ async function expectLoaded(page: Page) {
  * @param page - 対象ページ
  * @returns なし。横スクロールがないことを検証する。
  */
+
 async function expectNoHorizontalScroll(page: Page) {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
@@ -50,7 +53,12 @@ const HEADER_STEPS: { link: string; path: RegExp; title: string }[] = [
 ]
 
 test.describe('画面ごとの読み込みにしたあとの公開ページの移動', () => {
-  test('トップからヘッダーのリンクで主要ページを順に開くと、それぞれのページが表示される', async ({ page }) => {
+  test('トップからヘッダーのリンクで主要ページを順に開くと、それぞれのページが表示される', /**
+     * 公式トップからヘッダーの各リンクを順に選び、遷移先のURL・ページタイトル・ナビゲーションが一致し、エラーが記録されないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 公開 HOME から各ヘッダーリンクを順にたどる
     const errors = collectPageErrors(page)
     await page.goto('/official')
@@ -67,7 +75,12 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     expect(errors).toEqual([])
   })
 
-  test('ヘッダーの Shop から Journal・Shop へ移っても表示される（StoreLayout）', async ({ page }) => {
+  test('ヘッダーの Shop から Journal・Shop へ移っても表示される（StoreLayout）', /**
+     * 「/official」を開く、「Shop」をクリックする、「Journal」をクリックする、URLが「\/official\/shop$」になること、URLが「\/official\/journal$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. Shop を開いた後、Journal へ移動する
     const errors = collectPageErrors(page)
     await page.goto('/official')
@@ -82,15 +95,25 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     expect(errors).toEqual([])
   })
 
-  test('右下のチャットボタンから AI コンシェルジュを開くとタイトルが二重にならない', async ({ page }) => {
-    // 1. 「右下のチャットボタンから AI コンシェルジュを開くとタイトルが二重にならない」の期待状態が画面に表示されることを確認する。
+  test('右下のチャットボタンから AI コンシェルジュを開くとタイトルが二重にならない', /**
+     * 公式トップの右下にあるチャットボタンからAIコンシェルジュを開き、チャットURLとサイト名を含むページタイトルが一度だけ表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 公式トップのチャットボタンから遷移し、チャットURLとサイト名入りタイトルが表示されることを確認する。
     await page.goto('/official')
     await page.locator('a.chat-fab').click()
     await expect(page).toHaveURL(/\/official\/chat$/)
     await expect(page).toHaveTitle('AI コンシェルジュ | ei8ht plants', { timeout: 15000 })
   })
 
-  test('ブラウザの戻る・進むでも前のページが表示される', async ({ page }) => {
+  test('ブラウザの戻る・進むでも前のページが表示される', /**
+     * 「/official/gallery」を開く、「Concept」をクリックする、URLが「\/official\/gallery$」になること、URLが「\/official\/concept$」になることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. ギャラリーを開いて履歴の起点を作る
     await page.goto('/official/gallery')
     await expect(page).toHaveTitle('Gallery | ei8ht plants', { timeout: 20000 })
@@ -105,7 +128,12 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     await expect(page).toHaveTitle('Concept | ei8ht plants')
   })
 
-  test('トップを開いただけでは管理画面と Supabase のプログラムを読み込まない', async ({ page }) => {
+  test('トップを開いただけでは管理画面と Supabase のプログラムを読み込まない', /**
+     * 公式トップを開き、ナビゲーションが表示される一方で管理画面とSupabaseのモジュールが読み込まれないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     const requested: string[] = []
     page.on('request', (req) => requested.push(new URL(req.url()).pathname))
     await page.goto('/official')
@@ -117,15 +145,25 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     expect(requested.filter((p) => p === '/src/lib/supabase.ts')).toEqual([])
   })
 
-  test('URL を直接開いても管理画面のページが表示される', async ({ page }) => {
-    // 1. 「URL を直接開いても管理画面のページが表示される」の期待状態が画面に表示されることを確認する。
+  test('URL を直接開いても管理画面のページが表示される', /**
+     * 「/admin/events」を開く、「イベント」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 管理画面のURLを直接開き、対象ページのコンテンツと管理ナビゲーションが表示されることを確認する。
     await page.goto('/admin/events')
     await expect(page.getByRole('complementary').getByRole('link', { name: 'イベント' })).toBeVisible({ timeout: 20000 })
     await expectLoaded(page)
   })
 
   for (const path of ['/', '/official', '/official/events', '/official/gallery', '/official/shop', '/official/journal', '/official/chat']) {
-    test(`375px 幅で ${path} を開いても横スクロールが出ない`, async ({ page }) => {
+    test(`375px 幅で ${path} を開いても横スクロールが出ない`, /**
+       * 375×812px幅で表示する、ページ幅が表示領域を超えないことを確認する。
+       * @param page 操作・検証対象の Playwright ページ。
+       * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+       */
+      async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 })
       await page.goto(path)
       // 375px 幅では PC 用のメニューは非表示、スマホ用のメニュー（nav）は閉じているあいだ inert・非表示なので、

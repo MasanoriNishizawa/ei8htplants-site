@@ -11,6 +11,7 @@ import { test, expect, type Page } from '@playwright/test'
  * @param page - 対象ページ（goto より前に呼ぶ）
  * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
+
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
   await page.addInitScript(() => {
@@ -35,6 +36,7 @@ async function useFakeAdminSession(page: Page) {
  * @param page - 対象ページ
  * @returns なし。横スクロールがないことを検証する。
  */
+
 async function expectNoHorizontalScroll(page: Page) {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
@@ -49,6 +51,7 @@ async function expectNoHorizontalScroll(page: Page) {
  * @param name - ボタン・リンクの名前
  * @returns なし。指定したボタンとリンクが画面幅に収まることを検証する。
  */
+
 async function expectAllInsideWidth(page: Page, name: string) {
   const width = page.viewportSize()!.width
   const targets = page.getByRole('main').getByRole('button', { name, exact: true })
@@ -66,7 +69,12 @@ async function expectAllInsideWidth(page: Page, name: string) {
 test.describe('PC の管理画面のサイドメニュー（1280x700）', () => {
   test.use({ viewport: { width: 1280, height: 700 } })
 
-  test('高さ 700px でもサイドメニューをスクロールして一番下の「ログアウト」に届き、押せる位置に来る', async ({ page }) => {
+  test('高さ 700px でもサイドメニューをスクロールして一番下の「ログアウト」に届き、押せる位置に来る', /**
+     高さ700pxの管理画面でサイドメニューを最下部までスクロールし、ログアウトが表示領域内にあり有効であることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await useFakeAdminSession(page)
     await page.goto('/admin')
     const aside = page.getByRole('complementary')
@@ -86,16 +94,26 @@ test.describe('PC の管理画面のサイドメニュー（1280x700）', () => 
 test.describe('スマホ幅（375px）', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
-  test('/legal で横スクロールが出ない', async ({ page }) => {
-    // 1. 「/legal で横スクロールが出ない」の期待状態が画面に表示されることを確認する。
+  test('/legal で横スクロールが出ない', /**
+     * 「/official/legal」を開く、ページ幅が表示領域を超えないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. /legalを開き、文書幅がビューポートを超えず横スクロールが発生しないことを確認する。
     await page.context().route(/supabase\.co/, (route) => route.abort())
     await page.goto('/official/legal')
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expectNoHorizontalScroll(page)
   })
 
-  test('管理画面の商品一覧で、各行の「編集」「削除」が画面の右にはみ出さない', async ({ page }) => {
-    // 1. 「管理画面の商品一覧で、各行の「編集」「削除」が画面の右にはみ出さない」の期待状態が画面に表示されることを確認する。
+  test('管理画面の商品一覧で、各行の「編集」「削除」が画面の右にはみ出さない', /**
+     * 「/admin/products」を開く、「編集」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 商品一覧の各行で編集・削除操作がビューポート右端からはみ出さないことを確認する。
     await useFakeAdminSession(page)
     await page.goto('/admin/products')
     await expect(page.getByRole('main').getByRole('button', { name: '編集', exact: true }).first()).toBeVisible()
@@ -103,8 +121,13 @@ test.describe('スマホ幅（375px）', () => {
     await expectAllInsideWidth(page, '削除')
   })
 
-  test('管理画面の収支一覧で、各行の「編集」が画面の右にはみ出さない', async ({ page }) => {
-    // 1. 「管理画面の収支一覧で、各行の「編集」が画面の右にはみ出さない」の期待状態が画面に表示されることを確認する。
+  test('管理画面の収支一覧で、各行の「編集」が画面の右にはみ出さない', /**
+     * 「/admin/finances」を開く、「編集」が画面に表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 収支一覧の各行で編集操作がビューポート右端からはみ出さないことを確認する。
     await useFakeAdminSession(page)
     await page.goto('/admin/finances')
     await expect(page.getByRole('main').getByRole('link', { name: '編集', exact: true }).first()).toBeVisible()
@@ -116,15 +139,22 @@ test.describe('ショップのヘッダー（StoreHeader）', () => {
   /**
    * ショップのヘッダーのロゴの幅を返す
    * @param page - 対象ページ
-  * @returns ロゴの幅（px）
+   * @returns ロゴの幅（px）
    */
+
   async function logoWidth(page: Page): Promise<number> {
     const logo = page.getByRole('banner').getByRole('img', { name: 'ei8ht plants' })
     await expect.poll(() => logo.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true)
     return (await logo.boundingBox())!.width
   }
 
-  test('320px・375px でカートに商品があってもロゴは PC と同じ幅のままで、カートと言語ボタンが画面内に収まる', async ({ page }, testInfo) => {
+  test('320px・375px でカートに商品があってもロゴは PC と同じ幅のままで、カートと言語ボタンが画面内に収まる', /**
+     商品ページで商品をカートに追加した後、320px・375px幅に切り替え、ロゴ幅がPC時と変わらずカートと言語ボタンが画面内に収まり横スクロールがないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @param testInfo テストの実行情報。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }, testInfo) => {
     await page.context().route(/supabase\.co/, (route) => route.abort())
     // 1. PC の幅でのロゴの幅を測る
     await page.setViewportSize({ width: 1280, height: 800 })
@@ -148,7 +178,12 @@ test.describe('ショップのヘッダー（StoreHeader）', () => {
     }
   })
 
-  test('言語切り替えボタンで EN と JA が切り替わる', async ({ page }) => {
+  test('言語切り替えボタンで EN と JA が切り替わる', /**
+     * 「/official/shop」を開く、「Switch to English」をクリックする、「日本語に切り替える」をクリックする、「日本語に切り替える」に「JA」が表示されること、「Switch to English」に「EN」が表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 外部通信を遮断してショップを開く
     await page.context().route(/supabase\.co/, (route) => route.abort())
     await page.goto('/official/shop')

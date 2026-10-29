@@ -36,6 +36,7 @@ TEST_ENV_NAMES = (
 
 # 架空の値（本物ではない）
 FAKE_SECRET_VALUE = "fake-secret-value-for-test"
+# Secrets へ設定する架空 JSON 値（認証情報の実値は含めない）
 FAKE_JSON_VALUE = '{"type": "service_account", "client_email": "fake@example.invalid"}'
 
 
@@ -77,6 +78,7 @@ def use_secrets_files(monkeypatch, clean_env):
 
         Returns:
             なし。"""
+        # 変数の内容: original_get_option: テスト後に復元する Streamlit 設定取得関数。
         original_get_option = st_config.get_option
 
         def fake_get_option(key: str):
@@ -95,6 +97,7 @@ def use_secrets_files(monkeypatch, clean_env):
         # 2. まだ何も読み込んでいない Secrets を使う。ファイルの監視は始めない
         #    （Secrets は属性の書き換えを受け付けないので、クラスの側で差し替える）
         monkeypatch.setattr(Secrets, "_maybe_install_file_watchers", lambda self: None)
+        # 変数の内容: secrets: テスト用に差し替える Streamlit Secrets オブジェクト。
         secrets = Secrets()
         monkeypatch.setattr(streamlit, "secrets", secrets)
         return secrets
@@ -113,6 +116,7 @@ def test_secrets_tomlが無いとFalseを返し環境変数は変わらない(us
         なし。"""
     # 1. secrets tomlが無いとFalseを返し環境変数は変わらないことを確認する。
     use_secrets_files([str(tmp_path / ".streamlit" / "secrets.toml"), str(tmp_path / "missing" / "secrets.toml")])
+    # 変数の内容: before: Secrets 読み込み前の環境変数一式。
     before = dict(os.environ)
     assert load_secrets_into_env() is False
     assert dict(os.environ) == before
@@ -128,6 +132,7 @@ def test_ダミーのsecrets_tomlがあるとTrueを返しトップレベルの�
 
     Returns:
         なし。"""
+    # 変数の内容: path: テスト用の一時 secrets.toml ファイルのパス。
     path = tmp_path / "secrets.toml"
     path.write_text(
         "\n".join(
@@ -168,6 +173,7 @@ def test_secrets_tomlの値は同じ名前の環境変数より優先される(u
         なし。"""
     # 1. secrets tomlの値は同じ名前の環境変数より優先されることを確認する。
     monkeypatch.setenv("ANALYTICS_TEST_SECRET_STR", "value-from-shell")
+    # 変数の内容: path: テスト用の一時 secrets.toml ファイルのパス。
     path = tmp_path / "secrets.toml"
     path.write_text(f'ANALYTICS_TEST_SECRET_STR = "{FAKE_SECRET_VALUE}"\n', encoding="utf-8")
     use_secrets_files([str(path)])
@@ -252,6 +258,7 @@ def test_secrets_tomlを読み取れないとFalseを返しログには例外の
 
     Returns:
         なし。"""
+    # 変数の内容: error: テストで発生させる読み取りエラー。
     error = error_type(error_no, f"Permission denied: /fake/secret/path {FAKE_SECRET_VALUE}")
     monkeypatch.setattr(streamlit, "secrets", _UnreadableSecrets(error))
     with caplog.at_level(logging.ERROR, logger=secrets_env.logger.name):

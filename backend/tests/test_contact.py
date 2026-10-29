@@ -14,6 +14,7 @@ def _make_sb_mock():
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. admin_supabase の MagicMock を返す。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # insert チェーン（戻り値は使わないが呼び出しを受け付けるために設定）

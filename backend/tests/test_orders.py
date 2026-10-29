@@ -77,6 +77,7 @@ def _make_admin_sb_for_list() -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. 注文一覧取得用の admin_supabase モックを返す。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # table('orders').select('*').order('created_at', desc=True).execute().data

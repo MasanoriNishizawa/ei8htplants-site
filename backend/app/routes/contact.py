@@ -125,6 +125,7 @@ def list_contacts(_=Depends(require_auth)) -> list[dict]:
     Args:
         _: 認証依存として注入される値（この関数では使用しません）。
     """
+    # 1. お問い合わせ一覧を新着順で返す（管理者のみ）。
     return admin_supabase.table('contacts').select('*').order('created_at', desc=True).execute().data
 
 
@@ -143,6 +144,7 @@ def update_contact(contact_id: str, body: ContactPatch, _=Depends(require_auth))
     Raises:
         HTTPException(404): お問い合わせが存在しない場合
     """
+    # 1. お問い合わせの既読状態を更新して更新後のレコードを返す（管理者のみ）。
     return first_or_404(execute_or_404(admin_supabase.table('contacts').update(body.model_dump()).eq('id', contact_id)))
 
 

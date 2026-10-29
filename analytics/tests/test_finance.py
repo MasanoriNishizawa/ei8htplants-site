@@ -123,7 +123,7 @@ def test_build_event_finance_table_marks_unentered_sales():
         なし。"""
     # 1. 売上 0 円の回は has_result=False になり、日数が正しく数えられること。
     fin = pd.DataFrame([{**FIN, "event_id": "e1"}, {**FIN, "event_id": "e3", "sales": 0}])
-    # 変数の内容: t: テスト時刻または時間軸の値。
+    # 変数の内容: t: テスト用イベントと収支を結合して計算した DataFrame。
     t = build_event_finance_table(_events(), fin)
     assert list(t["has_result"]) == [True, False]
     assert t.loc[0, "days"] == 2
@@ -151,6 +151,7 @@ def test_forecast_needs_enough_results_and_counts_remaining():
     # 変数の内容: today: 日付計算で固定する今日。
     today = pd.Timestamp("2026-10-16")
     assert forecast_fiscal_year(fin.head(4), events, today) is None
+    # 変数の内容: fc: テスト条件で計算した着地予測結果。
     fc = forecast_fiscal_year(fin, events, today, n_boot=2000)
     assert fc["actual"] == 150000 and fc["remaining"] == 2
     # 残り2回は 1万〜5万円なので、見込みは 17万〜25万円の間に入る
@@ -218,8 +219,9 @@ def test_session_fill_rates_excludes_cancelled():
         なし。"""
     # 1. 時間枠の埋まり具合にキャンセルを含めないこと。
     sessions = pd.DataFrame({"id": ["s1"], "event_id": ["e1"], "time_label": ["11:00"], "max_participants": [4]})
-    # 変数の内容: res: テスト対象処理が返した応答または結果。
+    # 変数の内容: res: 時間枠ごとの予約人数計算に渡す予約データ。
     res = pd.DataFrame({"session_id": ["s1", "s1"], "participants": [2, 1], "is_cancelled": [False, True]})
+    # 変数の内容: fill: キャンセル予約を除いて計算した時間枠ごとの埋まり率。
     fill = session_fill_rates(res, sessions, _events())
     assert fill.iloc[0]["booked"] == 2 and fill.iloc[0]["fill_rate"] == 0.5
 
@@ -254,6 +256,7 @@ def test_ga_config_reports_missing_and_wrong_values(monkeypatch, tmp_path):
     monkeypatch.setenv("GA_CREDENTIALS", str(tmp_path / "none.json"))
     assert "見つかりません" in ga_config()[1]
     monkeypatch.setenv("GA_CREDENTIALS", str(key))
+    # 変数の内容: cfg: 環境変数から組み立てた GA 接続設定。；problem: GA 接続設定が不足・不正なときの説明文。
     cfg, problem = ga_config()
     assert problem is None and cfg.property_id == "123456789" and cfg.credentials_path == key
 
@@ -283,7 +286,9 @@ def test_label_paths_names_pages_events_and_products():
         なし。"""
     # 1. 固定ページは日本語名、イベント・商品の詳細は名前にし、わからないパスはそのまま返すこと。
     events = pd.DataFrame({"id": ["e1", "e2"], "slug": ["kagoen-autumn", None], "name": ["花郷園 秋 ", "叢宴"]})
+    # 変数の内容: products: 商品IDと商品名を対応させるテストデータ。
     products = pd.DataFrame({"id": ["p1"], "name": ["EG-90L"]})
+    # 変数の内容: paths: 表示名への変換を確かめる URL パスのテスト列。
     paths = pd.Series(["/", "/reserve?event=e1", "/events/kagoen-autumn", "/events/e2", "/shop/p1", "/events/zzz", "/foo/"])
     assert label_paths(paths, events, products).tolist() == [
         "トップ", "WS 予約", "イベント：花郷園 秋", "イベント：叢宴", "商品：EG-90L", "/events/zzz", "/foo",

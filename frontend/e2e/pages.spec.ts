@@ -28,7 +28,12 @@ const routes = [
 ]
 
 for (const path of routes) {
-  test(`${path} ページが正常にロードされる`, async ({ page }) => {
+  test(`${path} ページが正常にロードされる`, /**
+     対象の公開ページへ直接移動し、共通ナビゲーションとサイト名入りのページタイトルが表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto(path)
     // ナビゲーションが表示されていればレイアウトが正常にレンダリングされている
     await expect(page.getByRole('navigation').first()).toBeVisible()

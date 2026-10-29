@@ -12,6 +12,7 @@ def num(pattern: str, text: str) -> int:
     Returns:
         最後に一致した数値。見つからない場合は0。
     """
+    # 1. 出力文字列から最後に見つかった数値を取り出す。
     # matches: 正規表現に一致した数値文字列。複数の集計行があれば最後を採用する。
     matches = re.findall(pattern, text)
     return int(matches[-1]) if matches else 0

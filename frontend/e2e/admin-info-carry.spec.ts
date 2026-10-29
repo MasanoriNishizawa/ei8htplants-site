@@ -10,6 +10,7 @@ import { test, expect, type Page } from '@playwright/test'
  * @param page - 対象ページ（goto より前に呼ぶ）
  * @returns なし。偽の管理者セッションを登録し、Supabase への通信を遮断する。
  */
+
 async function useFakeAdminSession(page: Page) {
   // 1. Supabase（認証・DB）への通信をすべて遮断する
   await page.context().route(/supabase\.co/, (route) => route.abort())
@@ -38,7 +39,12 @@ test.beforeEach(async ({ page }) => {
 /** 対象イベントの ID（MSW モックに収支・管理情報があるイベント） */
 const EVENT_ID = 'mock-past-1'
 
-test('搬入・搬出の日付・時・分を選んで保存すると、保存 API に日時が送られる', async ({ page }) => {
+test('搬入・搬出の日付・時・分を選んで保存すると、保存 API に日時が送られる', /**
+   * 管理情報を編集し、搬入・搬出の日付と時刻を選んで保存する。PUT本文の日時形式と、保存後の確認画面・完了通知を確認する。
+   * @param page 操作・検証対象の Playwright ページ。
+   * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+   */
+  async ({ page }) => {
   // 1. 管理情報の編集画面を開き、読み込みが終わるのを待つ
   await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
   await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
@@ -73,7 +79,12 @@ test('搬入・搬出の日付・時・分を選んで保存すると、保存 A
   await expect(page.getByRole('status')).toHaveText('保存しました')
 })
 
-test('搬入・搬出を保存すると確認画面に日時・金額が表示され、編集画面に入り直すと選んだ値が入っていて、収支にも出店料・宿泊費が同期される', async ({ page }) => {
+test('搬入・搬出を保存すると確認画面に日時・金額が表示され、編集画面に入り直すと選んだ値が入っていて、収支にも出店料・宿泊費が同期される', /**
+   * 搬入・搬出日時と宿泊料金・出店料を保存し、確認画面と再編集時に値が保持されること、関連する収支更新APIにも金額が送られることを確認する。
+   * @param page 操作・検証対象の Playwright ページ。
+   * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+   */
+  async ({ page }) => {
   // MSW は保存（PUT）した値をブラウザのメモリに持つため、再読み込みせずに画面内リンクで開き直して確かめる
   // 1. 管理情報の編集画面を開く
   await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)

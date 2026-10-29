@@ -23,6 +23,7 @@ class TTLCache:
             なし。キャッシュ設定と空の保存領域を初期化する。
         """
         # 値を覚えておく秒数
+        # 1. キャッシュを作る。
         self._ttl = ttl
         # 保存する件数の上限
         self._max = max_entries

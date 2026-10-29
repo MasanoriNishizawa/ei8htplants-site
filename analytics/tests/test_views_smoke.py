@@ -61,6 +61,7 @@ NO_YEAR_PAGES = ["traffic", "advanced"]
 
 # サイドバーに会計年度の選択欄がある画面
 YEAR_PAGES = [u for u in PAGES if u not in NO_YEAR_PAGES]
+# 年度選択欄がある画面に対応するテスト識別子
 YEAR_PAGE_IDS = [i for u, i in zip(PAGES, PAGE_IDS) if u not in NO_YEAR_PAGES]
 
 # サイドバーの会計年度の選択欄の key（lib/context.py の get_context）
@@ -116,7 +117,7 @@ def _ts(today: pd.Timestamp, offset: int, hour: int = 10) -> str:
     Returns:
         日時の文字列
     """
-    # 変数の内容: t: テスト時刻または時間軸の値。
+    # 変数の内容: t: テスト日時計算に使う ISO 形式の文字列。
     t = (today + pd.Timedelta(days=offset, hours=hour)).tz_localize("Asia/Tokyo").tz_convert("UTC")
     return t.isoformat()
 
@@ -235,12 +236,16 @@ def normal_rows() -> dict[str, list[dict]]:
     ]
     # 変数の内容: price: 価格計算に使うテスト入力。
     price = {p["id"]: p["price"] for p in products}
+    # 変数の内容: pname: 商品IDから商品名を引くテスト用辞書。
     pname = {p["id"]: p["name"] for p in products}
+    # 変数の内容: orders, items: 通常画面データに使う注文と注文商品明細の行リスト。
     orders, items = [], []
     for oid, off, email, pref, status, lines in ord_specs:
+        # 変数の内容: subtotal: 注文の商品明細から合計した商品金額。
         subtotal = sum(price[pid] * q for pid, q in lines)
         orders.append({"id": oid, "subtotal": subtotal, "shipping_fee": 800, "total": subtotal + 800, "status": status,
                        "prefecture": pref, "created_at": _ts(today, off), "customer_email": email})
+        # 変数の内容: items: 注文と商品を結び付けた明細行。
         items += [{"order_id": oid, "product_id": pid, "product_name": pname[pid], "price": price[pid], "quantity": q}
                   for pid, q in lines]
     # 5. 問い合わせ・記事（下書き1本つき）
@@ -249,6 +254,7 @@ def normal_rows() -> dict[str, list[dict]]:
         {"id": "c2", "is_read": False, "created_at": _ts(today, -20)},
         {"id": "c3", "is_read": False, "created_at": _ts(today, -3)},
     ]
+    # 変数の内容: articles: 画面テスト用の記事データ。
     articles = [
         {"id": "a1", "title": "植え替えのコツ", "tags": ["植え替え", "アガベ"], "is_published": True,
          "published_at": _ts(today, -120), "created_at": _ts(today, -121)},
@@ -321,6 +327,7 @@ def _ga_rows(dims: list[str], metrics: list[str]) -> list[tuple[list[str], list[
     """
     # 1. まとめの数字（ディメンションなし）は1行
     if not dims:
+        # 変数の内容: values: GA のまとめ表示で返す指標値。
         values = {"activeUsers": "120", "sessions": "150", "screenPageViews": "480", "averageSessionDuration": "95.5"}
         return [([], [values.get(m, "10") for m in metrics])]
     # 2. ディメンションごとの値（予約ページ /reserve と、イベント・商品の詳細ページを含める）
@@ -332,6 +339,7 @@ def _ga_rows(dims: list[str], metrics: list[str]) -> list[tuple[list[str], list[
         "deviceCategory": ["mobile", "desktop", "tablet"],
         "region": ["Tokyo", "Osaka", "(not set)"],
     }
+    # 変数の内容: key: GA レポートで指定されたディメンション名。
     key = dims[0]
     return [([v], [str(10 * (i + 1)) for _ in metrics]) for i, v in enumerate(samples.get(key, ["x"]))]
 
@@ -368,6 +376,7 @@ class FakeGaClient:
         """
         # 1. 呼ばれたレポートを記録する
         dims = [d.name for d in request.dimensions]
+        # 変数の内容: metrics: GA リクエストに含まれる指標名一覧。
         metrics = [m.name for m in request.metrics]
         self.calls.append(tuple(dims))
         self.starts += [r.start_date for r in request.date_ranges]
@@ -417,6 +426,7 @@ def use_data(monkeypatch):
 
         Returns:
             なし。"""
+        # 変数の内容: frames: テストデータから変換した DataFrame 群。
         frames = _to_frames(rows)
         # 画面ごとに中身を書き換えられても困らないよう、毎回コピーを返す
         monkeypatch.setattr(lib.context, "load_all", lambda: {k: v.copy() for k, v in frames.items()})
@@ -451,7 +461,7 @@ def _login_app() -> AppTest:
     Returns:
         描画後の AppTest
     """
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = AppTest.from_file(APP_PATH, default_timeout=60)
     # 1. 手元の analytics/.streamlit/secrets.toml（本物の接続情報・許可リスト）を読ませない。
     #    AppTest に架空の Secrets を渡すと、描画のあいだ st.secrets がこれに差し替わり、ファイルは読まれない
@@ -476,6 +486,7 @@ def _open(at: AppTest, url_path: str) -> AppTest:
         描画後の AppTest
     """
     registered = at._registered_pages  # noqa: SLF001
+    # 変数の内容: hashes: 指定URLに対応する Streamlit 登録ページの識別子。
     hashes = [h for h, info in registered.items() if info.get("url_pathname") == url_path]
     assert hashes, f"st.navigation に url_path={url_path!r} の画面がありません: {list(registered.values())}"
     at._page_hash = hashes[0]  # noqa: SLF001
@@ -491,7 +502,7 @@ def _render(url_path: str) -> AppTest:
     Returns:
         描画後の AppTest
     """
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _login_app()
     return at if url_path == "" else _open(at, url_path)
 
@@ -520,7 +531,9 @@ def _plotly_texts(spec: str) -> list[str]:
     Returns:
         文字列のリスト
     """
+    # 変数の内容: fig: JSONから読み込んだ Plotly グラフ仕様。
     fig = json.loads(spec)
+    # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
     out: list[str] = []
 
     def walk(node, key: str = "") -> None:
@@ -555,24 +568,30 @@ def _texts(at: AppTest) -> list[str]:
     Returns:
         文字列のリスト
     """
+    # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
     out: list[str] = []
     # 1. 見出し・説明・メッセージ
     for group in (at.title, at.header, at.subheader, at.caption, at.markdown, at.info, at.warning, at.error,
                   at.success):
+        # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
         out += [str(e.value) for e in group]
     # 2. 数字のタイル（見出しと値）
     for m in at.metric:
+        # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
         out += [str(m.label), str(m.value)]
     # 3. 表（中身の値をすべて文字にする。書式付きの表は表示用の値も見る）
     for df in at.dataframe:
         # 変数の内容: value: テストケースとして渡す値。
         value = df.value
+        # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
         out += [str(c) for c in value.columns]
         # 生の値の NaN は表では空欄で描かれるので、書式付きの表示用の値（_styler_texts）のほうで確かめる
         out += [str(v) for v in value.astype(str).to_numpy().ravel() if v not in ("nan", "None", "<NA>", "NaT")]
+    # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
     out += _styler_texts(at)
     # 4. グラフの文字
     for chart in at.get("plotly_chart"):
+        # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
         out += _plotly_texts(chart.proto.spec)
     return out
 
@@ -588,6 +607,7 @@ def _styler_texts(at: AppTest) -> list[str]:
     """
     from streamlit import dataframe_util
 
+    # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
     out: list[str] = []
     for df in at.dataframe:
         # Streamlit 1.66 では proto.arrow_data.styler.display_values に arrow 形式で入る
@@ -596,6 +616,7 @@ def _styler_texts(at: AppTest) -> list[str]:
         # 変数の内容: data: テスト対象の入力データまたは API 応答。
         data = arrow.styler.display_values if arrow.HasField("styler") else b""
         if data:
+            # 変数の内容: out: 画面やグラフから抽出した文字列を蓄積するリスト。
             out += [str(v) for v in dataframe_util.convert_arrow_bytes_to_pandas_df(data).astype(str).to_numpy().ravel()]
     return out
 
@@ -626,6 +647,7 @@ def _metric(at: AppTest, label: str) -> str:
     Returns:
         タイルの値
     """
+    # 変数の内容: values: 指定ラベルに一致する数字タイルの表示値一覧。
     values = [str(m.value) for m in at.metric if m.label == label]
     assert values, f"数字のタイル「{label}」がありません: {[m.label for m in at.metric]}"
     return values[0]
@@ -665,7 +687,7 @@ def test_全テーブルが0件でも各画面を描くと例外もnanもinfも�
         なし。"""
     # 1. 全テーブルが0件でも各画面を描くと例外もnanもinfも出ないことを確認する。
     use_data(empty_rows())
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render(url_path)
     _assert_clean(at, f"{PAGES[url_path]}（0件）")
     assert [t.value for t in at.title] == [PAGES[url_path]]
@@ -687,7 +709,7 @@ def test_予約がすべてキャンセルでも各画面を描くと例外もna
         なし。"""
     # 1. 予約がすべてキャンセルでも各画面を描くと例外もnanもinfも出ないことを確認する。
     use_data(all_cancelled_rows())
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render(url_path)
     _assert_clean(at, f"{PAGES[url_path]}（予約がすべてキャンセル）")
 
@@ -702,7 +724,7 @@ def test_予約がすべてキャンセルのときワークショップ画面�
     Returns:
         なし。"""
     use_data(all_cancelled_rows())
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("workshop")
     assert not at.exception
     # 1. キャンセル率は 100%、予約人数は 0 人
@@ -740,15 +762,18 @@ def test_会計年度をすべての期と各年度に切り替えても各画�
 
     Returns:
         なし。"""
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render(url_path)
+    # 変数の内容: box: 年度選択用のサイドバー部品。
     box = at.sidebar.selectbox(key=YEAR_KEY)
     # 1. 既定は「すべての期」。データは複数の会計年度にまたがるので年度の選択肢が2つ以上ある
     assert box.value == ALL_YEARS
+    # 変数の内容: years: 「すべての期」を除いた年度選択肢。
     years = [o for o in box.options if o != ALL_YEARS]
     assert len(years) >= 2, box.options
     # 2. 各年度を選び、最後に「すべての期」に戻す
     for label in years + [ALL_YEARS]:
+        # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
         at = _select_year(at, label)
         _assert_clean(at, f"{PAGES[url_path]}（{label}）")
         assert at.sidebar.selectbox(key=YEAR_KEY).value == label
@@ -786,9 +811,10 @@ def test_予約がすべてキャンセルで年度を切り替えてもワー�
         なし。"""
     # 1. 予約がすべてキャンセルで年度を切り替えてもワークショップ画面に例外もnanも出ないことを確認する。
     use_data(all_cancelled_rows())
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("workshop")
     for label in at.sidebar.selectbox(key=YEAR_KEY).options:
+        # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
         at = _select_year(at, label)
         _assert_clean(at, f"ワークショップ（予約がすべてキャンセル・{label}）")
 
@@ -802,9 +828,10 @@ def test_GAが未設定ならアクセス解析画面は設定の手順を出し
 
     Returns:
         なし。"""
+    # 変数の内容: calls: GA レポート呼び出しを記録するリスト。
     calls = []
     monkeypatch.setattr(lib.ga, "_client", lambda ref: calls.append(ref))
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（GA 未設定）")
     # 1. 足りない設定の説明と、設定の手順が出る
@@ -824,7 +851,7 @@ def test_GAのデータが取れるとアクセス解析画面に数字と予約
 
     Returns:
         なし。"""
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（GA あり）")
     # 1. まとめの数字（偽の GA の値）
@@ -848,12 +875,13 @@ def test_GAの期間を切り替えてもアクセス解析画面に例外もnan
 
     Returns:
         なし。"""
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("traffic")
     # 1. 期間の選択欄（segmented_control）で期間を選び直す
     groups = [g for g in at.get("button_group") if g.key == "ga_period"]
     assert groups, "期間の選択欄がありません"
     assert groups[0].value == "直近28日"
+    # 変数の内容: at: 操作を反映した Streamlit AppTest の画面状態。
     at = groups[0].set_value(period).run()
     # 2. 選んだ期間になり、その期間の開始日で GA に問い合わせ直している
     assert [g.value for g in at.get("button_group") if g.key == "ga_period"] == [period]
@@ -875,7 +903,7 @@ def test_GAの2本目以降のレポートが失敗しても画面全体はエ�
     Returns:
         なし。"""
     ga.fail_from = fail_from
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("traffic")
     # 1. 例外（画面全体のエラー）にならない
     _assert_clean(at, f"アクセス解析（{fail_from}本目以降が失敗）")
@@ -896,7 +924,7 @@ def test_GAの1本目のレポートが失敗するとアクセス解析画面�
         なし。"""
     # 1. GAの1本目のレポートが失敗するとアクセス解析画面は読み込めませんと出すことを確認する。
     ga.fail_from = 1
-    # 変数の内容: at: 画面上で対象要素を探すロケーター。
+    # 変数の内容: at: Streamlit AppTest の現在の画面状態。
     at = _render("traffic")
     _assert_clean(at, "アクセス解析（1本目が失敗）")
     assert any("Google アナリティクスのデータを読み込めませんでした" in e.value for e in at.error)
@@ -921,7 +949,7 @@ def test_データの読み込みに失敗すると各画面はエラーを出�
 
     monkeypatch.setattr(lib.context, "load_all", fail)
     for url_path, title in PAGES.items():
-        # 変数の内容: at: 画面上で対象要素を探すロケーター。
+        # 変数の内容: at: Streamlit AppTest の現在の画面状態。
         at = _render(url_path)
         assert not at.exception, title
         assert any("データを読み込めませんでした" in e.value for e in at.error), title

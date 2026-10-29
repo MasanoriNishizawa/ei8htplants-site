@@ -31,7 +31,9 @@ dotenv.load_dotenv = lambda *args, **kwargs: False  # type: ignore[assignment]
 
 # テストで使う架空の接続情報（本物の値ではない）
 FAKE_URL = "https://fake-project.example.invalid"
+# 認証テストで使う架空の Supabase anon キー
 FAKE_ANON_KEY = "fake-anon-key-for-test"
+# 誤って認証に使わないことを検証するための架空 service_role キー
 FAKE_SERVICE_KEY = "fake-service-role-key-for-test"
 
 # 接続に関わる環境変数の名前（テストの前に必ず消す）
@@ -68,6 +70,7 @@ def is_real_secrets_path(path: str) -> bool:
     Returns:
         REAL_SECRETS_FILES のどれか、またはその親フォルダなら True
     """
+    # 変数の内容: p: 展開・正規化した secrets.toml のパス。
     p = Path(path).expanduser().resolve()
     return any(p == real or p == real.parent for real in REAL_SECRETS_FILES)
 
@@ -141,6 +144,7 @@ def isolate_secrets(monkeypatch, tmp_path_factory):
         なし。"""
     # 1. 探す場所を空の一時フォルダに向ける（ほかの設定はそのまま）
     empty = tmp_path_factory.mktemp("no_secrets") / ".streamlit" / "secrets.toml"
+    # 変数の内容: original_get_option: テスト後に復元する Streamlit 設定取得関数。
     original_get_option = st_config.get_option
 
     def get_option(key: str):
@@ -159,6 +163,7 @@ def isolate_secrets(monkeypatch, tmp_path_factory):
 
     # 2. 本物の場所を読もうとしたら記録して止める
     attempts: list[str] = []
+    # 変数の内容: original_parse_file_path: テスト後に復元する Secrets のパス解決関数。
     original_parse_file_path = Secrets._parse_file_path
 
     def guarded_parse_file_path(self, path: str):

@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test'
 
-test('HUEの6つの色見本を管理画面から同じ形の写真に差し替えられる', async ({ page }) => {
+test('HUEの6つの色見本を管理画面から同じ形の写真に差し替えられる', /**
+   * 「/admin/site-images」を開く、390×844px幅で表示する、「写真を保存」をクリックする、「サイト画像管理」が画面に表示されること、「写真 1 の切り抜きプレビュー」が画面に表示されることを確認する。
+   * @param page 操作・検証対象の Playwright ページ。
+   * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+   */
+  async ({ page }) => {
   // 1. 管理画面で写真をアップロードして保存する
   await page.goto('/admin/site-images')
   await expect(page.getByRole('heading', { name: 'サイト画像管理' })).toBeVisible()

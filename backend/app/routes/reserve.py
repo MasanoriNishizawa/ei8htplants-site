@@ -166,6 +166,7 @@ def _generate_cancel_token() -> str:
     Returns:
         キャンセルトークンの文字列
     """
+    # 1. 推測されにくいキャンセルトークン（URL に入れられる英数字と - _ の約 22 文字）を作る。
     return secrets.token_urlsafe(CANCEL_TOKEN_BYTES)
 
 
@@ -684,6 +685,7 @@ def _mark_email_failed(email_id: str) -> None:
     Returns:
         なし。
     """
+    # 1. Resend のメール ID が一致する予約に email_failed を立てる（スレッドプールで呼ぶ）。
     admin_supabase.table('workshop_reservations') \
         .update({'email_failed': True}) \
         .eq('resend_email_id', email_id).execute()
@@ -826,6 +828,7 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
         Returns:
             注釈に示した形式の応答（dict）。
         """
+        # 1. ステータスを書き換えて更新後の行を返す。
         return first_or_404(
             admin_supabase.table('workshop_reservations').update({'status': body.status}).eq('id', reservation_id).execute()
         )

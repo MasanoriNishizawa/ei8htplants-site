@@ -22,4 +22,5 @@ def list_chat_logs(_=Depends(require_auth)) -> list[dict]:
     Args:
         _: 認証依存として注入される値（この関数では使用しません）。
     """
+    # 1. チャット履歴を新しい順で返す（管理者のみ）。
     return admin_supabase.table('chat_logs').select('*').order('created_at', desc=True).limit(MAX_CHAT_LOGS).execute().data

@@ -43,6 +43,7 @@ def _now_iso() -> str:
     Returns:
         例 '2026-10-22T01:23:45.678901+00:00'
     """
+    # 1. 今の時刻（UTC）を ISO 8601 の文字列で返す。published_at に入れる。
     return datetime.now(timezone.utc).isoformat()
 
 

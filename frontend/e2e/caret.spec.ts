@@ -16,12 +16,18 @@ const TRANSPARENT = 'rgba(0, 0, 0, 0)'
  * @param prop CSS プロパティ名（例: 'caret-color'）
  * @returns getComputedStyle で得た値
  */
+
 async function computed(locator: Locator, prop: string): Promise<string> {
   return locator.evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop)
 }
 
 test.describe('入力カーソルの表示制御（caret-color）', () => {
-  test('公開トップページの body・見出し・段落は caret-color が透明になる', async ({ page }) => {
+  test('公開トップページの body・見出し・段落は caret-color が透明になる', /**
+     公開トップを開き、body・見出し・段落のcaret-colorが透明に設定されていることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. トップページを開く
     await page.goto('/')
     // 2. body は透明
@@ -35,8 +41,13 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
     expect(await computed(para, 'caret-color')).toBe(TRANSPARENT)
   })
 
-  test('公開トップページの見出し・段落は user-select が none ではなく文字を選択できる', async ({ page }) => {
-    // 1. 「公開トップページの見出し・段落は user-select が none ではなく文字を選択できる」の期待状態が画面に表示されることを確認する。
+  test('公開トップページの見出し・段落は user-select が none ではなく文字を選択できる', /**
+     公開トップを開き、見出しと段落のuser-selectがnoneではなく文字選択を許可する値であることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 公開トップの見出しと段落でuser-selectがnoneではなく、テキスト選択が許可されることを確認する。
     await page.goto('/')
     const heading = page.locator('h1, h2, h3').first()
     await expect(heading).toBeAttached()
@@ -45,7 +56,12 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
     expect(await computed(para, 'user-select')).not.toBe('none')
   })
 
-  test('管理画面イベント一覧の body・見出しは caret-color が透明になり、文字は選択できる', async ({ page }) => {
+  test('管理画面イベント一覧の body・見出しは caret-color が透明になり、文字は選択できる', /**
+     イベント一覧を開き、見出しが表示され、bodyと見出しのcaret-colorが透明で見出しの文字選択が有効なことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 管理画面のイベント一覧を開く（認証はスキップ済み）
     await page.goto('/admin/events')
     const heading = page.getByRole('heading').first()
@@ -57,7 +73,12 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
     expect(await computed(heading, 'user-select')).not.toBe('none')
   })
 
-  test('イベント編集画面のテキスト入力欄は caret-color が透明ではない（入力カーソルが見える）', async ({ page }) => {
+  test('イベント編集画面のテキスト入力欄は caret-color が透明ではない（入力カーソルが見える）', /**
+     既存イベントの編集画面を開き、テキスト入力欄が表示され、そのcaret-colorが透明ではないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. 既存イベントの編集画面を開く
     await page.goto('/admin/events/mock-upcoming-1/edit')
     const input = page.getByRole('textbox').first()
@@ -68,7 +89,12 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
     expect(caret).not.toBe('transparent')
   })
 
-  test('イベント新規作成画面の入力欄をクリックするとフォーカスされ文字を入力できる', async ({ page }) => {
+  test('イベント新規作成画面の入力欄をクリックするとフォーカスされ文字を入力できる', /**
+     イベント新規作成画面で入力欄をクリックして文字列を入力し、欄がフォーカスされ入力値が反映されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     await page.goto('/admin/events/new')
     const input = page.locator('input[type="text"], input:not([type])').first()
     await expect(input).toBeVisible()
@@ -79,7 +105,12 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
     await expect(input).toHaveValue('カーソル確認')
   })
 
-  test('管理情報ページの textarea は caret-color が透明ではない（入力カーソルが見える）', async ({ page }) => {
+  test('管理情報ページの textarea は caret-color が透明ではない（入力カーソルが見える）', /**
+     イベント管理情報の編集画面を開き、textareaが表示され、そのcaret-colorが透明ではないことを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
     // 1. イベント管理情報の編集画面を開く（MSW の収支モックがある mock-past-1 を使う。確認画面には入力欄が無いため /edit）
     await page.goto('/admin/events/mock-past-1/admin-info/edit')
     const textarea = page.locator('textarea').first()

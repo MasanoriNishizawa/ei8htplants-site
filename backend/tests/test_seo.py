@@ -227,6 +227,7 @@ class FakeDB:
 
         戻り値:
             なし。インスタンスにテスト用データと例外条件を設定する。"""
+        # 1. 指定されたテーブルデータ・例外条件を保持するテスト用 Supabase モックを初期化する。
         # 変数の内容: self.calls: モックの呼び出し履歴、self.errors: テスト用の例外一覧、self.tables: DB モックが返すテーブル別データ。
         self.tables = tables or {}
         self.errors = set(errors or [])
@@ -256,6 +257,7 @@ class _FakeQuery:
 
         戻り値:
             なし。クエリモックが参照する DB とテーブル名を保持する。"""
+        # 1. 指定されたテーブルデータ・例外条件を保持するテスト用 Supabase モックを初期化する。
         # 変数の内容: self.db: このクエリが参照する DB モック、self.filters: DB モックへ渡す絞り込み条件、self.name: DB モックのテーブル名。
         self.db = db
         self.name = name
@@ -387,6 +389,7 @@ def _never_real_db():
     Returns:
         なし。
     """
+    # 1. どのテストでも seo の DB クライアントを空の FakeDB に差し替えておく（本番へ読み取りが飛ばないようにする保険）。
     # 変数の内容: empty: 空の応答または一覧。
     empty = FakeDB()
     with patch.object(seo, 'supabase', empty), patch.object(seo, 'admin_supabase', empty):
@@ -400,6 +403,7 @@ def db():
     Returns:
         なし。
     """
+    # 1. seo の supabase / admin_supabase を FakeDB に差し替える。
     # 変数の内容: fake: テスト用の代替オブジェクト。
     fake = _default_db()
     with patch.object(seo, 'supabase', fake), patch.object(seo, 'admin_supabase', fake):
@@ -1640,6 +1644,7 @@ class _FetchCache:
         Returns:
             なし。
         """
+        # 1. 空のキャッシュを作る。
         # 変数の内容: self.values: キーとキャッシュ値を対応付ける辞書。
         self.values = {}
 
@@ -1813,6 +1818,7 @@ def _page_data_deps(
     Returns:
         SEOデータ取得関数へ渡す依存オブジェクト。
     """
+    # 1. 新しいSEOデータ関数向けにテスト依存を組み立てる。
     # 変数の内容: deps: DB・行変換・URL変換・ID判定を注入する依存一式。
     deps = SeoDataDeps(
         cache=cache if cache is not None else _FetchCache(),

@@ -34,6 +34,7 @@ def _make_public_sb_mock(data: list):
     Returns:
         設定したテスト用モックを返す。
     """
+    # 1. 公開クライアント（supabase）の MagicMock を返す。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # table().select().order().execute().data のチェーン

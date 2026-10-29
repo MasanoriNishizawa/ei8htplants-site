@@ -617,6 +617,7 @@ class TestReservationFailurePaths:
             Returns:
                 data に保存行を含む DB 応答相当のオブジェクト。
             """
+            # 1. 1件分の予約を共有リストへ追加し、DB insert の応答形式で返す。
             with rows_lock:
                 # 変数の内容: row: DB に保存されたものとして扱う予約レコード。
                 row = {'id': f'reservation-{len(rows) + 1}', 'event_id': 'event-1',
@@ -638,6 +639,7 @@ class TestReservationFailurePaths:
             Returns:
                 共有リストに保存済みの参加人数。
             """
+            # 1. キャンセルされていない共有予約の参加人数を合計する。
             with rows_lock:
                 return sum(row['participants'] for row in rows if row['status'] != 'cancelled')
 

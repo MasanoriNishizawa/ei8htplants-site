@@ -16,7 +16,7 @@ import { CartProvider } from '../../lib/cart'
 
 /**
  *  いつまでも終わらない Promise（読み込み中のままにする）
- * @returns 戻り値なし。
+ * @returns 解決しない Promise。各画面を読み込み中の状態に保つ
  */
 const pending = () => new Promise<never>(() => {})
 

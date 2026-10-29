@@ -167,6 +167,7 @@ class TestSecurityHeaders:
         Returns:
             GET /api/gallery のテストレスポンスを返す。
         """
+        # 1. GET /api/gallery を呼ぶ（DB はモック）。
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = MagicMock()
         # 変数の内容: mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -264,6 +265,7 @@ def _update_returns_empty() -> MagicMock:
     Returns:
         MagicMock を返す。
     """
+    # 1. update(...).eq(...).execute().data が空のリスト（更新 0 件）になるモックを返す。
     # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
     mock_sb = MagicMock()
     # 変数の内容: mock_sb.table.return_value.update.return_value.eq.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
@@ -537,6 +539,7 @@ class TestContactLength:
         Returns:
             POST リクエストのテストレスポンスを返す。
         """
+        # 1. 問い合わせを送る（DB はモック・メールは送らない）。
         # 変数の内容: mock_sb: 公開用 Supabase クライアントのモック。
         mock_sb = MagicMock()
         with patch('app.routes.contact.admin_supabase', mock_sb), \

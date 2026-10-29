@@ -30,6 +30,7 @@ def is_not_found_error(e: BaseException) -> bool:
     Returns:
         PGRST116・22P02 なら True
     """
+    # 1. 例外が「該当する行が無い」（0 件・id の形が違う）を表すかどうかを返す。
     return getattr(e, 'code', None) in _NOT_FOUND_CODES
 
 

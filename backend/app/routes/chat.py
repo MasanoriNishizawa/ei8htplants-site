@@ -49,6 +49,7 @@ def _check_rate_limit(ip: str) -> None:
     Returns:
         なし。
     """
+    # 1. IP単位のレート制限チェック。超過時は429を返す。
     _chat_limiter.check(ip)
 
 

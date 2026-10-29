@@ -43,6 +43,7 @@ def list_entries(_=Depends(require_auth)) -> list[dict]:
     Args:
         _: 認証依存として注入される値（この関数では使用しません）。
     """
+    # 1. 価格計算の記録の一覧を新しい順で返す（管理者のみ）。
     return admin_supabase.table('price_calc_entries').select('*').order('created_at', desc=True).execute().data
 
 

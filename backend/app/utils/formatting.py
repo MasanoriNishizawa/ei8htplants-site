@@ -10,4 +10,5 @@ def fmt_yen(amount: int) -> str:
     Returns:
         先頭に ¥、3 桁ごとにカンマを入れた文字列
     """
+    # 1. 金額を「¥1,234」の形にする。
     return f'¥{amount:,}'

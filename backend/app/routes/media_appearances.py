@@ -40,6 +40,7 @@ def list_media_appearances() -> list[dict]:
     Returns:
         出演情報の行のリスト
     """
+    # 1. メディア出演情報を公開日の新しい順で返す。
     return supabase.table('media_appearances').select('*').order('published_at', desc=True).execute().data
 
 
@@ -54,6 +55,7 @@ def add_media_appearance(body: MediaAppearanceBody, _=Depends(require_auth)) -> 
     Returns:
         作成した行
     """
+    # 1. メディア出演情報を追加する（管理者のみ）。
     return admin_supabase.table('media_appearances').insert(body.model_dump()).execute().data[0]
 
 
