@@ -57,6 +57,7 @@ from .seo_page_meta import (
     build_event_page_meta as _build_event_page_meta,
     build_product_page_meta as _build_product_page_meta,
 )
+from .seo_page_resolver import SeoPageResolutionDeps, resolve_seo_page_meta as _resolve_seo_page_meta
 from .seo_robots import build_robots_txt as _build_robots_txt
 from .seo_sitemap import build_sitemap as _build_sitemap_content, sitemap_url as _make_sitemap_url
 from .seo_structured_data import (
@@ -539,6 +540,37 @@ def _organization_json_ld() -> dict:
     return _build_organization_json_ld(site_name=SITE_NAME, site_origin=SITE_ORIGIN, logo_url=LOGO_URL)
 
 
+def _seo_page_resolution_deps() -> SeoPageResolutionDeps:
+    """現在の seo モジュール参照からページ選択依存を組み立てる。
+
+    テストが差し替える ``_fetch_event``・``_make_meta``・``logger`` などの参照を
+    呼び出しごとに反映し、従来の patch 契約を維持する。
+
+    Returns:
+        現在のモジュール参照を束ねたページ解決依存。
+    """
+    # 1. 動的ページ取得・メタ生成・固定ページ情報・例外記録を現在の参照から束ねる。
+    return SeoPageResolutionDeps(
+        fetch_event=_fetch_event,
+        fetch_article=_fetch_article,
+        fetch_product=_fetch_product,
+        make_meta=_make_meta,
+        not_found_meta=_not_found_meta,
+        build_event_page_meta=_build_event_page_meta,
+        build_article_page_meta=_build_article_page_meta,
+        build_product_page_meta=_build_product_page_meta,
+        event_description=_event_description,
+        event_json_ld=_event_json_ld,
+        parse_blocks=_parse_blocks,
+        blocks_to_text=_blocks_to_text,
+        first_image_block_url=_first_image_block_url,
+        static_pages=STATIC_PAGES,
+        organization_json_ld=_organization_json_ld,
+        logger=logger,
+        error_summary=error_summary,
+    )
+
+
 def _brand_domain_meta(path: str, site_name: str, origin: str) -> PageMeta:
     """ブランド独立ドメイン用の canonical / OGP を作る。未公開パスは noindex にする。
 
@@ -597,86 +629,10 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
         return _brand_domain_meta(path, *BRAND_DOMAINS[host])
 
     # ブランド専用 host の処理後、旧公式 URL を現行パスへ正規化する。
-    # 変数の内容: norm: 正規化したパスまたは文字列。
+    # 変数の内容: norm: 正規化済み SEO ページ解決に渡すパス。
     norm = normalize_legacy_path(path)
-    # 変数の内容: query: DB へ渡す検索条件、segments: 分割した URL パス要素。
-    # 変数の内容: s: URL パスを slash で分けた各要素。
-    segments = [s for s in norm.split('/') if s]
-    query = query or {}
-
-    try:
-        # 1. イベントの個別ページ
-        if len(segments) == 3 and segments[:2] == ['official', 'events']:
-            # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
-            # 変数の内容: event: slug または UUID で取得した公開イベント行。
-            event = _fetch_event(segments[2])
-            if event and _str(event.get('name')):
-                # 2. 既存の差し替え可能な関数群を渡し、イベント用メタ情報を生成する。
-                return _build_event_page_meta(
-                    norm,
-                    event,
-                    _make_meta,
-                    _event_description,
-                    _event_json_ld,
-                )
-            return _not_found_meta(norm)
-
-        # 2. 記事の個別ページ（タイトルは JournalArticle.tsx と同じ "記事名 | Journal"）
-        if len(segments) == 3 and segments[:2] == ['official', 'journal']:
-            # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
-            # 変数の内容: article: ID で取得した公開記事行。
-            article = _fetch_article(segments[2])
-            if article and _str(article.get('title')):
-                # 2. 既存の差し替え可能な本文・画像関数を渡し、Journal 用メタ情報を生成する。
-                return _build_article_page_meta(
-                    norm,
-                    article,
-                    _make_meta,
-                    _parse_blocks,
-                    _blocks_to_text,
-                    _first_image_block_url,
-                )
-            return _not_found_meta(norm)
-
-        # 3. 商品の個別ページ（ShopProduct.tsx と同じく画像は image_urls の1枚目）
-        if len(segments) == 3 and segments[:2] == ['official', 'shop']:
-            # 1. 先頭の公式サイト階層とコレクション名を除き、3番目の要素を識別子として読む。
-            # 変数の内容: product: ID で取得した公開商品行。
-            product = _fetch_product(segments[2])
-            if product and _str(product.get('name')):
-                # 2. 既存の差し替え可能な本文関数を渡し、Shop 用メタ情報を生成する。
-                return _build_product_page_meta(
-                    norm,
-                    product,
-                    _make_meta,
-                    _parse_blocks,
-                    _blocks_to_text,
-                )
-            return _not_found_meta(norm)
-    # 変数の内容: e: except で捕捉した処理例外。
-    except Exception as e:
-        # 例外の文字列には URL の一部（利用者の入力）が入りうるので、型名とコードだけを出す
-        logger.error('build_page_meta DB 読み取りエラー（%r）: %s', norm, error_summary(e))
-        return _make_meta(norm, None, None, None)
-
-    # 4. 固定ページ
-    # 変数の内容: page: 正規化済みパスに対応する固定ページSEO情報。
-    page = STATIC_PAGES.get(norm)
-    if page is not None:
-        # 変数の内容: title: ページまたはメールのタイトル。
-        title = page.title
-        if norm == '/official/events' and query.get('page') == 'past':
-            # 変数の内容: title: ページまたはメールのタイトル。
-            title = 'Past Events'
-        # 変数の内容: meta: ページの title・description・画像などの SEO 情報。
-        meta = _make_meta(norm, title, page.description, page.image)
-        if norm in {'/', '/official'}:
-            meta.json_ld.append(_organization_json_ld())
-        return meta
-
-    # 5. それ以外（/admin 以下・不明なパス）は既定値に noindex を付け、canonical は付けない
-    return _not_found_meta(norm)
-
+    # 1. 現在のモジュール参照を依存として渡し、正規化後のページ選択を委譲する。
+    return _resolve_seo_page_meta(norm, query, _seo_page_resolution_deps())
 
 # ---------------------------------------------------------------------------
 # index.html のパス → (更新時刻, 中身)。デプロイで差し替わって更新時刻が変わったら読み直す
