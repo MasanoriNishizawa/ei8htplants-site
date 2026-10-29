@@ -390,6 +390,44 @@ describe('api.gallery', () => {
     expect(url).toContain('brand=')
     expect(url).toContain(encodeURIComponent('ei8ht plants'))
   })
+
+  it('api.gallery.add(body) が POST で画像を送り応答を返す', async () => {
+    const body = { url: 'https://example.com/gallery.jpg', alt: '植物の写真', brand: 'hue' }
+    const response = { id: 'gallery-1', ...body, display_order: 3 }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.gallery.add(body)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/gallery')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.gallery.updateOrder(id, display_order) が PATCH で並び順を送り応答を返す', async () => {
+    const response = { id: 'gallery-1', url: 'https://example.com/gallery.jpg', alt: null, brand: null, display_order: 7 }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.gallery.updateOrder('gallery-1', 7)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/gallery/gallery-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PATCH', body: JSON.stringify({ display_order: 7 }) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.gallery.delete(id) が DELETE で画像を削除し結果を返す', async () => {
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.gallery.delete('gallery-1')
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/gallery/gallery-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
 })
 
 describe('api.products', () => {

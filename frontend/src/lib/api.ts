@@ -1,11 +1,10 @@
 import { SKIP_ADMIN_AUTH, DEV_SKIP_AUTH_TOKEN } from './devAuth'
 import type { ChatSendMessage } from './chatHistory'
 import { createEventsApi } from './apiDomains/events'
+import { createGalleryApi } from './apiDomains/gallery'
 import type {
   Event,
-  GalleryImage,
   SiteAsset,
-  GalleryBody,
   Stockist,
   StockistBody,
   ContactPayload,
@@ -233,20 +232,7 @@ export const api = {
   /** イベント（公開の一覧・1 件と、管理画面の作成・更新・削除・収支・時間枠・イベントページ・管理情報） */
   events: createEventsApi(request, authRequest),
   /** ギャラリーの画像 */
-  gallery: {
-    /** ギャラリーの画像を取る（brand を渡すと、その値と一致する画像だけ） */
-    list: (brand?: string) =>
-      request<GalleryImage[]>(brand ? `/gallery?brand=${encodeURIComponent(brand)}` : '/gallery'),
-    /** 画像を追加する（管理者のみ） */
-    add: (body: GalleryBody) =>
-      authRequest<GalleryImage>('/gallery', { method: 'POST', body: JSON.stringify(body) }),
-    /** 画像の並び順を変える（管理者のみ） */
-    updateOrder: (id: string, display_order: number) =>
-      authRequest<GalleryImage>(`/gallery/${id}`, { method: 'PATCH', body: JSON.stringify({ display_order }) }),
-    /** 画像を削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/gallery/${id}`, { method: 'DELETE' }),
-  },
+  gallery: createGalleryApi(request, authRequest),
   /** 取扱店 */
   stockists: {
     /** 取扱店の一覧を取る */

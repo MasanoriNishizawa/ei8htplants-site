@@ -98,6 +98,28 @@ describe('認証つきリクエストのトークン', () => {
     expect(authHeaderOf()).toBeUndefined()
   })
 
+  it('ギャラリーの管理APIはセッションJWTをAuthorizationに付けて送る', async () => {
+    state.token = 'gallery-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({
+        id: 'gallery-1',
+        url: 'https://example.com/gallery.jpg',
+        alt: '植物の写真',
+        brand: 'hue',
+        display_order: 3,
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    await api.gallery.add({ url: 'https://example.com/gallery.jpg', alt: '植物の写真', brand: 'hue' })
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/gallery')
+    expect(authHeaderOf()).toBe('Bearer gallery-admin-jwt')
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true
