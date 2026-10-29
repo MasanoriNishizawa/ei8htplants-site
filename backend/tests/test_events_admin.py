@@ -1437,6 +1437,95 @@ class TestEventAdminInfo:
         assert data['guidelines_text'] == '要項'
         assert data['guidelines_image_urls'] == ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
 
+    def test_管理情報ダッシュボード_events読取失敗時は500で後続読取をしない(self):
+        """ダッシュボードの events 読取が失敗すると event_admin_info 読取へ進まず500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: events_table: events読取を失敗させるモック、info_table: 後続読取の呼出有無を確認するモック。
+        events_table = MagicMock()
+        info_table = MagicMock()
+        # 1. events の SELECT 実行で一般例外を発生させ、テーブル別に呼出を追えるようにする。
+        events_table.select.return_value.order.return_value.execute.side_effect = RuntimeError('events read failed')
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = lambda name: {
+            'events': events_table,
+            'event_admin_info': info_table,
+        }[name]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: ダッシュボード取得APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get('/api/events/admin-info/dashboard')
+
+        # 2. 500応答となり、管理情報テーブルを読まないことを確認する。
+        assert resp.status_code == 500
+        events_table.select.return_value.order.return_value.execute.assert_called_once()
+        info_table.select.assert_not_called()
+
+    def test_管理情報ダッシュボード_event_admin_info読取失敗時は500(self):
+        """events 読取後の event_admin_info 読取失敗を500として返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: events_table: 成功するイベント一覧モック、info_table: 読取失敗を注入する管理情報モック。
+        events_table = MagicMock()
+        info_table = MagicMock()
+        # 1. events は空一覧で成功させ、次段の管理情報 SELECT を一般例外にする。
+        events_table.select.return_value.order.return_value.execute.return_value.data = []
+        info_table.select.return_value.execute.side_effect = RuntimeError('admin info read failed')
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = lambda name: {
+            'events': events_table,
+            'event_admin_info': info_table,
+        }[name]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: ダッシュボード取得APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get('/api/events/admin-info/dashboard')
+
+        # 2. 500応答と、events読取→管理情報読取の順を確認する。
+        assert resp.status_code == 500
+        events_table.select.return_value.order.return_value.execute.assert_called_once()
+        info_table.select.return_value.execute.assert_called_once()
+
+    def test_イベントページ保存後の公開読戻し失敗時は500(self):
+        """PATCH の保存後に行う公開イベント読戻しが失敗すると500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event_id: 対象イベントUUID、admin_events: 存在確認と保存のDBモック、public_events: 公開読戻しモック。
+        event_id = '11111111-1111-1111-1111-111111111111'
+        admin_events = MagicMock()
+        public_events = MagicMock()
+        # 1. 管理側の存在確認と更新は成功させ、公開側のslug/id検索を失敗させる。
+        admin_events.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {'id': event_id}
+        admin_events.update.return_value.eq.return_value.execute.return_value.data = []
+        public_events.select.return_value.eq.return_value.execute.side_effect = [
+            MagicMock(data=[]), RuntimeError('public readback failed'),
+        ]
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value = admin_events
+        mock_public_sb = MagicMock()
+        mock_public_sb.table.return_value = public_events
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb), \
+             patch('app.routes.events.supabase', mock_public_sb):
+            # 変数の内容: resp: ページ保存APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).patch(
+                f'/api/events/{event_id}/page', json={'page_content': {'sections': []}}
+            )
+
+        # 2. 保存後の読戻しで500となり、公開slug検索とUUID検索まで試みたことを確認する。
+        assert resp.status_code == 500
+        admin_events.select.return_value.eq.return_value.single.return_value.execute.assert_called_once()
+        admin_events.update.return_value.eq.return_value.execute.assert_called_once()
+        assert public_events.select.return_value.eq.call_args_list == [
+            call('slug', event_id), call('id', event_id),
+        ]
+
     # ----- 保存 -----
 
     def test_管理情報保存_okが返る(self):
@@ -1872,3 +1961,360 @@ class TestPublicApiHidesAdminInfo:
 
         assert resp.status_code == 200
         assert resp.json() == _admin_info_secret()
+
+
+class TestEventReadFailures:
+    """イベント公開・収支・セッション読取の一般例外経路を確認する。"""
+
+    def setup_method(self):
+        """認証必須の管理APIを通すため認証依存をバイパスする。
+
+        Returns:
+            なし。
+        """
+        # 1. 管理APIの認証依存をテスト用に上書きする。
+        app.dependency_overrides[require_auth] = lambda: None
+
+    def teardown_method(self):
+        """テスト後に認証依存の上書きを解除する。
+
+        Returns:
+            なし。
+        """
+        # 1. 他テストへ認証上書きが漏れないよう解除する。
+        app.dependency_overrides.clear()
+
+    def test_イベント一覧_events読取失敗時は500で画像読取をしない(self):
+        """events一覧のSELECT失敗は500となり画像テーブルへ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: events_table: 一覧読取を失敗させるモック、images_table: 後続画像読取の有無を確認するモック。
+        events_table = MagicMock()
+        images_table = MagicMock()
+        # 1. 一覧SELECTで一般例外を発生させ、画像モックは未使用にする。
+        events_table.select.return_value.order.return_value.execute.side_effect = RuntimeError('events list failed')
+        mock_sb = MagicMock()
+        mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
+
+        with patch('app.routes.events.supabase', mock_sb):
+            # 変数の内容: resp: 公開イベント一覧APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get('/api/events')
+
+        # 2. 500応答と後続画像読取がないことを確認する。
+        assert resp.status_code == 500
+        events_table.select.return_value.order.return_value.execute.assert_called_once()
+        images_table.select.assert_not_called()
+
+    def test_イベント一覧_event_images読取失敗時は500(self):
+        """イベント一覧の取得後に画像SELECTが失敗すると500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event: 一覧に返すイベント、events_table: 成功する一覧モック、images_table: 失敗する画像モック。
+        event = _event_data('evt-read-images')
+        events_table = MagicMock()
+        images_table = MagicMock()
+        # 1. イベント一覧を成功させ、後続の画像読み取りだけ一般例外にする。
+        events_table.select.return_value.order.return_value.execute.return_value.data = [event]
+        images_table.select.return_value.in_.return_value.order.return_value.execute.side_effect = RuntimeError(
+            'event images read failed'
+        )
+        mock_sb = MagicMock()
+        mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
+
+        with patch('app.routes.events.supabase', mock_sb):
+            # 変数の内容: resp: 公開イベント一覧APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get('/api/events')
+
+        # 2. イベント一覧と画像一覧の各SELECTが呼ばれ、APIは500になることを確認する。
+        assert resp.status_code == 500
+        events_table.select.return_value.order.return_value.execute.assert_called_once()
+        images_table.select.return_value.in_.return_value.order.return_value.execute.assert_called_once()
+
+    def test_全収支一覧読取失敗時は500(self):
+        """全収支一覧のSELECTが一般例外を出すと500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: finances_table: event_financesの一覧読取を失敗させるモック、mock_admin_sb: 管理用DBクライアント。
+        finances_table = MagicMock()
+        finances_table.select.return_value.execute.side_effect = RuntimeError('finances list failed')
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value = finances_table
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: 管理用全収支一覧APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get('/api/events/finances')
+
+        # 1. 500応答と一覧SELECTの実行を確認する。
+        assert resp.status_code == 500
+        finances_table.select.return_value.execute.assert_called_once()
+
+    def test_個別収支読取の一般例外は500(self):
+        """個別イベント収支のSELECTが一般例外を出すと500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: finances_table: event_financesの個別読取失敗モック、mock_admin_sb: 管理用DBクライアント。
+        finances_table = MagicMock()
+        finances_table.select.return_value.eq.return_value.execute.side_effect = RuntimeError('finance read failed')
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value = finances_table
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: 個別収支取得APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get('/api/events/evt-finance/finances')
+
+        # 1. 500応答となり、対象イベントIDでの収支SELECTが実行されることを確認する。
+        assert resp.status_code == 500
+        finances_table.select.return_value.eq.assert_called_once_with('event_id', 'evt-finance')
+        finances_table.select.return_value.eq.return_value.execute.assert_called_once()
+
+    def test_UUIDイベント取得_slug空の後のid読取失敗は500で画像読取をしない(self):
+        """slug検索が空で続くUUID id検索が失敗すると500となり画像読取へ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event_id: 対象UUID、events_table: slug成功・id失敗を返すモック、images_table: 後続処理確認用。
+        event_id = '11111111-1111-1111-1111-111111111111'
+        events_table = MagicMock()
+        images_table = MagicMock()
+        # 1. slug検索は空で返し、UUIDによるid検索で一般例外を発生させる。
+        events_table.select.return_value.eq.return_value.execute.side_effect = [
+            MagicMock(data=[]), RuntimeError('event id read failed'),
+        ]
+        mock_sb = MagicMock()
+        mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
+
+        with patch('app.routes.events.supabase', mock_sb):
+            # 変数の内容: resp: 公開イベント1件取得APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get(f'/api/events/{event_id}')
+
+        # 2. slug→idの検索順で500となり画像取得を行わないことを確認する。
+        assert resp.status_code == 500
+        assert events_table.select.return_value.eq.call_args_list == [call('slug', event_id), call('id', event_id)]
+        assert events_table.select.return_value.eq.return_value.execute.call_count == 2
+        images_table.select.assert_not_called()
+
+    def test_slugイベント取得_slug読取失敗時は500でfallbackしない(self):
+        """非UUID slug検索の一般例外は500となりUUID検索と画像読取へ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: slug: 対象slug文字列、events_table: slug読取失敗を注入するモック、images_table: 後続確認用。
+        slug = 'spring-market'
+        events_table = MagicMock()
+        images_table = MagicMock()
+        # 1. slug条件のイベントSELECTで一般例外を発生させ、他のクエリ段階は未使用にする。
+        events_table.select.return_value.eq.return_value.execute.side_effect = RuntimeError('slug read failed')
+        mock_sb = MagicMock()
+        mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
+
+        with patch('app.routes.events.supabase', mock_sb):
+            # 変数の内容: resp: slug指定の公開イベント取得APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get(f'/api/events/{slug}')
+
+        # 2. 500応答となりslug検索だけで止まり、UUID id検索や画像読取に進まないことを確認する。
+        assert resp.status_code == 500
+        events_table.select.return_value.eq.assert_called_once_with('slug', slug)
+        events_table.select.return_value.eq.return_value.execute.assert_called_once()
+        images_table.select.assert_not_called()
+
+    def test_セッション一覧ws_sessions読取失敗時は500で予約読取をしない(self):
+        """時間枠SELECTが失敗すると500となり予約数クエリへ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: sessions_table: 読取失敗を注入する枠テーブル、reservations_table: 後続予約読取確認用。
+        sessions_table = MagicMock()
+        reservations_table = MagicMock()
+        # 1. ws_sessions一覧SELECTを失敗させ、各テーブルを個別にモックする。
+        sessions_table.select.return_value.eq.return_value.order.return_value.execute.side_effect = RuntimeError(
+            'sessions read failed'
+        )
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = lambda name: {
+            'ws_sessions': sessions_table,
+            'workshop_reservations': reservations_table,
+        }[name]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: 公開セッション一覧APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get(
+                '/api/events/11111111-1111-1111-1111-111111111111/sessions'
+            )
+
+        # 2. 500応答となり、workshop_reservationsを読まないことを確認する。
+        assert resp.status_code == 500
+        sessions_table.select.return_value.eq.return_value.order.return_value.execute.assert_called_once()
+        reservations_table.select.assert_not_called()
+
+    def test_セッション一覧workshop_reservations読取失敗時は500(self):
+        """時間枠一覧の取得後に予約SELECTが失敗すると500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: sessions_table: 時間枠1件を返すモック、reservations_table: 予約読取失敗モック。
+        sessions_table = MagicMock()
+        reservations_table = MagicMock()
+        # 1. 時間枠SELECTは1件を返し、後続の予約SELECTで一般例外を発生させる。
+        sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
+            {'id': 'session-read', 'time_label': '10:00'},
+        ]
+        reservations_table.select.return_value.eq.return_value.neq.return_value.execute.side_effect = RuntimeError(
+            'reservations read failed'
+        )
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = lambda name: {
+            'ws_sessions': sessions_table,
+            'workshop_reservations': reservations_table,
+        }[name]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: 公開セッション一覧APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get(
+                '/api/events/11111111-1111-1111-1111-111111111111/sessions'
+            )
+
+        # 2. 500応答と、枠一覧取得後に予約数取得を試みたことを確認する。
+        assert resp.status_code == 500
+        sessions_table.select.return_value.eq.return_value.order.return_value.execute.assert_called_once()
+        reservations_table.select.return_value.eq.return_value.neq.return_value.execute.assert_called_once()
+
+    def test_収支保存前のevents存在確認失敗時は500でupsertしない(self):
+        """収支保存前のイベント存在確認が失敗すると500となり収支upsertへ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: events_table: 存在確認失敗を注入するイベント表、finances_table: 後続upsert確認用の収支表。
+        events_table = MagicMock()
+        finances_table = MagicMock()
+        # 1. eventsのsingle読取で一般例外を発生させ、収支表は未使用にする。
+        events_table.select.return_value.eq.return_value.single.return_value.execute.side_effect = RuntimeError(
+            'event existence read failed'
+        )
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = lambda name: {
+            'events': events_table,
+            'event_finances': finances_table,
+        }[name]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: 収支保存APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).put(
+                '/api/events/11111111-1111-1111-1111-111111111111/finances', json={'sales': 1200}
+            )
+
+        # 2. 500応答となり、存在確認だけを実行して収支upsertへ進まないことを確認する。
+        assert resp.status_code == 500
+        events_table.select.return_value.eq.return_value.single.return_value.execute.assert_called_once()
+        finances_table.upsert.assert_not_called()
+
+    def test_ページ保存前のevents存在確認失敗時は500で更新しない(self):
+        """ページ保存前のイベント存在確認が失敗すると500となりpage_contentを更新しない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: events_table: 存在確認失敗を注入するイベント表、mock_admin_sb: 管理用DBクライアント。
+        events_table = MagicMock()
+        # 1. eventsのsingle読取を一般例外にし、同じ表のupdateが呼ばれないことを追跡する。
+        events_table.select.return_value.eq.return_value.single.return_value.execute.side_effect = RuntimeError(
+            'event existence read failed'
+        )
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.return_value = events_table
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: ページ内容保存APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).patch(
+                '/api/events/11111111-1111-1111-1111-111111111111/page',
+                json={'page_content': {'sections': []}},
+            )
+
+        # 2. 500応答となり、ページ内容のupdateや公開readbackへ進まないことを確認する。
+        assert resp.status_code == 500
+        events_table.select.return_value.eq.return_value.single.return_value.execute.assert_called_once()
+        events_table.update.assert_not_called()
+        mock_admin_sb.table.assert_called_once_with('events')
+
+    def test_セッション保存前のevents存在確認失敗時は500でws_sessionsを読まない(self):
+        """セッション保存前のイベント存在確認が失敗すると500となりws_sessionsへ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: events_table: 存在確認失敗を注入するイベント表、sessions_table: 後続アクセス確認用の枠表。
+        events_table = MagicMock()
+        sessions_table = MagicMock()
+        # 1. イベントのsingle読取で一般例外を発生させ、テーブルアクセス名を記録する。
+        events_table.select.return_value.eq.return_value.single.return_value.execute.side_effect = RuntimeError(
+            'event existence read failed'
+        )
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = lambda name: {
+            'events': events_table,
+            'ws_sessions': sessions_table,
+        }[name]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: セッション保存APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).put(
+                '/api/events/11111111-1111-1111-1111-111111111111/sessions',
+                json={'sessions': [{'time_label': '10:00', 'max_participants': 5}]},
+            )
+
+        # 2. 500応答となり、DBアクセスがイベント存在確認で止まることを確認する。
+        assert resp.status_code == 500
+        assert [args.args[0] for args in mock_admin_sb.table.call_args_list] == ['events']
+        events_table.select.return_value.eq.return_value.single.return_value.execute.assert_called_once()
+        sessions_table.select.assert_not_called()
+
+    def test_日付指定セッション取得_予約読取失敗時は500で日付条件を付ける(self):
+        """日付指定の予約SELECTが失敗すると500となりpreferred_date条件付きで実行される。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event_id: 対象UUID、preferred_date: 予約検索に指定する開催日、sessions_table/reservations_table: DBモック。
+        event_id = '11111111-1111-1111-1111-111111111111'
+        preferred_date = '2099-01-01'
+        sessions_table = MagicMock()
+        reservations_table = MagicMock()
+        # 1. ws_sessionsは1件を返し、日付条件を付けた予約検索の実行で一般例外を発生させる。
+        sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
+            {'id': 'session-date', 'time_label': '10:00'},
+        ]
+        reservations_table.select.return_value.eq.return_value.neq.return_value.eq.return_value.execute.side_effect = (
+            RuntimeError('dated reservations read failed')
+        )
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.table.side_effect = lambda name: {
+            'ws_sessions': sessions_table,
+            'workshop_reservations': reservations_table,
+        }[name]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: resp: 日付指定セッション一覧APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).get(
+                f'/api/events/{event_id}/sessions', params={'date': preferred_date}
+            )
+
+        # 2. 500応答と、予約検索のevent・status・日付条件および実行を確認する。
+        assert resp.status_code == 500
+        reservations_table.select.return_value.eq.assert_called_once_with('event_id', event_id)
+        reservations_table.select.return_value.eq.return_value.neq.assert_called_once_with('status', 'cancelled')
+        reservations_table.select.return_value.eq.return_value.neq.return_value.eq.assert_called_once_with(
+            'preferred_date', preferred_date
+        )
+        reservations_table.select.return_value.eq.return_value.neq.return_value.eq.return_value.execute.assert_called_once()
