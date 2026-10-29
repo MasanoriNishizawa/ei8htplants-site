@@ -6,6 +6,7 @@ import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 import CheckoutOrderSummary from '../components/CheckoutOrderSummary'
 import CheckoutCustomerFields, { type CheckoutCustomerFieldValues } from '../components/CheckoutCustomerFields'
+import CheckoutPaymentSection from '../components/CheckoutPaymentSection'
 import { formatYen } from '../lib/format'
 
 /** Square のアプリケーション ID（.env の VITE_SQUARE_APP_ID。公開してよい値）。空なら決済フォームを読み込まない */
@@ -458,12 +459,6 @@ export default function Checkout() {
   const SANS = "'Noto Sans JP', sans-serif"
   // ページの背景色（生成り）
   const BG = '#faf9f7'
-  // 「お支払い」の区切り見出しの見た目
-  const paymentSectionTitle: React.CSSProperties = {
-    fontFamily: SERIF, fontSize: 16, fontWeight: 400, color: '#1c1c1c',
-    borderBottom: '1px solid #e8e3da', paddingBottom: 12, marginBottom: 20, letterSpacing: '0.05em',
-  }
-
   return (
     <>
       <PageMeta title={t('ご注文手続き', 'Checkout')} description={t('ご注文手続き', 'Checkout')} />
@@ -495,49 +490,16 @@ export default function Checkout() {
                 onChange={(field, value) => set(field, value)}
               />
 
-              <p style={paymentSectionTitle}>{t('お支払い', 'Payment')}</p>
-              {/* Square のカード入力欄を取り付ける入れ物（中身は SDK が作る） */}
-              <div
-                id="square-card-container"
-                style={{ border: '1px solid #ddd', padding: '14px 12px', marginBottom: 8, minHeight: 60, background: '#fff' }}
+              {/* 決済表示は子へ委ねる。フォーム・Square SDK・注文送信の制御はこの親に残す */}
+              <CheckoutPaymentSection
+                sdkReady={sdkReady}
+                errorMsg={errorMsg}
+                status={status}
+                total={total}
+                t={t}
+                serif={SERIF}
+                sans={SANS}
               />
-              {/* カード入力欄の読み込み中の案内と、エラー文 */}
-              {!sdkReady && !errorMsg && (
-                <p style={{ fontFamily: SANS, fontSize: 12, color: '#aaa', marginBottom: 16 }}>{t('カード入力フォームを読み込み中...', 'Loading card form...')}</p>
-              )}
-              {errorMsg && (
-                <p role="alert" style={{ fontFamily: SANS, fontSize: 13, color: '#c0392b', marginBottom: 16, lineHeight: 1.7 }}>{errorMsg}</p>
-              )}
-
-              {/* キャンセル不可の案内 */}
-              <div style={{ background: '#f9f9f7', border: '1px solid #e8e3da', padding: '14px 18px', marginBottom: 16 }}>
-                <p style={{ fontFamily: SANS, fontSize: 12, color: '#555', margin: 0, lineHeight: 2 }}>
-                  {t(
-                    <>ご注文確定後のキャンセル・返品はお承りしておりません。<br />商品の不良・破損があった場合のみ、到着後7日以内に<Link to="/official/contact" style={{ color: '#1c1c1c' }}>お問い合わせページ</Link>よりご連絡ください。</>,
-                    <>Cancellations and returns are not accepted after an order is placed.<br />If an item arrives damaged or defective, please <Link to="/official/contact" style={{ color: '#1c1c1c' }}>contact us</Link> within 7 days of receipt.</>
-                  )}
-                </p>
-              </div>
-
-              {/* 注文の確定ボタン（合計を添える。送信中・カード入力欄の準備前は押せない） */}
-              <button
-                type="submit"
-                disabled={status === 'loading' || !sdkReady}
-                style={{
-                  width: '100%', padding: '16px 0', border: 'none', marginTop: 4,
-                  background: status === 'loading' ? '#a0a098' : '#1c1c1c',
-                  color: '#fff', fontFamily: SANS, fontSize: 13, letterSpacing: '2px',
-                  cursor: status === 'loading' ? 'default' : 'pointer',
-                }}
-              >
-                {status === 'loading' ? t('処理中...', 'Processing...') : t(`注文を確定する  ${formatYen(total)}`, `Place Order  ${formatYen(total)}`)}
-              </button>
-              <p style={{ fontFamily: SANS, fontSize: 11, color: '#aaa', marginTop: 12, textAlign: 'center', lineHeight: 1.9 }}>
-                {t(
-                  <>ご注文確定と同時に決済が行われます。<br />カード情報は Square により安全に処理されます。</>,
-                  <>Payment is charged upon order confirmation.<br />Your card details are securely handled by Square.</>
-                )}
-              </p>
             </form>
 
             {/* 注文商品の表示専用サマリー。送料の取得・計算は親画面で行う */}

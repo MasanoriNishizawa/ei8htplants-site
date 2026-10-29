@@ -23,6 +23,7 @@ import { LangProvider } from '../../lib/lang'
 import { CartProvider } from '../../lib/cart'
 import { CART_STORAGE_KEY } from '../../lib/cartContext'
 import CheckoutOrderSummary from '../../components/CheckoutOrderSummary'
+import CheckoutPaymentSection from '../../components/CheckoutPaymentSection'
 import type { CartItem } from '../../lib/cart'
 
 // 使う api の関数だけをモックする（ApiError などの実装はそのまま）
@@ -341,6 +342,64 @@ describe('Checkout のお客様情報・お届け先の入力欄', () => {
     expect(field('email')).toHaveAttribute('autocomplete', 'email')
     expect(field('phone')).toHaveAttribute('autocomplete', 'tel')
     expect(field('postal')).toHaveAttribute('autocomplete', 'postal-code')
+  })
+})
+
+describe('CheckoutPaymentSection の支払い表示', () => {
+  /**
+   * 支払い表示をルーター内に描画する。
+   * 1. SDK の状態・送信状態・エラー・合計を渡し、リンクを解決できるようにする。
+   * 2. 描画結果を返し、表示と操作状態を確認する。
+   * @param options 表示する SDK・注文状態とエラー文
+   * @returns 描画したコンテナー
+   */
+  function renderPaymentSection(options: {
+    sdkReady: boolean
+    status: 'idle' | 'loading' | 'error'
+    errorMsg?: string
+  }) {
+    const t = (ja: React.ReactNode, _en: React.ReactNode) => ja
+    return render(
+      <MemoryRouter>
+        <form onSubmit={(event) => event.preventDefault()}>
+          <CheckoutPaymentSection
+            sdkReady={options.sdkReady}
+            errorMsg={options.errorMsg ?? ''}
+            status={options.status}
+            total={4600}
+            t={t}
+            serif="serif"
+            sans="sans-serif"
+          />
+        </form>
+      </MemoryRouter>,
+    )
+  }
+
+  it('Square の準備中はカードのマウント先と読込案内を表示し、注文ボタンを無効にする', () => {
+    renderPaymentSection({ sdkReady: false, status: 'idle' })
+
+    expect(screen.getByText('お支払い')).toBeInTheDocument()
+    expect(document.getElementById('square-card-container')).toBeInTheDocument()
+    expect(screen.getByText('カード入力フォームを読み込み中...')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /注文を確定する/ })).toBeDisabled()
+  })
+
+  it('準備完了時はキャンセル案内・お問い合わせリンク・合計付きの注文ボタンを表示する', () => {
+    renderPaymentSection({ sdkReady: true, status: 'idle' })
+
+    expect(screen.queryByText('カード入力フォームを読み込み中...')).not.toBeInTheDocument()
+    expect(screen.getByText(/ご注文確定後のキャンセル・返品はお承りしておりません/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'お問い合わせページ' })).toHaveAttribute('href', '/official/contact')
+    expect(screen.getByRole('button', { name: '注文を確定する ¥4,600' })).toBeEnabled()
+  })
+
+  it('読み込みエラーをアラート表示し、送信中は処理中ボタンを無効にする', () => {
+    renderPaymentSection({ sdkReady: false, status: 'loading', errorMsg: 'カードフォームを読み込めませんでした。' })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('カードフォームを読み込めませんでした。')
+    expect(screen.queryByText('カード入力フォームを読み込み中...')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '処理中...' })).toBeDisabled()
   })
 })
 
