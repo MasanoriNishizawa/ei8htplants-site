@@ -5,8 +5,8 @@ import { useCart } from '../lib/cart'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
 import CheckoutOrderSummary from '../components/CheckoutOrderSummary'
+import CheckoutCustomerFields, { type CheckoutCustomerFieldValues } from '../components/CheckoutCustomerFields'
 import { formatYen } from '../lib/format'
-import { INPUT_MAX_LENGTH } from '../lib/constants'
 
 /** Square のアプリケーション ID（.env の VITE_SQUARE_APP_ID。公開してよい値）。空なら決済フォームを読み込まない */
 const SQUARE_APP_ID = import.meta.env.VITE_SQUARE_APP_ID ?? ''
@@ -52,27 +52,11 @@ declare global {
   }
 }
 
-/** 都道府県の選択肢（北から順） */
-const PREFECTURES = [
-  '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
-  '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
-  '新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県',
-  '静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県',
-  '奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県',
-  '徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県',
-  '熊本県','大分県','宮崎県','鹿児島県','沖縄県',
-]
-
-
 /**
  * 入力フォームの値（name: お名前、email: メール、phone: 電話（任意）、postalCode: 郵便番号、prefecture: 都道府県、
  * city: 市区町村、addressLine1: 番地・建物名、addressLine2: 建物名・部屋番号（任意）、note: 備考（任意））
  */
-type FormState = {
-  name: string; email: string; phone: string
-  postalCode: string; prefecture: string; city: string
-  addressLine1: string; addressLine2: string; note: string
-}
+type FormState = CheckoutCustomerFieldValues
 
 /** 入力フォームの初期値 */
 const BLANK: FormState = {
@@ -474,21 +458,8 @@ export default function Checkout() {
   const SANS = "'Noto Sans JP', sans-serif"
   // ページの背景色（生成り）
   const BG = '#faf9f7'
-
-  // 入力欄（枠線のみの四角い欄）
-  const inputStyle: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', padding: '11px 14px',
-    border: '1px solid #ddd', fontSize: 14, fontFamily: SANS,
-    color: '#1c1c1c', background: '#fff', outline: 'none', borderRadius: 0,
-    WebkitAppearance: 'none', appearance: 'none',
-  }
-  // 入力欄の上の小さなラベル
-  const labelStyle: React.CSSProperties = {
-    display: 'block', fontFamily: SANS, fontSize: 11, letterSpacing: '1.5px',
-    color: '#aaa', marginBottom: 7,
-  }
-  // 「お客様情報」などの区切りの見出し
-  const sectionTitle: React.CSSProperties = {
+  // 「お支払い」の区切り見出しの見た目
+  const paymentSectionTitle: React.CSSProperties = {
     fontFamily: SERIF, fontSize: 16, fontWeight: 400, color: '#1c1c1c',
     borderBottom: '1px solid #e8e3da', paddingBottom: 12, marginBottom: 20, letterSpacing: '0.05em',
   }
@@ -516,50 +487,15 @@ export default function Checkout() {
 
             {/* フォーム（お客様情報・お届け先・お支払い） */}
             <form onSubmit={handleSubmit}>
-              <p style={sectionTitle}>{t('お客様情報', 'Customer Information')}</p>
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor={`${uid}-name`} style={labelStyle}>{t('お名前 *', 'Full Name *')}</label>
-                <input id={`${uid}-name`} required autoComplete="name" maxLength={INPUT_MAX_LENGTH.name} style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} />
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor={`${uid}-email`} style={labelStyle}>{t('メールアドレス *', 'Email Address *')}</label>
-                <input id={`${uid}-email`} required type="email" autoComplete="email" style={inputStyle} value={form.email} onChange={(e) => set('email', e.target.value)} />
-              </div>
-              <div style={{ marginBottom: 32 }}>
-                <label htmlFor={`${uid}-phone`} style={labelStyle}>{t('電話番号', 'Phone Number')}</label>
-                <input id={`${uid}-phone`} type="tel" autoComplete="tel" maxLength={INPUT_MAX_LENGTH.phone} style={inputStyle} value={form.phone} onChange={(e) => set('phone', e.target.value)} />
-              </div>
+              {/* お客様情報・お届け先の入力と表示を子コンポーネントへ委ね、値と送料連動は親で管理する */}
+              <CheckoutCustomerFields
+                values={form}
+                uid={uid}
+                t={t}
+                onChange={(field, value) => set(field, value)}
+              />
 
-              <p style={sectionTitle}>{t('お届け先', 'Shipping Address')}</p>
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor={`${uid}-postal`} style={labelStyle}>{t('郵便番号 *', 'Postal Code *')}</label>
-                <input id={`${uid}-postal`} required autoComplete="postal-code" maxLength={INPUT_MAX_LENGTH.postalCode} style={{ ...inputStyle, maxWidth: 160 }} value={form.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="000-0000" />
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor={`${uid}-prefecture`} style={labelStyle}>{t('都道府県 *', 'Prefecture *')}</label>
-                <select id={`${uid}-prefecture`} required style={inputStyle} value={form.prefecture} onChange={(e) => set('prefecture', e.target.value)}>
-                  <option value="">{t('選択してください', 'Select a prefecture')}</option>
-                  {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor={`${uid}-city`} style={labelStyle}>{t('市区町村 *', 'City / Town *')}</label>
-                <input id={`${uid}-city`} required maxLength={INPUT_MAX_LENGTH.city} style={inputStyle} value={form.city} onChange={(e) => set('city', e.target.value)} />
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor={`${uid}-address1`} style={labelStyle}>{t('番地・建物名 *', 'Street Address *')}</label>
-                <input id={`${uid}-address1`} required maxLength={INPUT_MAX_LENGTH.address} style={inputStyle} value={form.addressLine1} onChange={(e) => set('addressLine1', e.target.value)} />
-              </div>
-              <div style={{ marginBottom: 32 }}>
-                <label htmlFor={`${uid}-address2`} style={labelStyle}>{t('建物名・部屋番号', 'Building / Apt No.')}</label>
-                <input id={`${uid}-address2`} maxLength={INPUT_MAX_LENGTH.address} style={inputStyle} value={form.addressLine2} onChange={(e) => set('addressLine2', e.target.value)} />
-              </div>
-              <div style={{ marginBottom: 32 }}>
-                <label htmlFor={`${uid}-note`} style={labelStyle}>{t('備考', 'Notes')}</label>
-                <textarea id={`${uid}-note`} maxLength={INPUT_MAX_LENGTH.note} style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={form.note} onChange={(e) => set('note', e.target.value)} />
-              </div>
-
-              <p style={sectionTitle}>{t('お支払い', 'Payment')}</p>
+              <p style={paymentSectionTitle}>{t('お支払い', 'Payment')}</p>
               {/* Square のカード入力欄を取り付ける入れ物（中身は SDK が作る） */}
               <div
                 id="square-card-container"

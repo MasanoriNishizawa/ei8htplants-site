@@ -4,6 +4,8 @@
  * - 注文の送信に失敗したときのステータスごとの文言（orderErrorMessage）を、画面の操作を通して確かめる
  *   422・402・409/400/404（日本語はサーバーの detail）・429・500（「お支払いは完了」）・ほかの 500・
  *   502（「確認できませんでした」）・ほかの 502・通信の失敗、英語表示
+ * - お客様情報・住所入力欄の必須属性、ラベル、入力形式、自動補完、表示順
+ * - controlled state に入力した全項目が注文 payload に反映されること
  * - 各入力欄の maxLength（lib/constants の INPUT_MAX_LENGTH）
  *
  * Square の決済フォームは本物を読み込まない。
@@ -102,23 +104,36 @@ async function renderCheckout() {
 
 /**
  * 必須項目を入れて注文を送る（英語表示でも同じ入力欄の順に入れる）
+ * @param includeOptional - 電話・建物名・備考も入力する場合は true
  * @returns なし
  */
-async function fillAndSubmit() {
+async function fillAndSubmit(includeOptional = true) {
   const { container } = await renderCheckout()
   // 1. 入力欄（id の末尾で探す。言語に左右されない）
   /**
    * 項目 ID の末尾を指定して、対応するフォーム入力欄を取得する。
    * @param suffix - 項目名の末尾文字列
-   * @returns 一致する input 要素。該当項目がない場合は null
+   * @returns 一致する入力要素
+   * @throws 入力欄が見つからない場合
    */
-  const field = (suffix: string) => container.querySelector(`[id$="-${suffix}"]`) as HTMLInputElement
+  const field = (suffix: string) => {
+    const input = container.querySelector(`[id$="-${suffix}"]`)
+    if (!input) throw new Error(`入力欄が見つかりません: ${suffix}`)
+    return input
+  }
   fireEvent.change(field('name'), { target: { value: '山田 花子' } })
   fireEvent.change(field('email'), { target: { value: 'hanako@example.com' } })
+  if (includeOptional) {
+    fireEvent.change(field('phone'), { target: { value: '090-1234-5678' } })
+  }
   fireEvent.change(field('postal'), { target: { value: '150-0001' } })
   fireEvent.change(field('prefecture'), { target: { value: '東京都' } })
   fireEvent.change(field('city'), { target: { value: '渋谷区' } })
   fireEvent.change(field('address1'), { target: { value: '神宮前1-1-1' } })
+  if (includeOptional) {
+    fireEvent.change(field('address2'), { target: { value: '植物ビル 301号室' } })
+    fireEvent.change(field('note'), { target: { value: '平日の午後に配達希望' } })
+  }
   // 2. 送料が決まってから送る
   await waitFor(() => expect(api.shipping.getRate).toHaveBeenCalledWith('東京都'))
   await act(async () => {})
@@ -143,7 +158,35 @@ describe('Checkout の注文の失敗の文言（日本語）', () => {
     vi.mocked(api.orders.create).mockResolvedValue({ order_id: 'o-1' } as never)
     await fillAndSubmit()
     expect(await screen.findByText('注文完了')).toBeInTheDocument()
-    expect(vi.mocked(api.orders.create).mock.calls[0][0]).toMatchObject({ customer_name: '山田 花子', source_id: 'tok-1', prefecture: '東京都' })
+    expect(vi.mocked(api.orders.create).mock.calls[0][0]).toMatchObject({
+      customer_name: '山田 花子',
+      customer_email: 'hanako@example.com',
+      customer_phone: '090-1234-5678',
+      postal_code: '150-0001',
+      prefecture: '東京都',
+      city: '渋谷区',
+      address_line1: '神宮前1-1-1',
+      address_line2: '植物ビル 301号室',
+      note: '平日の午後に配達希望',
+      source_id: 'tok-1',
+    })
+  })
+
+  it('任意項目が未入力なら注文 payload で undefined となり、JSON 送信時に省略される', async () => {
+    vi.mocked(api.orders.create).mockResolvedValue({ order_id: 'o-2' } as never)
+    // 1. 任意項目は空欄のまま、必須項目を埋めて注文する
+    await fillAndSubmit(false)
+    expect(await screen.findByText('注文完了')).toBeInTheDocument()
+
+    // 2. 親の controlled state から作られた payload と JSON 化後の省略を確認する
+    const payload = vi.mocked(api.orders.create).mock.calls[0][0]
+    expect(payload.customer_phone).toBeUndefined()
+    expect(payload.address_line2).toBeUndefined()
+    expect(payload.note).toBeUndefined()
+    const serializedPayload = JSON.parse(JSON.stringify(payload)) as Record<string, unknown>
+    expect(serializedPayload).not.toHaveProperty('customer_phone')
+    expect(serializedPayload).not.toHaveProperty('address_line2')
+    expect(serializedPayload).not.toHaveProperty('note')
   })
 
   it('422 は入力の確認をうながす文言になる', async () => {
@@ -250,6 +293,54 @@ describe('Checkout の入力欄の maxLength', () => {
     expect(max('address1')).toBe('200')
     expect(max('address2')).toBe('200')
     expect(max('note')).toBe('2000')
+  })
+})
+
+describe('Checkout のお客様情報・お届け先の入力欄', () => {
+  /**
+   * お客様情報・住所欄の入力要件と読み上げ用ラベルの関連付けを確認する。
+   * 1. 表示順と label の htmlFor が入力 id に対応することを確かめる。
+   * 2. 必須・任意、入力形式、自動補完属性を確認する。
+   * @returns 入力欄の画面確認が完了したときに解決する Promise
+   */
+  it('必須・任意、入力形式、自動補完、ラベルとの対応、表示順を保つ', async () => {
+    const { container } = await renderCheckout()
+    // 1. フォームの入力要素とラベルを id の末尾で特定する
+    /**
+     * 項目 ID の末尾を指定して、画面に表示された入力要素を取得する。
+     * @param suffix - 項目名の末尾文字列
+     * @returns 一致する入力要素。該当項目がない場合はテストを失敗させる
+     */
+    const field = (suffix: string) => {
+      const control = container.querySelector(`[id$="-${suffix}"]`)
+      if (!control) throw new Error(`入力欄が見つかりません: ${suffix}`)
+      return control
+    }
+    const suffixes = ['name', 'email', 'phone', 'postal', 'prefecture', 'city', 'address1', 'address2', 'note']
+
+    // 2. ラベルと各コントロールが id で結ばれ、指定した順序で並ぶことを確かめる
+    const controls = Array.from(container.querySelectorAll('input[id], select[id], textarea[id]'))
+    expect(controls.map((control) => control.id.slice(control.id.lastIndexOf('-') + 1))).toEqual(suffixes)
+    for (const suffix of suffixes) {
+      const control = field(suffix)
+      expect(container.querySelector(`label[for="${control.id}"]`)).toHaveAttribute('for', control.id)
+    }
+
+    // 3. 必須属性と任意属性を区別する
+    for (const suffix of ['name', 'email', 'postal', 'prefecture', 'city', 'address1']) {
+      expect(field(suffix)).toBeRequired()
+    }
+    for (const suffix of ['phone', 'address2', 'note']) {
+      expect(field(suffix)).not.toBeRequired()
+    }
+
+    // 4. メール・電話の入力形式とブラウザー自動補完を確かめる
+    expect(field('email')).toHaveAttribute('type', 'email')
+    expect(field('phone')).toHaveAttribute('type', 'tel')
+    expect(field('name')).toHaveAttribute('autocomplete', 'name')
+    expect(field('email')).toHaveAttribute('autocomplete', 'email')
+    expect(field('phone')).toHaveAttribute('autocomplete', 'tel')
+    expect(field('postal')).toHaveAttribute('autocomplete', 'postal-code')
   })
 })
 
