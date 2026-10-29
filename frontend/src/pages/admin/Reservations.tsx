@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { api, type Reservation, type Event, type WsSession } from '../../lib/api'
+import { api, type Event, type WsSession } from '../../lib/api'
 import { STATUS_LABELS, STATUS_COLORS, STATUS_OPTIONS } from '../../lib/reservationConstants'
-import { escapeHtml } from '../../lib/escapeHtml'
-import { formatJaYmd, formatJstDate, listDates, todayJst } from '../../lib/localDate'
+import { formatJstDate, todayJst } from '../../lib/localDate'
 import { clickableProps } from './a11y'
 import { failMessage, statusOf } from './errorMessage'
-
-/** 予約に、セッション ID から引いた時間ラベル（session_time）を足したもの */
-type ReservationWithTime = Reservation & { session_time?: string }
+import { buildReservationPrintHtml, type ReservationWithTime } from './reservationPrint'
 
 /** エラーの帯の見た目（画面の上・当日参加のモーダルで共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
@@ -17,53 +14,12 @@ const errorBoxStyle: React.CSSProperties = {
 }
 
 /**
- * 1件の予約を印刷用 HTML の tr 要素文字列に変換する
- * 予約者が入力した値（名前・メール・電話・備考）や時間ラベル・ステータスは、HTML として解釈されないよう
- * すべて escapeHtml を通す（印刷は document.write で書くので React の自動エスケープが効かない）
- * @param r - 変換する予約データ
- * @returns HTML の tr 文字列
- */
-function renderPrintRow(r: ReservationWithTime): string {
-  /** 持ち込みの表示（植物・鉢） */
-  const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
-  return `<tr>
-    <td>${escapeHtml(formatJstDate(r.created_at))}</td>
-    <td>${escapeHtml(r.name)}</td>
-    <td>${escapeHtml(r.email)}</td>
-    <td>${escapeHtml(r.phone ?? '-')}</td>
-    <td>${escapeHtml(r.session_time ?? r.preferred_time ?? '-')}</td>
-    <td style="text-align:center">${escapeHtml(r.participants)}</td>
-    <td>${escapeHtml(bringFlags || '-')}</td>
-    <td class="col-note">${escapeHtml(r.note ?? '-')}</td>
-    <td>${escapeHtml(STATUS_LABELS[r.status] ?? r.status)}</td>
-  </tr>`
-}
-
-/**
- * セッションの空き枠を印刷用 HTML の tr 要素文字列として生成する
- * @param index - 空き枠番号（0始まり）
- * @returns HTML の tr 文字列
- */
-function renderEmptyRow(index: number): string {
-  return `<tr class="empty-row">
-    <td></td><td></td><td></td><td></td>
-    <td style="color:#bbb;font-size:10px">空枠 ${index + 1}</td>
-    <td></td><td></td><td></td><td></td>
-  </tr>`
-}
-
-/**
- * セッション別・日付別にグループ化して印刷用 HTML を新規ウィンドウに書き出し、自動印刷する
- * 1. 印刷用のウィンドウを開く（ポップアップが止められたら何もしない）
- * 2. イベントを選んでいてセッションがあれば、日付 → セッションの順に見出しを入れ、各セッションに予約と空き枠を並べる。
- *    どのセッションにも入らなかった予約は最後に「セッション未指定」としてまとめる
- * 3. それ以外は予約を順に並べるだけにする
- * 4. HTML を書き出し、読み込みが終わったら印刷ダイアログを出す
+ * 印刷用ウィンドウを開き、純粋なHTML生成関数の結果を表示する。
  * @param rows - 印刷対象の予約一覧
- * @param eventName - 印刷タイトルに使用するイベント名
- * @param sessionsData - セッション ID をキーにしたセッション情報マップ
- * @param event - セッション・日付グループ表示に使用するイベント情報（null の場合はフラット表示）
- * @returns 戻り値なし。
+ * @param eventName - 印刷タイトルに使うイベント名
+ * @param sessionsData - セッションIDからセッション情報を引くマップ
+ * @param event - 日付・時間枠で分類するイベント。nullならフラット表示
+ * @returns 戻り値なし。ポップアップが開けない場合は何も書き込まない
  */
 function printReservations(
   rows: ReservationWithTime[],
@@ -71,122 +27,12 @@ function printReservations(
   sessionsData: Map<string, WsSession>,
   event: Event | null,
 ) {
-  // 1. 印刷用のウィンドウ
+  // ポップアップを先に開き、ブロックされた場合は画面を変更しない。
   /** 印刷用に開いたウィンドウ */
   const win = window.open('', '_blank')
   if (!win) return
 
-  /** 印刷する予約の参加人数の合計（キャンセルも含む） */
-  const totalParticipants = rows.reduce((s, r) => s + r.participants, 0)
-
-  /** 選んだイベントのセッション（表示順） */
-  const eventSessions = event
-    ? [...sessionsData.values()]
-        .filter((s) => s.event_id === event.id)
-        .sort((a, b) => a.display_order - b.display_order)
-    : []
-
-  /** 表の中身の HTML */
-  let tableBody = ''
-
-  if (eventSessions.length > 0 && event) {
-    // 2. 日付・セッションごとに分ける
-    /** 開催する日の一覧（YYYY-MM-DD） */
-    const dates = listDates(event.start_date, event.end_date)
-    /** いまあるセッションの id（セッション再保存で UUID が変わった場合のフォールバック照合用） */
-    const validSessionIds = new Set(eventSessions.map((s) => s.id))
-    /** どこかのセッションに入れた予約の id（同じ予約を2回出さないため） */
-    const assignedRowIds = new Set<string>()
-
-    for (let di = 0; di < dates.length; di++) {
-      /** この見出しの日付 */
-      const date = dates[di]
-      tableBody += `<tr class="date-header${di > 0 ? ' date-break' : ''}"><td colspan="9">${formatJaYmd(date)}</td></tr>`
-
-      for (const session of eventSessions) {
-        /** この日・このセッションの予約 */
-        const sessionRows = rows.filter((r) => {
-          if (assignedRowIds.has(r.id)) return false
-          // 希望日が同じか、希望日が無くて1日だけのイベントなら、この日の予約とみなす
-          const dateMatch = r.preferred_date === date || (!r.preferred_date && dates.length === 1)
-          if (!dateMatch) return false
-          // 予約の session_id が現在のセッション ID と一致するかを確認する。
-          const directMatch = r.session_id === session.id
-          // session_id が null またはセッション再保存後に無効化された場合は preferred_time で照合
-          const fallbackMatch =
-            (!r.session_id || !validSessionIds.has(r.session_id)) &&
-            r.preferred_time === session.time_label
-          return directMatch || fallbackMatch
-        })
-        sessionRows.forEach((r) => assignedRowIds.add(r.id))
-        /** この枠の予約人数（キャンセルは枠を使わないので数えない。行としては一覧に出す） */
-        const reservedCount = sessionRows.filter((r) => r.status !== 'cancelled').reduce((s, r) => s + r.participants, 0)
-        /** 定員までの残り（この数だけ手書き用の空き行を出す） */
-        const remaining = Math.max(0, session.max_participants - reservedCount)
-
-        tableBody += `<tr class="session-header">
-          <td colspan="9">${escapeHtml(session.time_label)}\u3000${reservedCount} / ${escapeHtml(session.max_participants)} 名</td>
-        </tr>`
-        sessionRows.forEach((r) => { tableBody += renderPrintRow(r) })
-        for (let i = 0; i < remaining; i++) {
-          tableBody += renderEmptyRow(i)
-        }
-      }
-    }
-
-    /** どのセッションにも入らなかった予約 */
-    const unassigned = rows.filter((r) => !assignedRowIds.has(r.id))
-    if (unassigned.length > 0) {
-      tableBody += `<tr class="session-header"><td colspan="9">セッション未指定</td></tr>`
-      unassigned.forEach((r) => { tableBody += renderPrintRow(r) })
-    }
-  } else {
-    // 3. 分けずに並べる
-    rows.forEach((r) => { tableBody += renderPrintRow(r) })
-  }
-
-  // 4. 書き出しと印刷
-  win.document.write(`<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <title>${escapeHtml(eventName)} — WS予約一覧</title>
-  <style>
-    /* 印刷ページ全体の余白・文字と、予約一覧表の見出し・行・集計欄を整える */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif; font-size: 11px; color: #1a1a1a; padding: 16px 20px; }
-    h1 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-    .meta { font-size: 10px; color: #666; margin-bottom: 14px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f0f0f4; font-weight: 600; font-size: 10px; letter-spacing: 0.5px; border: 1px solid #ccc; padding: 5px 8px; text-align: left; white-space: nowrap; }
-    td { border: 1px solid #ddd; padding: 5px 8px; vertical-align: top; }
-    td.col-note { max-width: 160px; white-space: normal; word-break: break-word; }
-    tr.date-header td { background: #2c3a28; color: #fff; font-weight: 600; font-size: 12px; border: 1px solid #1a2416; padding: 7px 8px; }
-    tr.date-break { break-before: page; }
-    tr.session-header td { background: #e8e8f0; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; border: 1px solid #b0b0c8; }
-    tr.empty-row td { background: #fafafa; height: 28px; border: 1px dashed #ccc; }
-    .summary { margin-top: 12px; font-size: 11px; color: #444; }
-    /* 印刷時は A4 横向きにし、用紙端に 10mm の余白を設ける */
-    @media print { @page { size: A4 landscape; margin: 10mm; } }
-  </style>
-</head>
-<body>
-  <h1>${escapeHtml(eventName)} — WS予約一覧</h1>
-  <div class="meta">出力日: ${formatJstDate(new Date().toISOString())} / 予約件数: ${rows.length} 件 / 合計人数: ${totalParticipants} 名</div>
-  <table>
-    <thead>
-      <tr>
-        <th>受付日</th><th>お名前</th><th>メール</th><th>電話</th>
-        <th>予約時間</th><th>人数</th>
-        <th>持込</th><th>備考</th><th>ステータス</th>
-      </tr>
-    </thead>
-    <tbody>${tableBody}</tbody>
-  </table>
-  <div class="summary">合計参加人数: ${totalParticipants} 名</div>
-  <script>window.onload = () => { window.print() }</script>
-</body>
-</html>`)
+  win.document.write(buildReservationPrintHtml(rows, eventName, sessionsData, event, new Date()))
   win.document.close()
 }
 
