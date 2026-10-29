@@ -430,6 +430,72 @@ describe('api.gallery', () => {
   })
 })
 
+describe('api.stockists', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('api.stockists.list() が GET /api/stockists を呼び応答を返す', async () => {
+    const response = [{ id: 'stockist-1', name: '植物店', area: '東京', address: '東京都', url: null, brands: ['hue'] }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.stockists.list()
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/stockists')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('api.stockists.add(body) が POST で取扱店を送り応答を返す', async () => {
+    const body = { name: '植物店', area: '東京', address: '東京都', url: 'https://example.com', brands: ['hue'] }
+    const response = { id: 'stockist-1', ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.stockists.add(body)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/stockists')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.stockists.patch(id, body) が PATCH で取扱店を送り応答を返す', async () => {
+    const body = { name: '植物店・更新', area: '大阪', brands: ['hue'] }
+    const response = { id: 'stockist-1', name: body.name, area: body.area, address: null, url: null, brands: body.brands }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.stockists.patch('stockist-1', body)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/stockists/stockist-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PATCH', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.stockists.delete(id) が DELETE で取扱店を削除し結果を返す', async () => {
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.stockists.delete('stockist-1')
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/stockists/stockist-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+})
+
 describe('api.products', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 

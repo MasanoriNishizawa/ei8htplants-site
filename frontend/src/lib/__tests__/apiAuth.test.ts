@@ -120,6 +120,29 @@ describe('認証つきリクエストのトークン', () => {
     expect(authHeaderOf()).toBe('Bearer gallery-admin-jwt')
   })
 
+  it('取扱店の管理APIはセッションJWTをAuthorizationに付けて送る', async () => {
+    state.token = 'stockist-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({
+        id: 'stockist-1',
+        name: '植物店',
+        area: '東京',
+        address: '東京都',
+        url: 'https://example.com',
+        brands: ['hue'],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    await api.stockists.add({ name: '植物店', area: '東京', address: '東京都', url: 'https://example.com', brands: ['hue'] })
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/stockists')
+    expect(authHeaderOf()).toBe('Bearer stockist-admin-jwt')
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true

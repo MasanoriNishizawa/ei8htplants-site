@@ -2,11 +2,10 @@ import { SKIP_ADMIN_AUTH, DEV_SKIP_AUTH_TOKEN } from './devAuth'
 import type { ChatSendMessage } from './chatHistory'
 import { createEventsApi } from './apiDomains/events'
 import { createGalleryApi } from './apiDomains/gallery'
+import { createStockistsApi } from './apiDomains/stockists'
 import type {
   Event,
   SiteAsset,
-  Stockist,
-  StockistBody,
   ContactPayload,
   ContactRecord,
   ReservationPayload,
@@ -234,19 +233,7 @@ export const api = {
   /** ギャラリーの画像 */
   gallery: createGalleryApi(request, authRequest),
   /** 取扱店 */
-  stockists: {
-    /** 取扱店の一覧を取る */
-    list: () => request<Stockist[]>('/stockists'),
-    /** 取扱店を追加する（管理者のみ） */
-    add: (body: StockistBody) =>
-      authRequest<Stockist>('/stockists', { method: 'POST', body: JSON.stringify(body) }),
-    /** 取扱店を更新する（管理者のみ） */
-    patch: (id: string, body: StockistBody) =>
-      authRequest<Stockist>(`/stockists/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-    /** 取扱店を削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/stockists/${id}`, { method: 'DELETE' }),
-  },
+  stockists: createStockistsApi(request, authRequest),
   /** お問い合わせ（公開フォームの送信と、管理画面の一覧・既読・返信） */
   contact: {
     /** お問い合わせを送る（429 は送信回数の上限） */
