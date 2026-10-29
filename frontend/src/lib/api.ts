@@ -3,9 +3,9 @@ import type { ChatSendMessage } from './chatHistory'
 import { createEventsApi } from './apiDomains/events'
 import { createGalleryApi } from './apiDomains/gallery'
 import { createStockistsApi } from './apiDomains/stockists'
+import { createSiteAssetsApi } from './apiDomains/siteAssets'
 import type {
   Event,
-  SiteAsset,
   ContactPayload,
   ContactRecord,
   ReservationPayload,
@@ -221,13 +221,7 @@ export const api = {
   /** 動画を Storage にアップロードし、公開 URL を返す（管理者のみ） */
   uploadVideo: (file: File): Promise<string> => uploadFile('/upload/video', file),
   /** 公開サイトの管理画像 */
-  siteAssets: {
-    /** 公開ページ用の画像 URL を取得する */
-    get: (key: string) => request<SiteAsset>(`/site-assets/${encodeURIComponent(key)}`),
-    /** 管理画面から画像 URL を保存する */
-    save: (key: string, url: string) =>
-      authRequest<SiteAsset>(`/site-assets/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ url }) }),
-  },
+  siteAssets: createSiteAssetsApi(request, authRequest),
   /** イベント（公開の一覧・1 件と、管理画面の作成・更新・削除・収支・時間枠・イベントページ・管理情報） */
   events: createEventsApi(request, authRequest),
   /** ギャラリーの画像 */

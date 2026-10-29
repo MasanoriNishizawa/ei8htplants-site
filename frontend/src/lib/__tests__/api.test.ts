@@ -364,6 +364,48 @@ describe('api.events', () => {
   })
 })
 
+describe('api.siteAssets', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('api.siteAssets.get(key) がキーをエンコードして GET し応答を返す', async () => {
+    const key = 'hue/hero image'
+    const response = { key, url: 'https://example.com/hero.jpg' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.siteAssets.get(key)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/site-assets/hue%2Fhero%20image')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('api.siteAssets.save(key, url) がキーをエンコードして PUT し応答を返す', async () => {
+    const key = 'hue/hero image'
+    const url = 'https://example.com/new-hero.jpg'
+    const response = { key, url }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.siteAssets.save(key, url)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/site-assets/hue%2Fhero%20image')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify({ url }) })
+    expect(result).toEqual(response)
+  })
+})
+
 describe('api.gallery', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 

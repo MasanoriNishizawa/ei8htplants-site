@@ -21,6 +21,8 @@ test('HUEの6つの色見本を管理画面から同じ形の写真に差し替�
     window.history.pushState({}, '', '/hue')
     window.dispatchEvent(new PopStateEvent('popstate'))
   })
+  // React Router と遅延読み込みされた HUE ページの描画完了を待つ。
+  await expect(page.locator('.hue-photo-grid')).toBeVisible()
   await expect(page.locator('.hue-photo-grid .hue-photo-shape')).toHaveCount(6)
   await expect(page.locator('.hue-photo-grid img')).toHaveCount(1)
   // デスクトップ幅で写真グリッドに設定された列数。

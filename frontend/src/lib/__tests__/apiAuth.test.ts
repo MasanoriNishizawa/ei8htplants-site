@@ -143,6 +143,22 @@ describe('認証つきリクエストのトークン', () => {
     expect(authHeaderOf()).toBe('Bearer stockist-admin-jwt')
   })
 
+  it('サイト画像の保存APIはセッションJWTをAuthorizationに付けて送る', async () => {
+    state.token = 'site-asset-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ key: 'hue/hero image', url: 'https://example.com/hero.jpg' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    await api.siteAssets.save('hue/hero image', 'https://example.com/hero.jpg')
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/site-assets/hue%2Fhero%20image')
+    expect(authHeaderOf()).toBe('Bearer site-asset-admin-jwt')
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true
