@@ -67,14 +67,17 @@ def execute_suites(
     interrupted = False  # KeyboardInterruptを受け取った実行かどうか。
 
     # 1. 指定された順でsuiteを実行し、失敗結果があっても次のsuiteへ進む。
+    # index: 中断後に未実行となるsuiteの位置。suite: 現在の実行仕様。
     for index, suite in enumerate(suites):
         # index: 中断した場合に未実行として記録する後続suiteの開始位置。
         # suite: 現在実行するsuite名・進捗文・runner関数をまとめた仕様。
+        # suite_started: このsuiteの実行時間と割り込み位置を記録する開始時刻。
         suite_started = time.monotonic()
         try:
             print_progress(suite.progress)
         except KeyboardInterrupt:
             # 2. 進捗表示中の中断はrunner開始前なので、未開始だったことを明示して残す。
+            # interrupted: 呼び出しを中断して未実行suiteを記録する状態。
             interrupted = True
             results.append({
                 "name": suite.name, "code": 130, "sec": time.monotonic() - suite_started,
@@ -92,6 +95,7 @@ def execute_suites(
             results.append(suite.runner())
         except KeyboardInterrupt:
             # 4. 実行開始後の中断を記録し、後続suiteは呼び出さない。
+            # interrupted: 呼び出しを中断して未実行suiteを記録する状態。
             interrupted = True
             results.append({
                 "name": suite.name, "code": 130, "sec": time.monotonic() - suite_started,

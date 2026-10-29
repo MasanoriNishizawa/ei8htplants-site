@@ -79,11 +79,13 @@ def build_sitemap(
         # ブランドサイトは DB の一覧を含めず、専用ドメインの固定ページだけを返す。
         # 変数の内容: paths: 対象ブランドの公開パス、entries: XML 形式にした sitemap URL 要素。
         paths = BRAND_SITEMAP_PATHS.get(site_name, ())
+        # 変数の内容: path: sitemap に加えるブランド固定ページのパス。
         entries = [make_url(path, origin=origin) for path in paths]
         return _urlset(entries), True
 
     # 2. 公式サイトの固定 URL を先に追加する。
     # 変数の内容: entries: 固定ページと動的ページの URL 要素、ok: DB 読み取りの成否。
+    # 変数の内容: path: sitemap に加える公式固定ページのパス。
     entries = [make_url(path, origin=origin) for path in static_paths]
     ok = True
     # 3. イベント・記事・商品の公開 URL を個別に読み、失敗した種類だけ記録する。

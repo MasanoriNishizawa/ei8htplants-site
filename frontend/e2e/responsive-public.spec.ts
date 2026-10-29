@@ -30,7 +30,9 @@ async function expectNoHorizontalScroll(page: Page) {
 async function checkoutColumns(page: Page) {
   const layout = page.locator('.checkout-layout')
   await expect(layout).toBeVisible()
+  // 注文手続きレイアウト内のフォーム列のロケーター。
   const form = layout.locator(':scope > *').nth(0)
+  // 注文手続きレイアウト内の注文サマリー列のロケーター。
   const summary = layout.locator(':scope > *').nth(1)
   return { form: (await form.boundingBox())!, summary: (await summary.boundingBox())! }
 }
@@ -100,8 +102,10 @@ test.describe('ブランドホームの見出し（スマホ幅）', () => {
       { path: '/habitatoides', heading: '.habitat-hero h1' },
       { path: '/hue', heading: '.hue-hero-copy h1' },
     ]
+    // 見出しを確認するブランドページの URL と見出しセレクター。
     for (const brandPage of pages) {
       await page.goto(brandPage.path)
+      // 現在開いているブランドページのトップ見出しロケーター。
       const heading = page.locator(brandPage.heading)
       await expect(heading).toBeVisible()
 
@@ -109,8 +113,11 @@ test.describe('ブランドホームの見出し（スマホ幅）', () => {
       const headingLayout = await heading.evaluate((element) => {
         const range = document.createRange()
         range.selectNodeContents(element)
+        // 見出し内の各描画行に対応する矩形領域の一覧。
         const rects = Array.from(range.getClientRects())
+        // 矩形領域から求めた見出し各行の画面上端座標の集合。
         const linePositions = new Set(rects.map((rect) => Math.round(rect.top)))
+        // 見出し要素全体の画面上の境界矩形。
         const bounds = element.getBoundingClientRect()
         return { lineCount: linePositions.size, left: bounds.left, right: bounds.right }
       })
@@ -135,6 +142,7 @@ test.describe('注文手続き（/official/checkout）の列', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. スマホ幅で商品入りの注文画面を開き、フォーム下の1列配置と横スクロールがないことを確認する。
     await page.setViewportSize({ width: 375, height: 812 })
     await openCheckoutWithItem(page)
     const { form, summary } = await checkoutColumns(page)

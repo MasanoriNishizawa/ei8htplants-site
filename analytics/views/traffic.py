@@ -83,6 +83,7 @@ def render() -> None:
     st.title("アクセス解析")
 
     # 1. 接続設定がまだなら、設定の手順を出して終わる
+    # 変数の内容: cfg: GA4 接続設定。problem: 設定不足時に画面へ出す案内文。
     cfg, problem = ga_config()
     if cfg is None:
         _setup_guide(problem)
@@ -114,16 +115,19 @@ def render() -> None:
         # 変数の内容: totals: 期間全体の訪問者数などをまとめた GA レポート。
         totals = report((), ("activeUsers", "sessions", "screenPageViews", "averageSessionDuration"))
     except Exception as e:  # 権限不足・ID 違いなどをまとめて受けて画面で知らせる
+        # e: 利用者向け案内に例外の種類だけを示すための取得エラー。
         st.error(f"Google アナリティクスのデータを読み込めませんでした：{type(e).__name__}")
         st.caption("プロパティ ID と、サービスアカウントに「閲覧者」の権限を付けたかを確認してください。")
         return
 
     # 3. まとめの数字
+    # 変数の内容: t: 期間全体の集計行。レポートが空なら各指標を0とする。
     t = totals.iloc[0] if len(totals) else pd.Series(0, index=totals.columns)
     if t["screenPageViews"] == 0:
         st.info("この期間のデータはまだありません。タグを入れてから反映まで 1〜2 日かかることがあります。")
         return
     # 変数の内容: c1〜c4: アクセス解析の主要指標を並べる画面列。
+    # c1〜c4: 訪問者・訪問回数・PV・平均滞在時間を並べる画面列。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("訪問者数", f"{int(t['activeUsers']):,}人")
     c2.metric("訪問回数", f"{int(t['sessions']):,}回")
@@ -191,6 +195,7 @@ def _pages(ctx, report: Report) -> pd.DataFrame | None:
     # 変数の内容: top: ページ名ごとに閲覧数と訪問者数を合算した表。
     top = top.sort_values("screenPageViews").tail(TOP_N)
     # 2. 横棒で表示する
+    # fig: ページ別閲覧数を横棒で示すグラフ。
     fig = bar_chart(
         top["screenPageViews"], top["page"], "%{y}<br>%{x}PV（%{customdata}人）<extra></extra>",
         text=top["screenPageViews"].astype(int).astype(str) + "PV", customdata=top["activeUsers"],
@@ -286,8 +291,10 @@ def _reservation_rate(ctx, pages: pd.DataFrame | None, days: int) -> None:
         _part_failed("WS 予約ページからの予約率")
         return
     # 1. 予約ページの PV（クエリ違いもまとめる）
+    # reserve_pv: クエリ文字列を除いた予約ページの合計PV。
     reserve_pv = int(pages.loc[pages["pagePath"].str.split("?").str[0] == RESERVE_PATH, "screenPageViews"].sum())
     # 2. 同じ期間に入った予約のうち、キャンセルされていないものを数える
+    # raw: 期間選択に使う問い合わせではなく、全予約レコード。
     raw = ctx.raw["workshop_reservations"]
     # 変数の内容: res: キャンセル状態を除外したワークショップ予約。
     res = raw[raw["status"] != CANCELLED]
@@ -296,6 +303,7 @@ def _reservation_rate(ctx, pages: pd.DataFrame | None, days: int) -> None:
     # 変数の内容: booked: 選択期間内に作成された有効予約件数。
     booked = int((res["created_at"].dt.tz_localize(None) >= since).sum()) if not res.empty else 0
     # 変数の内容: c1〜c3: 予約ページPV・予約件数・予約率を並べる画面列。
+    # c1〜c3: 予約ページPV・有効予約件数・予約率を並べる画面列。
     c1, c2, c3 = st.columns(3)
     c1.metric("予約ページの PV", f"{reserve_pv:,}PV")
     c2.metric("同じ期間の予約件数（キャンセル除く）", f"{booked}件")

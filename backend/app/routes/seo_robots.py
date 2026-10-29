@@ -52,6 +52,7 @@ def build_robots_txt(
     # 3. directive を既存の順番で並べ、Sitemap 行と末尾改行を加えて返す。
     # 変数の内容: lines: robots.txt 本文を構成する順序付きの各行。
     lines = ['User-agent: *', 'Allow: /']
+    # 変数の内容: path: robots.txt に出力する拒否対象パス。
     lines.extend(f'Disallow: {path}' for path in disallow_paths)
     lines.extend(['', f'Sitemap: {sitemap_origin}/sitemap.xml', ''])
     return '\n'.join(lines)

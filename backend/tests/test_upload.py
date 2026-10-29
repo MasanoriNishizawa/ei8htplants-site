@@ -557,6 +557,7 @@ class TestEnsureBucket:
         """
         # 1. バケットの確認・作成の失敗の warning ログだけを返す。
         return [
+            # 変数の内容: r: 対象モジュールが出力したログレコード。
             r for r in caplog.records
             if r.name == 'app.routes.upload' and r.levelno == logging.WARNING
         ]
@@ -578,6 +579,7 @@ class TestEnsureBucket:
         # 変数の内容: resps: API 呼び出し結果の一覧。
         resps = self._upload_twice(mock_admin_sb)
 
+        # 変数の内容: r: 同じファイルを再アップロードした各 API 応答。
         assert [r.status_code for r in resps] == [200, 200]
         assert mock_admin_sb.storage.create_bucket.call_count == 1
         mock_admin_sb.storage.create_bucket.assert_called_with('images', {'public': True})
@@ -602,6 +604,7 @@ class TestEnsureBucket:
         # 変数の内容: resps: API 呼び出し結果の一覧。
         resps = self._upload_twice(mock_admin_sb)
 
+        # 変数の内容: r: 同じファイルを再アップロードした各 API 応答。
         assert [r.status_code for r in resps] == [200, 200]
         assert mock_admin_sb.storage.create_bucket.call_count == 1
         assert self._bucket_warnings(caplog) == []
@@ -625,6 +628,7 @@ class TestEnsureBucket:
         # 変数の内容: resps: API 呼び出し結果の一覧。
         resps = self._upload_twice(mock_admin_sb)
 
+        # 変数の内容: r: 同じファイルを再アップロードした各 API 応答。
         assert [r.status_code for r in resps] == [200, 200]
         assert mock_admin_sb.storage.create_bucket.call_count == 1
         assert self._bucket_warnings(caplog) == []
@@ -648,6 +652,7 @@ class TestEnsureBucket:
         # 変数の内容: resps: API 呼び出し結果の一覧。
         resps = self._upload_twice(mock_admin_sb)
 
+        # 変数の内容: r: 同じファイルを再アップロードした各 API 応答。
         assert [r.status_code for r in resps] == [200, 200]
         assert mock_admin_sb.storage.from_.return_value.upload.call_count == 2
         assert mock_admin_sb.storage.create_bucket.call_count == 2
@@ -679,6 +684,7 @@ class TestEnsureBucket:
         resps = self._upload_twice(mock_admin_sb)
 
         # 1. アップロードはそのまま試みる
+        # 変数の内容: r: 同じファイルを再アップロードした各 API 応答。
         assert [r.status_code for r in resps] == [200, 200]
         # 2. 成功扱いにしないので、2 回とも作成を試す（作成済みの記録に入らない）
         assert mock_admin_sb.storage.create_bucket.call_count == 2
@@ -704,6 +710,7 @@ class TestEnsureBucket:
             client.post('/api/upload/video', files={'file': ('a.mp4', BytesIO(MP4_BYTES), 'video/mp4')})
 
         # 変数の内容: buckets: 作成済みストレージバケット集合。
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         buckets = [c.args[0] for c in mock_admin_sb.storage.create_bucket.call_args_list]
         assert buckets == ['images', 'videos']
 

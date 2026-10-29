@@ -69,6 +69,7 @@ def _rpc_names(mock_sb: MagicMock) -> list[str]:
         list[str] を返す。
     """
     # 1. 呼ばれた RPC の名前を順に返す。
+    # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
     return [c.args[0] for c in mock_sb.rpc.call_args_list]
 
 
@@ -180,6 +181,7 @@ class TestOrderQuantityValidation:
         # 1. 1 回の注文の品目は 50 件まで。51 件は 422 になること。
         mock_sb = _make_admin_sb_for_create()
         mock_http = _make_http_mock_success()
+        # 変数の内容: i: 注文品目のテスト用 ID に付ける 0 始まりの連番。
         items = [{'product_id': f'product-{i}', 'quantity': 1} for i in range(51)]
 
         resp = _post_order(_order_with_items(items), mock_sb, mock_http)
@@ -199,6 +201,7 @@ class TestOrderQuantityValidation:
         # 変数の内容: mock_sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         mock_sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data = []
         mock_http = _make_http_mock_success()
+        # 変数の内容: i: 注文品目のテスト用 ID に付ける 0 始まりの連番。
         items = [{'product_id': f'product-{i}', 'quantity': 1} for i in range(50)]
 
         resp = _post_order(_order_with_items(items), mock_sb, mock_http)
@@ -238,6 +241,7 @@ class TestSquareFailures:
         # 注文は保存しない
         mock_sb.table.return_value.insert.assert_not_called()
         # CRITICAL の管理者通知は送らない
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         for c in mock_resend.Emails.send.call_args_list:
             assert 'CRITICAL' not in c.args[0]['subject']
 
@@ -289,10 +293,13 @@ class TestSquareFailures:
         # 2. 注文は保存しない
         mock_sb.table.return_value.insert.assert_not_called()
         # 3. CRITICAL ログ
+        # 変数の内容: r: caplog に記録された各ログレコード。
         assert any(r.levelno == logging.CRITICAL for r in caplog.records)
         # 4. 管理者に CRITICAL のメールを 1 通
         # 変数の内容: subjects: 送信メールから抽出した件名一覧。
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         subjects = [c.args[0]['subject'] for c in mock_resend.Emails.send.call_args_list]
+        # 変数の内容: s: CRITICAL 通知の有無を調べるメール件名。
         assert len([s for s in subjects if 'CRITICAL' in s]) == 1
         assert mock_resend.Emails.send.call_args_list[0].args[0]['to'] == ['admin@example.com']
 

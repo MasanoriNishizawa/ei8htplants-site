@@ -237,6 +237,7 @@ class TestOtherPublicWriteRateLimits:
         mock_sb.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
         with patch('app.routes.reserve.admin_supabase', mock_sb):
             # 変数の内容: codes: 期待する応答コード一覧。
+            # 変数の内容: i: キャンセルトークンに埋め込む 0 始まりの試行番号。
             codes = [client.post('/api/reserve/cancel', json={'token': f'{i:08d}'}).status_code for i in range(6)]
         assert codes == [404] * 5 + [429]
 
@@ -333,6 +334,7 @@ class TestClientIp:
         # 変数の内容: request: 現在の HTTP リクエスト。
         request = MagicMock()
         # 変数の内容: request.client: テスト用リクエスト接続元、request.headers: テスト用 HTTP リクエストヘッダー。
+        # 変数の内容: k: 辞書キーまたは項目名、v: 辞書またはモデル項目の値。
         request.headers = {k.lower(): v for k, v in (headers or {}).items()}
         request.client = MagicMock(host=host) if host is not None else None
         return request
@@ -484,6 +486,7 @@ class TestMaxTrackedIps:
         monkeypatch.setattr(rate_limit.time, 'time', lambda: next(clock))
         limiter = RateLimiter(limit=5, window=60)
         # 2. 4 つの IP から 1 回ずつ
+        # 変数の内容: ip: テストする接続元 IP アドレス。
         for ip in ['ip-a', 'ip-b', 'ip-c', 'ip-d']:
             limiter.check(ip)
         # 3. 上限の 3 つだけ残り、いちばん古い ip-a が消える

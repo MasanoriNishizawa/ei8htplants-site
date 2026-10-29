@@ -77,6 +77,7 @@ describe('useDirtyTracker', () => {
   })
 
   it('入れ子のオブジェクト・配列の中身の違いも未保存として見分ける', () => {
+    // 入れ子の配列とオブジェクトを含め、比較対象の形を固定するテスト用型
     type Deep = { list: string[]; nested: { a: number } }
     const base: Deep = { list: ['x'], nested: { a: 1 } }
     const { result, rerender } = renderHook(({ v }) => useDirtyTracker<Deep>(v, base), { initialProps: { v: base } })
@@ -145,6 +146,7 @@ describe('dirtySnapshotJson', () => {
   })
 
   it('useDirtyTracker でも、読み込みが null の項目を入力して消すと未保存にならない', () => {
+    // null を初期値に持つ項目だけを使うテスト用フォーム型
     type F = { note: string | null }
     const { result, rerender } = renderHook(({ v }) => useDirtyTracker<F>(v), { initialProps: { v: { note: null } as F } })
     act(() => result.current.resetBaseline({ note: null }))

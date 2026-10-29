@@ -23,6 +23,7 @@ const CLOSE_MESSAGE = '保存していない変更があります。破棄して
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
   await page.addInitScript(() => {
+    // Supabase の認証要求を通すためにブラウザーへ登録するテスト用セッション。
     const fakeSession = {
       access_token: 'e2e-fake-access-token',
       token_type: 'bearer',
@@ -31,6 +32,7 @@ async function useFakeAdminSession(page: Page) {
       refresh_token: 'e2e-fake-refresh-token',
       user: { id: 'e2e-admin', aud: 'authenticated', role: 'authenticated', email: 'e2e@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' },
     }
+    // テスト用セッション以外の localStorage 読み取りに使う元の getItem 関数。
     const originalGetItem = Storage.prototype.getItem
     Storage.prototype.getItem = function (key: string) {
       if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)
@@ -48,6 +50,7 @@ async function useFakeAdminSession(page: Page) {
 function dismissNextDialog(page: Page): Promise<string> {
   return new Promise      ((resolve) => {
     page.once('dialog', async (d) => {
+      // 確認ダイアログに表示されたメッセージ本文。
       const message = d.message()
       await d.dismiss()
       resolve(message)
@@ -63,6 +66,7 @@ function dismissNextDialog(page: Page): Promise<string> {
 
 async function expectSidebarBlocked(page: Page) {
   const url = page.url()
+  // 次に表示される確認ダイアログを監視する Promise。
   const dialog = dismissNextDialog(page)
   await page.getByRole('complementary').getByRole('link', { name: 'ダッシュボード' }).click()
   expect(await dialog).toBe(LEAVE_MESSAGE)
@@ -113,6 +117,7 @@ test.describe('イベントの編集（EventForm）', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. イベント名を変更してサイドメニューへの移動を試し、確認をキャンセルした後も編集状態が保たれることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/edit')
     const name = page.locator('#event-name')
     await expect(name).toHaveValue('Green Market 2027')
@@ -157,6 +162,7 @@ test.describe('イベントの編集（EventForm）', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. イベント名を変更して管理情報への移動を試し、未保存確認が出ることを確認する。
     await page.goto('/admin/events/mock-upcoming-1/edit')
     // 読み込みが終わってから入力する（読み込み前に入れると、読み込んだ値で上書きされる）
     await expect(page.locator('#event-name')).toHaveValue('Green Market 2027')
@@ -200,6 +206,7 @@ test.describe('イベントの収支（EventFinance）', () => {
     await expect(sales).toBeVisible()
     await sales.fill('12345')
     await expectSidebarBlocked(page)
+    // 次に表示される確認ダイアログを監視する Promise。
     const dialog = dismissNextDialog(page)
     await page.getByRole('link', { name: /イベント管理/ }).click()
     expect(await dialog).toBe(LEAVE_MESSAGE)
@@ -216,6 +223,7 @@ test.describe('イベントの収支（EventFinance）', () => {
     await page.goto('/admin/events/mock-past-1/finances')
     const sales = page.getByText('売上', { exact: true }).locator('..').getByRole('textbox')
     await sales.fill('12345')
+    // この操作中に表示されたダイアログの件数。
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
     await page.getByRole('button', { name: '保存', exact: true }).click()
@@ -301,10 +309,12 @@ test.describe('チャットの Q&A（AdminChatQA）', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. Q&A の追加フォームを編集し、画面移動とフォーム取消の両方で未保存確認が出ることを確認する。
     await page.goto('/admin/chat-qa')
     await page.getByRole('button', { name: '+ 追加' }).click()
     await page.getByLabel('質問').fill('営業時間は？')
     await expectSidebarBlocked(page)
+    // 次に表示される確認ダイアログを監視する Promise。
     const dialog = dismissNextDialog(page)
     await page.getByRole('button', { name: 'キャンセル' }).click()
     expect(await dialog).toBe(CLOSE_MESSAGE)
@@ -349,6 +359,7 @@ test.describe('取扱店（Stockists）', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 取扱店の編集ダイアログを変更して閉じ、確認をキャンセルするとダイアログが残ることを確認する。
     await page.goto('/admin/stockists')
     await page.getByRole('button', { name: '編集' }).first().click()
     const dialogBox = page.getByRole('dialog', { name: '取扱店を編集' })
@@ -385,10 +396,12 @@ test.describe('販売価格計算（PriceCalc）', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 価格計算へ植物名を入力し、画面移動とブランド切替の確認をキャンセルして入力が保たれることを確認する。
     await page.goto('/admin/price-calc')
     const plant = page.getByPlaceholder('例: アガベ チタノタ')
     await plant.fill('アガベ')
     await expectSidebarBlocked(page)
+    // 次に表示される確認ダイアログを監視する Promise。
     const dialog = dismissNextDialog(page)
     await brandTab(page, 'Habitat Oides').click()
     expect(await dialog).toBe(LEAVE_MESSAGE)
@@ -473,6 +486,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 価格計算画面で仕入れ時の原価率の初期値を確認し、変更を保存して再読み込み後も保持されることを確認する。
     await page.goto('/admin/price-calc')
     // 目標原価率の欄は仕入れのときだけ出る
     await page.getByRole('button', { name: '仕入れ' }).click()
@@ -522,6 +536,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await page.goto('/admin/price-calc')
     await expect(page.getByText('販売価格（卸価格の 2 倍）')).toBeVisible()
     await expect(page.getByRole('textbox', { name: '目標原価率（%）' })).toHaveCount(0)
+    // 卸価格を入力する欄のロケーター。
     const wholesale = page.getByPlaceholder('例: 1500')
     await wholesale.fill('1500')
     await expect(page.getByText('¥3,000', { exact: true })).toBeVisible()
@@ -550,6 +565,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await page.getByPlaceholder('例: アガベ チタノタ').fill('書きかけ')
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
+    // 価格計算の登録リストを絞り込む操作グループのロケーター。
     const filter = page.getByRole('group', { name: '登録リストの絞り込み' })
     await filter.getByRole('button', { name: 'HUE', exact: true }).click()
     await expect(page.getByText('このブランドの登録はありません。')).toBeVisible()
@@ -582,6 +598,7 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await expect(row.getByRole('cell').nth(2)).toHaveText('¥735')
     await expect(row.getByRole('cell').nth(3)).toHaveText('¥1,470')
     await expect(row.getByRole('cell').first()).toHaveText('オベサ 生産 E2E')
+    // この操作中に表示されたダイアログの件数。
     let dialogs = 0
     page.on('dialog', async (d) => { dialogs += 1; await d.dismiss() })
     // 3. 入力変更の確認なしで仕入れへ切り替えられることを確認する

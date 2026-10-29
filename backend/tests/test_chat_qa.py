@@ -73,6 +73,7 @@ class TestListChatQA:
 
         assert resp.status_code == 200
         order.eq.assert_called_once_with('enabled', True)
+        # 変数の内容: q: 走査中の Q&A レコード。
         assert all(q['enabled'] for q in resp.json())
 
     def test_QA一覧が空のとき空リストが返る(self):

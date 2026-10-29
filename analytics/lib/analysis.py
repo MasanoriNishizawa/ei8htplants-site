@@ -119,6 +119,7 @@ def reservation_table(reservations: pd.DataFrame, sessions: pd.DataFrame, events
             lead_days=pd.Series(dtype=float),
         )
     # 1. イベント名とセッションの時間帯を付ける
+    # df: 予約にイベント情報とセッション情報を順に結合する分析用の表。
     df = reservations.merge(
         events[["id", "name", "start_date"]].rename(columns={"id": "event_id", "name": "event_name"}),
         on="event_id",
@@ -133,6 +134,7 @@ def reservation_table(reservations: pd.DataFrame, sessions: pd.DataFrame, events
     # 2. キャンセルかどうか
     df["is_cancelled"] = df["status"] == CANCELLED
     # 3. 予約日から参加日までの日数。参加希望日がなければイベント初日で代用する
+    # target: 予約の参加希望日。未指定ならイベントの開始日。
     target = df["preferred_date"].fillna(df["start_date"])
     # 変数の内容: booked: 予約日時を日付単位に丸めた値。
     booked = df["created_at"].dt.tz_localize(None).dt.normalize()
@@ -165,8 +167,10 @@ def session_fill_rates(res: pd.DataFrame, sessions: pd.DataFrame, events: pd.Dat
         max_participants, fill_rate）。同じ名前のイベントを取り違えないよう、絞り込みは event_id で行う
     """
     # 1. 有効な予約の参加人数をセッションごとに合計する
+    # booked: キャンセルを除いた予約のセッション別参加人数。
     booked = active_reservations(res).groupby("session_id")["participants"].sum()
     # 2. 全セッションに結合する（予約0件の枠も 0 として残す）
+    # ev: 埋まり率の計算に使うイベントID・名称・開催日。
     ev = events[["id", "name", "start_date"]].rename(columns={"id": "event_id", "name": "event_name"})
     # 変数の内容: df: 全セッションにイベント情報を結合した埋まり率計算用の表。
     df = sessions.merge(ev, on="event_id")
@@ -197,6 +201,7 @@ def repeat_summary(df: pd.DataFrame, key: str = "customer_key", unit: str | None
         customers（利用者数）, repeaters（リピーター数）, repeat_rate（リピーター率）
     """
     # 1. 顧客ごとの利用回数を数える（unit を指定したときは異なる値の数）
+    # rows: 顧客識別キーが設定されている利用記録。
     rows = df.dropna(subset=[key])
     if unit is None:
         # 変数の内容: counts: 顧客ごとの利用回数。
@@ -205,6 +210,7 @@ def repeat_summary(df: pd.DataFrame, key: str = "customer_key", unit: str | None
         # 変数の内容: counts: 顧客ごとの利用回数。
         counts = rows.groupby(key)[unit].nunique()
     # 2. 2回以上の人をリピーターとして数える
+    # customers: 利用回数を数えられた顧客の人数。
     customers = int(len(counts))
     # 変数の内容: repeaters: 2回以上利用した顧客数。
     repeaters = int((counts >= 2).sum())
@@ -244,10 +250,12 @@ def rfm_table(orders: pd.DataFrame, today: pd.Timestamp) -> pd.DataFrame:
     if orders.empty:
         return pd.DataFrame(columns=RFM_COLUMNS)
     # 1. 顧客ごとに集計する
+    # g: 顧客ごとの最終購入日時・購入回数・購入額。
     g = orders.groupby("customer_key").agg(
         last=("created_at", "max"), frequency=("id", "count"), monetary=("total", "sum")
     )
     # 2. 最終購入日と基準日を、どちらも日本時間の日付（時刻・タイムゾーンなし）にそろえて日数を出す
+    # last: 顧客ごとの最終購入日時。後続で日本時間の日付にそろえる。
     last = g["last"]
     if getattr(last.dt, "tz", None) is not None:
         # 変数の内容: last: 顧客ごとの最終購入日時。
@@ -287,10 +295,13 @@ def co_purchase_pairs(items: pd.DataFrame) -> pd.DataFrame:
         商品A・商品B・同時購入回数の表（CO_PURCHASE_COLUMNS。多い順）
     """
     # 1. 注文ごとに、同じ商品の重複を除いて名前順に並べ、2つずつの組み合わせを数える
+    # pairs: 商品名の組み合わせごとの同時購入回数。
     pairs: Counter[tuple[str, str]] = Counter()
+    # names: 1注文に含まれる商品の名称一覧。
     for _, names in items.groupby("order_id")["product_name"]:
         pairs.update(combinations(sorted(set(names)), 2))
     # 2. 表にして、同時購入回数の多い順に並べる
+    # rows: 商品ペアと同時購入回数を列名付きで並べた表データ。
     rows = [{"商品A": a, "商品B": b, "同時購入回数": n} for (a, b), n in pairs.items()]
     return pd.DataFrame(rows, columns=CO_PURCHASE_COLUMNS).sort_values("同時購入回数", ascending=False)
 
@@ -316,9 +327,12 @@ def series_key(name: str) -> str:
     if not isinstance(name, str):
         return ""
     # 1. 全角英数を半角にそろえ、大文字小文字の違いをなくす
+    # base: 全角半角と英字大小の違いをそろえたイベント名。
     base = unicodedata.normalize("NFKC", name).lower()
     # 2. 回ごとに変わる番号（第N回・N回目・vol.N・序数・dayN・#N・no.N・西暦（＋月）・(N)）を取り除く
+    # key: 番号・記号を順に除いて同一イベント判定に使う文字列。
     key = base
+    # pattern: 除去対象となる番号表現を表す正規表現。
     for pattern in _SERIES_NUMBER_PATTERNS:
         # 変数の内容: key: イベント名から回ごとの番号などを除いた照合キー。
         key = pattern.sub(" ", key)
@@ -326,6 +340,7 @@ def series_key(name: str) -> str:
     key = _SERIES_SYMBOLS.sub("", key)
     # 4. 意味のある名前が残らなければ（空・数字だけ・ASCII 英数字だけで2文字未満）、
     #    元の名前から空白だけを除いたものを使う（日本語の1文字「祭」などはそのままキーにする）
+    # too_short_ascii: ASCII英数字だけのキーが短すぎ、別イベントを誤統合しそうか。
     too_short_ascii = key.isascii() and len(key) < _SERIES_KEY_MIN_ASCII_LENGTH
     if not key or key.isdigit() or too_short_ascii:
         # 変数の内容: key: イベント名から回ごとの番号などを除いた照合キー。
@@ -382,6 +397,7 @@ def weighted_median(values: list[float], weights: list[float]) -> float | None:
     if len(v) == 0 or total <= 0:
         return None
     # 1. 値の小さい順に並べ、重みを累計する
+    # order: 値を昇順に並べ替えるための元配列インデックス。
     order = np.argsort(v, kind="stable")
     # 変数の内容: v, w: 中央値計算に使う数値配列と対応する重み配列を準備する。
     v, w = v[order], w[order]
@@ -390,6 +406,7 @@ def weighted_median(values: list[float], weights: list[float]) -> float | None:
     # 変数の内容: half: 重みの合計の半分。重み付き中央値の境界。
     half = total / 2
     # 2. 累計が半分に達した最初の値を取る（誤差で届かないことがないよう少し余裕を持たせる）
+    # idx: 重みの累計が半分に達する位置。
     idx = int(np.searchsorted(cum, half - WEIGHTED_MEDIAN_TOLERANCE * total))
     # 3. ちょうど半分で区切れるときは、次の値との平均にする（ふつうの中央値と同じ扱い）
     if math.isclose(cum[idx], half, rel_tol=1e-9) and idx + 1 < len(v):
@@ -478,20 +495,24 @@ def series_references(
             # 変数の内容: hist: 過去イベント名を照合キー付きでまとめた履歴表。
             hist = hist.assign(start_date=pd.NaT)
     # 2. 残りのイベントを開催日順に並べ、1つずつ同じキーの実績を集める
+    # rem: 予定イベントを開催日・ID順に並べた表。
     rem = remaining.sort_values(["start_date", "id"], kind="stable")
     # 変数の内容: names: 残りイベントの名称を並べた Series。
     names = rem["name"] if "name" in rem.columns else pd.Series([None] * len(rem), index=rem.index)
     # 変数の内容: rows: 残りイベントごとの過去実績・重み情報を蓄積するリスト。
     rows = []
+    # r / name: 予定イベントの行データと名称。
     for (_, r), name in zip(rem.iterrows(), names):
         # 変数の内容: key: イベント名から回ごとの番号などを除いた照合キー。
         key = series_key(name)
         # 空のキーは「名前が無い」なので、どの過去の回とも同じとみなさない
+        # same: 同じイベントキーに一致した過去開催の一覧。
         same = hist[hist["key"] == key] if key else hist.iloc[0:0]
         # 変数の内容: n: 同じイベント名として照合できた過去開催回数。
         n = int(len(same))
         # 3. 過去の回ごとに、残りのイベントとの開催月の差から時期の重みを出す
         #    （どちらかの開催日が分からないときは時期で差をつけず 1.0 とする）
+        # target: 過去実績との季節差を計算する対象イベントの開催日。
         target = r["start_date"]
         # 変数の内容: months: 過去開催回の開催月一覧。日付不明は None。
         months = [int(d.month) if pd.notna(d) else None for d in same["start_date"]]
@@ -505,6 +526,7 @@ def series_references(
         # 変数の内容: sales: 同一イベントの過去開催回の売上一覧。
         sales = [float(v) for v in same["sales"]]
         # 4. 時期の重みの合計を実質の回数とし、縮小推定の重みと重み付き中央値を求める
+        # n_eff: 季節重みを合計した、実績回数に相当する有効件数。
         n_eff = float(sum(s_list))
         # 変数の内容: usable: 時期の重み合計が最低値を超え、過去売上を参照できるか。
         usable = n_eff >= MIN_SEASON_WEIGHT_TOTAL
@@ -566,12 +588,14 @@ def forecast_fiscal_year(
         実績が少なすぎるときは None
     """
     # 1. 売上の実績がある回だけを使う
+    # done: 売上実績が登録されたイベント収支。
     done = fin[fin["has_result"]]
     if len(done) < MIN_ROWS_FOR_ANALYSIS:
         return None
     # 変数の内容: fy: 基準日が属する会計年度。
     fy = fiscal_year(today)
     # 2. 今期の実績合計と、今期のまだ実績がないイベント（今日以降の予定＋入力待ち）を数える
+    # actual: 対象会計年度にすでに計上された売上合計。
     actual = float(done.loc[done["fiscal_year"] == fy, "sales"].sum())
     # 変数の内容: done_ids: 売上実績が登録済みのイベントID集合。
     done_ids = set(done["event_id"])
@@ -595,10 +619,12 @@ def forecast_fiscal_year(
     # 変数の内容: details: 残りイベントごとの参照実績・抽選重みをまとめた表。
     details = series_references(rem_events, history)
     # 4. まず全イベントの実績から残りの回数ぶん引く（同じイベントの実績が無いイベントはこの値をそのまま使う）
+    # rng: 再現可能な売上抽選に使う乱数生成器。
     rng = np.random.default_rng(seed)
     # 変数の内容: draws: 全イベントの実績から抽選した各シミュレーションの売上配列。
     draws = rng.choice(done["sales"].to_numpy(), size=(n_boot, remaining), replace=True).astype(float)
     # 5. 同じイベントの実績があるイベントは、確率 w で、その実績から時期の重みに比例して引き直した値に置き換える
+    # j / w / past / s_list: 予定イベント番号、同一イベント参照確率、過去売上、季節重み。
     for j, (w, past, s_list) in enumerate(zip(details["weight"], details["past_sales"],
                                                details["past_season_weights"])):
         if w <= 0:
@@ -611,6 +637,7 @@ def forecast_fiscal_year(
         same_draws = rng.choice(np.asarray(past, dtype=float), size=n_boot, replace=True, p=p / p.sum())
         draws[use_same, j] = same_draws[use_same]
     # 6. 今期の実績に残りの回の合計を足し、下位10%・中央値・上位10% を見込みとして出す
+    # samples: 実績と残りイベントの抽選売上を足した各シミュレーション結果。
     samples = actual + draws.sum(axis=1)
     return {
         "fiscal_year": fy,
@@ -650,8 +677,10 @@ def fit_linear(x: pd.Series, y: pd.Series) -> LinearFit | None:
     if len(x) < 3 or x.nunique() < 2:
         return None
     # 1. 直線の傾きと切片を求める
+    # slope / intercept: 回帰直線の傾きと切片。
     slope, intercept = np.polyfit(x, y, 1)
     # 2. 決定係数 R² = 1 − 残差の二乗和 ÷ 全体のばらつき
+    # pred: 各xに対する回帰直線の予測値。
     pred = slope * x + intercept
     # 変数の内容: ss_res: 回帰直線の予測値と実測値の残差二乗和。
     ss_res = float(((y - pred) ** 2).sum())

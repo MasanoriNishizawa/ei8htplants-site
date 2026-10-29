@@ -38,6 +38,7 @@ async function useFakeAdminSession(page: Page) {
       refresh_token: 'e2e-fake-refresh-token',
       user: { id: 'e2e-admin', aud: 'authenticated', role: 'authenticated', email: 'e2e@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' },
     }
+    // テスト用セッション以外の localStorage 読み取りに使う元の getItem 関数。
     const originalGetItem = Storage.prototype.getItem
     Storage.prototype.getItem = function (key: string) {
       if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)
@@ -54,6 +55,7 @@ async function useFakeAdminSession(page: Page) {
 
 async function expectNoHorizontalScroll(page: Page) {
   const sizes = await page.evaluate(() => {
+    // 管理画面内で独立してスクロールする main 要素。
     const main = document.querySelector('main')
     return {
       docScroll: document.documentElement.scrollWidth,
@@ -78,7 +80,9 @@ async function expectNoHorizontalScroll(page: Page) {
 
 async function expectWithinViewportX(page: Page, locator: Locator, label: string) {
   await locator.scrollIntoViewIfNeeded()
+  // 対象 Locator の画面上の位置と寸法。
   const box = await locator.boundingBox()
+  // 現在のビューポートの横幅（px）。
   const width = page.viewportSize()!.width
   expect(box, `${label} が表示されていない`).not.toBeNull()
   expect(box!.x, `${label} の左端 x=${box!.x}`).toBeGreaterThanOrEqual(0)
@@ -361,6 +365,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 管理情報の確認画面を開き、収支から補われる出店料と未入力の宿泊料金を確認する。
     // MSW の mock-past-1 の収支は booth_fee: 50000・accommodation: 0、管理情報は出店要項だけ
     await page.goto(`/admin/events/${EVENT_ID}/admin-info`)
     await expect(viewRow(page, '出店料')).toContainText('50,000円（収支から）')
@@ -483,6 +488,7 @@ test.describe('管理情報の確認画面 — スマホ幅（375x812）', () =>
     const edits = page.getByRole('link', { name: '編集' })
     await expectWithinViewportX(page, edits.nth(0), '上の編集ボタン')
     await expectWithinViewportX(page, edits.nth(1), '下の編集ボタン')
+    // 3 枚の出店要項サムネイルを順に確認するための 1 始まり番号。
     for (let i = 1; i <= 3; i++) {
       await expectWithinViewportX(page, page.getByRole('button', { name: `出店要項の画像 ${i} を拡大表示` }), `サムネイル ${i}`)
     }

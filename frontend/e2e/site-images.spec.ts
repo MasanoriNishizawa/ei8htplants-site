@@ -23,6 +23,7 @@ test('HUEの6つの色見本を管理画面から同じ形の写真に差し替�
   })
   await expect(page.locator('.hue-photo-grid .hue-photo-shape')).toHaveCount(6)
   await expect(page.locator('.hue-photo-grid img')).toHaveCount(1)
+  // デスクトップ幅で写真グリッドに設定された列数。
   const desktopColumns = await page.locator('.hue-photo-grid').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length)
   expect(desktopColumns).toBe(6)
 

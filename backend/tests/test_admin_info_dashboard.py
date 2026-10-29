@@ -262,6 +262,7 @@ class TestAdminInfoDashboard:
         # 1. DBの並びが崩れていても開始日の昇順に並べ直すことを確認する。
         events = [_ev('c', '2026-12-03'), _ev('a', '2026-11-01'), _ev('b', '2026-11-15')]
         resp = self._get(events, [])
+        # 変数の内容: i: 開始日の昇順を検証する各イベント項目。
         assert [i['event_id'] for i in resp.json()['items']] == ['a', 'b', 'c']
 
     def test_対象が無いときは空のitemsを返す(self):

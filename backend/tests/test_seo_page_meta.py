@@ -137,6 +137,7 @@ class TestBuildArticlePageMeta:
             '/official/journal/story-id', article, factory,
             lambda content: parsed_content.append(content) or blocks,
             lambda value: '記事本文の説明',
+            # 変数の内容: item: 記事本文から画像 URL を探すコンテンツブロック。
             lambda value: next((item['url'] for item in value if item.get('type') == 'image'), None),
         )
 

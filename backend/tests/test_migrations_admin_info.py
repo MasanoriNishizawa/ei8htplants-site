@@ -24,6 +24,7 @@ def _read_sql(filename: str) -> str:
     # 変数の内容: text: 読み込んだマイグレーション SQL 本文。
     text = (MIGRATIONS_DIR / filename).read_text(encoding='utf-8')
     # 2. 行ごとに「--」以降（コメント）を取り除く。説明文の言葉に反応しないようにするため
+    # 変数の内容: line: マイグレーションまたは応答の一行。
     return '\n'.join(line.split('--', 1)[0] for line in text.splitlines())
 
 
@@ -69,6 +70,7 @@ class TestMigration016EventAdminInfo:
         policies = re.findall(r'create policy [^;]*;', norm)
         assert policies, 'CREATE POLICY が1つも無い'
         # 2. どのポリシーも service_role だけが対象
+        # 変数の内容: p: 走査中のパスまたはポリシー。
         for p in policies:
             assert 'to service_role' in p, f'service_role 以外向けのポリシーがある: {p}'
         # 3. anon・authenticated・public という対象がどこにも出てこない
@@ -173,6 +175,7 @@ class TestMigration016Safety:
         assert revokes, 'event_admin_info の REVOKE が無い'
         # 2. 対象のロールに anon と authenticated が両方入っている
         # 変数の内容: roles: SQL に含まれる対象ロール名の一覧。
+        # 変数の内容: r: SQL 文から分割したロール名、stmt: 検査対象の REVOKE 文。
         roles = {r.strip() for stmt in revokes for r in stmt.split(',')}
         assert 'ANON' in roles
         assert 'AUTHENTICATED' in roles
@@ -328,9 +331,12 @@ class TestMigration018GrantServiceRole:
         grants = re.findall(r'GRANT [^;]* ON EVENT_ADMIN_INFO TO [^;]*;', norm)
         assert grants, 'event_admin_info への GRANT が無い'
         # 2. 管理情報 API が使う操作（読む・作る・上書き）に必要な権限がそろっている
+        # 変数の内容: priv: 検証対象の DB 権限名。
         for priv in ('SELECT', 'INSERT', 'UPDATE', 'DELETE'):
+            # 変数の内容: g: 検証対象の GRANT 文。
             assert any(priv in g for g in grants), f'{priv} の権限が無い'
         # 3. 権限を付ける相手は service_role だけ
+        # 変数の内容: g: 検証対象の GRANT 文。
         for g in grants:
             assert g.endswith('TO SERVICE_ROLE;'), f'service_role 以外に権限を付けている: {g}'
 

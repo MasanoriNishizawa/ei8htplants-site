@@ -190,6 +190,7 @@ def _sync_reserved_count(session_id: str) -> None:
         .neq('status', 'cancelled') \
         .execute()
     # 2. 参加人数を合計し、セッションの集計値を上書きする。
+    # 変数の内容: total: 参加人数の合計、r: 合計対象の予約レコード。
     total = sum(r['participants'] for r in (result.data or []))
     admin_supabase.table('ws_sessions').update({'reserved_count': total}).eq('id', session_id).execute()
 
@@ -403,6 +404,7 @@ def cancel_by_token(body: CancelBody, request: Request) -> dict:
     if not all_rows.data:
         raise HTTPException(404, 'キャンセルIDが見つかりません')
     # 変数の内容: row: DB から取得した単一レコード。
+    # 変数の内容: r: キャンセル済みでない予約候補。
     row = next((r for r in all_rows.data if r['status'] != 'cancelled'), None)
     if not row:
         raise HTTPException(400, 'この予約はすでにキャンセル済みです')

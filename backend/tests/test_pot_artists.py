@@ -11,6 +11,7 @@ from app.auth import require_auth
 
 # --- テスト用サンプルデータ ---
 
+# ARTIST_1: 一覧・登録・削除の検証で使う鉢作家のテスト用データ。
 ARTIST_1 = {
     'id': 'art1',
     'name': '山田鉢師',

@@ -120,6 +120,7 @@ def compute_finances(fin: dict, has_workshop: bool) -> FinanceResult:
     # 変数の内容: net: 売上から通常支出とWS資材費を差し引いた仮収支。
     net = fin["sales"] - total_expense - ws_cost
     # 4. 手伝い支払いがあるときは、物販利益の20% と WS 売上の70% を収支から引く
+    # payment: 手伝い支払いがない場合の既定額。支払い対象なら次の式で計算する。
     payment = 0
     if fin["payment_flag"]:
         # 変数の内容: payment: 手伝い支払い額。
@@ -166,10 +167,12 @@ def break_even_sales(fin: dict, has_workshop: bool) -> float:
         損益分岐となる売上（円）
     """
     # 1. 売上を 0 円・10万円にしたときの収支を計算する（丸め誤差を小さくするため差を大きく取る）
+    # net0 / net1: 売上0円と基準売上時の収支。差から損益分岐点の傾きを求める。
     net0 = compute_finances({**fin, "sales": 0}, has_workshop)["net"]
     # 変数の内容: net1: 基準額の売上を設定した場合の収支。
     net1 = compute_finances({**fin, "sales": BREAK_EVEN_STEP}, has_workshop)["net"]
     # 2. 売上1円あたりの収支の増え方（傾き）から 0 になる売上を出す
+    # slope: 売上が1円増えたときの収支の増加額。
     slope = (net1 - net0) / BREAK_EVEN_STEP
     return -net0 / slope
 
@@ -248,12 +251,15 @@ def build_event_finance_table(events: pd.DataFrame, finances: pd.DataFrame) -> p
         収支のあるイベントが無いときも、列名だけはそろえた空の表を返す
     """
     # 1. 収支のあるイベントだけを結合する（1件も無ければ列だけの表を返す）
+    # df: 収支とイベント情報を結合し、分析用の列を足していく表。
     df = finances.merge(events, left_on="event_id", right_on="id", how="inner") if not finances.empty else finances
     if df.empty:
         return _empty_finance_table(events, finances)
     # 2. 1行ずつ管理画面と同じ式で計算する
+    # df: 各イベントの計算済み収支結果を列として追加した表。
     df = pd.concat([df, df.apply(_row_results, axis=1)], axis=1)
     # 3. 分析で使う補助列を足す
+    # end: 終了日が未入力なら開始日を使うイベントごとの最終日。
     end = df["end_date"].fillna(df["start_date"])
     df["days"] = (end - df["start_date"]).dt.days + 1  # 開催日数
     df["month"] = df["start_date"].dt.to_period("M").dt.to_timestamp()  # 開催月

@@ -13,6 +13,7 @@ test.describe('管理画面スモークテスト', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 管理画面のダッシュボードを開き、ページ見出しが表示されることを確認する。
     await page.goto('/admin')
     // ダッシュボードの見出しが表示されること
     await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
@@ -45,6 +46,7 @@ test.describe('管理画面スモークテスト', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. イベント一覧を開き、一覧または新規作成への主要要素が表示されることを確認する。
     await page.goto('/admin/events')
     // 「イベント」を含む見出しまたは「新規作成」ボタンが存在すること
     await expect(page.getByRole('link', { name: /新規作成|イベント追加|新規/ }).or(
@@ -59,6 +61,7 @@ test.describe('管理画面スモークテスト', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. イベント新規作成画面を開き、フォームの見出しまたは入力欄が表示されることを確認する。
     await page.goto('/admin/events/new')
     // フォームが存在すること（見出しまたは input）
     await expect(page.getByRole('heading').or(page.getByRole('textbox').first()).first()).toBeVisible()
@@ -71,6 +74,7 @@ test.describe('管理画面スモークテスト', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. ギャラリー管理画面を開き、管理用の見出しまたは操作ボタンが表示されることを確認する。
     await page.goto('/admin/gallery')
     // ページ内に何らかの管理画面らしい要素が表示されること
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
@@ -210,6 +214,7 @@ test.describe('管理画面: 認証つき API がモックまで届く', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. イベント一覧を開き、MSW が返す開催予定・過去のイベントが表示されることを確認する。
     await page.goto('/admin/events')
     // 今後のイベント（src/mocks/data.ts の MOCK_EVENTS）
     await expect(page.getByText('Green Market 2027').first()).toBeVisible()
@@ -227,6 +232,7 @@ test.describe('管理画面: 認証つき API がモックまで届く', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. ダッシュボードを開き、モックの各統計件数が表示されることを確認する。
     await page.goto('/admin')
     // 統計カード（リンク）の中に件数とラベルが並ぶ
     const card = page.getByRole('link', { name: /公開中のイベント/ })

@@ -24,6 +24,7 @@ async function useFakeAdminSession(page: Page) {
       refresh_token: 'e2e-fake-refresh-token',
       user: { id: 'e2e-admin', aud: 'authenticated', role: 'authenticated', email: 'e2e@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' },
     }
+    // テスト用セッション以外の localStorage 読み取りに使う元の getItem 関数。
     const originalGetItem = Storage.prototype.getItem
     Storage.prototype.getItem = function (key: string) {
       if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)
@@ -53,7 +54,9 @@ test('搬入・搬出の日付・時・分を選んで保存すると、保存 A
   const dates = page.locator('input[type="date"]')
   const carryInDate = dates.nth(0)
   const carryOutDate = dates.nth(1)
+  // 搬入日付入力欄を含む親要素のロケーター。
   const carryIn = carryInDate.locator('xpath=..')
+  // 搬出日付入力欄を含む親要素のロケーター。
   const carryOut = carryOutDate.locator('xpath=..')
 
   // 3. 利用者と同じ操作で入力する（日付 → 時 → 分）
@@ -69,6 +72,7 @@ test('搬入・搬出の日付・時・分を選んで保存すると、保存 A
     (req) => req.method() === 'PUT' && req.url().endsWith(`/api/events/${EVENT_ID}/admin-info`),
   )
   await page.getByRole('button', { name: '保存する' }).click()
+  // 保存リクエストから取り出した管理情報の送信データ。
   const body = JSON.parse((await putRequest).postData() ?? '{}')
 
   // 5. 搬入・搬出の日時が「YYYY-MM-DDTHH:MM」で送られている
@@ -100,7 +104,9 @@ test('搬入・搬出を保存すると確認画面に日時・金額が表示�
   await dates.nth(1).fill('2099-11-15')
   await carryOut.locator('select').nth(0).selectOption('17')
   await carryOut.locator('select').nth(1).selectOption('05')
+  // 宿泊料金を入力する input のロケーター。
   const hotelFee = page.locator('label').filter({ hasText: /^宿泊料金$/ }).locator('..').locator('input')
+  // 出店料を入力する input のロケーター。
   const boothFee = page.locator('label').filter({ hasText: /^出店料$/ }).locator('..').locator('input')
   await hotelFee.fill('8000')
   await boothFee.fill('12000')
@@ -110,6 +116,7 @@ test('搬入・搬出を保存すると確認画面に日時・金額が表示�
     (req) => req.method() === 'PUT' && req.url().endsWith(`/api/events/${EVENT_ID}/finances`),
   )
   await page.getByRole('button', { name: '保存する' }).click()
+  // 収支更新リクエストから取り出した送信データ。
   const finBody = JSON.parse((await finPut).postData() ?? '{}')
   // 保存後は確認画面へ戻り「保存しました」が出る
   await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
@@ -146,7 +153,9 @@ test('搬入・搬出を保存すると確認画面に日時・金額が表示�
   const reDates = page.locator('input[type="date"]')
   await expect(reDates.nth(0)).toHaveValue('2099-11-14')
   await expect(reDates.nth(1)).toHaveValue('2099-11-15')
+  // 再読み込み後の搬入日付入力欄を含む親要素のロケーター。
   const reCarryIn = reDates.nth(0).locator('xpath=..')
+  // 再読み込み後の搬出日付入力欄を含む親要素のロケーター。
   const reCarryOut = reDates.nth(1).locator('xpath=..')
   await expect(reCarryIn.locator('select').nth(0)).toHaveValue('08')
   await expect(reCarryIn.locator('select').nth(1)).toHaveValue('30')

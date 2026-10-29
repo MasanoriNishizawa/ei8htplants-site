@@ -327,11 +327,14 @@ class _FakeQuery:
             raise RuntimeError(f'{self.name} の読み取りに失敗')
         # 変数の内容: res: DB クエリの実行結果、rows: DB から取得した行の一覧。
         rows = [
+            # 変数の内容: r: 走査中の DB 行または応答値。
             r for r in self.db.tables.get(self.name, [])
+            # 変数の内容: k: 辞書キーまたは項目名、v: 辞書またはモデル項目の値。
             if all(r.get(k) == v for k, v in self.filters.items())
         ]
         res = MagicMock()
         # 変数の内容: res.data: モックのクエリ応答に含めるデータ。
+        # 変数の内容: r: 走査中の DB 行または応答値。
         res.data = [dict(r) for r in rows]
         return res
 
@@ -413,6 +416,7 @@ def db():
 
 # serve_spa は dist があるときだけ登録される
 HAS_DIST = os.path.isfile(os.path.join(app_main.DIST, 'index.html'))
+# needs_dist: 配信HTMLが必要なテストをdist未生成時にスキップするマーカー。
 needs_dist = pytest.mark.skipif(not HAS_DIST, reason='frontend/dist/index.html が無い')
 
 
@@ -471,6 +475,7 @@ def _canonical(head: str):
     戻り値:
         head 内の canonical link の URL を返す。"""
     # 1. canonical リンクの URL を抽出し、無ければ None を返す。
+    # 変数の内容: m: canonical link の正規表現検索結果。
     m = re.search(r'<link rel="canonical" href="([^"]*)"', head)
     return html.unescape(m.group(1)) if m else None
 
@@ -485,6 +490,7 @@ def _json_ld(head: str) -> list:
         list を返す。
     """
     # 1. <script type="application/ld+json"> の中身を JSON として読んだリストを返す。
+    # 変数の内容: s: script タグ内から抽出した JSON 文字列。
     return [json.loads(s) for s in re.findall(r'<script type="application/ld\+json">(.*?)</script>', head, flags=re.S)]
 
 
@@ -1058,6 +1064,7 @@ class TestServeSpaMeta:
         # 1. GET /events/nope を行い、イベントHTMLを取得する。
         TestClient(app).get('/events/nope')
         # 変数の内容: event_calls: イベントテーブルの DB 呼び出し記録。
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         event_calls = [c for c in db.calls if c[0] == 'events']
         # 2. DBの検索条件、呼び出し回数 を応答から確認する。
         assert event_calls == [('events', {'slug': 'nope'})]
@@ -1116,6 +1123,7 @@ class TestServeSpaMeta:
         # 1. GET /journal/not-a-uuid を行い、記事HTMLを取得する。
         TestClient(app).get('/journal/not-a-uuid')
         # 2. DBの検索条件、呼び出し回数 を応答から確認する。
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         assert [c for c in db.calls if c[0] == 'articles'] == []
 
     def test_公開中の商品を開くと商品名とShopのタイトルと説明と画像が入る(self, db):
@@ -1323,6 +1331,7 @@ class TestServeSpaMeta:
         assert len(raw) == 1
         body = raw[0]
         # < > & と U+2028/2029 は生で入らない
+        # 変数の内容: ch: 検査対象の文字。
         for ch in ('<', '>', '&', '\u2028', '\u2029'):
             assert ch not in body
         assert '\\u003c' in body and '\\u003e' in body and '\\u0026' in body
@@ -1479,6 +1488,7 @@ class TestLegacyStructuredDataConstants:
         # 1. EVENT_JSONLD_MAX_IMAGES をテスト用の値へ差し替えて境界条件を作る。
         monkeypatch.setattr(seo, 'EVENT_JSONLD_MAX_IMAGES', max_images)
         # 変数の内容: event: 処理対象のイベント、images: 対象画像の一覧、ld: JSON-LD の構造化データ、meta: ページの title・説明文・画像などの SEO 情報。
+        # 変数の内容: index: テストデータ生成に使う連番。
         images = [f'https://cdn.example.com/{index}.jpg' for index in range(7)]
         event = _event(image_urls=images)
         meta = seo.PageMeta(
@@ -1795,13 +1805,16 @@ class _QueryRecordingQuery(_FakeQuery):
         # 2. テーブル行を絞り込み、指定された列の順に並べて応答へ入れる。
         # 変数の内容: rows: DB 応答として扱うレコード一覧。
         rows = [
+            # 変数の内容: row: テスト対象の DB 行。
             row for row in self.db.tables.get(self.name, [])
+            # 変数の内容: key: 検索・比較に使う辞書キー、value: 検証・変換対象の値。
             if all(row.get(key) == value for key, value in self.filters.items())
         ]
         if self.order_column is not None:
             rows.sort(key=lambda row: row.get(self.order_column))
         # 変数の内容: response: テスト対象が返した応答オブジェクト。
         response = MagicMock()
+        # 変数の内容: row: テスト対象の DB 行。
         response.data = [dict(row) for row in rows]
         return response
 
@@ -1887,6 +1900,7 @@ class TestSeoPageDataFetch:
             f'{seo.SITE_ORIGIN}/img/detail.jpg',
             'https://cdn.example.com/hero.jpg',
         ]
+        # 変数の内容: call: モックが記録した呼び出し。
         assert [call[0] for call in calls_after_first] == ['events', 'event_images']
         assert public_db.calls == calls_after_first
         assert admin_db.calls == []
@@ -2046,6 +2060,7 @@ class TestSeoPageDataFetch:
 
         # 2. 不正IDがNoneになり、どちらのDBにも検索が発生しないことを確認する。
         assert fetcher('not-a-uuid', deps) is None
+        # 変数の内容: call: モックが記録した呼び出し。
         assert all(call[0] != table_name for call in admin_db.calls)
         assert admin_db.calls == []
         assert public_db.calls == []
@@ -2198,7 +2213,9 @@ class TestRobotsTxt:
         text = TestClient(app).get('/robots.txt').text
         # 2. Disallow一覧に /api がなく、定義済みの拒否パスだけが含まれることを確認する。
         assert 'Disallow: /api' not in text
+        # 変数の内容: l: 走査中の本文行。
         disallows = [l for l in text.splitlines() if l.startswith('Disallow:')]
+        # 変数の内容: path: 検証対象の URL パス。
         assert disallows == [f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW]
 
     def test_robots_txtはindex_htmlではない(self):
@@ -2300,6 +2317,7 @@ class TestRobotsTxtPureFunctions:
         expected_lines = [
             'User-agent: *',
             'Allow: /',
+            # 変数の内容: path: 検証対象の URL パス。
             *[f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW],
             '',
             f'Sitemap: {origin}/sitemap.xml',
@@ -2312,7 +2330,9 @@ class TestRobotsTxtPureFunctions:
             'www.habitatoides.com', seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
         )
         assert text == '\n'.join(expected_lines) + '\n'
+        # 変数の内容: line: マイグレーションまたは応答の一行。
         assert [line for line in text.splitlines() if line.startswith('Disallow:')] == [
+            # 変数の内容: path: 検証対象の URL パス。
             f'Disallow: {path}' for path in seo.ROBOTS_DISALLOW
         ]
         assert 'Disallow: /api' not in text.splitlines()
@@ -2455,6 +2475,7 @@ class TestSitemapXml:
             locs = _locs(resp.text)
             assert 'https://ei8htplants.com/official/events/plant-market' in locs
             assert f'https://ei8htplants.com/official/shop/{PRODUCT_ID}' in locs
+            # 変数の内容: l: 走査中の本文行。
             assert not any('/official/journal/' in l for l in locs)
             # キャッシュされていないので、失敗が直ると次で記事も入る
             fake.errors = set()
@@ -2497,7 +2518,9 @@ class TestSitemapXml:
         # 2. HTTPステータス、サイトマップURL、最終更新日 を応答から確認する。
         assert resp.status_code == 200
         locs = _locs(resp.text)
+        # 変数の内容: path: 検証対象の URL パス。
         assert locs == [f'{origin}{path}' for path in paths]
+        # 変数の内容: loc: sitemap に含まれる URL。
         assert all(not loc.startswith('https://ei8htplants.com/') for loc in locs)
 
     @pytest.mark.parametrize('path,title', [
@@ -2778,6 +2801,7 @@ class TestServeSpaPathTraversal:
         # パーセントエンコードが戻された形（例 '../.env'）で serve_spa に届いている
         assert seen == [unquote(raw_path[1:])]
         # 3. 外のファイルの中身が混ざっていない
+        # 変数の内容: marker: 応答に含まれてはいけない文字列。
         for marker in ('root:', 'SUPABASE', 'FastAPI', 'fastapi', '"dependencies"', 'localhost'):
             assert marker not in resp.text
 

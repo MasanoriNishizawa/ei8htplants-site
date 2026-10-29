@@ -73,6 +73,7 @@ def _stop_process(process: subprocess.Popen, grace_seconds: float = 5.0) -> None
     # 2. leaderが先に終了しても、残存グループを共通期限まで確認する。
     if os.name == "posix":
         while _process_group_exists(process.pid):
+            # remaining: 共通の終了猶予期限まで残っている秒数。
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 _signal_process(process, signal.SIGKILL)
@@ -94,9 +95,11 @@ def run_process(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
     Raises:
         KeyboardInterrupt: 子プロセスを終了・回収した後に呼び出し元へ再送出する。
     """
+    # start: 起動から終了までの所要時間を測る基準時刻。
     start = time.monotonic()
     try:
         # 1. POSIXではコマンドごとにセッションを分け、中断時の終了範囲を限定する。
+        # process: 専用セッションで起動した外部コマンドのプロセス情報。
         process = subprocess.Popen(
             cmd,
             cwd=cwd,
@@ -107,10 +110,12 @@ def run_process(cmd: list[str], cwd: Path) -> tuple[int, str, float]:
         )
     except OSError as error:
         # 2. 起動失敗もrunnerの結果として記録できるよう、診断文と失敗コードへ変換する。
+        # error: 外部コマンドを起動できなかった理由を持つ例外。
         return 127, f"コマンドを起動できませんでした: {error}", time.monotonic() - start
 
     try:
         # 3. 終了まで両方の出力を読み取り、従来と同じ文字列形式で返す。
+        # stdout / stderr: 子プロセスから回収する標準出力と標準エラー。
         stdout, stderr = process.communicate()
     except KeyboardInterrupt:
         # 4. 割り込みを再送出する前に、自分が起動したプロセス群だけを終了して回収する。

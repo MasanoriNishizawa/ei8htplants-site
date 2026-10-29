@@ -31,6 +31,7 @@ const EVENT_NAME = 'Habitat Exhibition 2026'
 
 async function expectNoHorizontalScroll(page: Page) {
   const sizes = await page.evaluate(() => {
+    // 管理画面のスクロール領域である main 要素。
     const main = document.querySelector('main')
     return {
       docScroll: document.documentElement.scrollWidth,
@@ -55,7 +56,9 @@ async function expectNoHorizontalScroll(page: Page) {
 
 async function expectWithinViewportX(page: Page, locator: Locator, label: string) {
   await locator.scrollIntoViewIfNeeded()
+  // 対象 Locator の画面上の位置と寸法。
   const box = await locator.boundingBox()
+  // 現在のビューポートの横幅（px）。
   const width = page.viewportSize()!.width
   expect(box, `${label} が表示されていない`).not.toBeNull()
   expect(box!.x, `${label} の左端 x=${box!.x}`).toBeGreaterThanOrEqual(0)
@@ -96,6 +99,7 @@ test.describe('イベント画像DLページ', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 画像が未登録のイベントを開き、空状態の案内とダウンロードボタンがないことを確認する。
     // mock-upcoming-2 は images: [] / page_content: null / 管理情報 {}
     await page.goto('/admin/events/mock-upcoming-2/images')
     await expect(page.getByText('このイベントには画像が登録されていません')).toBeVisible()
@@ -112,6 +116,7 @@ test.describe('イベント画像DLページ', () => {
     await page.goto(`/admin/events/${EVENT_ID}/images`)
     const buttons = page.getByRole('button', { name: 'ダウンロード' })
     await expect(buttons).toHaveCount(4)
+    // 次に発生するファイルダウンロードを待つ Promise。
     const downloadPromise = page.waitForEvent('download')
     await buttons.nth(1).click()
 
@@ -201,6 +206,7 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
     await expectWithinViewportX(page, page.getByRole('button', { name: '保存する' }), '保存するボタン')
     const removeButtons = page.getByRole('button', { name: '削除' })
     await expect(removeButtons).toHaveCount(3)
+    // 3 件の削除ボタンと各画像のサムネイルを順に調べるための 0 始まり番号。
     for (let i = 0; i < 3; i++) {
       await expectWithinViewportX(page, removeButtons.nth(i), `削除ボタン ${i + 1}`)
       await expectWithinViewportX(page, page.getByRole('button', { name: `出店要項の画像 ${i + 1} を拡大表示` }), `サムネイル ${i + 1}`)
@@ -216,6 +222,7 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
     async ({ page }) => {
     await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
     await page.getByRole('button', { name: '出店要項の画像 2 を拡大表示' }).click()
+    // 出店要項の画像を拡大表示するダイアログのロケーター。
     const dialog = page.getByRole('dialog', { name: '出店要項の画像の拡大表示' })
     await expect(dialog).toBeVisible()
 
@@ -273,6 +280,7 @@ test.describe('スマホ幅（375x812）の表示崩れ確認', () => {
 
 async function collectFieldFontSizes(page: Page) {
   return page.evaluate(() => {
+    // 管理情報編集画面にある文字サイズ検証対象の入力要素一覧。
     const fields = Array.from(document.querySelectorAll('main input, main textarea, main select')) as HTMLElement[]
     return fields
       .filter((el) => !(el instanceof HTMLInputElement && ['checkbox', 'radio', 'range', 'file'].includes(el.type)))
@@ -315,6 +323,7 @@ test.describe('入力欄の文字サイズ（iOS の自動拡大対策）', () =
        * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
        */
       async ({ page }) => {
+      // 1. 編集画面のチェックボックスとファイル欄をスマホ・デスクトップ幅で比較し、スマホ用文字サイズ指定の対象外であることを確認する。
       await page.goto(`/admin/events/${EVENT_ID}/admin-info/edit`)
       await expect(page.getByLabel('要項の文章')).toBeVisible()
       // ルールの :not() 指定どおり、checkbox と file はスマホ幅のルールの影響を受けない

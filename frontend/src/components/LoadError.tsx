@@ -1,5 +1,6 @@
 import { useT } from '../lib/lang'
 
+/** 読み込みエラー表示に渡す案内文（省略可）と再読み込み処理（省略可）。 */
 interface Props {
   /** 「再読み込み」ボタンを押したときの処理（useApi の reload）。省略するとボタンを出さない */
   onRetry?: () => void

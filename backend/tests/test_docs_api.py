@@ -136,7 +136,9 @@ class TestDocsTree:
         # 変数の内容: names: テストで扱う名前の一覧、resp: API から返されたレスポンス。
         # 1. テストディレクトリが存在することを確認する。
         resp = client.get('/api/docs/tree')
+        # 変数の内容: n: API 応答に含まれるドキュメント名。
         names = [n['name'] for n in resp.json()]
+        # 変数の内容: n: TEST ディレクトリの有無を調べる各ドキュメント名。
         assert any('TEST' in n for n in names), '04_TEST ディレクトリが見つからない'
 
     def test_PMディレクトリが存在する(self):
@@ -147,7 +149,9 @@ class TestDocsTree:
         # 変数の内容: names: テストで扱う名前の一覧、resp: API から返されたレスポンス。
         # 1. PMディレクトリが存在することを確認する。
         resp = client.get('/api/docs/tree')
+        # 変数の内容: n: API 応答に含まれるドキュメント名。
         names = [n['name'] for n in resp.json()]
+        # 変数の内容: n: PM ディレクトリの有無を調べる各ドキュメント名。
         assert any('PM' in n for n in names), '03_PM ディレクトリが見つからない'
 
 

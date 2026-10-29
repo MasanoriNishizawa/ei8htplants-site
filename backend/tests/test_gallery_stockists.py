@@ -52,6 +52,7 @@ GALLERY_DATA = [
     {'id': 'g3', 'url': 'https://example.com/c.jpg', 'brand': 'ei8ht plants', 'display_order': 3},
 ]
 
+# HUE_DATA: HUE ブランドだけを抽出したギャラリーAPIのテスト用画像行。
 HUE_DATA = [GALLERY_DATA[1]]
 
 # STOCKISTS_DATA: 公開店舗一覧の表示内容を検証するデータ。

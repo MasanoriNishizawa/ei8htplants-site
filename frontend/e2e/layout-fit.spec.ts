@@ -15,6 +15,7 @@ import { test, expect, type Page } from '@playwright/test'
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
   await page.addInitScript(() => {
+    // Supabase の認証要求を通すためにブラウザーへ登録するテスト用セッション。
     const fakeSession = {
       access_token: 'e2e-fake-access-token',
       token_type: 'bearer',
@@ -23,6 +24,7 @@ async function useFakeAdminSession(page: Page) {
       refresh_token: 'e2e-fake-refresh-token',
       user: { id: 'e2e-admin', aud: 'authenticated', role: 'authenticated', email: 'e2e@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' },
     }
+    // テスト用セッション以外の localStorage 読み取りに使う元の getItem 関数。
     const originalGetItem = Storage.prototype.getItem
     Storage.prototype.getItem = function (key: string) {
       if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)
@@ -54,11 +56,14 @@ async function expectNoHorizontalScroll(page: Page) {
 
 async function expectAllInsideWidth(page: Page, name: string) {
   const width = page.viewportSize()!.width
+  // 指定名に一致する管理画面内のボタンとリンクのロケーター。
   const targets = page.getByRole('main').getByRole('button', { name, exact: true })
     .or(page.getByRole('main').getByRole('link', { name, exact: true }))
+  // 指定名に一致する対象ボタン・リンクの件数。
   const count = await targets.count()
   expect(count, `「${name}」が見つからない`).toBeGreaterThan(0)
   for (let i = 0; i < count; i++) {
+    // ループ中の対象要素の画面上の位置と寸法。
     const box = await targets.nth(i).boundingBox()
     expect(box, `「${name}」が表示されていない`).not.toBeNull()
     expect(box!.x).toBeGreaterThanOrEqual(0)
@@ -77,7 +82,9 @@ test.describe('PC の管理画面のサイドメニュー（1280x700）', () => 
     async ({ page }) => {
     await useFakeAdminSession(page)
     await page.goto('/admin')
+    // 管理画面のサイドメニュー領域のロケーター。
     const aside = page.getByRole('complementary')
+    // サイドメニュー下部のログアウトボタンのロケーター。
     const logout = aside.getByRole('button', { name: 'ログアウト' })
     await expect(logout).toBeAttached()
     // 1. サイドメニュー自体がスクロールできる（中身が高さより長い）
@@ -160,11 +167,13 @@ test.describe('ショップのヘッダー（StoreHeader）', () => {
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto('/official/shop/p-1')
     await page.getByRole('button', { name: /カートに入れる/ }).click()
+    // PC 幅におけるショップロゴの表示幅（px）。
     const pcWidth = await logoWidth(page)
     // 2. スマホの幅でも同じ幅（縮まない）
     for (const width of [375, 320]) {
       await page.setViewportSize({ width, height: 812 })
       await page.goto('/official/shop')
+      // ショップヘッダーのカートリンクのロケーター。
       const cart = page.getByRole('banner').getByRole('link', { name: /Cart/ })
       await expect(cart).toBeVisible()
       expect(Math.abs((await logoWidth(page)) - pcWidth)).toBeLessThanOrEqual(1)

@@ -36,6 +36,7 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
     const heading = page.locator('h1, h2, h3').first()
     await expect(heading).toBeAttached()
     expect(await computed(heading, 'caret-color')).toBe(TRANSPARENT)
+    // 公開トップにある最初の段落のロケーター。
     const para = page.locator('p').first()
     await expect(para).toBeAttached()
     expect(await computed(para, 'caret-color')).toBe(TRANSPARENT)
@@ -52,6 +53,7 @@ test.describe('入力カーソルの表示制御（caret-color）', () => {
     const heading = page.locator('h1, h2, h3').first()
     await expect(heading).toBeAttached()
     expect(await computed(heading, 'user-select')).not.toBe('none')
+    // 公開トップにある最初の段落のロケーター。
     const para = page.locator('p').first()
     expect(await computed(para, 'user-select')).not.toBe('none')
   })

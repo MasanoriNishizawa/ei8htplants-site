@@ -154,13 +154,16 @@ def event_description(
     # 1. ページ本文から hero と concept の文言を取り出して連結する。
     # 変数の内容: page_content: イベント本文の辞書、parts: 説明文候補、text: 連結した説明文。
     page_content = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
+    # 変数の内容: hero: イベント本文に含まれるヒーロー表示設定。
     hero = page_content.get('hero') if isinstance(page_content.get('hero'), dict) else {}
     parts = [_str(hero.get('tagline')), _str(hero.get('subtitle')), _str(page_content.get('concept'))]
+    # 変数の内容: part: 空白を除いて連結する説明文候補。
     text = ' '.join(part.strip() for part in parts if part.strip())
     # 2. 本文が空なら開催日と会場で補い、上限を適用して既定文とともに返す。
     if not text:
         # 変数の内容: date_label: 利用者に表示する開催日、text: 生成または解析する本文。
         date_label = format_date_label(event.get('start_date'), event.get('end_date'))
+        # 変数の内容: part: 表示用の開催日または会場名。
         text = ' / '.join(part for part in (date_label, _str(event.get('location'))) if part)
     return _truncate(text, description_max_len) if text else default_description
 

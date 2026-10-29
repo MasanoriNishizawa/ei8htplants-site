@@ -265,6 +265,7 @@ class TestReservationMailEscape:
         resend.Emails.send.return_value = {'id': 'mail-1'}
         resp = _post(payload, _public_sb(event), _db({}), resend=resend, key='habitat-key')
         assert resp.status_code == 200
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         return [c.args[0] for c in resend.Emails.send.call_args_list]
 
     def test_名前と備考のscriptとimgタグは受付メールと管理者通知の両方でエスケープされる(self):
@@ -641,6 +642,7 @@ class TestReservationFailurePaths:
             """
             # 1. キャンセルされていない共有予約の参加人数を合計する。
             with rows_lock:
+                # 変数の内容: row: テスト対象の DB 行。
                 return sum(row['participants'] for row in rows if row['status'] != 'cancelled')
 
         # 2. 二つのHTTP要求を別スレッドから同時に実行する。
@@ -1040,6 +1042,7 @@ class TestReservationStatusChange:
         resp, reservations, resend = self._patch(self._row('cancelled'), 'pending', used=4)
 
         assert resp.status_code == 409
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         assert all(c.args[0] != {'status': 'pending'} for c in reservations.update.call_args_list)
         resend.Emails.send.assert_not_called()
 

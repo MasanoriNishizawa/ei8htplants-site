@@ -17,6 +17,7 @@ import { test, expect, type Page } from '@playwright/test'
 async function useFakeAdminSession(page: Page) {
   await page.context().route(/supabase\.co/, (route) => route.abort())
   await page.addInitScript(() => {
+    // Supabase の認証要求を通すためにブラウザーへ登録するテスト用セッション。
     const fakeSession = {
       access_token: 'e2e-fake-access-token',
       token_type: 'bearer',
@@ -25,6 +26,7 @@ async function useFakeAdminSession(page: Page) {
       refresh_token: 'e2e-fake-refresh-token',
       user: { id: 'e2e-admin', aud: 'authenticated', role: 'authenticated', email: 'e2e@example.com', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' },
     }
+    // テスト用セッション以外の localStorage 読み取りに使う元の getItem 関数。
     const originalGetItem = Storage.prototype.getItem
     Storage.prototype.getItem = function (key: string) {
       if (/^sb-.+-auth-token$/.test(key)) return JSON.stringify(fakeSession)

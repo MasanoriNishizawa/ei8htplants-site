@@ -71,6 +71,7 @@ class TestInternalErrorMessage:
         assert resp.json() == {'detail': INTERNAL_ERROR_MESSAGE}
         assert 'secret-detail' not in resp.text
         assert 'hunter2' not in resp.text
+        # 変数の内容: r: caplog に記録された各ログレコード。
         assert any('未処理の例外' in r.getMessage() for r in caplog.records)
 
     @pytest.mark.parametrize('path,module,body', [
@@ -97,6 +98,7 @@ class TestInternalErrorMessage:
         mock_sb.table.return_value.insert.return_value.execute.side_effect = Exception(SECRET_TEXT)
         if body is None:
             # 入力の形はルートごとに違うので、必須項目を満たすものを使う
+            # 変数の内容: body: API に渡すテスト用リクエスト本文。
             body = {
                 'media_appearances': {'title': 't', 'youtube_url': 'https://www.youtube.com/watch?v=x'},
                 'price_calc_entries': {'brand': 'b', 'plant_name': 'p', 'cost': 100, 'selling_price': 300},
@@ -307,6 +309,7 @@ class TestNotFound:
         if body is None:
             from app.routes.stockists import StockistBody
             # 変数の内容: body: リクエスト本文。
+            # 変数の内容: f: モデル項目またはファイル、k: 辞書キーまたは項目名。
             body = {k: 'x' for k, f in StockistBody.model_fields.items() if f.is_required()}
 
         with patch(f'app.routes.{module}.admin_supabase', mock_sb):
@@ -409,6 +412,7 @@ class TestEventIdLookup:
 
         assert resp.status_code == 404
         # 変数の内容: cols: 対象テーブルのカラム一覧。
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         cols = [c.args[0] for c in mock_sb.table.return_value.select.return_value.eq.call_args_list]
         assert cols == ['slug']
 
@@ -435,6 +439,7 @@ class TestEventIdLookup:
 
         assert resp.status_code == 200, resp.text
         assert resp.json()['id'] == event_id
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         assert [c.args[0] for c in eq.call_args_list] == ['slug', 'id']
 
     @pytest.mark.parametrize('value,expected', [
@@ -613,7 +618,9 @@ class TestContactLength:
 
         assert resp.status_code == 200
         # 変数の内容: auto_reply: 自動返信メールの内容、mails: モックが記録した送信メール一覧。
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         mails = [c.args[0] for c in mock_resend.Emails.send.call_args_list]
+        # 変数の内容: m: 検証対象のメッセージ。
         auto_reply = [m for m in mails if m['to'] == ['victim@example.com']]
         assert len(auto_reply) == 1
         assert 'SPAM-BODY' not in auto_reply[0]['text']

@@ -73,6 +73,7 @@ def fetch_event(key: str, deps: SeoDataDeps) -> Optional[dict]:
             deps.public_db.table('event_images')
             .select('url').eq('event_id', event.get('id')).order('display_order').execute()
         )
+        # 変数の内容: image: DB から取得した画像行、url: 公開用 URL に変換した画像 URL。
         event['image_urls'] = [
             url for url in (deps.absolute_url(image.get('url')) for image in image_rows) if url
         ]

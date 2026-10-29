@@ -259,7 +259,7 @@ def _send_confirmation(order: dict, body: OrderBody, product_map: dict, payment_
         return
     try:
         # 1. 注文番号・商品の行・お届け先を作る
-        # 変数の内容: order_no: 注文の照合番号、items_lines: メールに載せる商品明細、address_parts: 配送先住所の構成要素。
+        # 変数の内容: order_no: 注文の照合番号、items_lines: メールに載せる商品明細、item: 明細にする注文商品、address_parts: 配送先住所の構成要素。
         order_no = _order_no(order['id'])
         items_lines = '\n'.join(
             f'  {product_map[item.product_id]["name"]} × {item.quantity}  '
@@ -327,7 +327,7 @@ def _notify_admin(order: dict, body: OrderBody, product_map: dict) -> None:
         return
     try:
         # 1. 注文番号と商品明細を含む管理者向けメールを組み立てて送る。
-        # 変数の内容: order_no: 注文の照合番号、items_lines: 管理者メールに載せる商品明細。
+        # 変数の内容: order_no: 注文の照合番号、items_lines: 管理者メールに載せる商品明細、item: 明細にする注文商品。
         order_no = _order_no(order['id'])
         items_lines = '\n'.join(
             f'  {product_map[item.product_id]["name"]} × {item.quantity}'
@@ -372,6 +372,7 @@ def _load_products(body: OrderBody) -> dict[str, dict]:
     """
     # 1. 商品をまとめて読む
     # 変数の内容: product_ids: 注文行の商品 ID、rows: DB から読んだ商品行、product_map: ID で商品行を引ける辞書。
+    # 変数の内容: item: 商品 ID を取り出す注文商品。
     product_ids = [item.product_id for item in body.items]
     # UUID の形でない商品 ID が混ざると DB が 22P02 を返すので、存在しない商品と同じ 404 にする
     rows = execute_or_404(
@@ -389,6 +390,7 @@ def _load_products(body: OrderBody) -> dict[str, dict]:
             raise HTTPException(400, f'この商品は現在購入できません: {p["name"]}')
     # 3. 在庫が足りるか（全商品を一括確認し、不足商品を全て列挙）
     # 変数の内容: insufficient: 注文数が在庫を上回っている商品の名前。
+    # 変数の内容: item: 在庫数を注文数と比較する注文商品。
     insufficient = [
         product_map[item.product_id]['name']
         for item in body.items
@@ -416,6 +418,7 @@ def _reserve_stock(body: OrderBody, product_map: dict[str, dict]) -> list[tuple[
     reserved: list[tuple[str, int]] = []
     try:
         # 1. 商品ごとに DB 関数で在庫を減らし、確保済みの数量を記録する。
+        # 変数の内容: item: 在庫を確保する注文商品。
         for item in body.items:
             # 変数の内容: ok: 処理の成功可否。
             ok = admin_supabase.rpc('decrement_stock', {
@@ -517,7 +520,7 @@ def create_order(body: OrderBody, request: Request) -> dict:
         raise HTTPException(400, f'未対応の都道府県です: {body.prefecture}')
 
     # 2. 商品の確認と在庫の確保
-    # 変数の内容: product_map: 注文対象の商品情報、reserved: 決済失敗時に戻す在庫、subtotal: 商品小計、total: 送料を含む決済額。
+    # 変数の内容: product_map: 注文対象の商品情報、reserved: 決済失敗時に戻す在庫、subtotal: 商品小計、item: 小計へ加える注文商品、total: 送料を含む決済額。
     product_map = _load_products(body)
     reserved = _reserve_stock(body, product_map)
     subtotal = sum(product_map[item.product_id]['price'] * item.quantity for item in body.items)

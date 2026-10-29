@@ -61,6 +61,7 @@ test.describe('イベントフォーム 開催時間プルダウン', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 開催時間が設定された既存イベントを開き、開始・終了時刻が各プルダウンに読み込まれることを確認する。
     // mock-upcoming-1 は time: '10:00〜17:00'
     await page.goto('/admin/events/mock-upcoming-1/edit')
 

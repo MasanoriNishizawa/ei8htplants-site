@@ -51,11 +51,13 @@ def select_tests(
     narrowed = any(
         targets is not None for targets in (vitest_targets, e2e_targets, pytest_targets)
     ) or analytics
+    # partial: 全件実行ではなく、一部suiteを省略する実行か。
     partial = narrowed or no_e2e
-    # run_*: CLI指定に基づき、それぞれのテストsuiteを実際に起動するか。
+    # run_vitest / run_playwright / run_pytest: CLI指定に基づくsuite実行可否。
     run_vitest = not narrowed or vitest_targets is not None
     run_playwright = not no_e2e and (not narrowed or e2e_targets is not None)
     run_pytest = not narrowed or pytest_targets is not None
+    # run_analytics: 分析ダッシュボードのpytestを実行対象に含めるか。
     run_analytics = not narrowed or analytics
 
     # 2. 実行しないテスト枠ごとに、ログへ出す理由を決める。
@@ -64,6 +66,7 @@ def select_tests(
     if not run_vitest:
         skipped_suites.append(("フロントのロジック（Vitest）", "省略（関連なし）"))
     if not run_playwright:
+        # reason: Playwright suiteを省略した理由のログ表示。
         reason = "省略（--no-e2e）" if no_e2e else "省略（関連なし）"
         skipped_suites.append(("画面テスト（Playwright）", reason))
     if not run_pytest:
@@ -75,6 +78,7 @@ def select_tests(
     # targets: 実行ログに記録するsuite・ファイルの表示名。全件実行時はNone。
     targets: list[str] | None = None
     if partial:
+        # targets: 部分実行で実際に指定したsuiteとファイルのログ表示名。
         targets = (
             [f"Vitest: {target}" for target in vitest_targets or []]
             + ([f"Playwright: {target}" for target in e2e_targets or []] if not no_e2e else [])

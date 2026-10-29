@@ -85,6 +85,7 @@ def authenticate(email: str, password: str, url: str, anon_key: str) -> tuple[bo
             timeout=AUTH_TIMEOUT,
         )
     except requests.RequestException as e:
+        # e: 認証APIへの通信自体に失敗したことを示す例外。
         # 例外の種類だけを記録する（例外の文字列に送信内容が含まれる可能性を避ける）
         logger.error("Supabase Auth への接続に失敗: %s", type(e).__name__)
         return False, MSG_NETWORK_ERROR
@@ -117,6 +118,7 @@ def is_allowed(email: str, allowed_env: str | None) -> bool:
         許可されていれば True。比較は前後の空白を除き、大文字小文字を無視する
     """
     # 1. 許可リストを作る。空の要素（「a@x, ,b@y」など）は捨てる
+    # allowed: 閲覧を許可するメールアドレスを小文字にそろえた集合。
     allowed = {item.strip().lower() for item in (allowed_env or "").split(",") if item.strip()}
     # 2. リストが空なら Supabase でログインできた人を全員許可する
     if not allowed:
@@ -186,6 +188,7 @@ def require_login() -> str:
     """
     # 1. すでにログインしていればそのまま通す。
     #    ただし許可リストは毎回確かめ直し、リストから外された人は開いたままの画面でもログアウトさせる
+    # email: セッションに保存されたログイン中メールアドレス。未ログインならNone。
     email = st.session_state.get(SESSION_EMAIL)
     if email:
         # ログイン後の実行ではパスワード欄を作らないので、ここで入力値をサーバー側の状態から確実に消す
@@ -199,6 +202,7 @@ def require_login() -> str:
     st.caption("管理画面と同じアカウントでログインしてください。")
 
     # 2. 接続情報が無ければ認証できないので、その旨を出して止める
+    # url / anon_key: Supabase Auth の接続先と公開 anon キー。
     url, anon_key = _auth_settings()
     if not url or not anon_key:
         st.error("ログインの設定がありません（NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY）。")
@@ -230,6 +234,7 @@ def require_login() -> str:
             st.stop()
 
         # 5. Supabase Auth で認証し、許可リストに入っているか確かめる
+        # ok / result: 認証成否と、成功時メールアドレスまたは画面表示用エラー。
         ok, result = authenticate(input_email.strip(), input_password, url, anon_key)
         if not ok:
             # 通信エラーは本人の入力ミスではないので、失敗回数に数えない

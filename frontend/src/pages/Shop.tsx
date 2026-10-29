@@ -199,8 +199,16 @@ function ArticleCard({ article }: { article: Article }) {
   return (
     <Link to={`/official/journal/${article.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
       <div
-        onMouseEnter={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1.04)' }}
-        onMouseLeave={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1)' }}
+        onMouseEnter={(e) => {
+          // 記事カード内の画像を取得し、ポインターが入ったときに少し拡大する
+          const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
+          if (img) img.style.transform = 'scale(1.04)'
+        }}
+        onMouseLeave={(e) => {
+          // 記事カード内の画像を取得し、ポインターが離れたときに元の倍率へ戻す
+          const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
+          if (img) img.style.transform = 'scale(1)'
+        }}
       >
         <div style={{ overflow: 'hidden', background: '#e8e3da', aspectRatio: '3/2', marginBottom: 10 }}>
           {article.image_urls[0] ? (
@@ -226,8 +234,16 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <Link to={`/official/shop/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
       <div
-        onMouseEnter={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1.04)' }}
-        onMouseLeave={(e) => { const img = e.currentTarget.querySelector('img') as HTMLImageElement | null; if (img) img.style.transform = 'scale(1)' }}
+        onMouseEnter={(e) => {
+          // 商品カード内の画像を取得し、ポインターが入ったときに少し拡大する
+          const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
+          if (img) img.style.transform = 'scale(1.04)'
+        }}
+        onMouseLeave={(e) => {
+          // 商品カード内の画像を取得し、ポインターが離れたときに元の倍率へ戻す
+          const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
+          if (img) img.style.transform = 'scale(1)'
+        }}
       >
         <div style={{ overflow: 'hidden', background: '#e8e3da', aspectRatio: '1/1', marginBottom: 12, position: 'relative' }}>
           {product.image_urls[0] ? (

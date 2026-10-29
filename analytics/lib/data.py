@@ -152,6 +152,7 @@ def _fetch_all(table: str) -> list[dict]:
     offset = 0
     while True:
         # 1. Range ヘッダーで取得範囲を指定して1ページ分を GET する（並び順は毎回同じ）
+        # res: Supabase REST APIから受け取った1ページ分のHTTP応答。
         res = requests.get(
             f"{url}/rest/v1/{table}",
             params=params,
@@ -183,6 +184,7 @@ def load_table(table: str) -> pd.DataFrame:
         取得したデータ。0件のときも列名だけは揃えた空の DataFrame
     """
     # 1. 全件を取得する。0件でも後続の処理が列名で動けるように列だけ作っておく
+    # rows: 指定テーブルから取得した全ページ分のレコード。
     rows = _fetch_all(table)
     # 変数の内容: df: テーブル列をそろえた分析用 DataFrame。
     df = pd.DataFrame(rows, columns=COLUMNS[table].split(","))
@@ -194,9 +196,11 @@ def load_table(table: str) -> pd.DataFrame:
         # 変数の内容: df: テーブル列をそろえた分析用 DataFrame。
         df = _hash_emails(df, "customer_email")
     # 3. タイムスタンプ列は日本時間、日付列は日付型にする
+    # col: 日本時間のタイムスタンプ型へ変換する列名。
     for col in ("created_at", "published_at"):
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], utc=True, errors="coerce").dt.tz_convert("Asia/Tokyo")
+    # col: 時刻を持たない日付型へ変換する列名。
     for col in ("start_date", "end_date", "preferred_date"):
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")

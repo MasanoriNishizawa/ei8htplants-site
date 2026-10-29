@@ -12,6 +12,7 @@ os.environ.setdefault('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key')
 
 # supabase パッケージ自体をモックして create_client がネットワーク接続しないようにする
 _mock_sb = MagicMock()
+# 変数の内容: sys.modules に登録する supabase パッケージ全体のモック。
 _supabase_module = MagicMock()
 # 変数の内容: _supabase_module.Client: 対象オブジェクトに設定するClient属性値、_supabase_module.create_client: 対象オブジェクトに設定するcreate_client属性値。
 _supabase_module.create_client = MagicMock(return_value=_mock_sb)

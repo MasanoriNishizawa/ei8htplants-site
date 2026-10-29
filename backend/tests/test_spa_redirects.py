@@ -5,12 +5,14 @@ import pytest
 from app.spa_redirects import resolve_spa_redirect
 
 
+# BRAND_DOMAINS: 各ブランドの旧URL転送で期待する正式名と転送先URLの対応。
 BRAND_DOMAINS = {
     'habitatoides.com': ('Habitat Oides', 'https://habitatoides.com'),
     'www.habitatoides.com': ('Habitat Oides', 'https://habitatoides.com'),
     'huebyei8htplants.com': ('HUE by ei8ht plants', 'https://huebyei8htplants.com'),
     'www.huebyei8htplants.com': ('HUE by ei8ht plants', 'https://huebyei8htplants.com'),
 }
+# SITE_ORIGIN: 公式サイトの標準オリジン。ブランド外の転送先検証に使う。
 SITE_ORIGIN = 'https://ei8htplants.com'
 
 

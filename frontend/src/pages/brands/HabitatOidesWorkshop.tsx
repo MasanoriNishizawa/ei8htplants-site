@@ -65,6 +65,7 @@ export default function HabitatOidesWorkshop() {
         </p>
       </section>
 
+      {/* セクション間の余白を増やさず、細い区切り線だけを置く */}
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       {/* About: 写真とワークショップの紹介 */}
@@ -97,6 +98,7 @@ export default function HabitatOidesWorkshop() {
         </div>
       </section>
 
+      {/* セクション間の余白を増やさず、細い区切り線だけを置く */}
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       {/* Contents: 学べる内容のカード */}
@@ -114,6 +116,7 @@ export default function HabitatOidesWorkshop() {
         </div>
       </section>
 
+      {/* セクション間の余白を増やさず、細い区切り線だけを置く */}
       <hr style={{ border: 'none', borderTop: '1px solid #dddde8', margin: 0 }} />
 
       {/* Flow: 当日の流れ */}

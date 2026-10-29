@@ -151,6 +151,7 @@ def parse_playwright_result(code: int, output: str, elapsed: float) -> dict:
     summary_lines = [line.strip() for line in output.splitlines() if re.search(r"\d+ (passed|failed)", line)]
     tail = summary_lines[-1:] if summary_lines else []
     if code != 0 and not tail:
+        # tail: 集計行が得られない失敗時にログへ残す出力末尾。
         tail = output.strip().splitlines()[-5:] if output.strip() else [f"出力なし（終了コード {code}）"]
     return {
         "name": "画面テスト（Playwright）", "code": code, "sec": elapsed,
@@ -209,6 +210,7 @@ def parse_runner_tests_result(code: int, output: str, elapsed: float) -> dict:
         [int(value) for value in re.findall(r"(?:failures|errors)=(\d+)", failed_match.group(1))]
         if failed_match else []
     )
+    # failed: unittestの終了コードと失敗・エラー件数から決める実失敗数。
     failed = 0 if code == 0 else max(1, sum(failure_counts))
     # passed: 総数から省略・想定内失敗・実失敗を差し引いた成功数。
     passed = max(0, total - skipped - xfail - failed)

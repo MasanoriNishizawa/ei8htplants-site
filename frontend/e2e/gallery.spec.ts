@@ -18,6 +18,7 @@ test.describe('Gallery', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 公開ギャラリーを開き、全ブランドと各ブランドの切替ボタンが表示されることを確認する。
     await page.goto('/official/gallery')
     // ブランドの切り替えタブ（ボタン）が並ぶ。ヘッダーのメニュー内の同名リンク（閉じていると非表示）と区別するためボタンで探す
     await expect(page.getByRole('button', { name: 'All', exact: true })).toBeVisible()

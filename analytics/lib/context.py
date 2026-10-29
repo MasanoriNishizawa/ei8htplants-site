@@ -120,10 +120,12 @@ def _select_year(years: list[int]) -> str:
     # 変数の内容: options: 年度フィルターに表示する「すべて」と各会計年度の選択肢。
     options = [ALL_YEARS] + [_year_name(y) for y in years]
     # 1. 年度の選択欄の無い画面から戻ってきたとき（選択欄の値が消えている）は、控えておいた年度を選び直す
+    # remembered: 画面遷移前にセッションへ保存した会計年度の選択値。
     remembered = st.session_state.get(YEAR_MEMORY_KEY)
     if YEAR_KEY not in st.session_state and remembered in options:
         st.session_state[YEAR_KEY] = remembered
     # 2. 選択欄を出し、選んだ値を控えておく
+    # label: サイドバーで選択された会計年度の表示名。
     label = st.sidebar.selectbox("会計年度", options, key=YEAR_KEY)
     st.session_state[YEAR_MEMORY_KEY] = label
     return label
@@ -155,6 +157,7 @@ def get_context(use_year_filter: bool = True) -> Context:
     today = pd.Timestamp.now(tz="Asia/Tokyo").tz_localize(None).normalize()
 
     # 2. 収支と予約の分析用の表を作る（計算結果はキャッシュする）
+    # fin_all: 会計年度で絞り込む前の全イベント収支表。
     fin_all = _finance_table(raw["events"], raw["event_finances"])
     # 変数の内容: res_all: 全期間のワークショップ予約分析表。
     res_all = _reservation_table(raw["workshop_reservations"], raw["ws_sessions"], raw["events"])

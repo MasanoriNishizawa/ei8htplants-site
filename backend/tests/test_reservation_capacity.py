@@ -8,6 +8,7 @@ from app.routes.reserve import _session_used_count
 from app.services.reservation_capacity import count_session_reservations
 
 
+# SESSION: 人数集計とDB検索条件で共通利用するテスト用の予約時間枠。
 SESSION = {'id': 'session-1', 'time_label': '10:00'}
 
 
@@ -122,6 +123,7 @@ class TestSessionUsedCountQuery:
         query.eq.assert_any_call('event_id', 'event-1')
         query.neq.assert_called_once_with('status', 'cancelled')
         # 変数の内容: date_calls: 予約日の条件に関するクエリ呼び出し一覧。
+        # 変数の内容: item: DB クエリの引数・キーワード引数を保持する呼び出し記録。
         date_calls = [item for item in query.eq.call_args_list if item.args[0] == 'preferred_date']
         if expected_date_call is None:
             assert date_calls == []

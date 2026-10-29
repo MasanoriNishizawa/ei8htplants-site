@@ -129,6 +129,7 @@ def _session_query_execution_names(mock_admin_sb: MagicMock) -> list[str]:
         'ws_sessions_table.select().eq().order().execute',
         'workshop_reservations_table.select().eq().neq().execute',
     }
+    # 変数の内容: item: モックの呼び出し履歴に含まれる各呼び出し。
     return [item[0] for item in mock_admin_sb.mock_calls if item[0] in operation_names]
 
 
@@ -208,6 +209,7 @@ class TestEventCRUD:
         # 1. 管理側のイベント INSERT と画像 INSERT が成功する応答を設定する。
         event_table.insert.return_value.execute.return_value.data = [event]
         # 変数の内容: admin_images_table の INSERT は成功だけ記録し、公開読戻し用の画像行は別モックで返す。
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.attach_mock(event_table, 'events_table')
         mock_admin_sb.attach_mock(admin_images_table, 'event_images_table')
@@ -257,11 +259,14 @@ class TestEventCRUD:
         # 3. イベント保存→画像保存の順、display_order、公開応答の images 順を確認する。
         assert resp.status_code == 200
         assert resp.json()['id'] == event['id']
+        # 変数の内容: item: 作成応答に含まれるイベント画像行。
         assert [item['url'] for item in resp.json()['images']] == image_urls
+        # 変数の内容: item: 作成応答に含まれるイベント画像行。
         assert [item['display_order'] for item in resp.json()['images']] == [0, 1]
         # 変数の内容: executed_operations: 管理DBで実行されたイベント本体・画像保存の順序。
         executed_operations = [
             item[0]
+            # 変数の内容: item: モックの呼び出し履歴に含まれる各呼び出し。
             for item in mock_admin_sb.mock_calls
             if item[0] in {'events_table.insert().execute', 'event_images_table.insert().execute'}
         ]
@@ -511,6 +516,7 @@ class TestEventCRUD:
 
         # 2. イベントと画像の両方で INSERT を試みたこと、テーブル呼び出し順、500応答を確認する。
         assert resp.status_code == 500
+        # 変数の内容: args: モック呼び出しに渡された位置引数。
         assert [args.args[0] for args in mock_admin_sb.table.call_args_list] == ['events', 'event_images']
         event_table.insert.assert_called_once()
         event_table.insert.return_value.execute.assert_called_once()
@@ -597,6 +603,7 @@ class TestEventCRUD:
         # 変数の内容: execution_names: 記録された DB execute 呼び出し名の一覧。
         execution_names = [
             item[0]
+            # 変数の内容: item: モックの呼び出し履歴に含まれる各呼び出し。
             for item in mock_admin_sb.mock_calls
             if item[0] in {
                 'events_table.update().eq().execute',
@@ -870,6 +877,7 @@ class TestEventFinances:
         assert resp.status_code == 200
         assert resp.json()['sales'] == 100000
         # 2. upsert に event_id と on_conflict='event_id' が渡る
+        # 変数の内容: args: モック呼び出しに渡された位置引数、kwargs: モック呼び出しに渡されたキーワード引数。
         args, kwargs = mock_admin_sb.table.return_value.upsert.call_args
         assert args[0]['event_id'] == 'evt-1'
         assert args[0]['sales'] == 100000
@@ -1166,6 +1174,7 @@ class TestEventSessions:
         # 変数の内容: kept_id: 入力に残す既存枠、removed_id: 入力に含めず削除対象にする既存枠。
         kept_id = 'session-kept'
         removed_id = 'session-removed'
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、sessions_table: 時間枠テーブルの Supabase モック。
         mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([
             {'id': kept_id, 'time_label': '10:00'},
             {'id': removed_id, 'time_label': '11:00'},
@@ -1511,6 +1520,7 @@ class TestEventAdminInfo:
         # 変数の内容: admin_info: イベント管理情報のテストデータ。
         admin_info = {'carry_in_time': '9:00', 'hotel_name': 'テストホテル', 'booth_fee': 30000}
         # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。
+        # 変数の内容: tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb(info_rows=[{'info': admin_info}])
 
         # 2. エンドポイントを呼んでレスポンスを検証する
@@ -1537,6 +1547,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. info が None の行をモックに設定する
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック。
         mock_admin_sb, _ = _make_admin_info_sb(info_rows=[{'info': None}])
 
         # 2. エンドポイントを呼んで空 dict が返ることを確認する
@@ -1555,6 +1566,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. 行が無い（空リスト）ようにモックする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック。
         mock_admin_sb, _ = _make_admin_info_sb(info_rows=[])
 
         # 2. エンドポイントを呼んで空 dict が返ることを確認する
@@ -1572,6 +1584,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. select の実行で例外を投げるようにする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック。
         mock_admin_sb, _ = _make_admin_info_sb(select_exc=Exception('DB connection error'))
 
         # 2. 500 が返り、例外の中身は応答に出ない
@@ -1728,6 +1741,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. イベントが存在し、upsert も成功するようにモックする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb()
 
         # 2. エンドポイントを呼んで {"ok": True} が返ることを確認する
@@ -1768,6 +1782,7 @@ class TestEventAdminInfo:
         """
         from datetime import datetime
         # 1. イベントが存在するようにモックする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb()
 
         # 2. 保存する
@@ -1777,6 +1792,7 @@ class TestEventAdminInfo:
 
         assert resp.status_code == 200
         # 3. upsert の引数を確認する
+        # 変数の内容: upsert: 検証対象の upsert メソッドモック。
         upsert = tables['event_admin_info'].upsert
         upsert.assert_called_once()
         # 変数の内容: row: 処理対象のデータ行。
@@ -1798,6 +1814,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. イベントが存在するようにモックする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb()
 
         # 2. 保存する
@@ -1826,6 +1843,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. 存在確認が空を返すようにモックする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb(event_rows=[])
 
         # 2. 保存する
@@ -1862,6 +1880,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. イベントが存在するようにモックする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb()
         # 変数の内容: urls: テストに使うイベント画像 URL 一覧。
         urls = ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
@@ -1893,6 +1912,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. イベントが存在するようにモックする
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb()
 
         # 2. 出店要項を含めずに保存する（出店要項追加前のクライアントと同じ送り方）
@@ -1957,6 +1977,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. upsert の実行が例外を投げるよう設定する
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、tables: テーブル名ごとの Supabase モック辞書。
         mock_admin_sb, tables = _make_admin_info_sb(upsert_exc=Exception('DB connection error'))
 
         # 2. エンドポイントを呼んで 500 が返ることを確認する
@@ -2098,7 +2119,9 @@ class TestPublicApiHidesAdminInfo:
         assert resp.status_code == 200
         # 変数の内容: data: Supabase モックが返す admin_info が欠落したイベントレコード。。
         data = resp.json()
+        # 変数の内容: e: 公開イベント応答の各イベント行。
         assert [e['id'] for e in data] == ['evt-1', 'evt-2']
+        # 変数の内容: e: 公開イベント応答の各イベント行。
         assert all('admin_info' not in e for e in data)
 
     def test_イベント1件取得_admin_infoが応答に含まれない(self):
@@ -2150,6 +2173,7 @@ class TestPublicApiHidesAdminInfo:
         # 1. GET /api/events/{id}/admin-info（認証付き）は出店要項を含む admin_info をそのまま返す（デグレ確認）。
         app.dependency_overrides[require_auth] = lambda: None
         # 管理情報は専用テーブル event_admin_info の info 列から読む
+        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック。
         mock_admin_sb, _ = _make_admin_info_sb(info_rows=[{'info': _admin_info_secret()}])
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -2481,6 +2505,7 @@ class TestEventReadFailures:
 
         # 2. 500応答となり、DBアクセスがイベント存在確認で止まることを確認する。
         assert resp.status_code == 500
+        # 変数の内容: args: モック呼び出しに渡された位置引数。
         assert [args.args[0] for args in mock_admin_sb.table.call_args_list] == ['events']
         events_table.select.return_value.eq.return_value.single.return_value.execute.assert_called_once()
         sessions_table.select.assert_not_called()

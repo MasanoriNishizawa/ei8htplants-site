@@ -214,6 +214,7 @@ class TestEventJsonLd:
             なし。"""
         # 変数の内容: images: 対象画像の一覧、ld: JSON-LD の構造化データ。
         # 1. 画像が無ければ既定画像を使い最大5枚までに制限することを確認する。
+        # 変数の内容: index: テストデータ生成に使う連番。
         images = [f'https://cdn.example.com/{index}.jpg' for index in range(7)]
         ld = structured.event_json_ld({**BASE_EVENT, 'image_urls': images}, **JSON_LD_OPTIONS)
         assert ld is not None

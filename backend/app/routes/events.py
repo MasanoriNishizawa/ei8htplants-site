@@ -172,6 +172,7 @@ def _attach_images(events: list[dict]) -> list[dict]:
     if not events:
         return events
     # 変数の内容: ids: 検索に使う ID の一覧、img_map: イベント ID ごとの画像一覧、imgs: DB から取得した画像行の一覧。
+    # 変数の内容: e: 画像を検索するイベントレコード。
     ids = [e['id'] for e in events]
     # 1. 全イベントの画像を一括取得し、イベント ID ごとの辞書にまとめる。
     imgs = supabase.table('event_images').select('*').in_('event_id', ids).order('display_order').execute().data
@@ -180,6 +181,7 @@ def _attach_images(events: list[dict]) -> list[dict]:
     for img in imgs:
         img_map.setdefault(img['event_id'], []).append(img)
     # 2. 画像を付け、公開してはいけない管理情報を応答から除く。
+    # 変数の内容: e: 画像一覧を付与するイベントレコード。
     for e in events:
         e['images'] = img_map.get(e['id'], [])
         # 管理者専用の管理情報（搬入・宿泊・出店料・出店要項など）は公開 API の応答に含めない。
@@ -268,6 +270,7 @@ def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
         # 変数の内容: info_rows: event_admin_info から取得した管理情報行。
         info_rows = admin_supabase.table('event_admin_info').select('event_id, info').execute().data or []
         # 変数の内容: info_map: event_id をキーにしたイベント別管理情報。
+        # 変数の内容: r: イベント ID と管理情報を持つ DB 行。
         info_map = {
             r.get('event_id'): r.get('info') if isinstance(r.get('info'), dict) else {}
             for r in info_rows
@@ -293,6 +296,7 @@ def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
                 'end_date': e.get('end_date'),
                 'location': e.get('location'),
             }
+            # 変数の内容: k: 応答へコピーする管理情報のキー。
             item.update({k: info.get(k) for k in _DASHBOARD_INFO_KEYS})
             item['booth_fee_paid'] = paid
             items.append(item)
@@ -370,8 +374,10 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
         return []
 
     # 変数の内容: session_id_set: 有効な時間枠 ID の集合、time_to_sid: 表示時刻から時間枠 ID への対応表。
+    # 変数の内容: s: 予約照合に使う時間枠レコード。
     session_id_set = {s['id'] for s in sessions}
     # time_label → session_id のマップ（session_id が無効な予約をフォールバックで照合するため）
+    # 変数の内容: s: 表示時刻と ID の対応を作る時間枠レコード。
     time_to_sid = {s['time_label']: s['id'] for s in sessions}
 
     # 2. event_id 単位で予約を取得し、必要なら日付で絞る。
@@ -401,6 +407,7 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
             count_map[sid] = count_map.get(sid, 0) + (r.get('participants') or 1)
 
     # 4. 集計人数を各時間枠に付けて返す。
+    # 変数の内容: s: 人数集計値を付ける時間枠レコード。
     for s in sessions:
         s['reserved_count'] = count_map.get(s['id'], 0)
     return sessions
@@ -750,5 +757,6 @@ def _save_images(event_id: str, urls: list[str]) -> None:
     if not urls:
         return
     # 変数の内容: rows: DB から取得した行の一覧。
+    # 変数の内容: rows: 保存する画像行一覧、i: 画像の表示順、url: 保存対象の画像 URL。
     rows = [{'event_id': event_id, 'url': url, 'display_order': i} for i, url in enumerate(urls)]
     admin_supabase.table('event_images').insert(rows).execute()

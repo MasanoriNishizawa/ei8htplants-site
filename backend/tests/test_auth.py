@@ -152,6 +152,7 @@ class TestRequireAuth:
         user = MagicMock()
         # 変数の内容: user.id: 対象レコード ID。
         user.id = 'user-123'
+        # 変数の内容: mock_auth_sb: 認証用 Supabase クライアントのテストモック。
         mock_auth_sb = _make_auth_supabase_mock(user_obj=user)
 
         # admin_supabase のモック（finances 取得に必要）

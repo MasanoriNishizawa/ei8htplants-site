@@ -113,8 +113,7 @@ function renderPage(preInert = false) {
   )
 }
 
-/** ヘッダーの開くボタン（開いているあいだは inert・aria-hidden になるので hidden も含めて探す） */
-/** 閉じたモバイルメニューを開くボタンを取得する。
+/** 閉じたモバイルメニューの開くボタンを取得する（開いている間は inert・aria-hidden になるため hidden も含めて探す）。
  * @returns メニュー開閉ボタン要素
  */
 const openButton = () => screen.getByRole('button', { name: 'メニューを開く', hidden: true })

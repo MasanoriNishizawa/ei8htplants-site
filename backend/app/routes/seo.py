@@ -167,6 +167,7 @@ def _rows(result: Any) -> list[dict]:
     data = getattr(result, 'data', None)
     if not isinstance(data, list):
         return []
+    # 変数の内容: r: 辞書形式かどうかを確認する各データ項目。
     return [r for r in data if isinstance(r, dict)]
 
 
@@ -215,6 +216,7 @@ def _parse_blocks(content: Any) -> list[dict]:
         # 変数の内容: parsed: JSON として解析した値（配列ならブロック一覧として採用する）。
         parsed = json.loads(text)
         if isinstance(parsed, list):
+            # 変数の内容: b: 辞書形式かどうかを確認する解析済み項目。
             return [b for b in parsed if isinstance(b, dict)]
     except ValueError:
         pass
@@ -245,6 +247,7 @@ def _blocks_to_text(blocks: list[dict], max_len: int = DESCRIPTION_MAX_LEN) -> s
     """
     # 1. 本文・見出しブロックだけを選び、改行を空白へ置き換える。
     # 変数の内容: parts: 連結対象となる本文・見出しの文字列一覧。
+    # 変数の内容: b: 説明文として処理するテキストブロック。
     parts = [
         _str(b.get('value')).replace('\n', ' ')
         for b in blocks
@@ -321,6 +324,7 @@ def _is_noindex(path: str) -> bool:
         NOINDEX_PREFIXES のどれかと一致するか、その下のパスなら True
     """
     # 1. 検索結果に出さないページ（/admin・/cancel・/checkout・/order 以下）かどうかを返す。
+    # 変数の内容: p: noindex 対象として定義されたパス接頭辞。
     return any(path == p or path.startswith(p + '/') for p in NOINDEX_PREFIXES)
 
 
@@ -596,6 +600,7 @@ def build_page_meta(path: str, query: Optional[dict] = None, hostname: str = '')
     # 変数の内容: norm: 正規化したパスまたは文字列。
     norm = normalize_legacy_path(path)
     # 変数の内容: query: DB へ渡す検索条件、segments: 分割した URL パス要素。
+    # 変数の内容: s: URL パスを slash で分けた各要素。
     segments = [s for s in norm.split('/') if s]
     query = query or {}
 
@@ -702,6 +707,7 @@ def _read_index(index_path: str) -> str:
         if hit and hit[0] == mtime:
             return hit[1]
     # 2. キャッシュに無い場合はファイルを読み、更新時刻と内容を保存する。
+    # 変数の内容: f: SPA の index.html を読むファイルハンドル。
     with open(index_path, encoding='utf-8') as f:
         # 変数の内容: content: 読み込んだ、または生成した内容。
         content = f.read()

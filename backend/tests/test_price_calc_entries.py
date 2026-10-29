@@ -438,6 +438,7 @@ class TestAddEntryMode:
         finally:
             app.dependency_overrides.pop(require_auth, None)
         assert resp.status_code == 200
+        # 変数の内容: r: 走査中の DB 行または応答値。
         assert [r['mode'] for r in resp.json()] == ['production', 'purchase', 'seedling', None]
 
     def test_認証なしでmodeを送ると401でinsertしない(self):

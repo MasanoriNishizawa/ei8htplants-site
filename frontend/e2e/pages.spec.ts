@@ -27,6 +27,7 @@ const routes = [
   '/hue',
 ]
 
+// スモークテストで順番に開く公開ページの URL。
 for (const path of routes) {
   test(`${path} ページが正常にロードされる`, /**
      対象の公開ページへ直接移動し、共通ナビゲーションとサイト名入りのページタイトルが表示されることを確認する。
@@ -34,6 +35,7 @@ for (const path of routes) {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 対象 URL を直接開き、ナビゲーションとサイト名入りページタイトルが表示されることを確認する。
     await page.goto(path)
     // ナビゲーションが表示されていればレイアウトが正常にレンダリングされている
     await expect(page.getByRole('navigation').first()).toBeVisible()

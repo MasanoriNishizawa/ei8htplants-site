@@ -45,6 +45,7 @@ test.describe('Shop', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 在庫のある商品の詳細ページを開き、カート追加ボタンが表示されることを確認する。
     await page.goto('/official/shop/p-1')
     // ShopProduct コンポーネントの「カートに入れる」ボタンが表示されること
     await expect(page.getByRole('button', { name: /カートに入れる/ })).toBeVisible()
@@ -58,6 +59,7 @@ test.describe('Shop', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 品切れ商品の詳細ページを開き、売り切れ案内が表示されることを確認する。
     await page.goto('/official/shop/p-sold-out')
     // ShopProduct コンポーネントは stock===0 のとき「現在売り切れです」を表示する
     await expect(page.getByText('現在売り切れです')).toBeVisible()
@@ -71,6 +73,7 @@ test.describe('Shop', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 品切れ商品の詳細を開き、売り切れ案内とカート追加ボタンが存在しないことを確認する。
     await page.goto('/official/shop/p-sold-out')
     // 「現在売り切れです」テキストが表示されること
     await expect(page.getByText('現在売り切れです')).toBeVisible()

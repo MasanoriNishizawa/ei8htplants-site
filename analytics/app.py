@@ -25,10 +25,12 @@ st.set_page_config(page_title="ei8ht plants 分析", page_icon=":material/eco:",
 #    secrets.toml が無いローカル環境では何もしない（.env の値がそのまま使われる）
 load_secrets_into_env()
 
+# 変数の内容: user_email: ログインに成功した利用者のメールアドレス。
 # 3. ログインしていなければログインフォームだけを出してここで止める（以降の画面・データ読み込みは行わない）
 user_email = require_login()
 
 # 4. 画面の一覧。左のメニューにこの順番で並ぶ
+# 変数の内容: pages: サイドバーに表示する分析画面のナビゲーション。
 pages = st.navigation(
     {
         "ダッシュボード": [

@@ -68,6 +68,7 @@ def render() -> None:
     st.caption("イベントの実績をもとにした統計的な見込みです。実績の回数が少ないうちは幅を持って見てください。")
 
     # 1. 予測には会計年度の絞り込みを使わず、すべての実績を使う
+    # done: 年度で絞らず予測に使う売上実績の全件。
     done = ctx.done_all
     if len(done) < MIN_ROWS_FOR_ANALYSIS:
         not_enough("売上の入力されたイベント", len(done), MIN_ROWS_FOR_ANALYSIS)
@@ -115,14 +116,17 @@ def _forecast(ctx, fin: pd.DataFrame) -> None:
             "時期の離れた回しか無いときは主に全イベントの実績で見込みます。"
         )
     # 2. 実績と見込みを数字で並べる
+    # c1〜c4: 実績・下位予測・中央値予測・上位予測を並べる画面列。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("ここまでの実績", yen(fc["actual"]))
     c2.metric("控えめな見込み（下位10%）", yen(fc["p10"]))
     c3.metric("ふつうの見込み（中央値）", yen(fc["p50"]))
     c4.metric("良い見込み（上位10%）", yen(fc["p90"]))
     # 3. シミュレーション結果の分布
+    # fig: シミュレーションで得た売上合計の分布図。
     fig = go.Figure(go.Histogram(x=fc["samples"], nbinsx=FORECAST_BINS, marker_color=SERIES[0],
                                  hovertemplate="%{x:,.0f}円前後<br>%{y}回<extra></extra>"))
+    # key / label: 縦線を引く分位値のキーとグラフ上の表示名。
     for key, label in (("p10", "下位10%"), ("p50", "中央値"), ("p90", "上位10%")):
         fig.add_vline(x=fc[key], line=dict(color=INK_SECONDARY, width=1, dash="dot"),
                       annotation_text=label, annotation_position="top")
@@ -146,6 +150,7 @@ def _forecast_details(details: pd.DataFrame) -> None:
         st.caption("今期の残りのイベントはありません。")
         return
     # 1. 画面で読みやすい列名と表示形式にそろえる
+    # table: 列名と書式を画面表示向けに整えたイベント予測一覧。
     table = pd.DataFrame({
         "イベント名": details["name"].fillna("（名前なし）"),
         "開催日": pd.to_datetime(details["start_date"]).dt.strftime("%Y-%m-%d"),
@@ -189,8 +194,10 @@ def _past_label(names: list, dates: list, weights: list) -> str:
     # 1. 各過去開催について、開催時期と重みを含むラベルを組み立てる。
     # 変数の内容: parts: 開催実績の表示ラベルを組み立てる文字列要素。
     parts = []
+    # name / date / w: 過去イベント名、開催日、対象イベントに対する季節重み。
     for name, date, w in zip(names, dates, weights):
         # 開催日が分からない回は時期を「時期不明」と出す
+        # when: 日付が分かる場合の開催年月。未設定なら「時期不明」。
         when = f"{date.year}年{date.month}月" if pd.notna(date) else "時期不明"
         parts.append(f"{name}（{when}・重み{w:.0%}）")
     # 2. ラベルをスラッシュで連結して返す。
@@ -211,6 +218,7 @@ def _factors(done: pd.DataFrame) -> None:
     # 変数の内容: col, unit: 選択された指標が参照するデータ列と表示単位。
     col, unit = FACTORS[label]
     # 1. 実績を点で打ち、直線を当てはめる
+    # fit: 選択した指標と売上の線形回帰結果。点が足りない場合はNone。
     fit = fit_linear(done[col], done["sales"])
     # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = go.Figure(go.Scatter(
@@ -271,15 +279,18 @@ def _simulator(done: pd.DataFrame) -> None:
     helper = st.toggle("手伝い支払いあり", value=True)
 
     # 2. 収支と損益分岐点を計算する
+    # fin: 入力値を収支計算関数が受け取るイベント収支形式にまとめた辞書。
     fin = finance_row(sales, booth, distance, gas, toll, hotel, other, ws, helper)
     # 変数の内容: result: 入力条件から計算した収支と支出内訳。
     result = compute_finances(fin, has_workshop=ws > 0)
     # 変数の内容: be: 入力条件で収支がゼロになる損益分岐売上（円）。
     be = break_even_sales(fin, has_workshop=ws > 0)
     # 3. 過去の売上のうち、損益分岐を超えていた回の割合 ＝ 同じ条件なら黒字になった確率の目安
+    # p_win: 過去実績のうち損益分岐売上以上だった割合。
     p_win = float((done["sales"] >= be).mean())
 
     # 4. 結果を数字で並べ、支出の内訳を添える
+    # c1〜c3: 条件入力欄を3列に分ける画面列。
     c1, c2, c3 = st.columns(3)
     c1.metric("収支の見込み", yen(result["net"]), help="見込み売上を入れたときの収支")
     c2.metric("損益分岐の売上", yen(be), help="これを超えれば黒字")

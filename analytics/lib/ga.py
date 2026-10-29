@@ -97,6 +97,7 @@ def parse_credentials_json(text: str) -> dict:
         # 変数の内容: info: JSON から読み取ったサービスアカウント設定。
         info = json.loads(text, strict=False)
     except json.JSONDecodeError as e:
+        # e: 認証情報JSONを解析できなかった理由を持つ例外。
         raise CredentialsError(
             f"{CREDENTIALS_JSON_ENV} を JSON として読めません（{e.lineno} 行 {e.colno} 文字目付近）。"
             "鍵ファイルの中身をそのまま貼り付けてください（Secrets では ''' で囲む）。"
@@ -121,6 +122,7 @@ def ga_config() -> tuple[GaConfig | None, str | None]:
         (設定, None) または (None, 足りないものの説明)
     """
     # 1. プロパティ ID は数字だけ（測定 ID「G-…」と取り違えやすいので確認する）
+    # pid: 環境変数から読み込んだGA4プロパティID。
     pid = os.getenv("GA_PROPERTY_ID", "").strip()
     # 変数の内容: cred: サービスアカウント鍵ファイルの場所。
     cred = os.getenv("GA_CREDENTIALS", "").strip()
@@ -137,6 +139,7 @@ def ga_config() -> tuple[GaConfig | None, str | None]:
         try:
             parse_credentials_json(cred_json)
         except CredentialsError as e:
+            # e: GA接続に必要な認証情報の検証エラー。
             return None, str(e)
         return GaConfig(property_id=pid), None
     # 3. 鍵ファイルの場所（GA_CREDENTIALS）があり、ファイルが実在するか
@@ -203,6 +206,7 @@ def response_to_frame(response, dimensions: list[str], metrics: list[str]) -> pd
         1行1組み合わせの表。date ディメンションは日付型にする
     """
     # 1. 行ごとにディメンションと指標の値を取り出す
+    # rows: GA応答の各行をディメンション名・指標値の辞書へ変換した一覧。
     rows = [
         [d.value for d in r.dimension_values] + [m.value for m in r.metric_values]
         for r in response.rows
@@ -247,6 +251,7 @@ def run_report(
     from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, OrderBy, RunReportRequest
 
     # 1. 取得する項目・期間・並び順・行数を指定したリクエストを作る
+    # request: 取得期間・項目・順序・件数を指定したGA4レポート要求。
     request = RunReportRequest(
         property=f"properties/{property_id}",
         dimensions=[Dimension(name=d) for d in dimensions],
@@ -258,6 +263,7 @@ def run_report(
         limit=limit,
     )
     # 2. 読み取り専用の権限で送り、応答を表にする
+    # response: GA4 Data APIから返されたレポート応答。
     response = _client(credentials_ref).run_report(request)
     return response_to_frame(response, list(dimensions), list(metrics))
 
@@ -274,6 +280,7 @@ def label_paths(paths: pd.Series, events: pd.DataFrame, products: pd.DataFrame) 
         表示用の名前の列（置き換えられないパスはそのまま）
     """
     # 1. よく見られる固定ページの名前
+    # fixed: GAの固定ページパスを画面表示用の名称へ置き換える対応表。
     fixed = {
         "/": "トップ", "/events": "イベント一覧", "/gallery": "ギャラリー", "/concept": "コンセプト",
         "/contact": "お問い合わせ", "/stockists": "取扱店", "/collaborations": "コラボ", "/media": "メディア",
@@ -283,6 +290,7 @@ def label_paths(paths: pd.Series, events: pd.DataFrame, products: pd.DataFrame) 
         "/privacy": "プライバシーポリシー",
     }
     # イベント詳細の URL は slug があれば slug、なければ ID なので両方で引けるようにする
+    # event_names: イベントのslugとIDを表示名へ引く対応表。
     event_names: dict[str, str] = {}
     if not events.empty:
         event_names.update(zip(events["id"].astype(str), events["name"]))
@@ -301,10 +309,12 @@ def label_paths(paths: pd.Series, events: pd.DataFrame, products: pd.DataFrame) 
             表示用の名前（置き換えられないときはクエリを外したパス）
         """
         # 2. クエリは外して判定する
+        # p: クエリと末尾スラッシュを除いた正規化済みページパス。
         p = path.split("?")[0].rstrip("/") or "/"
         if p in fixed:
             return fixed[p]
         # 3. 詳細ページは ID から名前を引く
+        # prefix / names / kind: 詳細ページのURL接頭辞、名前対応表、表示対象の種類。
         for prefix, names, kind in (("/events/", event_names, "イベント"), ("/shop/", product_names, "商品")):
             if p.startswith(prefix):
                 # 変数の内容: key: 詳細ページのパスから切り出したイベントまたは商品識別子。

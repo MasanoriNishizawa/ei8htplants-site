@@ -505,6 +505,7 @@ class TestRoutesInvalidId:
             resp = _send(method, path.format(id='abc'), body)
         assert resp.status_code == 404
 
+    # 変数の内容: m: 対象モジュール名、method: API メソッド、p: 対象 URL パス、_b: API に渡す本文。
     @pytest.mark.parametrize('module, path', [
         (m, p) for (m, method, p, _b) in PATCH_DELETE_CASES if method == 'delete'
     ])
@@ -527,6 +528,7 @@ class TestRoutesInvalidId:
         assert resp.status_code == 200
         assert resp.json() == {'ok': True}
 
+    # 変数の内容: c: PATCH・PUT のテスト引数をまとめたケースタプル。
     @pytest.mark.parametrize('module, method, path, body', [c for c in PATCH_DELETE_CASES if c[1] in ('patch', 'put')])
     def test_存在しないUUIDのPATCHとPUTは404(self, module, method, path, body):
         """更新の対象が 0 件（data が空）なら 404 になること。
@@ -719,6 +721,7 @@ def _error_messages(caplog, logger_name: str) -> list[str]:
         list[str] を返す。
     """
     # 1. 指定のロガーの ERROR のログの文を返す。
+    # 変数の内容: r: ERROR ログから抽出するログレコード。
     return [r.getMessage() for r in caplog.records if r.name == logger_name and r.levelno >= logging.ERROR]
 
 
@@ -770,7 +773,9 @@ class TestErrorSummaryLogs:
         assert resp.status_code == 200
         # 変数の内容: messages: チャット履歴のメッセージ一覧。
         messages = _error_messages(caplog, 'app.routes.chat')
+        # 変数の内容: m: 検証対象のメッセージ。
         assert any('PostgrestError(code=42501)' in m for m in messages)
+        # 変数の内容: m: 検証対象のメッセージ。
         assert all(SECRET not in m for m in messages)
 
     def test_sitemapの読み取りの失敗のログに例外の文字列が出ない(self, caplog):
@@ -795,7 +800,9 @@ class TestErrorSummaryLogs:
         # 変数の内容: messages: チャット履歴のメッセージ一覧。
         messages = _error_messages(caplog, 'app.routes.seo')
         assert len(messages) == 3
+        # 変数の内容: m: 検証対象のメッセージ。
         assert all('PostgrestError(code=PGRST301)' in m for m in messages)
+        # 変数の内容: m: 検証対象のメッセージ。
         assert all(SECRET not in m for m in messages)
 
     def test_SPAのメタ情報の埋め込みの失敗のログに例外の文字列が出ない(self, caplog):
@@ -819,5 +826,7 @@ class TestErrorSummaryLogs:
         assert resp.status_code == 200
         # 変数の内容: messages: チャット履歴のメッセージ一覧。
         messages = _error_messages(caplog, 'app.main')
+        # 変数の内容: m: 検証対象のメッセージ。
         assert any('RuntimeError' in m for m in messages)
+        # 変数の内容: m: 検証対象のメッセージ。
         assert all(SECRET not in m for m in messages)

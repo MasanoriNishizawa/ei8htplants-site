@@ -82,6 +82,7 @@ test.describe('スマホ幅（375px）の目次', () => {
     await page.getByText('04_TEST').click()
     await page.getByText('01_マスターテスト計画書').click()
     await expect(page.getByRole('heading', { level: 1, name: /マスターテスト計画書/ })).toBeVisible()
+    // スマートフォン幅の目次を開くボタンのロケーター。
     const openBtn = page.getByRole('button', { name: '目次を開く' })
     await expect(openBtn).toHaveAttribute('aria-expanded', 'false')
     await expect(page.getByText('03_PM')).toBeHidden()

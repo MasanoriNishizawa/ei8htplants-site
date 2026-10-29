@@ -58,7 +58,7 @@ class RateLimiter:
             なし。
         """
         # 1. 期間外または空の IP 記録を取り除き、最後に掃除した時刻を更新する。
-        # 変数の内容: stale: 期限切れとして除去する IP の一覧。
+        # 変数の内容: stale: 期限切れとして除去する IP の一覧、ip: 対象の IP キー、times: その IP の受付時刻一覧。
         stale = [ip for ip, times in self.log.items() if not times or now - times[-1] >= self.window]
         # 変数の内容: ip: 処理対象のクライアント IP アドレス。
         for ip in stale:
@@ -85,7 +85,7 @@ class RateLimiter:
             if now - self._last_purge >= self.window:
                 self._purge(now)
             # 2. この IP の記録から window 秒より前のものを除く
-            # 変数の内容: recent: 集計期間内にこの IP で受け付けた時刻。
+            # 変数の内容: recent: 集計期間内にこの IP で受け付けた時刻、t: 比較する受付時刻。
             recent = [t for t in self.log.get(ip, []) if now - t < self.window]
             # 3. 上限に達していれば 429（記録は増やさない）
             if len(recent) >= self.limit:
@@ -143,7 +143,7 @@ def client_ip(request: Request) -> str:
     if cf_ip:
         return cf_ip[:MAX_IP_LENGTH]
     # 2. 中継が付ける送り元の一覧（「…, 中継に接続してきた相手」の形）の右端
-    # 変数の内容: forwarded: X-Forwarded-For に含まれる空でない IP 候補。
+    # 変数の内容: forwarded: X-Forwarded-For に含まれる空でない IP 候補、part: 分割した IP 表記の各項目。
     forwarded = [part.strip() for part in request.headers.get('x-forwarded-for', '').split(',') if part.strip()]
     if forwarded:
         return forwarded[-1][:MAX_IP_LENGTH]

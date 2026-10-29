@@ -173,10 +173,13 @@ class _Query:
             raise RuntimeError(f'{operation} failure')
         # 3. Supabase の single() は dict、通常の一覧検索は list で応答する。
         if self.table_name != 'events':
+            # 変数の内容: data: テスト用 DB 応答または解析対象データ。
             data = []
         elif self.single_requested:
+            # 変数の内容: data: テスト用 DB 応答または解析対象データ。
             data = self.event
         else:
+            # 変数の内容: data: テスト用 DB 応答または解析対象データ。
             data = [self.event]
         return MagicMock(data=data)
 
@@ -440,6 +443,7 @@ class _StatefulQuery:
             # 変数の内容: data: モック応答に含めて返すデータ。
             data = []
         elif stage == 'image_insert':
+            # 変数の内容: row: テスト対象の DB 行。
             self.state['images'] = [dict(row) for row in self.payload]
             # 変数の内容: data: モック応答に含めて返すデータ。
             data = []
@@ -447,6 +451,7 @@ class _StatefulQuery:
             # 変数の内容: data: モック応答に含めて返すデータ。
             data = dict(self.state['event']) if self.single_requested else [dict(self.state['event'])]
         elif stage in {'public_slug_lookup', 'public_readback'}:
+            # 変数の内容: filter_column: モック検索条件の列名、filter_value: モック検索条件の値。
             filter_column, filter_value = self.filters[-1]
             if filter_column == 'slug':
                 # 変数の内容: data: モック応答に含めて返すデータ。
@@ -456,6 +461,7 @@ class _StatefulQuery:
                 data = [dict(self.state['event'])] if self.state['event'].get('id') == filter_value else []
         else:
             # 変数の内容: data: モック応答に含めて返すデータ。
+            # 変数の内容: row: テスト対象の DB 行。
             data = [dict(row) for row in self.state['images']]
         return MagicMock(data=data)
 
@@ -532,6 +538,7 @@ class TestEventUpdateFailures:
             なし。
         """
         # 1. イベント更新に失敗を注入し、後続の画像操作が無いことを確認する。
+        # 変数の内容: operations: 実行された DB 操作の順序、status: テスト対象 API の HTTP 応答コード。
         status, operations = self._put('event_update')
 
         assert status == 500
@@ -544,6 +551,7 @@ class TestEventUpdateFailures:
             なし。
         """
         # 1. 画像削除に失敗を注入し、イベント更新後に挿入へ進まないことを確認する。
+        # 変数の内容: operations: 実行された DB 操作の順序、status: テスト対象 API の HTTP 応答コード。
         status, operations = self._put('image_delete')
 
         assert status == 500
@@ -556,6 +564,7 @@ class TestEventUpdateFailures:
             なし。
         """
         # 1. 画像挿入に失敗を注入し、現行処理順の書き込みログを確認する。
+        # 変数の内容: operations: 実行された DB 操作の順序、status: テスト対象 API の HTTP 応答コード。
         status, operations = self._put('image_insert')
 
         assert status == 500
@@ -568,6 +577,7 @@ class TestEventUpdateFailures:
             なし。
         """
         # 1. 存在確認で RuntimeError を起こし、更新・画像操作・公開読戻しが未実行であることを確認する。
+        # 変数の内容: operations: 実行された DB 操作の順序、status: テスト対象 API の HTTP 応答コード。
         status, operations = self._put('event_exists', record_event_exists=True)
 
         assert status == 500
@@ -580,6 +590,7 @@ class TestEventUpdateFailures:
             なし。
         """
         # 1. 公開イベント select で RuntimeError を起こし、呼び出し順の記録を確認する。
+        # 変数の内容: operations: 実行された DB 操作の順序、status: テスト対象 API の HTTP 応答コード。
         status, operations = self._put('public_readback', record_event_exists=True)
 
         assert status == 500
@@ -598,6 +609,7 @@ class TestEventUpdateFailures:
             なし。
         """
         # 1. event_images の取得で RuntimeError を起こし、イベント更新から画像読戻しまでの順を確認する。
+        # 変数の内容: operations: 実行された DB 操作の順序、status: テスト対象 API の HTTP 応答コード。
         status, operations = self._put('image_readback', record_event_exists=True)
 
         assert status == 500
@@ -702,6 +714,7 @@ class TestEventUpdateFailureFakeState:
             {'event_id': event_id, 'url': 'https://example.com/new-1.jpg', 'display_order': 0},
             {'event_id': event_id, 'url': 'https://example.com/new-2.jpg', 'display_order': 1},
         ]
+        # 変数の内容: row: テスト対象の DB 行。
         state = {'event': dict(old_event), 'images': [dict(row) for row in old_images]}
         # 変数の内容: operations: 実行された DB 操作名の一覧。
         operations: list[str] = []
@@ -720,6 +733,7 @@ class TestEventUpdateFailureFakeState:
                     'name': '更新後イベント',
                     'start_date': '2099-01-01',
                     'location': '大阪',
+                    # 変数の内容: row: テスト対象の DB 行。
                     'image_urls': [row['url'] for row in new_images],
                 },
             )

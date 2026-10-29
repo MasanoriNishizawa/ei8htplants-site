@@ -72,6 +72,7 @@ class TTLCache:
         with self._lock:
             if len(self._data) >= self._max:
                 # 1. 期限切れのものを消す
+                # 変数の内容: k: 期限切れとして削除するキャッシュキー、exp: そのキーの有効期限。
                 for k in [k for k, (exp, _) in self._data.items() if exp < now]:
                     del self._data[k]
                 # 2. まだ多ければ、期限が早いもの（＝古いもの）から消す

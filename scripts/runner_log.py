@@ -55,6 +55,7 @@ def make_entry(
     elapsed = sum(r["sec"] for r in results)
     timestamp = (now or datetime.now(JST)).astimezone(JST).strftime("%Y-%m-%d %H:%M")
     if interrupted and failed_results:
+        # verdict: 中断・失敗・省略を反映した実行全体の判定文字列。
         verdict = "⏹ 中断・失敗あり（関連する部分だけ実行）" if targets is not None else "⏹ 中断・失敗あり"
     elif interrupted:
         verdict = "⏹ 中断（関連する部分だけ実行）" if targets is not None else "⏹ 中断"
@@ -84,31 +85,40 @@ def make_entry(
         "|---|---|---|---|---|---|---|",
     ]
     for result in results:
+        # result: suiteごとの終了状態・件数・診断をまとめた結果。
         # 3. 実行したテスト枠の行でも、省略があれば成功と誤読されない表示にする。
         # good / judgment: 中断・省略・失敗を優先してsuite単位の表示を決める。
         good = result["code"] == 0 and result["failed"] == 0 and result["skipped"] == 0
         if result.get("interrupted", False):
             judgment = "⏹ 中断"
         else:
+            # judgment: suiteごとの中断・省略・成功・失敗を示す表示。
             judgment = "⚠️ 省略あり" if result["code"] == 0 and result["failed"] == 0 and result["skipped"] > 0 else ("✅" if good else "❌")
         lines.append(
             f"| {result['name']} | {judgment} | {result['passed']} | {result['failed']} | {result['skipped']} | {result['xfail']} | {result['sec']:.0f} 秒 |"
         )
+    # name / reason: 省略したsuite名と、その理由。
     for name, reason in skipped_suites:
         lines.append(f"| {name} | {reason} | - | - | - | - | - |")
     for result in results:
+        # result: 省略理由を持つsuiteの結果。
         if result.get("skip_reason"):
             lines += ["", f"- **省略理由**：{result['name']} — {result['skip_reason']}"]
     # failed_names: ログへ表示するsuite名と個々の失敗名の組。
     failed_names = [(result["name"], name) for result in results for name in result["failed_names"]]
     if failed_names:
+        # truncated: 表示上限の10件を超える失敗名があるsuite。
         truncated = [r for r in results if r["failed"] > len(r["failed_names"]) and r["failed_names"]]
+        # heading: 失敗名を一部省略したかどうかに応じた見出し。
         heading = "**失敗したテスト（各テスト枠につき最大10件表示）**" if truncated else "**失敗したテスト**"
         lines += ["", heading, ""] + [f"- {suite}：`{name}`" for suite, name in failed_names]
+        # result: 失敗名を最大10件に制限したsuiteの結果。
         for result in truncated:
             lines.append(f"- {result['name']}：ほか {result['failed'] - len(result['failed_names'])} 件（合計 {result['failed']} 件）")
     for result in results:
+        # result: 中断または実行失敗の診断を記録するsuiteの結果。
         if result.get("interrupted", False):
+            # state: 割り込みがsuite開始前か実行中かを示す説明文。
             state = (
                 "進捗表示中に割り込みを受け、suiteは開始されませんでした"
                 if result.get("started") is False
@@ -135,9 +145,12 @@ def append_log(log_path: Path, text: str) -> None:
     # current: 既存ログ。ファイルが無い場合は共通ヘッダーから開始する。
     current = log_path.read_text(encoding="utf-8") if log_path.exists() else HEADER
     if MARKER in current:
+        # rest: 既存ログの目印より後ろにある、過去の実行記録。
         _, rest = current.split(MARKER, 1)
+        # current: 最新の共通ヘッダーと保存済みの過去ログを合わせた内容。
         current = HEADER + rest.lstrip("\n")
     else:
+        # current: 共通ヘッダーを既存内容の先頭へ補ったログ本文。
         current = HEADER + current
     # head / rest: 目印の前後へ分け、新しい記録をheadとrestの間に挿入する。
     head, rest = current.split(MARKER, 1)

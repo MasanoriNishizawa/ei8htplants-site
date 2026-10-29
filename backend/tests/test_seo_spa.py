@@ -159,6 +159,7 @@ class TestRenderSpaHtml:
             なし。
         """
         # 1. index 読み込みを偽物へ置き換え、hostname=None でラッパーを呼ぶ。
+        # 変数の内容: read_index: index.html 読み込み関数の置き換えモック。
         with patch.object(seo, '_read_index') as read_index:
             # 変数の内容: error: hostname を文字列として処理できない場合の例外情報。
             with pytest.raises(AttributeError):

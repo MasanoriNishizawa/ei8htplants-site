@@ -131,12 +131,14 @@ def run_build() -> dict:
     # start: tscからviteまでのビルド総時間を測る開始時刻。
     start = time.monotonic()
     # 1. ビルド時の型チェック（npm run build の前半と同じ）
+    # code / out: tsc -b の終了コードと診断出力。
     code, out, _ = run(["npx", "tsc", "-b"], frontend)
     if code != 0:
         return parse_build_result(code, out, time.monotonic() - start, "tsc")
     # 2. 一時フォルダに本番ビルドする（npm run build の後半と同じ。モードは production）
     # tmp: 生成物検査用の一時出力先。実リポジトリのdistは変更しない。
     with tempfile.TemporaryDirectory() as tmp:
+        # code / out: 一時フォルダへの Vite ビルドの終了コードと診断出力。
         code, out, _ = run(["npx", "vite", "build", "--outDir", tmp, "--emptyOutDir"], frontend)
         if code != 0:
             return parse_build_result(code, out, time.monotonic() - start, "vite")
@@ -205,6 +207,7 @@ def run_pytest(targets: list[str] | None = None) -> dict:
     venv_python = backend / ".venv" / "bin" / "python"
     python_cmd = str(venv_python) if venv_python.exists() else sys.executable
     # 2. pytestを起動し、標準出力と終了コードを共通の結果形式へ変換する。
+    # code / out / sec: pytestの終了コード・標準出力と標準エラー・実行秒数。
     code, out, sec = run([python_cmd, "-m", "pytest", "-rfE", *(targets or [])], backend)
     return parse_pytest_result("バックエンド（pytest）", code, out, sec)
 

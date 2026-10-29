@@ -25,6 +25,7 @@ def render() -> None:
     active_res = active_reservations(ctx.res)
 
     # 1. 主要な数字を4つのタイルで並べる
+    # c1〜c4: 売上・収支・出店回数・予約人数を並べる画面列。
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("イベント売上（合計）", yen(done["sales"].sum()) if not done.empty else "—")
     c2.metric("イベント収支（合計）", yen(done["net"].sum()) if not done.empty else "—")
@@ -36,6 +37,7 @@ def render() -> None:
         return
 
     # 2. 月ごとの売上（棒）と収支（棒）。単位が同じ円なので1つの軸に並べる
+    # 変数の内容: monthly: 月ごとに集計した売上と収支の系列。
     monthly = done.groupby("month")[["sales", "net"]].sum().reset_index()
     # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = go.Figure()
@@ -48,6 +50,7 @@ def render() -> None:
     st.plotly_chart(style(fig), width="stretch")
 
     # 3. 売上の累計（選んだ期間の中でどこまで積み上がったか）
+    # 変数の内容: cum: 開催日順に並べ、売上累計を追加したイベント一覧。
     cum = done.sort_values("start_date").assign(cum=lambda d: d["sales"].cumsum())
     # 変数の内容: fig2: 売上累計を表示する Plotly グラフ。
     fig2 = go.Figure(go.Scatter(
@@ -60,6 +63,7 @@ def render() -> None:
     st.plotly_chart(style(fig2, height=300), width="stretch")
 
     # 4. これからのイベント（最終日が今日以降のもの。開催中のイベントも含める）。最終日が無ければ初日で判定する
+    # 変数の内容: ev: 今後の開催予定を絞り込む元イベント一覧。
     ev = ctx.raw["events"]
     # 変数の内容: last_day: イベントごとの最終開催日。終了日未設定時は開始日。
     last_day = ev["end_date"].fillna(ev["start_date"])

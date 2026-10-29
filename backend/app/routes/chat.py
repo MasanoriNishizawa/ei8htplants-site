@@ -303,7 +303,7 @@ def chat(body: ChatRequest, request: Request) -> dict:
         # 変数の内容: qa_rows: チャット用に取得した Q&A 行。
         qa_rows = admin_supabase.table('chat_qa').select('question,answer').eq('enabled', True).order('sort_order').execute().data
         if qa_rows:
-            # 変数の内容: qa_text: システムプロンプトへ加える Q&A 文。
+            # 変数の内容: qa_text: システムプロンプトへ加える Q&A 文、row: 連結対象の質問・回答レコード。
             qa_text = '\n'.join(f'Q: {row["question"]}\nA: {row["answer"]}' for row in qa_rows)
             system_prompt += f'\n\n【よくある質問と回答】\n{qa_text}'
     # 変数の内容: e: except で捕捉した処理例外。
@@ -311,6 +311,7 @@ def chat(body: ChatRequest, request: Request) -> dict:
         logger.error('チャット用の Q&A の読み取りに失敗しました: %s', error_summary(e))
 
     # 3. Gemini に送る。history 形式（最後のユーザーメッセージを除いた履歴）に変換
+    # 変数の内容: history: Gemini API に渡す過去の会話、msg: 変換対象のメッセージ。
     history = [
         types.Content(role=msg.role, parts=[types.Part(text=msg.content)])
         for msg in body.messages[:-1]

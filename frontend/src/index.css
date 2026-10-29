@@ -870,6 +870,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
   text-decoration: none;
   display: block;
 }
+/* ブランド専用ヘッダーのナビゲーション: 項目が縮まず横並びを保つ */
 .brand-site-header nav { flex-shrink: 0; }
 @media (max-width: 767px) {
   .brand-strip {

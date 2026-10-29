@@ -38,9 +38,9 @@ test.beforeEach(async ({ page }) => {
 })
 
 /**
- * 写真が読み込まれ、高さを持つまで待ってから、写真とその入れ物（矢印が乗っている要素）を返す
+ * 写真が読み込まれ、高さを持つまで待ってから、写真と矢印ボタンを含む祖先 div を返す
  * @param page - 対象ページ
- * @returns 写真（img）と入れ物（img の親要素）のロケーター
+ * @returns 写真 Locator と矢印用 div Locator の組み合わせを返す Promise。
  */
 
 async function findPhoto(page: Page) {
@@ -59,7 +59,7 @@ async function findPhoto(page: Page) {
 /**
  * ボタンの縦の中心が写真の縦の中心と ±TOLERANCE px 以内で一致することを確かめる
  * @param page - 対象ページ
- * @returns なし
+ * @returns 写真と矢印の位置確認に使った祖先 div Locator を返す Promise。
  */
 
 async function expectArrowsCentered(page: Page) {
@@ -68,13 +68,16 @@ async function expectArrowsCentered(page: Page) {
   const imgBox = await img.boundingBox()
   expect(imgBox, '写真が表示されていない').not.toBeNull()
   expect(imgBox!.height, '写真の高さが 0').toBeGreaterThan(0)
+  // 写真の表示領域の垂直方向の中心座標。
   const imgCenterY = imgBox!.y + imgBox!.height / 2
 
   // 2. 前へ・次へのボタン（名前「前の写真」「次の写真」）を入れ物の中から探し、それぞれの縦の中心を比べる
   for (const [name, label] of [['前の写真', '前へ'], ['次の写真', '次へ']] as const) {
     const btn = container.getByRole('button', { name, exact: true })
     await expect(btn, `${label}ボタンが表示されていない`).toBeVisible()
+    // 対象の矢印ボタンの画面上の位置と寸法。
     const box = await btn.boundingBox()
+    // 矢印ボタンの垂直方向の中心座標。
     const btnCenterY = box!.y + box!.height / 2
     expect(
       Math.abs(btnCenterY - imgCenterY),
@@ -84,11 +87,13 @@ async function expectArrowsCentered(page: Page) {
   return container
 }
 
+// 位置合わせを検証するビューポート設定（幅・高さ・表示名）。
 for (const vp of VIEWPORTS) {
 
     test.describe(`写真の左右矢印の位置（${vp.width}x${vp.height}）`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } })
 
+    // テスト対象の画面（URL と説明を含む設定）。
     for (const p of PAGES) {
       test(`${p.desc}で、前へ・次へのボタンを写真の上下の真ん中に置くと、縦の中心が写真の中心と ±2px で一致する`, /**
          各対象ページを開き、イベント名が表示され、写真送り矢印が画像の縦中央に揃うことを確認する。

@@ -35,6 +35,7 @@ def _build_tree(directory: pathlib.Path, base: pathlib.Path) -> list[dict]:
     except PermissionError:
         return items
     # 1. 隠し項目を除外し、各項目の相対パスを組み立てる。
+    # 変数の内容: entry: 現在走査しているドキュメント項目。
     for entry in entries:
         if entry.name.startswith('.') or entry.name == '__pycache__':
             continue

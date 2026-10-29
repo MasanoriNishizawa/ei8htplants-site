@@ -20,6 +20,7 @@ def render() -> None:
     st.caption("問い合わせは件数と既読状態だけを読み込んでいます（本文・氏名・メールは読み込みません）。")
 
     # 1. 問い合わせ
+    # 変数の内容: contacts: 個人情報の本文を除いた問い合わせ一覧。
     contacts = ctx.raw["contacts"]
     # 変数の内容: c1, c2: 問い合わせと記事の指標・グラフを横並びにする画面列。
     c1, c2 = st.columns(2)
@@ -48,12 +49,14 @@ def render() -> None:
     c1.metric("公開中の記事", f"{len(pub)}本")
     c2.metric("下書き", f"{len(articles) - len(pub)}本")
     # 3. 月ごとの公開本数（公開日が無い記事は作成日で数える）
+    # 変数の内容: when: 公開日（未設定時は作成日）ごとに数えた記事本数。
     when = to_month(pub["published_at"].fillna(pub["created_at"])).value_counts().sort_index()
     if len(when):
         # 変数の内容: fig: 画面に表示する Plotly グラフ。
         fig = monthly_bar(when.index, when.values, "%{x|%Y年%-m月}<br>%{y}本<extra></extra>", title="月ごとの公開本数")
         st.plotly_chart(style(fig, height=MONTHLY_HEIGHT, yen_axis=None), width="stretch")
     # 4. よく使われているタグ（上位 TOP_N）
+    # 変数の内容: tags: 公開記事で使われているタグの上位一覧。
     tags = pub.explode("tags")["tags"].dropna().value_counts().sort_values().tail(TOP_N)
     if len(tags):
         # 変数の内容: fig: 画面に表示する Plotly グラフ。

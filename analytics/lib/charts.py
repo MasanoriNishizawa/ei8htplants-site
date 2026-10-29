@@ -92,6 +92,7 @@ def style(fig: go.Figure, height: int = 360, yen_axis: str | None = "y") -> go.F
         bargap=0.3,
     )
     # 2. 軸と罫線は控えめな色にし、0 の基準線だけ少し濃くする
+    # axis: 共通色と文字色を適用するX・Y軸の基本設定。
     axis = dict(gridcolor=GRID, zerolinecolor=BASELINE, linecolor=BASELINE, tickfont=dict(color=INK_MUTED))
     fig.update_xaxes(**axis, showgrid=False)
     fig.update_yaxes(**axis)
@@ -172,6 +173,7 @@ def bar_chart(
         棒グラフ（見た目は style で整える）
     """
     # 1. 棒を1本の系列として作る
+    # fig: 値とラベルを受け取って組み立てるPlotly横棒グラフ。
     fig = go.Figure(go.Bar(
         x=x, y=y, orientation="h" if horizontal else "v", marker_color=color,
         customdata=customdata, hovertemplate=hovertemplate,
@@ -269,6 +271,7 @@ def unique_labels(labels: Sequence[str]) -> list[str]:
     seen: dict[str, int] = {}
     # 変数の内容: out: 重複を避けた表示ラベルを入力順に集めるリスト。
     out: list[str] = []
+    # label: 重複の有無を調べる現在の表示ラベル。
     for label in labels:
         # 1. その文字列が何回目かを数える
         seen[label] = seen.get(label, 0) + 1

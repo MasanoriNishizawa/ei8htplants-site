@@ -23,6 +23,7 @@ test.describe('Reserve', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 予約ページを開き、共通ヘッダーとサイト名入りのタイトルが表示されることを確認する。
     await page.goto('/official/reserve')
     // ヘッダー（共通 Layout）が存在すること
     await expect(page.getByRole('banner').first()).toBeVisible()
@@ -104,6 +105,7 @@ test.describe('Reserve', () => {
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 有効なイベント ID を指定して予約ページを開き、氏名・メール・電話の欄と予約ボタンを確認する。
     await page.goto(`/official/reserve?event_id=${SIMPLE_EVENT_ID}`)
     await expect(page.getByLabel('お名前')).toBeVisible()
     await expect(page.getByLabel('メールアドレス')).toBeVisible()

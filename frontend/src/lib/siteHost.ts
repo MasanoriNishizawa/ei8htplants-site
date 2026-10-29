@@ -3,6 +3,7 @@ import { ei8htPlantsSite } from '../sites/ei8htplants/site'
 /** 公開ホスト名ごとの独立サイト設定。管理画面は ei8htplants.com に置く。 */
 export type SiteKey = 'ei8htplants' | 'habitat-oides' | 'hue'
 
+/** 公開サイトのホスト名に対応する、識別子・正規オリジン・正式ブランド名。 */
 export interface SiteHostInfo {
   key: SiteKey
   origin: string

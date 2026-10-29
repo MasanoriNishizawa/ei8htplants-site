@@ -24,6 +24,7 @@ def render() -> None:
     st.caption("オンラインショップの注文（キャンセルを除く）")
 
     # 1. 有効な注文と、その注文の明細だけを使う
+    # orders: キャンセルを除いたショップ注文一覧。
     orders = valid_orders(ctx.raw["orders"])
     # 変数の内容: items: 有効注文に属する商品明細。
     items = ctx.raw["order_items"]
@@ -33,6 +34,7 @@ def render() -> None:
     products = ctx.raw["products"]
 
     # 2. まとめの数字（件数が少なくても表示する）
+    # 変数の内容: rep: 注文者数・リピーター数・リピート率の集計。
     rep = repeat_summary(orders)
     # 変数の内容: c1〜c4: 注文数・売上・顧客数・リピート率を並べる画面列。
     c1, c2, c3, c4 = st.columns(4)
@@ -49,6 +51,7 @@ def render() -> None:
         return
 
     # 4. 月ごとの売上
+    # monthly: 注文に月列を追加した集計前のデータ。
     monthly = orders.assign(month=to_month(orders["created_at"]))
     # 変数の内容: monthly: 月ごとに合計した注文売上と注文件数。
     monthly = monthly.groupby("month").agg(売上=("total", "sum"), 件数=("id", "count")).reset_index()
@@ -58,6 +61,7 @@ def render() -> None:
     st.plotly_chart(style(fig, height=300), width="stretch")
 
     # 5. 商品ランキング（売上の多い順・上位 TOP_N）
+    # 変数の内容: c1, c2: 商品ランキングと都道府県別注文数を並べる列。
     c1, c2 = st.columns(2)
     # 変数の内容: rank: 商品ごとの売上を集計したランキング。
     rank = (items.assign(amount=items["price"] * items["quantity"]).groupby("product_name")
@@ -68,6 +72,7 @@ def render() -> None:
     c1.plotly_chart(style(fig, height=RANKING_HEIGHT, yen_axis="x"), width="stretch")
 
     # 6. 都道府県別の注文数（上位 TOP_N）
+    # 変数の内容: pref: 注文数の多い都道府県上位一覧。
     pref = orders["prefecture"].value_counts().sort_values().tail(TOP_N)
     # 変数の内容: fig: 画面に表示する Plotly グラフ。
     fig = bar_chart(pref.values, pref.index, "%{y}<br>%{x}件<extra></extra>", title=f"都道府県別の注文数（上位{TOP_N}）")

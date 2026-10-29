@@ -99,6 +99,7 @@ class TestResolveDistFilePath:
         # 2. OS や権限でリンクを作れない環境はこのケースだけを skip する。
         try:
             link_path.symlink_to(outside_path)
+        # 変数の内容: error: シンボリックリンク作成に失敗した原因。
         except (NotImplementedError, OSError) as error:
             pytest.skip(f'この環境ではシンボリックリンクを作成できません: {error}')
 

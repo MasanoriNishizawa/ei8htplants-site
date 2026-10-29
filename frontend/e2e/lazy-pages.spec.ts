@@ -134,6 +134,7 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
      */
     async ({ page }) => {
+    // 1. 公式トップを開き、画面が表示された後に管理画面・Supabase のモジュール要求がないことを確認する。
     const requested: string[] = []
     page.on('request', (req) => requested.push(new URL(req.url()).pathname))
     await page.goto('/official')
@@ -157,6 +158,7 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     await expectLoaded(page)
   })
 
+  // スマートフォン幅の表示確認を行う公開ページの URL。
   for (const path of ['/', '/official', '/official/events', '/official/gallery', '/official/shop', '/official/journal', '/official/chat']) {
     test(`375px 幅で ${path} を開いても横スクロールが出ない`, /**
        * 375×812px幅で表示する、ページ幅が表示領域を超えないことを確認する。
@@ -164,6 +166,7 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
        * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
        */
       async ({ page }) => {
+      // 1. 375px 幅で対象ページを開き、ページ表示後に横スクロールがないことを確認する。
       await page.setViewportSize({ width: 375, height: 812 })
       await page.goto(path)
       // 375px 幅では PC 用のメニューは非表示、スマホ用のメニュー（nav）は閉じているあいだ inert・非表示なので、
