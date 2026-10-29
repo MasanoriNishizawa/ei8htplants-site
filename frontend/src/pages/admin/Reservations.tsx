@@ -6,8 +6,9 @@ import { formatJstDate, todayJst } from '../../lib/localDate'
 import { clickableProps } from './a11y'
 import { failMessage, statusOf } from './errorMessage'
 import { buildReservationPrintHtml, type ReservationWithTime } from './reservationPrint'
+import WalkinReservationModal from './WalkinReservationModal'
 
-/** エラーの帯の見た目（画面の上・当日参加のモーダルで共通の赤い帯） */
+/** 画面上部に表示する一覧読み込み・状態変更エラーの帯 */
 const errorBoxStyle: React.CSSProperties = {
   color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px',
   background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0',
@@ -27,11 +28,12 @@ function printReservations(
   sessionsData: Map<string, WsSession>,
   event: Event | null,
 ) {
-  // ポップアップを先に開き、ブロックされた場合は画面を変更しない。
+  // 1. ポップアップを先に開き、ブロックされた場合は画面を変更しない。
   /** 印刷用に開いたウィンドウ */
   const win = window.open('', '_blank')
   if (!win) return
 
+  // 2. 生成済みの印刷 HTML を書き込み、ブラウザーへ描画を依頼する。
   win.document.write(buildReservationPrintHtml(rows, eventName, sessionsData, event, new Date()))
   win.document.close()
 }
@@ -68,22 +70,10 @@ export default function AdminReservations() {
   const [showWalkin, setShowWalkin] = useState(false)
   /** 当日参加のイベント id */
   const [walkinEventId, setWalkinEventId] = useState('')
-  /** 当日参加で選べる時間枠（その日の残り枠つき） */
-  const [walkinSessions, setWalkinSessions] = useState<WsSession[]>([])
-  /** 当日参加で選んだ時間枠の id */
-  const [walkinSessionId, setWalkinSessionId] = useState('')
-  /** 当日参加の人数 */
-  const [walkinParticipants, setWalkinParticipants] = useState(1)
-  /** 当日参加の参加日（今日。YYYY-MM-DD） */
+  /** 当日参加モーダルへ渡す参加日（今日。YYYY-MM-DD） */
   const [walkinDate, setWalkinDate] = useState('')
-  /** 当日参加を登録中か */
-  const [walkinSaving, setWalkinSaving] = useState(false)
-  /** 当日参加の時間枠を読み込み中か */
-  const [walkinSessionsLoading, setWalkinSessionsLoading] = useState(false)
   /** 一覧の読み込み・ステータス変更の失敗の文言（画面の上に出す。空なら出さない） */
   const [pageError, setPageError] = useState('')
-  /** 当日参加の追加・時間枠の読み込みの失敗の文言（モーダルの中に出す） */
-  const [walkinError, setWalkinError] = useState('')
   /** 絞り込み中のイベントの id（'all' はタブのすべての WS イベント。URL の event_id があれば初期値にする） */
   const [eventFilter, setEventFilter] = useState<string>(searchParams.get('event_id') ?? 'all')
   /**
@@ -166,44 +156,28 @@ export default function AdminReservations() {
    * @returns 戻り値なし。
    */
   const updateStatus = async (id: string, status: string) => {
+    // 1. 対象行を処理中にし、前回のエラーを消す。
     setUpdating(id)
     setPageError('')
     try {
+      // 2. サーバーが更新を受け付けた場合だけ一覧と詳細を同期する。
       /** サーバーが更新したあとの予約 */
       const updated = await api.reserve.updateStatus(id, status)
       setRows((prev) => prev.map((r) => r.id === id ? { ...r, ...updated } : r))
       setSelectedRow((prev) => prev?.id === id ? { ...prev, ...updated } : prev)
     } catch (e) {
-      // キャンセルから受付済に戻すとき、時間枠が満席だとサーバーは 409 を返す
+      // 3. 失敗時は表示を変えず、満席エラーと通常エラーを分けて案内する。
       setPageError(statusOf(e) === 409
         ? failMessage('満席のため受付済に戻せません。元の状態のままです', e)
         : failMessage('ステータスの変更に失敗しました。元の状態のままです', e))
     } finally {
+      // 4. 成否にかかわらず処理中表示を解除する。
       setUpdating(null)
     }
   }
 
   /**
-   * 当日参加の時間枠を読み込む（選択と人数は初期化する）。失敗したらモーダルの中にエラーを出す
-   * @param eventId - イベントの id
-   * @param date - 参加日（YYYY-MM-DD）
-   * @returns 戻り値なし。
-   */
-  const fetchWalkinSessions = (eventId: string, date: string) => {
-    setWalkinSessions([])
-    setWalkinSessionId('')
-    setWalkinParticipants(1)
-    if (!eventId) return
-    setWalkinSessionsLoading(true)
-    setWalkinError('')
-    api.events.getSessions(eventId, date)
-      .then(setWalkinSessions)
-      .catch((e: unknown) => setWalkinError(failMessage('時間枠の読み込みに失敗しました', e)))
-      .finally(() => setWalkinSessionsLoading(false))
-  }
-
-  /**
-   *  当日参加のモーダルを開く。今日開催のイベントが1つだけなら自動で選び、その時間枠を読み込む
+   * 当日参加モーダルを開く。今日開催のイベントが1つだけなら自動で選択し、初期日とイベントを渡す。
    * @returns 戻り値なし。
    */
   const openWalkin = () => {
@@ -211,6 +185,7 @@ export default function AdminReservations() {
     const today = todayJst()
     /** 最初から選んでおくイベントの id（決められなければ空） */
     let autoEventId = ''
+    // 1. 過去タブでは絞り込み対象、今後タブでは本日開催イベント数から初期選択を決める。
     if (isPast && eventFilter !== 'all') {
       // 過去タブ: 絞り込み済みのイベントを使用
       autoEventId = eventFilter
@@ -222,62 +197,29 @@ export default function AdminReservations() {
       )
       autoEventId = todayEvents.length === 1 ? todayEvents[0].id : ''
     }
+    // 2. 初期日とイベントを親 state に保存してからモーダルを表示する。
     setWalkinDate(today)
     setWalkinEventId(autoEventId)
-    setWalkinSessionId('')
-    setWalkinParticipants(1)
-    setWalkinSessions([])
-    setWalkinError('')
     setShowWalkin(true)
-    if (autoEventId) fetchWalkinSessions(autoEventId, today)
   }
 
   /**
-   * 当日参加のイベントを選び直したとき、その時間枠を読み込み直す
-   * @param eventId - 選んだイベントの id
+   * 追加に成功した当日参加を一覧へ反映し、モーダルを閉じる
+   * @param created - サーバーが作成した予約（時間ラベル付き）
    * @returns 戻り値なし。
    */
-  const onWalkinEventChange = (eventId: string) => {
-    setWalkinEventId(eventId)
-    fetchWalkinSessions(eventId, walkinDate)
+  const onWalkinCreated = (created: ReservationWithTime) => {
+    // 1. 成功応答だけ一覧へ追加し、2. モーダルを閉じる。
+    setRows((prev) => [...prev, created])
+    setShowWalkin(false)
   }
 
-
   /**
-   * 当日参加を登録する。失敗したらモーダルを開いたままエラーを出す（入力は残す）
-   * 1. 送る内容を作る（入力のある項目だけ足す）
-   * 2. 登録できたら一覧の末尾に足し、モーダルを閉じて入力を初期値に戻す
-   * 3. 失敗したら文言を出す
+   * 当日参加モーダルを閉じる
    * @returns 戻り値なし。
    */
-  const submitWalkin = async () => {
-    if (!walkinEventId) return
-    setWalkinSaving(true)
-    setWalkinError('')
-    try {
-      // 1. 送る内容
-      /** 送る内容 */
-      const body: Parameters<typeof api.reserve.addWalkin>[0] = { event_id: walkinEventId, participants: walkinParticipants }
-      if (walkinSessionId) body.session_id = walkinSessionId
-      if (walkinDate) body.preferred_date = walkinDate
-      /** 選んだ時間枠（一覧に時間ラベルを出すため） */
-      const session = walkinSessions.find((s) => s.id === walkinSessionId)
-      // 2. 登録と画面への反映
-      /** 登録された予約 */
-      const created = await api.reserve.addWalkin(body)
-      setRows((prev) => [...prev, { ...created, session_time: session?.time_label }])
-      setShowWalkin(false)
-      setWalkinEventId('')
-      setWalkinSessionId('')
-      setWalkinParticipants(1)
-      setWalkinDate('')
-      setWalkinSessions([])
-    } catch (e) {
-      // 3. 失敗
-      setWalkinError(failMessage('当日参加の追加に失敗しました', e))
-    } finally {
-      setWalkinSaving(false)
-    }
+  const closeWalkin = () => {
+    setShowWalkin(false)
   }
 
   /** いまのタブで絞り込みに出すワークショップのイベント */
@@ -321,6 +263,7 @@ export default function AdminReservations() {
    * @returns 戻り値なし。
    */
   const switchTab = (past: boolean) => {
+    // 1. タブを切り替え、2. タブ固有の絞り込みと詳細表示を初期化する。
     setIsPast(past)
     setEventFilter('all')
     setSelectedRow(null)
@@ -330,6 +273,7 @@ export default function AdminReservations() {
     <div>
       {/* 「今後の開催」「過去の開催」のタブ */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #dddde8' }}>
+        {/* 選択中のタブだけ下線と文字色を変える */}
         {[{ label: '今後の開催', past: false }, { label: '過去の開催', past: true }].map(({ label, past }) => (
           <button key={label} onClick={() => switchTab(past)}
             style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: `2px solid ${isPast === past ? '#1c2417' : 'transparent'}`, marginBottom: -2, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', color: isPast === past ? '#1c2417' : 'var(--c-muted)', fontWeight: isPast === past ? 500 : 400 }}>
@@ -492,10 +436,13 @@ export default function AdminReservations() {
 
       {/* スライドアップ詳細（スマホのカードを押すと下から出る。暗い背景を押すと閉じる） */}
       {selectedRow && (
+        <>
+        {/* スマートフォン詳細の背景領域。押すと詳細を閉じる */}
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}
           onClick={() => setSelectedRow(null)}
         >
+          {/* 詳細カード本体。内容をスクロール可能にし、背景クリックを伝播させない */}
           <div
             role="dialog"
             aria-modal="true"
@@ -539,108 +486,20 @@ export default function AdminReservations() {
             </div>
           </div>
         </div>
+        </>
       )}
 
-      {/* 当日参加モーダル（暗い背景を押すと閉じる） */}
-      {showWalkin && (() => {
-        /** 選んだイベント */
-        const ev = walkinEventId ? eventsDataMap.get(walkinEventId) : undefined
-        /** 複数日のイベントか（そのときだけ参加日を見せる） */
-        const isMultiDay = ev?.end_date && ev.end_date !== ev.start_date
-        /** 選んだ時間枠 */
-        const selectedSession = walkinSessions.find((s) => s.id === walkinSessionId) ?? null
-        /** 選んだ時間枠の残り人数（人数の選択肢の上限） */
-        const remaining = selectedSession ? selectedSession.max_participants - selectedSession.reserved_count : 0
-        /** 登録を押せるか（イベントを選び、時間枠があるならそれも選んだとき） */
-        const canSubmit = !!walkinEventId && (!walkinSessionsLoading && walkinSessions.length > 0 ? !!walkinSessionId : true)
-        return (
-          <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
-            onClick={() => setShowWalkin(false)}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="walkin-title"
-              style={{ background: '#fff', borderRadius: 8, padding: '28px 32px', width: 340, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 id="walkin-title" style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 500 }}>当日参加を追加</h3>
-
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor="walkin-event" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>イベント</label>
-                <select id="walkin-event" value={walkinEventId} onChange={(e) => onWalkinEventChange(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
-                  <option value="">-- 選択 --</option>
-                  {(isPast ? pastWorkshopEvents : upcomingWorkshopEvents).map((e) => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {isMultiDay && (
-                <div style={{ marginBottom: 16 }}>
-                  {/* 参加日は今日で固定の表示なので、入力欄ではなく文字として出す */}
-                  <span style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</span>
-                  <div style={{ padding: '8px 12px', border: '1px solid #f0f0f5', borderRadius: 4, fontSize: 14, background: '#fafafa', color: 'var(--c-ink)' }}>
-                    {walkinDate}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor="walkin-session" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>時間枠</label>
-                {walkinSessionsLoading ? (
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>読み込み中...</p>
-                ) : walkinSessions.length > 0 ? (
-                  <select id="walkin-session" value={walkinSessionId} onChange={(e) => { setWalkinSessionId(e.target.value); setWalkinParticipants(1) }}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
-                    <option value="">-- 選択 --</option>
-                    {walkinSessions.map((s) => {
-                      /** この時間枠の残り人数（0 以下は選べない） */
-                      const rem = s.max_participants - s.reserved_count
-                      return (
-                        <option key={s.id} value={s.id} disabled={rem <= 0}>
-                          {s.time_label}{'\u3000'}残{rem}枠
-                        </option>
-                      )
-                    })}
-                  </select>
-                ) : (
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>この日の枠はありません</p>
-                )}
-              </div>
-
-              {/* 参加人数（時間枠を選び、残りがあるときだけ。残り人数までの選択肢） */}
-              {selectedSession && remaining > 0 && (
-                <div style={{ marginBottom: 24 }}>
-                  <label htmlFor="walkin-participants" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加人数</label>
-                  <select id="walkin-participants" value={walkinParticipants} onChange={(e) => setWalkinParticipants(Number(e.target.value))}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
-                    {Array.from({ length: remaining }, (_, i) => i + 1).map((n) => (
-                      <option key={n} value={n}>{n}名</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* 当日参加の追加・時間枠の読み込みの失敗 */}
-              {walkinError && <p role="alert" style={{ ...errorBoxStyle, marginTop: 8 }}>{walkinError}</p>}
-
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: selectedSession && remaining > 0 ? 0 : 24 }}>
-                <button onClick={() => setShowWalkin(false)}
-                  style={{ padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4, background: '#fff', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
-                  キャンセル
-                </button>
-                <button onClick={submitWalkin} disabled={walkinSaving || !canSubmit || (!!selectedSession && remaining <= 0)}
-                  style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', opacity: (!canSubmit || (!!selectedSession && remaining <= 0)) ? 0.5 : 1 }}>
-                  {walkinSaving ? '登録中...' : '登録'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      {/* 当日参加モーダルの入力と API 処理は専用コンポーネントへ委譲する */}
+      {showWalkin && (
+        <WalkinReservationModal
+          events={isPast ? pastWorkshopEvents : upcomingWorkshopEvents}
+          eventsDataMap={eventsDataMap}
+          initialEventId={walkinEventId}
+          initialDate={walkinDate}
+          onClose={closeWalkin}
+          onCreated={onWalkinCreated}
+        />
+      )}
     </div>
   )
 }

@@ -6,9 +6,10 @@
  * 印刷は window.open をモックして、書き出された HTML の文字列を調べる。api はモックにして本番には接続しない
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { api, type Event, type Reservation, type WsSession } from '../../../lib/api'
+import { api, ApiError, type Event, type Reservation, type WsSession } from '../../../lib/api'
+import { todayJst } from '../../../lib/localDate'
 import AdminReservations from '../Reservations'
 import AdminEventReservations from '../EventReservations'
 import { saveBlob } from '../saveBlob'
@@ -38,8 +39,16 @@ const EVENT = {
   ws_requires_reservation: true, is_past: false, display_order: 1, images: [], page_content: null, daily_times: null,
 } as Event
 
+/** 先行読み込みの競合を再現するために使う、2つ目の今後開催イベント */
+const EVENT_B: Event = { ...EVENT, id: 'ev-2', slug: 'ev-2', name: '別イベント' }
+
 /** 定員 5 名・予約済み 2 名の時間枠（空き枠表示と人数計算の確認に使う） */
 const SESSION: WsSession = { id: 's-1', event_id: 'ev-1', time_label: '11:00〜12:00', max_participants: 5, reserved_count: 2, display_order: 1 }
+
+/** イベントAの遅延応答で時間枠一覧が上書きされるかを確認する時間枠 */
+const SESSION_A: WsSession = { ...SESSION, id: 's-a', event_id: EVENT.id, time_label: 'A 11:00〜12:00' }
+/** 最後に選択したイベントBの時間枠として残るべきデータ */
+const SESSION_B: WsSession = { ...SESSION, id: 's-b', event_id: EVENT_B.id, time_label: 'B 13:00〜14:00' }
 
 /**
  * 予約を 1 件作る
@@ -72,6 +81,8 @@ beforeEach(() => {
   vi.mocked(api.events.get).mockReset().mockResolvedValue(EVENT)
   vi.mocked(api.events.getSessions).mockReset().mockResolvedValue([SESSION])
   vi.mocked(api.reserve.list).mockReset().mockResolvedValue(RESERVATIONS)
+  vi.mocked(api.reserve.updateStatus).mockReset()
+  vi.mocked(api.reserve.addWalkin).mockReset()
   vi.mocked(saveBlob).mockReset()
 })
 
@@ -141,6 +152,211 @@ describe('Reservations（全イベントの予約一覧）', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'PDF で印刷' }))
     expect(written).toBe('')
     expect(screen.getByText('全1件 / 2名')).toBeInTheDocument()
+  })
+
+  /**
+   * ステータス更新成功後に一覧表示がサーバーの値へ同期することを確かめる。
+   * @returns アサーション完了時に解決する Promise
+   */
+  it('ステータス更新に成功すると一覧の選択値とラベルが新しい状態になる', async () => {
+    /** 更新前後の表示確認に使う単独の予約 */
+    const reservation = makeReservation({ id: 'r-status', name: '状態確認さん', status: 'pending' })
+    /** API が返す更新後の予約 */
+    const updatedReservation = { ...reservation, status: 'cancelled' }
+    vi.mocked(api.reserve.list).mockResolvedValue([reservation])
+    vi.mocked(api.reserve.updateStatus).mockResolvedValue(updatedReservation)
+    renderPage()
+
+    // 1. 一覧の対象予約を新しいステータスへ変更する。
+    /** 一覧にある対象予約のステータス選択欄 */
+    const statusSelect = await screen.findByRole('combobox', { name: '状態確認さん さんの予約のステータス' })
+    fireEvent.change(statusSelect, { target: { value: 'cancelled' } })
+
+    // 2. API 呼び出しと画面上の更新後ステータスを確かめる。
+    await waitFor(() => expect(api.reserve.updateStatus).toHaveBeenCalledWith('r-status', 'cancelled'))
+    await waitFor(() => expect(statusSelect).toHaveValue('cancelled'))
+    expect(screen.getAllByText('キャンセル').length).toBeGreaterThan(0)
+  })
+
+  /**
+   * ステータス更新失敗時に元の値を保ち、再操作可能になることを確かめる。
+   * @returns アサーション完了時に解決する Promise
+   */
+  it('ステータス更新の一般エラーでは元の状態を保ち、エラー後も再操作できる', async () => {
+    /** 更新失敗後も画面に残る予約 */
+    const reservation = makeReservation({ id: 'r-status', name: '状態確認さん', status: 'pending' })
+    vi.mocked(api.reserve.list).mockResolvedValue([reservation])
+    vi.mocked(api.reserve.updateStatus).mockRejectedValue(new Error('通信エラー'))
+    renderPage()
+
+    // 1. 更新要求を失敗させ、2. エラー表示・値の維持・再操作可能状態を確認する。
+    /** 一覧にある対象予約のステータス選択欄 */
+    const statusSelect = await screen.findByRole('combobox', { name: '状態確認さん さんの予約のステータス' })
+    fireEvent.change(statusSelect, { target: { value: 'cancelled' } })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('ステータスの変更に失敗しました。元の状態のままです（通信エラー）')
+    expect(statusSelect).toHaveValue('pending')
+    expect(statusSelect).toBeEnabled()
+    expect(screen.getAllByText('受付済').length).toBeGreaterThan(0)
+  })
+
+  /**
+   * 満席エラーでは専用文言を出し、予約状態を変えないことを確かめる。
+   * @returns アサーション完了時に解決する Promise
+   */
+  it('満席の409では専用メッセージを表示し、元のステータスを保つ', async () => {
+    /** 満席時に元の状態が維持されることを確かめる予約 */
+    const reservation = makeReservation({ id: 'r-status', name: '状態確認さん', status: 'cancelled' })
+    vi.mocked(api.reserve.list).mockResolvedValue([reservation])
+    vi.mocked(api.reserve.updateStatus).mockRejectedValue(
+      new ApiError(409, '409 この時間枠は満席のため、キャンセルを取り消せません', 'この時間枠は満席のため、キャンセルを取り消せません'),
+    )
+    renderPage()
+
+    // 1. キャンセル予約を受付済へ戻そうとして、満席エラー時の表示と状態を確認する。
+    /** 一覧にある対象予約のステータス選択欄 */
+    const statusSelect = await screen.findByRole('combobox', { name: '状態確認さん さんの予約のステータス' })
+    fireEvent.change(statusSelect, { target: { value: 'pending' } })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '満席のため受付済に戻せません。元の状態のままです（この時間枠は満席のため、キャンセルを取り消せません）',
+    )
+    expect(statusSelect).toHaveValue('cancelled')
+    expect(statusSelect).toBeEnabled()
+    expect(screen.getAllByText('キャンセル').length).toBeGreaterThan(0)
+  })
+
+  /**
+   * 当日参加の追加モーダルを開き、対象イベントの時間枠を読み終わるまで待つ。
+   * @returns 表示された当日参加ダイアログ
+   */
+  async function openWalkinDialog() {
+    // 1. 当日参加の追加を押し、イベントを指定する前のダイアログを開く。
+    fireEvent.click(await screen.findByRole('button', { name: '当日参加を追加' }))
+    /** 当日参加の追加ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '当日参加を追加' })
+    // 2. 未来イベントを選び、時間枠の読み込み結果がフォームに反映されるのを待つ。
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'イベント' }), { target: { value: EVENT.id } })
+    await within(dialog).findByRole('option', { name: /11:00〜12:00/ })
+    return dialog
+  }
+
+  /**
+   * 当日参加の登録成功で選択内容が送信され、一覧へ追加されることを確かめる。
+   * @returns アサーション完了時に解決する Promise
+   */
+  it('イベント・時間枠・人数を選んで当日参加を追加すると、正しい内容で登録して一覧へ反映し、ダイアログを閉じる', async () => {
+    /** 画面に追加される当日参加の予約 */
+    const createdReservation = makeReservation({
+      id: 'walkin-1', event_id: EVENT.id, name: '当日参加', email: 'walkin@nomail.invalid',
+      participants: 3, status: 'confirmed', session_id: SESSION.id, preferred_time: SESSION.time_label,
+    })
+    vi.mocked(api.reserve.list).mockResolvedValue([])
+    vi.mocked(api.reserve.addWalkin).mockResolvedValue(createdReservation)
+    renderPage()
+    // 1. イベント・時間枠・参加人数を選ぶ。
+    /** 時間枠を選択できる状態の当日参加ダイアログ */
+    const dialog = await openWalkinDialog()
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '時間枠' }), { target: { value: SESSION.id } })
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '参加人数' }), { target: { value: '3' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '登録' }))
+
+    // 2. API に正しい入力が送られ、作成行が表示されてダイアログが閉じたことを確認する。
+    await waitFor(() => expect(api.reserve.addWalkin).toHaveBeenCalledWith({
+      event_id: EVENT.id,
+      participants: 3,
+      session_id: SESSION.id,
+      preferred_date: todayJst(),
+    }))
+    expect((await screen.findAllByText('当日参加')).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('dialog', { name: '当日参加を追加' })).not.toBeInTheDocument()
+  })
+
+  /**
+   * 当日参加登録の失敗後に入力値とモーダルを維持してエラーを表示することを確かめる。
+   * @returns アサーション完了時に解決する Promise
+   */
+  it('当日参加の登録に失敗するとダイアログと入力を保ち、画面内にエラーを表示する', async () => {
+    vi.mocked(api.reserve.list).mockResolvedValue([])
+    vi.mocked(api.reserve.addWalkin).mockRejectedValue(new Error('通信エラー'))
+    renderPage()
+    // 1. 選択内容を入力して登録要求を失敗させる。
+    /** 登録失敗後も入力が残ることを確かめる当日参加ダイアログ */
+    const dialog = await openWalkinDialog()
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '時間枠' }), { target: { value: SESSION.id } })
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '参加人数' }), { target: { value: '3' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '登録' }))
+
+    // 2. エラーが出てもイベント・枠・人数が保持され、再送信可能なことを確認する。
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('当日参加の追加に失敗しました（通信エラー）')
+    expect(within(dialog).getByRole('combobox', { name: 'イベント' })).toHaveValue(EVENT.id)
+    expect(within(dialog).getByRole('combobox', { name: '時間枠' })).toHaveValue(SESSION.id)
+    expect(within(dialog).getByRole('combobox', { name: '参加人数' })).toHaveValue('3')
+    expect(within(dialog).getByRole('button', { name: '登録' })).toBeEnabled()
+  })
+
+  /**
+   * 時間枠の取得失敗を正常な空枠と区別し、予約登録を止めることを確かめる。
+   * @returns API失敗と登録ボタンの状態確認が完了したときに解決するPromise
+   */
+  it('時間枠の読み込みに失敗した場合は空枠として登録せず、登録ボタンを無効にする', async () => {
+    // 1. 一覧取得と時間枠取得を設定し、空の予約一覧を表示する。
+    vi.mocked(api.reserve.list).mockResolvedValue([])
+    vi.mocked(api.events.getSessions).mockRejectedValue(new Error('時間枠APIエラー'))
+    renderPage()
+
+    // 2. 当日参加ダイアログでイベントを選び、読み込みエラーを確認する。
+    fireEvent.click(await screen.findByRole('button', { name: '当日参加を追加' }))
+    /** 時間枠の読み込みに失敗した当日参加ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '当日参加を追加' })
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'イベント' }), { target: { value: EVENT.id } })
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('時間枠の読み込みに失敗しました（時間枠APIエラー）')
+
+    // 3. 通信失敗を空枠と扱わず、POSTを送らないことを確かめる。
+    expect(within(dialog).getByRole('button', { name: '登録' })).toBeDisabled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '登録' }))
+    expect(api.reserve.addWalkin).not.toHaveBeenCalled()
+  })
+
+  /**
+   * 時間枠取得の応答順が逆転しても、最後に選択したイベントの枠だけが表示されることを確かめる。
+   * @returns 非同期応答と表示のアサーション完了時に解決する Promise
+   */
+  it('FE-CX-06 遅れて届いたイベントAの時間枠ではなく、最後に選んだイベントBの時間枠を表示する', async () => {
+    /** イベントAのセッション取得を手動で完了させる関数 */
+    let resolveSessionsA: (sessions: WsSession[]) => void = () => undefined
+    /** イベントBのセッション取得を手動で完了させる関数 */
+    let resolveSessionsB: (sessions: WsSession[]) => void = () => undefined
+    /** イベントAを選んだ直後にはまだ完了させないセッション取得 */
+    const sessionsA = new Promise<WsSession[]>((resolve) => { resolveSessionsA = resolve })
+    /** イベントBを選んだ直後にはまだ完了させないセッション取得 */
+    const sessionsB = new Promise<WsSession[]>((resolve) => { resolveSessionsB = resolve })
+    vi.mocked(api.events.list).mockImplementation((past = false) => Promise.resolve(past ? [] : [EVENT, EVENT_B]))
+    vi.mocked(api.reserve.list).mockResolvedValue([])
+    vi.mocked(api.events.getSessions).mockImplementation((eventId) => eventId === EVENT.id ? sessionsA : sessionsB)
+    renderPage()
+
+    // 1. 当日参加のダイアログを開く。
+    fireEvent.click(await screen.findByRole('button', { name: '当日参加を追加' }))
+    /** 2イベントを切り替えられる当日参加ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '当日参加を追加' })
+    /** 当日参加のイベント選択欄 */
+    const eventSelect = within(dialog).getByRole('combobox', { name: 'イベント' })
+    fireEvent.change(eventSelect, { target: { value: EVENT.id } })
+    await waitFor(() => expect(api.events.getSessions).toHaveBeenCalledTimes(1))
+    fireEvent.change(eventSelect, { target: { value: EVENT_B.id } })
+    await waitFor(() => expect(api.events.getSessions).toHaveBeenCalledTimes(2))
+
+    // 2. 後から選んだイベントBの応答を先に返し、Bの枠が表示されることを確認する。
+    resolveSessionsB([SESSION_B])
+    await within(dialog).findByRole('option', { name: /B 13:00〜14:00/ })
+    // 3. 先に選んだイベントAの応答を後から返し、Bの枠だけが残ることを確認する。
+    resolveSessionsA([SESSION_A])
+    /** 非同期応答が反映されたあとの時間枠選択欄 */
+    const sessionSelect = within(dialog).getByRole('combobox', { name: '時間枠' })
+    await waitFor(() => {
+      expect(Array.from(sessionSelect.querySelectorAll('option')).map((option) => option.value)).toEqual(['', SESSION_B.id])
+    })
   })
 })
 
