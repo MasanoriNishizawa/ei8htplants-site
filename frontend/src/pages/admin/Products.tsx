@@ -4,7 +4,7 @@ import BlockEditor from '../../components/BlockEditor'
 import { blockImageUrls, type Block, parseBlocks, serializeBlocks } from '../../lib/blocks'
 import { confirmDiscard, dirtySnapshotJson, useEscapeToClose, useUnsavedChanges } from './UnsavedChanges'
 import { failMessage } from './errorMessage'
-import { formatYen } from '../../lib/format'
+import ProductList from './ProductList'
 
 
 /** エラーの帯の見た目（一覧の上・編集モーダルで共通の赤い帯） */
@@ -244,67 +244,16 @@ export default function AdminProducts() {
       {/* 一覧の操作の失敗 */}
       {pageError && <p role="alert" style={errorBoxStyle}>{pageError}</p>}
 
-      {/* 商品の表（狭い幅では横にスクロール） */}
-      {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
-                {/* 「操作」の列はスマホでは右端に固定する（index.css の .admin-sticky-col。横にスクロールしても編集・削除が見える） */}
-                {['画像', '商品名', 'カテゴリー', '価格', '在庫', '状態', '操作'].map((h) => (
-                  <th
-                    key={h}
-                    className={h === '操作' ? 'admin-sticky-col' : undefined}
-                    style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap', ...(h === '操作' ? { background: 'var(--c-bg)' } : {}) }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => (
-                <tr key={p.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
-                  {/* 1枚目の画像（無ければ灰色の四角） */}
-                  <td style={{ padding: '10px 14px' }}>
-                    {p.image_urls[0] ? (
-                      <img src={p.image_urls[0]} alt="" style={{ width: 48, height: 48, objectFit: 'cover', display: 'block', border: '1px solid #dddde8' }} />
-                    ) : <div style={{ width: 48, height: 48, background: '#f5f5f8', border: '1px solid #dddde8' }} />}
-                  </td>
-                  <td style={{ padding: '10px 14px' }}>{p.name}</td>
-                  <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{p.category ?? '—'}</td>
-                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{formatYen(p.price)}</td>
-                  <td style={{ padding: '10px 14px', color: p.stock === 0 ? '#c0392b' : '#1c2417' }}>{p.stock}</td>
-                  {/* 公開状態（押すとその場で切り替える） */}
-                  <td style={{ padding: '10px 14px' }}>
-                    <button
-                      onClick={() => togglePublish(p)}
-                      disabled={busyId === p.id}
-                      aria-label={`「${p.name}」の公開状態を切り替える（いまは${p.is_published ? '公開中' : '非公開'}）`}
-                      style={{
-                        padding: '3px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                        fontSize: 12, fontFamily: 'inherit',
-                        background: p.is_published ? '#d4edda' : '#f0f0f5',
-                        color: p.is_published ? '#155724' : '#666',
-                      }}
-                    >
-                      {p.is_published ? '公開中' : '非公開'}
-                    </button>
-                  </td>
-                  {/* 編集・削除（スマホでは右端に固定する） */}
-                  <td className="admin-sticky-col" style={{ padding: '10px 14px', background: 'var(--c-bg)', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => openEdit(p)} style={{ padding: '5px 14px', border: '1px solid #dddde8', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>編集</button>
-                      <button onClick={() => handleDelete(p)} disabled={busyId === p.id} style={{ padding: '5px 14px', border: '1px solid #f8d7da', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}>削除</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {products.length === 0 && !pageError && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>商品がありません。</p>}
-        </div>
-      )}
+      {/* 商品一覧の表示は専用コンポーネントへ渡し、操作処理はこの画面に残す */}
+      <ProductList
+        products={products}
+        loading={loading}
+        pageError={pageError}
+        busyId={busyId}
+        onTogglePublish={togglePublish}
+        onEdit={openEdit}
+        onDelete={handleDelete}
+      />
 
       {/* 編集モーダル（暗い背景を押すと、変更があれば確認してから閉じる） */}
       {editing !== null && (
