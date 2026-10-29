@@ -103,12 +103,11 @@ class TestSuiteExecution(unittest.TestCase):
             """進捗表示の中断経路を作る。
 
             Args:
-                _: 進捗関数へ渡される suite 名。
+                _: 進捗関数へ渡される進捗文。
 
             Returns:
                 なし。
-                Args:
-                                _: 進捗関数へ渡される suite 名。"""
+            """
             # 1. runner開始前の進捗通知で中断する。
             raise KeyboardInterrupt
 

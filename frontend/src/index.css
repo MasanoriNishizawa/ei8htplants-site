@@ -1114,10 +1114,11 @@ textarea,
   white-space: inherit;
   line-height: inherit;
 }
-/* 表: 中身の幅に合わせ、はみ出したら横にスクロールする */
+/* 表: 短い表は本文幅まで広げ、本文幅を超える列は表内の横スクロールで読む */
 .docs-markdown table {
   border-collapse: collapse;
-  width: max-content;
+  width: 100%;
+  min-width: 100%;
   max-width: 100%;
   margin: 0 0 16px;
   font-size: 13.5px;

@@ -13,7 +13,7 @@
  *      saveFinances / saveAdminInfo のどちらも呼ばない（初期値で既存データを上書きして消さない）
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import EventFinance from '../EventFinance'
@@ -325,6 +325,65 @@ describe('EventFinance ページ', () => {
     vi.mocked(api.events.get).mockReturnValue(new Promise(() => {})) // 永遠に保留
     renderFinancePage()
     expect(screen.getByText('読み込み中...')).toBeDefined()
+  })
+
+  /**
+   * 収支フォームのセクション、行、補足文、単位と入力形式が維持されていることを確認する。
+   * @returns 画面の確認が完了すると解決する Promise<void>
+   */
+  it('セクション内の行・補足文・単位と入力形式が表示される', async () => {
+    // 1. WS 項目も表示するイベントにして、収入・支出の全表示行を確認する
+    vi.mocked(api.events.get).mockResolvedValue({ ...MOCK_EVENT, has_workshop: true })
+    renderFinancePage()
+
+    // 2. セクション見出し、行ラベル、補足文が表示される
+    expect(await screen.findByText('収入')).toBeInTheDocument()
+    expect(screen.getByText('支出')).toBeInTheDocument()
+    // 表示される行ラベルの一覧
+    for (const label of ['売上', 'WS参加人数', 'WS売上', '出店料', '距離', 'ガソリン単価', '移動費', '高速代', '宿泊費', 'その他支出']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    expect(screen.getByText('(人数 × ¥1,000)')).toBeInTheDocument()
+    expect(screen.getByText('(片道)')).toBeInTheDocument()
+    expect(screen.getByText('(円/L)')).toBeInTheDocument()
+    expect(screen.getByText('(往復200km, 10km/L)')).toBeInTheDocument()
+
+    // 3. 行ラベルを起点に入力欄を取得し、単位と inputMode・type を確認する
+    // ラベルを含む行の中にある WS 参加人数の number 入力欄。
+    const participantRow = screen.getByText('WS参加人数').closest('div')
+    expect(participantRow).not.toBeNull()
+    const participantInput = within(participantRow as HTMLElement).getByRole('spinbutton')
+    expect(participantInput).toHaveAttribute('type', 'number')
+    expect(participantInput).toHaveAttribute('inputmode', 'numeric')
+    expect(within(participantRow as HTMLElement).getByText('人')).toBeInTheDocument()
+    // 売上行の plain 入力欄と、金額単位。
+    const salesRow = screen.getByText('売上').closest('div')
+    expect(salesRow).not.toBeNull()
+    const salesInput = within(salesRow as HTMLElement).getByDisplayValue('50000')
+    expect(salesInput).toHaveAttribute('type', 'text')
+    expect(salesInput).toHaveAttribute('inputmode', 'numeric')
+    expect(within(salesRow as HTMLElement).getByText('円')).toBeInTheDocument()
+    // 距離行では数値入力欄の単位が km と表示される。
+    const distanceRow = screen.getByText('距離').closest('div')
+    expect(distanceRow).not.toBeNull()
+    expect(within(distanceRow as HTMLElement).getByText('km')).toBeInTheDocument()
+  })
+
+  /**
+   * 数値入力が数字以外を除き、画面の計算結果にも反映することを確認する。
+   * @returns 入力と表示の確認が完了すると解決する Promise<void>
+   */
+  it('数値入力は数字以外を除いて整数として反映する', async () => {
+    // 1. 売上入力欄に数字以外や小数点を含む値を入力する
+    renderFinancePage()
+    // 数字以外の除去を確認する売上入力欄
+    const salesInput = await screen.findByDisplayValue('50000')
+    fireEvent.change(salesInput, { target: { value: '12a.3-4' } })
+
+    // 2. 数字だけを連結した値が入力欄と計算結果に反映される
+    expect(salesInput).toHaveValue('1234')
+    expect(screen.getByText('売上 1,234 円 − 支出 15,200 円 − WS資材 0 円')).toBeInTheDocument()
+    expect(screen.getByText('-13,966 円')).toBeInTheDocument()
   })
 })
 

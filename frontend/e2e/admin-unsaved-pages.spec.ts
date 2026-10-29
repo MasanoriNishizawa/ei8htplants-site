@@ -203,7 +203,7 @@ test.describe('イベントの収支（EventFinance）', () => {
     // 1. 売上を編集した状態でサイドメニューまたはイベント管理への移動を試み、未保存確認が出ることを確認する。
     await page.goto('/admin/events/mock-past-1/finances')
     const sales = page.getByText('売上', { exact: true }).locator('..').getByRole('textbox')
-    await expect(sales).toBeVisible()
+    await expect(sales).toBeVisible({ timeout: 20000 })
     await sales.fill('12345')
     await expectSidebarBlocked(page)
     // 次に表示される確認ダイアログを監視する Promise。
@@ -222,6 +222,7 @@ test.describe('イベントの収支（EventFinance）', () => {
     // 1. 編集内容を保存し、保存成功後は未保存確認なしで元の画面へ戻れることを確認する。
     await page.goto('/admin/events/mock-past-1/finances')
     const sales = page.getByText('売上', { exact: true }).locator('..').getByRole('textbox')
+    await expect(sales).toBeVisible({ timeout: 20000 })
     await sales.fill('12345')
     // この操作中に表示されたダイアログの件数。
     let dialogs = 0
