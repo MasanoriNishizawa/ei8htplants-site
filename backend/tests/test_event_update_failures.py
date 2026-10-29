@@ -11,7 +11,7 @@ from app.main import app
 class _Query:
     """Supabase クエリの呼び出しを記録し、指定段階で失敗させる。"""
 
-    def __init__(self, table_name: str, stage: str | None, operations: list[str], event: dict, exists_check: bool):
+    def __init__(self, table_name: str, stage: str | None, operations: list[str], event: dict, exists_check: bool, record_event_exists: bool):
         """実行結果と失敗段階を持つクエリモックを初期化する。
 
         Args:
@@ -20,6 +20,7 @@ class _Query:
             operations: 書き込みと公開読み直しの順序を記録する共有リスト。
             event: 存在確認と公開読み直しで返すイベント行。
             exists_check: このクエリが管理用イベント存在確認かどうか。
+            record_event_exists: True のとき存在確認の実行も操作ログに記録する。
 
         Returns:
             なし。
@@ -30,6 +31,8 @@ class _Query:
         self.operations = operations
         self.event = event
         self.exists_check = exists_check
+        # 変数の内容: record_event_exists: 新しく追加する読み取り失敗テストだけで存在確認の順序も残す設定。
+        self.record_event_exists = record_event_exists
         # 変数の内容: operation: このクエリが次に実行する読み書き操作名。
         self.operation: str | None = None
         # 変数の内容: single_requested: execute の応答を単一行の dict にする指定があったか。
@@ -153,7 +156,11 @@ class _Query:
         operation = self.operation
         if self.table_name == 'events' and operation == 'select':
             operation = 'event_exists' if self.exists_check else 'public_readback'
-        if operation in {'event_update', 'image_delete', 'image_insert', 'public_readback'}:
+        elif self.table_name == 'event_images' and operation == 'select':
+            operation = 'image_readback'
+        if operation in {'event_update', 'image_delete', 'image_insert', 'public_readback', 'image_readback'} or (
+            operation == 'event_exists' and self.record_event_exists
+        ):
             self.operations.append(operation)
         # 2. 指定された操作だけで失敗させ、以降の処理が止まることを確かめられるようにする。
         if operation == self.stage:
@@ -171,7 +178,7 @@ class _Query:
 class _Supabase:
     """テーブル名に応じて段階記録クエリを返す Supabase モック。"""
 
-    def __init__(self, stage: str | None, operations: list[str], event: dict, exists_check: bool):
+    def __init__(self, stage: str | None, operations: list[str], event: dict, exists_check: bool, record_event_exists: bool = False):
         """Supabase モックの共有設定を保存する。
 
         Args:
@@ -179,6 +186,7 @@ class _Supabase:
             operations: 書き込みと公開読み直しの順序を記録する共有リスト。
             event: イベントテーブルの応答データ。
             exists_check: 最初の events.select を存在確認として扱うかどうか。
+            record_event_exists: True のとき存在確認の実行も操作ログに記録する。
 
         Returns:
             なし。
@@ -188,6 +196,8 @@ class _Supabase:
         self.operations = operations
         self.event = event
         self.exists_check = exists_check
+        # 変数の内容: record_event_exists: 既存ケースの操作ログ形式を保ちながら、読取経路の確認だけ存在確認を記録するフラグ。
+        self.record_event_exists = record_event_exists
 
     def table(self, table_name: str):
         """指定テーブル用のクエリモックを作る。
@@ -199,7 +209,14 @@ class _Supabase:
             select・update・delete・insert を受け取るクエリモック。
         """
         # 1. 管理用クライアントと公開用クライアントの役割を各クエリへ渡す。
-        return _Query(table_name, self.stage, self.operations, self.event, self.exists_check and table_name == 'events')
+        return _Query(
+            table_name,
+            self.stage,
+            self.operations,
+            self.event,
+            self.exists_check and table_name == 'events',
+            self.record_event_exists,
+        )
 
 
 class TestEventUpdateFailures:
@@ -223,11 +240,12 @@ class TestEventUpdateFailures:
         # 1. テスト後に共有 FastAPI アプリの依存関係を初期状態へ戻す。
         app.dependency_overrides.clear()
 
-    def _put(self, stage: str) -> tuple[int, list[str]]:
+    def _put(self, stage: str, record_event_exists: bool = False) -> tuple[int, list[str]]:
         """指定段階で失敗する PUT を実行し、応答と操作順を返す。
 
         Args:
             stage: 失敗を注入する操作名。
+            record_event_exists: True のとき存在確認も操作ログに含める。
 
         Returns:
             HTTP ステータスコードと記録された操作名の一覧。
@@ -244,8 +262,8 @@ class TestEventUpdateFailures:
             'has_workshop': False,
         }
         operations: list[str] = []
-        admin_sb = _Supabase(stage, operations, event, exists_check=True)
-        public_sb = _Supabase(stage, operations, event, exists_check=False)
+        admin_sb = _Supabase(stage, operations, event, exists_check=True, record_event_exists=record_event_exists)
+        public_sb = _Supabase(stage, operations, event, exists_check=False, record_event_exists=record_event_exists)
         # 1. DB クライアントをモックし、例外をHTTP応答にする設定で対象 API を呼ぶ。
         with patch('app.routes.events.admin_supabase', admin_sb), \
              patch('app.routes.events.supabase', public_sb):
@@ -297,3 +315,52 @@ class TestEventUpdateFailures:
 
         assert status == 500
         assert operations == ['event_update', 'image_delete', 'image_insert']
+
+    def test_イベント存在確認の一般例外は500で後続処理をしない(self):
+        """管理用のイベント存在確認で一般例外が出ると後続操作へ進まず 500 になる。
+
+        Returns:
+            なし。
+        """
+        # 1. 存在確認で RuntimeError を起こし、更新・画像操作・公開読戻しが未実行であることを確認する。
+        status, operations = self._put('event_exists', record_event_exists=True)
+
+        assert status == 500
+        assert operations == ['event_exists']
+
+    def test_公開読戻しのイベントselect失敗は先行処理後に500(self):
+        """公開読戻しのイベント select で一般例外が出ると、先行操作の後に 500 になる。
+
+        Returns:
+            なし。
+        """
+        # 1. 公開イベント select で RuntimeError を起こし、呼び出し順の記録を確認する。
+        status, operations = self._put('public_readback', record_event_exists=True)
+
+        assert status == 500
+        assert operations == [
+            'event_exists',
+            'event_update',
+            'image_delete',
+            'image_insert',
+            'public_readback',
+        ]
+
+    def test_公開画像読戻し失敗は先行処理後に500(self):
+        """公開イベント取得後の画像読戻しで一般例外が出ると 500 になる。
+
+        Returns:
+            なし。
+        """
+        # 1. event_images の取得で RuntimeError を起こし、イベント更新から画像読戻しまでの順を確認する。
+        status, operations = self._put('image_readback', record_event_exists=True)
+
+        assert status == 500
+        assert operations == [
+            'event_exists',
+            'event_update',
+            'image_delete',
+            'image_insert',
+            'public_readback',
+            'image_readback',
+        ]
