@@ -115,6 +115,7 @@ class TestListEntries:
         """
         # require_auth をオーバーライドしないで本来の認証チェックが走るようにする
         # 1. Authorization ヘッダーなしでアクセスすると 401 が返ること。
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get('/api/price-calc-entries')
         assert resp.status_code == 401
 

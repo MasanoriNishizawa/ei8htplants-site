@@ -111,7 +111,9 @@ def _alternating(n: int) -> list[dict]:
         list[dict]: role・content を持つメッセージの配列
     """
     # 1. 最後（index n-1）が user になるよう、n が奇数なら先頭を user、偶数なら model にする
+    # 変数の内容: first_user: 会話履歴の先頭を利用者発言にするかどうか。
     first_user = n % 2 == 1
+    # 変数の内容: msgs: テストに渡す会話履歴メッセージ一覧。
     msgs = []
     # 変数の内容: i: 現在処理する一覧要素の番号。
     for i in range(n):
@@ -343,6 +345,7 @@ class TestChatEndpoint:
 
         assert resp.status_code == 200
         # send_message が最後のメッセージ内容で呼ばれていることを確認
+        # 変数の内容: call_args: モックされた関数の呼び出し引数。
         call_args = mock_genai.Client.return_value.chats.create.return_value.send_message.call_args
         assert call_args[0][0] == '2番目の質問'
 
@@ -361,6 +364,7 @@ class TestChatEndpoint:
 
         # events テーブル用モック（未来のイベントを1件返す）
         events_mock = MagicMock()
+        # 変数の内容: future_event: サイトコンテキストに含める開催前イベント。
         future_event = {
             'name': 'テストワークショップ',
             'start_date': '2099-01-01',
@@ -455,6 +459,7 @@ class TestChatEndpoint:
         # supabase.table が 'events' で呼ばれていることを確認（サイトコンテキスト取得）
         mock_sb.table.assert_any_call('events')
         # Gemini の chats.create がイベント情報を含むシステムプロンプトで呼ばれていること
+        # 変数の内容: chats_create_call: Gemini の chats.create 呼び出し記録。
         chats_create_call = mock_genai.Client.return_value.chats.create.call_args
         # 変数の内容: config: テスト対象の設定。
         config = chats_create_call[1]['config']
@@ -476,6 +481,7 @@ class TestChatEndpoint:
         # admin_supabase は chat_qa に Q&A データを返すよう設定する
         mock_admin_sb = MagicMock()
 
+        # 変数の内容: qa_data: チャットに渡す Q&A レコード一覧。
         qa_data = [
             {'question': 'アガベの水やりは？', 'answer': '夏場は週1回程度です'},
         ]
@@ -526,6 +532,7 @@ class TestChatEndpoint:
 
         assert resp.status_code == 200
         # Gemini の chats.create がQ&Aを含むシステムプロンプトで呼ばれていること
+        # 変数の内容: chats_create_call: Gemini の chats.create 呼び出し記録。
         chats_create_call = mock_genai.Client.return_value.chats.create.call_args
         # 変数の内容: config: テスト対象の設定。
         config = chats_create_call[1]['config']
@@ -553,6 +560,7 @@ class TestChatEndpoint:
 
         # stockists テーブルはデータを返す（継続取得を確認するため）
         stockists_mock = MagicMock()
+        # 変数の内容: stockist_data: サイトコンテキストに含める取扱店レコード一覧。
         stockist_data = [{'name': '東京グリーン', 'area': '東京', 'brands': ['ei8ht plants']}]
         # 変数の内容: stockists_mock.select.return_value.order.return_value.execute.return_value.data: モックのクエリ応答に含めるデータ。
         stockists_mock.select.return_value.order.return_value.execute.return_value.data = stockist_data

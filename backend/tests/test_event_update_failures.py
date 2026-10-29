@@ -156,10 +156,13 @@ class _Query:
             RuntimeError: stage がこのクエリ操作と一致する場合。
         """
         # 1. 公開用の読み直しも含めて実行順を記録する。
+        # 変数の内容: operation: 現在処理している DB 操作名。
         operation = self.operation
         if self.table_name == 'events' and operation == 'select':
+            # 変数の内容: operation: 現在処理している DB 操作名。
             operation = 'event_exists' if self.exists_check else 'public_readback'
         elif self.table_name == 'event_images' and operation == 'select':
+            # 変数の内容: operation: 現在処理している DB 操作名。
             operation = 'image_readback'
         if operation in {'event_update', 'image_delete', 'image_insert', 'public_readback', 'image_readback'} or (
             operation == 'event_exists' and self.record_event_exists
@@ -399,18 +402,25 @@ class _StatefulQuery:
         # 1. テーブル・操作・条件から失敗段階を特定して実行順を記録する。
         if self.table_name == 'events' and self.action == 'select':
             if self.single_requested:
+                # 変数の内容: stage: 失敗注入の対象にする処理段階名。
                 stage = 'event_exists'
             elif self.filters and self.filters[-1][0] == 'slug':
+                # 変数の内容: stage: 失敗注入の対象にする処理段階名。
                 stage = 'public_slug_lookup'
             else:
+                # 変数の内容: stage: 失敗注入の対象にする処理段階名。
                 stage = 'public_readback'
         elif self.table_name == 'events' and self.action == 'update':
+            # 変数の内容: stage: 失敗注入の対象にする処理段階名。
             stage = 'event_update'
         elif self.table_name == 'event_images' and self.action == 'delete':
+            # 変数の内容: stage: 失敗注入の対象にする処理段階名。
             stage = 'image_delete'
         elif self.table_name == 'event_images' and self.action == 'insert':
+            # 変数の内容: stage: 失敗注入の対象にする処理段階名。
             stage = 'image_insert'
         elif self.table_name == 'event_images' and self.action == 'select':
+            # 変数の内容: stage: 失敗注入の対象にする処理段階名。
             stage = 'image_readback'
         else:
             raise AssertionError(f'fakeで扱わないクエリ: {self.table_name}.{self.action}')
@@ -423,22 +433,29 @@ class _StatefulQuery:
         # 3. 成功した書込だけをfake stateへ即時反映し、読取は現在値を返す。
         if stage == 'event_update':
             self.state['event'].update(self.payload)
+            # 変数の内容: data: モック応答に含めて返すデータ。
             data = []
         elif stage == 'image_delete':
             self.state['images'] = []
+            # 変数の内容: data: モック応答に含めて返すデータ。
             data = []
         elif stage == 'image_insert':
             self.state['images'] = [dict(row) for row in self.payload]
+            # 変数の内容: data: モック応答に含めて返すデータ。
             data = []
         elif stage == 'event_exists':
+            # 変数の内容: data: モック応答に含めて返すデータ。
             data = dict(self.state['event']) if self.single_requested else [dict(self.state['event'])]
         elif stage in {'public_slug_lookup', 'public_readback'}:
             filter_column, filter_value = self.filters[-1]
             if filter_column == 'slug':
+                # 変数の内容: data: モック応答に含めて返すデータ。
                 data = [] if self.state['event'].get('slug') != filter_value else [dict(self.state['event'])]
             else:
+                # 変数の内容: data: モック応答に含めて返すデータ。
                 data = [dict(self.state['event'])] if self.state['event'].get('id') == filter_value else []
         else:
+            # 変数の内容: data: モック応答に含めて返すデータ。
             data = [dict(row) for row in self.state['images']]
         return MagicMock(data=data)
 
@@ -486,12 +503,16 @@ class TestEventUpdateFailures:
             'has_workshop': False,
         }
         operations: list[str] = []
+        # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック。
         admin_sb = _Supabase(stage, operations, event, exists_check=True, record_event_exists=record_event_exists)
+        # 変数の内容: public_sb: 公開用 Supabase クライアントのモック。
         public_sb = _Supabase(stage, operations, event, exists_check=False, record_event_exists=record_event_exists)
         # 1. DB クライアントをモックし、例外をHTTP応答にする設定で対象 API を呼ぶ。
         with patch('app.routes.events.admin_supabase', admin_sb), \
              patch('app.routes.events.supabase', public_sb):
+            # 変数の内容: client: テスト対象 API を呼び出す TestClient。
             client = TestClient(app, raise_server_exceptions=False)
+            # 変数の内容: response: テスト対象が返した応答オブジェクト。
             response = client.put(
                 f"/api/events/{event['id']}",
                 json={
@@ -682,9 +703,12 @@ class TestEventUpdateFailureFakeState:
             {'event_id': event_id, 'url': 'https://example.com/new-2.jpg', 'display_order': 1},
         ]
         state = {'event': dict(old_event), 'images': [dict(row) for row in old_images]}
+        # 変数の内容: operations: 実行された DB 操作名の一覧。
         operations: list[str] = []
         # 1. 管理・公開クライアントを同じfake stateへつなぎ、各executeで指定段階を失敗させる。
+        # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック。
         admin_sb = _StatefulSupabaseFake(state, operations, failure_stage)
+        # 変数の内容: public_sb: 公開用 Supabase クライアントのモック。
         public_sb = _StatefulSupabaseFake(state, operations, failure_stage)
 
         with patch('app.routes.events.admin_supabase', admin_sb), \
@@ -704,6 +728,7 @@ class TestEventUpdateFailureFakeState:
         assert response.status_code == 500
         assert operations == expected_operations
         # 3. DBの永続化・ロールバックではなく、成功executeのみ反映するfakeの最終stateを比較する。
+        # 変数の内容: expected_event: 更新後に期待するイベントレコード。
         expected_event = dict(old_event)
         if expected_event_name == '更新後イベント':
             expected_event.update({
@@ -723,9 +748,12 @@ class TestEventUpdateFailureFakeState:
                 'is_past': False,
             })
         if expected_image_state == 'old':
+            # 変数の内容: expected_images: 更新後に期待するイベント画像行の一覧。
             expected_images = old_images
         elif expected_image_state == 'empty':
+            # 変数の内容: expected_images: 更新後に期待するイベント画像行の一覧。
             expected_images = []
         else:
+            # 変数の内容: expected_images: 更新後に期待するイベント画像行の一覧。
             expected_images = new_images
         assert state == {'event': expected_event, 'images': expected_images}

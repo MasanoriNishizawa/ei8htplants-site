@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Event, Reservation, WsSession } from '../../../lib/api'
 import { buildReservationPrintHtml, type ReservationWithTime } from '../reservationPrint'
 
+/** 印刷HTMLにイベント名・日程を出すためのテスト用イベント */
 const EVENT: Event = {
   id: 'event-1', slug: 'event-1', name: 'イベント', start_date: '2099-06-01', end_date: '2099-06-02',
   time: null, location: '会場', booth_number: null, address: null, official_url: null, brands: [],
@@ -9,9 +10,11 @@ const EVENT: Event = {
   page_content: null, daily_times: null,
 }
 
+/** 予約日程の振り分け確認に使う、イベントの1枠目 */
 const SESSION_1: WsSession = {
   id: 'session-1', event_id: 'event-1', time_label: '10:00〜11:00', max_participants: 5, reserved_count: 0, display_order: 1,
 }
+/** 予約日程の順序確認に使う、イベントの2枠目 */
 const SESSION_2: WsSession = {
   id: 'session-2', event_id: 'event-1', time_label: '11:00〜12:00', max_participants: 5, reserved_count: 0, display_order: 2,
 }

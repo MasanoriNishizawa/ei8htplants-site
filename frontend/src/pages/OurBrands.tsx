@@ -15,11 +15,13 @@ export default function OurBrands() {
   const [hueImage, setHueImage] = useState('')
 
   useEffect(() => {
-    // アンマウント後に非同期取得結果を反映しないための有効フラグ
+    // 1. 画面を離れた後に取得結果を反映しないための有効フラグを立てる
     let active = true
+    // 2. HUE の画像 URL を取得し、画面が有効な間だけ state へ反映する
     api.siteAssets.get('hue-color-01')
       .then(({ url }) => { if (active) setHueImage(url) })
       .catch(() => {})
+    // 3. 画面を離れるときにフラグを下げ、遅れて届く結果の反映を止める
     return () => { active = false }
   }, [])
 

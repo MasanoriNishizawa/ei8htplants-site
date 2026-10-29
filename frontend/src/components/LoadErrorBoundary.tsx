@@ -30,6 +30,7 @@ export default class LoadErrorBoundary extends Component<{ children: ReactNode }
    * 原因を調べられるよう、エラーを開発者ツールのコンソールに出す
    * @param error - 投げられたエラー
    * @param info - どのコンポーネントで起きたか
+   * @returns なし
    */
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('画面の読み込みに失敗しました', error, info.componentStack)

@@ -14,6 +14,7 @@ vi.mock('../supabase', () => ({
   },
 }))
 
+/** 収支計算テストで共通して使う、金額0を基準にしたイベント収支データ */
 const BASE: EventFinances = {
   event_id: 'test-id',
   sales: 0,

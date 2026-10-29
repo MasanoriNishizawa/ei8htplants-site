@@ -79,6 +79,7 @@ def _make_sessions_admin_mocks(existing_sessions: list) -> tuple[MagicMock, Magi
     sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
     reservations_table.select.return_value.eq.return_value.neq.return_value.execute.return_value.data = []
     # 2. テーブル名に応じたモックを返し、想定外テーブルの使用を失敗させる。
+    # 変数の内容: tables: テーブル名と各テーブルモックの対応表。
     tables = {
         'events': events_table,
         'ws_sessions': sessions_table,
@@ -118,6 +119,7 @@ def _session_query_execution_names(mock_admin_sb: MagicMock) -> list[str]:
         イベント存在確認、セッション読書き、予約数取得の execute 名一覧。
     """
     # 1. 失敗段階をまたいだクエリ実行だけを親モックの呼び出し履歴から選ぶ。
+    # 変数の内容: operation_names: 検証対象にする DB 呼び出し名の集合。
     operation_names = {
         'events_table.select().eq().single().execute',
         'ws_sessions_table.select().eq().execute',
@@ -196,9 +198,12 @@ class TestEventCRUD:
             {'event_id': event['id'], 'url': image_urls[0], 'display_order': 0},
             {'event_id': event['id'], 'url': image_urls[1], 'display_order': 1},
         ]
+        # 変数の内容: event_table: 管理側 events テーブルのモック。
         event_table = MagicMock()
         admin_images_table = MagicMock()
+        # 変数の内容: public_event_table: 公開側 events テーブルのモック。
         public_event_table = MagicMock()
+        # 変数の内容: public_images_table: 公開側 event_images テーブルのモック。
         public_images_table = MagicMock()
         # 1. 管理側のイベント INSERT と画像 INSERT が成功する応答を設定する。
         event_table.insert.return_value.execute.return_value.data = [event]
@@ -210,10 +215,13 @@ class TestEventCRUD:
         admin_images_table.insert.return_value.execute.return_value.data = image_rows
 
         # 2. 公開側では作成イベントと表示順の画像行を返し、POST 応答を組み立てさせる。
+        # 変数の内容: mock_public_sb: 公開用 Supabase クライアントのモック。
         mock_public_sb = MagicMock()
         # slug 検索は未登録、UUID の id 検索では作成イベントが見つかる応答に分ける。
+        # 変数の内容: slug_query: イベント slug による検索の Supabase クエリモック。
         slug_query = MagicMock()
         slug_query.execute.return_value.data = []
+        # 変数の内容: id_query: イベント UUID による検索の Supabase クエリモック。
         id_query = MagicMock()
         id_query.execute.return_value.data = [event]
         public_event_table.select.return_value.eq.side_effect = [slug_query, id_query]
@@ -227,6 +235,7 @@ class TestEventCRUD:
             # 1. API が公開側の画像取得へ進む前に、管理側の画像 INSERT が実行済みか確認する。
             admin_images_table.insert.return_value.execute.assert_called_once()
             # 2. Supabase の execute 応答と同じ data 属性に、保存済み画像行を設定して返す。
+            # 変数の内容: response: テスト対象が返した応答オブジェクト。
             response = MagicMock()
             response.data = image_rows
             return response
@@ -283,25 +292,33 @@ class TestEventCRUD:
         event = _event_data('11111111-1111-1111-1111-111111111111', '読戻し失敗イベント')
         event_id = event['id']
         operations = []
+        # 変数の内容: event_table: 管理側 events テーブルのモック。
         event_table = MagicMock()
+        # 変数の内容: admin_images_table: 管理側 event_images テーブルのモック。
         admin_images_table = MagicMock()
+        # 変数の内容: public_event_table: 公開側 events テーブルのモック。
         public_event_table = MagicMock()
+        # 変数の内容: public_images_table: 公開側 event_images テーブルのモック。
         public_images_table = MagicMock()
         # 1. 管理側の二つのINSERTを成功させ、各execute完了をログに記録する。
+        # 変数の内容: event_response: 公開 API のイベント取得モック応答。
         event_response = MagicMock(data=[event])
         event_table.insert.return_value.execute.side_effect = lambda: (
             operations.append('event_insert'), event_response
         )[1]
+        # 変数の内容: image_response: 公開 API のイベント画像取得モック応答。
         image_response = MagicMock(data=[])
         admin_images_table.insert.return_value.execute.side_effect = lambda: (
             operations.append('image_insert'), image_response
         )[1]
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.attach_mock(event_table, 'events_table')
         mock_admin_sb.attach_mock(admin_images_table, 'event_images_table')
         mock_admin_sb.table.side_effect = [event_table, admin_images_table]
 
         # 2. 公開slug検索は空、UUID id検索は一般例外とし、失敗後の画像読取を追跡する。
+        # 変数の内容: slug_query: イベント slug による検索の Supabase クエリモック。
         slug_query = MagicMock()
         slug_query.execute.side_effect = lambda: (operations.append('public_slug_read'), MagicMock(data=[]))[1]
 
@@ -319,9 +336,11 @@ class TestEventCRUD:
             operations.append('public_id_read')
             raise RuntimeError('public event id readback failed')
 
+        # 変数の内容: id_query: イベント UUID による検索の Supabase クエリモック。
         id_query = MagicMock()
         id_query.execute.side_effect = fail_id_readback
         public_event_table.select.return_value.eq.side_effect = [slug_query, id_query]
+        # 変数の内容: mock_public_sb: 公開用 Supabase クライアントのモック。
         mock_public_sb = MagicMock()
         mock_public_sb.table.side_effect = [public_event_table, public_event_table, public_images_table]
 
@@ -354,27 +373,36 @@ class TestEventCRUD:
         # 変数の内容: event: INSERT応答のイベント行、operations: 各管理INSERTと公開readbackの順序ログ。
         event = _event_data('11111111-1111-1111-1111-111111111111', '画像読戻し失敗イベント')
         operations = []
+        # 変数の内容: event_table: 管理側 events テーブルのモック。
         event_table = MagicMock()
+        # 変数の内容: admin_images_table: 管理側 event_images テーブルのモック。
         admin_images_table = MagicMock()
+        # 変数の内容: public_event_table: 公開側 events テーブルのモック。
         public_event_table = MagicMock()
+        # 変数の内容: public_images_table: 公開側 event_images テーブルのモック。
         public_images_table = MagicMock()
         # 1. 管理側INSERTの完了順をログへ残して成功応答を返す。
+        # 変数の内容: event_response: 公開 API のイベント取得モック応答。
         event_response = MagicMock(data=[event])
         event_table.insert.return_value.execute.side_effect = lambda: (
             operations.append('event_insert'), event_response
         )[1]
+        # 変数の内容: image_response: 公開 API のイベント画像取得モック応答。
         image_response = MagicMock(data=[])
         admin_images_table.insert.return_value.execute.side_effect = lambda: (
             operations.append('image_insert'), image_response
         )[1]
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.attach_mock(event_table, 'events_table')
         mock_admin_sb.attach_mock(admin_images_table, 'event_images_table')
         mock_admin_sb.table.side_effect = [event_table, admin_images_table]
 
         # 2. 公開イベント検索はslug空→UUID成功、画像SELECTのみ失敗させる。
+        # 変数の内容: slug_query: イベント slug による検索の Supabase クエリモック。
         slug_query = MagicMock()
         slug_query.execute.side_effect = lambda: (operations.append('public_slug_read'), MagicMock(data=[]))[1]
+        # 変数の内容: id_query: イベント UUID による検索の Supabase クエリモック。
         id_query = MagicMock()
         id_query.execute.side_effect = lambda: (operations.append('public_id_read'), MagicMock(data=[event]))[1]
         public_event_table.select.return_value.eq.side_effect = [slug_query, id_query]
@@ -396,6 +424,7 @@ class TestEventCRUD:
         public_images_table.select.return_value.in_.return_value.order.return_value.execute.side_effect = (
             fail_image_readback
         )
+        # 変数の内容: mock_public_sb: 公開用 Supabase クライアントのモック。
         mock_public_sb = MagicMock()
         mock_public_sb.table.side_effect = [public_event_table, public_event_table, public_images_table]
 
@@ -565,6 +594,7 @@ class TestEventCRUD:
         # 2. 更新成功と、各DBクエリが execute される順を確認する。
         assert resp.status_code == 200
         assert resp.json()['name'] == '更新後イベント'
+        # 変数の内容: execution_names: 記録された DB execute 呼び出し名の一覧。
         execution_names = [
             item[0]
             for item in mock_admin_sb.mock_calls
@@ -595,6 +625,7 @@ class TestEventCRUD:
         """
         # 1. 認証をバイパスする設定を解除し、DB呼び出しを記録するモックを用意する。
         app.dependency_overrides.clear()
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -982,10 +1013,12 @@ class TestEventSessions:
         existing_sessions_mock.data = []
 
         # 保存後のセッション一覧
+        # 変数の内容: saved_sessions: 保存済みセッションのテストデータ一覧。
         saved_sessions = [
             {'id': 'ses-new', 'event_id': 'evt-1', 'time_label': '11:00', 'max_participants': 8},
         ]
 
+        # 変数の内容: call_count: 記録されたモック呼び出しの件数。
         call_count = {'n': 0}
 
         def table_side_effect(name: str):
@@ -1275,6 +1308,7 @@ class TestEventSessions:
         """
         # 1. 認証バイパスを解除し、DBアクセスを検出するモックを用意する。
         app.dependency_overrides.clear()
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
@@ -1382,7 +1416,9 @@ def _make_admin_info_sb(
         (admin_supabase のモック, {'events': events テーブルのモック, 'event_admin_info': 管理情報テーブルのモック})
     """
     # 1. テーブルごとのモックを用意する
+    # 変数の内容: events_tbl: イベント存在確認に使う events テーブルのモック。
     events_tbl = MagicMock()
+    # 変数の内容: info_tbl: event_admin_info テーブルのモック。
     info_tbl = MagicMock()
     # 2. events: 存在確認の select('id').eq('id', ...).execute()
     exists_exec = events_tbl.select.return_value.eq.return_value.execute
@@ -1406,6 +1442,7 @@ def _make_admin_info_sb(
     else:
         upsert_exec.return_value.data = [{'event_id': 'evt-1'}]
     # 5. テーブル名に応じてモックを返す（想定外のテーブル名はテスト失敗にする）
+    # 変数の内容: tables: テーブル名と各テーブルモックの対応表。
     tables = {'events': events_tbl, 'event_admin_info': info_tbl}
 
     def table_side_effect(name: str):
@@ -1471,6 +1508,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. event_admin_info に管理情報の行があるようにモックする
+        # 変数の内容: admin_info: イベント管理情報のテストデータ。
         admin_info = {'carry_in_time': '9:00', 'hotel_name': 'テストホテル', 'booth_fee': 30000}
         # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。
         mock_admin_sb, tables = _make_admin_info_sb(info_rows=[{'info': admin_info}])
@@ -1567,6 +1605,7 @@ class TestEventAdminInfo:
             なし。
         """
         # 1. 出店要項を含む info をモックに設定する
+        # 変数の内容: admin_info: イベント管理情報のテストデータ。
         admin_info = {
             'notes': None,
             'guidelines_text': '要項',
@@ -1598,6 +1637,7 @@ class TestEventAdminInfo:
         info_table = MagicMock()
         # 1. events の SELECT 実行で一般例外を発生させ、テーブル別に呼出を追えるようにする。
         events_table.select.return_value.order.return_value.execute.side_effect = RuntimeError('events read failed')
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
             'events': events_table,
@@ -1625,6 +1665,7 @@ class TestEventAdminInfo:
         # 1. events は空一覧で成功させ、次段の管理情報 SELECT を一般例外にする。
         events_table.select.return_value.order.return_value.execute.return_value.data = []
         info_table.select.return_value.execute.side_effect = RuntimeError('admin info read failed')
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
             'events': events_table,
@@ -1656,8 +1697,10 @@ class TestEventAdminInfo:
         public_events.select.return_value.eq.return_value.execute.side_effect = [
             MagicMock(data=[]), RuntimeError('public readback failed'),
         ]
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.return_value = admin_events
+        # 変数の内容: mock_public_sb: 公開用 Supabase クライアントのモック。
         mock_public_sb = MagicMock()
         mock_public_sb.table.return_value = public_events
 
@@ -1742,6 +1785,7 @@ class TestEventAdminInfo:
         assert row['event_id'] == 'evt-1'
         assert row['info']['hotel_name'] == 'テストホテル'
         # updated_at はタイムゾーン付きの ISO 形式の日時文字列
+        # 変数の内容: parsed: 解析した HTML から得た値。
         parsed = datetime.fromisoformat(row['updated_at'])
         assert parsed.tzinfo is not None
         assert upsert.call_args.kwargs.get('on_conflict') == 'event_id'
@@ -1763,6 +1807,7 @@ class TestEventAdminInfo:
 
         assert resp.status_code == 200
         # 3. events への操作は存在確認の select だけ
+        # 変数の内容: events_tbl: イベント存在確認に使う events テーブルのモック。
         events_tbl = tables['events']
         events_tbl.select.assert_called_once_with('id')
         events_tbl.select.return_value.eq.assert_called_once_with('id', 'evt-1')
@@ -1818,6 +1863,7 @@ class TestEventAdminInfo:
         """
         # 1. イベントが存在するようにモックする
         mock_admin_sb, tables = _make_admin_info_sb()
+        # 変数の内容: urls: テストに使うイベント画像 URL 一覧。
         urls = ['https://ex.com/gl-1.png', 'https://ex.com/gl-2.png']
 
         # 2. 出店要項を含めて保存する
@@ -1987,6 +2033,7 @@ class TestPublicApiHidesAdminInfo:
             なし。
         """
         # 1. admin_info 入りの今後のイベントを DB モックに入れる
+        # 変数の内容: row: DB 応答として扱う単一レコード。
         row = {**_event_data('evt-1'), 'admin_info': _admin_info_secret()}
         # 変数の内容: mock_sb: Supabase クライアントを置き換えるテスト用モック。
         mock_sb = _make_list_sb_mock([row])
@@ -2145,6 +2192,7 @@ class TestEventReadFailures:
         images_table = MagicMock()
         # 1. 一覧SELECTで一般例外を発生させ、画像モックは未使用にする。
         events_table.select.return_value.order.return_value.execute.side_effect = RuntimeError('events list failed')
+        # 変数の内容: mock_sb: Supabase クライアントのモック。
         mock_sb = MagicMock()
         mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
 
@@ -2172,6 +2220,7 @@ class TestEventReadFailures:
         images_table.select.return_value.in_.return_value.order.return_value.execute.side_effect = RuntimeError(
             'event images read failed'
         )
+        # 変数の内容: mock_sb: Supabase クライアントのモック。
         mock_sb = MagicMock()
         mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
 
@@ -2239,6 +2288,7 @@ class TestEventReadFailures:
         events_table.select.return_value.eq.return_value.execute.side_effect = [
             MagicMock(data=[]), RuntimeError('event id read failed'),
         ]
+        # 変数の内容: mock_sb: Supabase クライアントのモック。
         mock_sb = MagicMock()
         mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
 
@@ -2264,6 +2314,7 @@ class TestEventReadFailures:
         images_table = MagicMock()
         # 1. slug条件のイベントSELECTで一般例外を発生させ、他のクエリ段階は未使用にする。
         events_table.select.return_value.eq.return_value.execute.side_effect = RuntimeError('slug read failed')
+        # 変数の内容: mock_sb: Supabase クライアントのモック。
         mock_sb = MagicMock()
         mock_sb.table.side_effect = lambda name: {'events': events_table, 'event_images': images_table}[name]
 
@@ -2290,6 +2341,7 @@ class TestEventReadFailures:
         sessions_table.select.return_value.eq.return_value.order.return_value.execute.side_effect = RuntimeError(
             'sessions read failed'
         )
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
             'ws_sessions': sessions_table,
@@ -2323,6 +2375,7 @@ class TestEventReadFailures:
         reservations_table.select.return_value.eq.return_value.neq.return_value.execute.side_effect = RuntimeError(
             'reservations read failed'
         )
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
             'ws_sessions': sessions_table,
@@ -2353,6 +2406,7 @@ class TestEventReadFailures:
         events_table.select.return_value.eq.return_value.single.return_value.execute.side_effect = RuntimeError(
             'event existence read failed'
         )
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
             'events': events_table,
@@ -2411,6 +2465,7 @@ class TestEventReadFailures:
         events_table.select.return_value.eq.return_value.single.return_value.execute.side_effect = RuntimeError(
             'event existence read failed'
         )
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
             'events': events_table,
@@ -2448,6 +2503,7 @@ class TestEventReadFailures:
         reservations_table.select.return_value.eq.return_value.neq.return_value.eq.return_value.execute.side_effect = (
             RuntimeError('dated reservations read failed')
         )
+        # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
             'ws_sessions': sessions_table,

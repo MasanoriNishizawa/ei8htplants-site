@@ -883,6 +883,7 @@ button.gallery-item:focus-visible img { transform: scale(1.08); filter: brightne
   }
 }
 @media (max-width: 900px) {
+  /* OUR BRANDS のカード一覧: 900px 以下では 2 列にし、カード高さを縮めて3枚目を全幅に広げる */
   .our-brands-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .our-brand-card { min-height: 500px; }
   .our-brand-card--3 { grid-column: 1 / -1; min-height: 440px; }

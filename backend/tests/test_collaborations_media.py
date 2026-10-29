@@ -145,6 +145,7 @@ class TestCollaborationsCRUD:
         mock_public_sb.table.return_value.select.return_value.execute.return_value.count = 2
 
         # admin_supabase: insert チェーン
+        # 変数の内容: new_collab: 新規作成するコラボレーションレコード。
         new_collab = {'id': 'c3', 'title': 'Collab C', 'partner_name': None, 'display_order': 2}
         # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。
         mock_admin_sb = MagicMock()

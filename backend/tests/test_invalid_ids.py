@@ -542,6 +542,7 @@ class TestRoutesInvalidId:
         """
         # どの読み書きも 0 件を返す（記事・注文などが先に single() で読む 1 件も空になり、見つからない扱いになる）
         # 1. 更新の対象が 0 件（data が空）なら 404 になること。
+        # 変数の内容: sb: Supabase クライアントのモック。
         sb = _client_raising(data=[])
         with as_admin(), patch(f'app.routes.{module}.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。

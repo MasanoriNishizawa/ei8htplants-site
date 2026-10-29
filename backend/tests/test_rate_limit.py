@@ -501,6 +501,7 @@ class TestMaxTrackedIps:
         # 1. 期限切れ（window 秒より前）の記録を掃除して上限内に収まれば、期限内の IP は捨てないこと。
         monkeypatch.setattr(rate_limit, 'MAX_TRACKED_IPS', 2)
         # ip-old は 0 秒、ip-b は 100 秒、ip-c は 101 秒に受け付け（window は 60 秒）
+        # 変数の内容: clock: テストで固定する単調時計のモック。
         clock = iter([0.0, 100.0, 101.0])
         monkeypatch.setattr(rate_limit.time, 'time', lambda: next(clock))
         limiter = RateLimiter(limit=5, window=60)

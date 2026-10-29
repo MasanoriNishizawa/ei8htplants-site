@@ -133,6 +133,7 @@ class TestOrderQuantityValidation:
 
         assert resp.status_code == 200
         # 金額は単価 × 数量 + 送料（東京都）
+        # 変数の内容: sent: メール送信処理で記録された送信内容。
         sent = mock_http.post.call_args.kwargs['json']
         assert sent['amount_money']['amount'] == 3000 * quantity + 1000
 
@@ -290,6 +291,7 @@ class TestSquareFailures:
         # 3. CRITICAL ログ
         assert any(r.levelno == logging.CRITICAL for r in caplog.records)
         # 4. 管理者に CRITICAL のメールを 1 通
+        # 変数の内容: subjects: 送信メールから抽出した件名一覧。
         subjects = [c.args[0]['subject'] for c in mock_resend.Emails.send.call_args_list]
         assert len([s for s in subjects if 'CRITICAL' in s]) == 1
         assert mock_resend.Emails.send.call_args_list[0].args[0]['to'] == ['admin@example.com']

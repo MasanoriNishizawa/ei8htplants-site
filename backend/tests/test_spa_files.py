@@ -22,12 +22,15 @@ class TestResolveDistFilePath:
             なし。
         """
         # 1. 一時 dist と、その配下に解決対象のファイルを用意する。
+        # 変数の内容: dist_dir: テスト用の静的ファイルルート。
         dist_dir = tmp_path / 'dist'
+        # 変数の内容: asset_path: テスト用 dist 内に作る静的ファイルのパス。
         asset_path = dist_dir / 'assets' / 'app.js'
         asset_path.parent.mkdir(parents=True)
         asset_path.write_text('window.app = true;', encoding='utf-8')
 
         # 2. 相対パスを渡し、dist 内ファイルの実パスが返ることを確認する。
+        # 変数の内容: resolved_path: dist 内に解決されたファイルの実パス。
         resolved_path = resolve_dist_file_path(str(dist_dir), 'assets/app.js')
 
         assert resolved_path == os.path.realpath(asset_path)
@@ -43,6 +46,7 @@ class TestResolveDistFilePath:
             なし。
         """
         # 1. dist の隣に外部ファイルを置き、dist の実パスを基準にする。
+        # 変数の内容: dist_dir: テスト用の静的ファイルルート。
         dist_dir = tmp_path / 'dist'
         dist_dir.mkdir()
         (tmp_path / 'outside.txt').write_text('outside', encoding='utf-8')
@@ -62,8 +66,10 @@ class TestResolveDistFilePath:
             なし。
         """
         # 1. dist と、その外側に実在する絶対パスを用意する。
+        # 変数の内容: dist_dir: テスト用の静的ファイルルート。
         dist_dir = tmp_path / 'dist'
         dist_dir.mkdir()
+        # 変数の内容: outside_path: dist の外側に作るテストファイルのパス。
         outside_path = tmp_path / 'outside.txt'
         outside_path.write_text('outside', encoding='utf-8')
 
@@ -81,10 +87,13 @@ class TestResolveDistFilePath:
             なし。
         """
         # 1. dist 外の実ファイルと、dist 内に作るシンボリックリンクの場所を用意する。
+        # 変数の内容: dist_dir: テスト用の静的ファイルルート。
         dist_dir = tmp_path / 'dist'
         dist_dir.mkdir()
+        # 変数の内容: outside_path: dist の外側に作るテストファイルのパス。
         outside_path = tmp_path / 'outside.txt'
         outside_path.write_text('outside', encoding='utf-8')
+        # 変数の内容: link_path: dist 内に作る外部参照シンボリックリンクのパス。
         link_path = dist_dir / 'external-link.txt'
 
         # 2. OS や権限でリンクを作れない環境はこのケースだけを skip する。
@@ -107,9 +116,12 @@ class TestResolveDistFilePath:
             なし。
         """
         # 1. dist のみ作成し、その中には存在しないファイル名を指定する。
+        # 変数の内容: dist_dir: テスト用の静的ファイルルート。
         dist_dir = tmp_path / 'dist'
         dist_dir.mkdir()
+        # 変数の内容: requested_path: dist 内から取得する要求パス。
         requested_path = 'assets/not-created.js'
+        # 変数の内容: expected_path: パス解決関数に期待する実パス。
         expected_path = os.path.realpath(os.path.join(dist_dir, requested_path))
 
         # 2. 存在確認は呼び出し元の責務なので、解決関数はパスを返すことを確認する。

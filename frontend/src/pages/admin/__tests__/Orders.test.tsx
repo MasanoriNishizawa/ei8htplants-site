@@ -44,24 +44,36 @@ const SHIPPED_ORDER: Order = {
   ...ORDER, status: 'shipped', carrier: 'ヤマト運輸', tracking_number: '1234-5678',
 }
 
-/** 注文管理画面を描画し、読み込みを終えるまで待つ */
+/**
+ * 注文管理画面を描画し、一覧データの読み込み完了まで待つ。
+ * @returns 画面の描画と読み込みが完了したときに解決する Promise<void>
+ */
 async function renderOrders() {
   render(<AdminOrders />)
   await screen.findByRole('heading', { name: '注文管理' })
   await waitFor(() => expect(api.orders.list).toHaveBeenCalledTimes(1))
 }
 
-/** 一覧に出ている注文のステータス選択欄 */
+/**
+ * 一覧に出ている注文のステータス選択欄を取得する。
+ * @returns 注文の状態を選ぶ HTMLSelectElement
+ */
 const orderStatusSelect = () => screen.getByRole('combobox', { name: '山田 花子 様の注文のステータス' })
 
-/** 注文詳細モーダルを開く */
+/**
+ * 注文詳細モーダルを開く。
+ * @returns 注文詳細ダイアログ要素を取得する Promise
+ */
 async function openOrderDetail() {
   await renderOrders()
   fireEvent.click(await screen.findByRole('button', { name: '詳細' }))
   return screen.findByRole('dialog', { name: '注文詳細' })
 }
 
-/** 一覧から発送情報の入力モーダルを開く */
+/**
+ * 一覧から発送情報の入力モーダルを開く。
+ * @returns 発送情報ダイアログ要素を取得する Promise
+ */
 async function openShippingModal() {
   await renderOrders()
   fireEvent.change(orderStatusSelect(), { target: { value: 'shipped' } })

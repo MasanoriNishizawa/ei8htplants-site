@@ -30,6 +30,7 @@ class TestRenderSpaHtml:
         injected_html = '<html><head><title>site</title></head><body>site</body></html>'
 
         # 1. 通常 host と各処理を記録する依存関数を渡して関数を実行する。
+        # 変数の内容: result: テスト対象関数が返した結果。
         result = render_spa_html(
             original_html,
             '/official/events/market',
@@ -69,6 +70,7 @@ class TestRenderSpaHtml:
         brands = {'habitatoides.com': ('Habitat Oides', 'https://habitatoides.com')}
 
         # 1. ブランド host に対し、生成・注入・ブランド後処理の各依存関数を実行する。
+        # 変数の内容: result: テスト対象関数が返した結果。
         result = render_spa_html(
             '<html></html>', '/workshop', None, 'habitatoides.com',
             lambda path, query, hostname: calls.append(('build', path, query, hostname)) or meta,
@@ -102,6 +104,7 @@ class TestRenderSpaHtml:
         injected_html = '<html>injected</html>'
 
         # 1. 大文字かつ port 付きの host を渡し、正規化後のブランド処理を実行する。
+        # 変数の内容: result: テスト対象関数が返した結果。
         result = render_spa_html(
             '<html>source</html>', '/about', {'lang': 'ja'}, 'HUEBYEI8HTPLANTS.COM:443',
             lambda path, query, hostname: calls.append(('build', path, query, hostname)) or 'meta',
@@ -133,6 +136,7 @@ class TestRenderSpaHtml:
         injected_html = '<html><head>meta</head></html>'
 
         # 1. 未知 host と、呼び出しの有無を記録する依存関数を使って実行する。
+        # 変数の内容: result: テスト対象関数が返した結果。
         result = render_spa_html(
             '<html></html>', '/', {}, 'unknown.example',
             lambda path, query, hostname: {'path': path, 'hostname': hostname},

@@ -131,6 +131,7 @@ class TestNormalizeLegacyPath:
             なし。
         """
         # 1. 完全なルート境界だけを旧URLと認識し、他のパスは正規化のみ行う。
+        # 変数の内容: expected: テストで期待する URL。
         expected = '/' + path.strip('/')
         assert normalize_legacy_path(path) == expected
 
@@ -524,6 +525,7 @@ class TestBrandDomainMeta:
             なし。
         """
         # 1. ブランドと対象パスから PageMeta を生成する。
+        # 変数の内容: meta: 生成されたページメタ情報。
         meta = seo._brand_domain_meta(path, site_name, origin)
         # 2. 表示情報、絶対URL、公開状態が仕様どおりか確認する。
         assert meta.title == title
@@ -551,6 +553,7 @@ class TestBrandDomainMeta:
             なし。
         """
         # 1. 公開一覧にないパスのメタ情報を生成する。
+        # 変数の内容: meta: 生成されたページメタ情報。
         meta = seo._brand_domain_meta('/private', site_name, origin)
         # 2. noindex、canonical 無効、既定説明、ブランド情報を確認する。
         assert meta.title == site_name
@@ -579,6 +582,7 @@ class TestBrandDomainMeta:
             なし。
         """
         # 1. ホスト名を指定してトップページのメタ情報を選択する。
+        # 変数の内容: meta: 生成されたページメタ情報。
         meta = seo.build_page_meta('/', hostname=hostname)
         # 2. 選択されたブランド名と canonical origin を比較する。
         assert meta.site_name == site_name
@@ -594,6 +598,7 @@ class TestBrandDomainMeta:
             なし。
         """
         # 1. 本体サイトならイベント詳細になるパスをブランド専用ホストで判定する。
+        # 変数の内容: meta: 生成されたページメタ情報。
         meta = seo.build_page_meta('/official/events/plant-market', hostname='habitatoides.com')
         # 2. ブランドの未公開パスとして扱い、イベントDBへ問い合わせていないことを確かめる。
         assert meta.site_name == 'Habitat Oides'
@@ -691,9 +696,11 @@ class TestServeSpaMeta:
             なし。
         """
         # 1. 公開カタログにないURLをブランド専用ホストで開く。
+        # 変数の内容: response: テスト対象が返した応答オブジェクト。
         response = TestClient(app).get('/private', headers={'host': host})
         assert response.status_code == 200
         # 2. 生成されたHTMLでブランド名、既定画像、noindex、canonical URLの省略を確認する。
+        # 変数の内容: head: 応答 HTML から取り出した head 要素。
         head = _head(response.text)
         assert _title(head) == site_name
         assert _meta(head, 'property', 'og:site_name') == site_name
@@ -1786,12 +1793,14 @@ class _QueryRecordingQuery(_FakeQuery):
             raise RuntimeError(f'{self.name} の読み取りに失敗')
 
         # 2. テーブル行を絞り込み、指定された列の順に並べて応答へ入れる。
+        # 変数の内容: rows: DB 応答として扱うレコード一覧。
         rows = [
             row for row in self.db.tables.get(self.name, [])
             if all(row.get(key) == value for key, value in self.filters.items())
         ]
         if self.order_column is not None:
             rows.sort(key=lambda row: row.get(self.order_column))
+        # 変数の内容: response: テスト対象が返した応答オブジェクト。
         response = MagicMock()
         response.data = [dict(row) for row in rows]
         return response
@@ -1841,6 +1850,7 @@ class TestSeoPageDataFetch:
             なし。
         """
         # 1. slugと画像行を持つ公開DB、および独立した管理DBを用意する。
+        # 変数の内容: public_db: 公開用 DB のテストダブル。
         public_db = _QueryRecordingDB({
             'events': [_event()],
             'event_images': [
@@ -1849,9 +1859,13 @@ class TestSeoPageDataFetch:
                 {'event_id': EVENT_ID, 'display_order': 3, 'url': 'blob:http://localhost/hidden'},
             ],
         })
+        # 変数の内容: admin_db: 管理用 DB のテストダブル。
         admin_db = FakeDB()
+        # 変数の内容: rows: DB 応答として扱うレコード一覧。
         rows = MagicMock(side_effect=seo._rows)
+        # 変数の内容: absolute_url: サイト内リンクを絶対 URL に変換した値。
         absolute_url = MagicMock(side_effect=seo._absolute_url)
+        # 変数の内容: deps: ページデータ取得に渡す依存関係の集合。
         deps = _page_data_deps(
             public_db=public_db,
             admin_db=admin_db,
@@ -1860,8 +1874,11 @@ class TestSeoPageDataFetch:
         )
 
         # 2. イベントを2回取得し、返却値とキャッシュヒットを確認する。
+        # 変数の内容: first: 最初の取得で返された値。
         first = fetch_event('plant-market', deps)
+        # 変数の内容: calls_after_first: 最初の取得後に記録した DB 呼び出し回数。
         calls_after_first = list(public_db.calls)
+        # 変数の内容: second: 2 回目の取得で返された値。
         second = fetch_event('plant-market', deps)
 
         assert first == second
@@ -1899,17 +1916,21 @@ class TestSeoPageDataFetch:
             なし。
         """
         # 1. slugが異なるUUIDイベントを公開DBに用意する。
+        # 変数の内容: event_id: テスト対象イベントの識別子。
         event_id = 'event-42'
+        # 変数の内容: public_db: 公開用 DB のテストダブル。
         public_db = _QueryRecordingDB({
             'events': [_event(id=event_id, slug='other-event')],
             'event_images': [],
         })
+        # 変数の内容: deps: ページデータ取得に渡す依存関係の集合。
         deps = _page_data_deps(
             public_db=public_db,
             uuid_pattern=re.compile(r'event-[0-9]+'),
         )
 
         # 2. UUIDを渡し、slug検索後にid検索が実行されることを確認する。
+        # 変数の内容: event: テスト対象のイベントレコード。
         event = fetch_event(event_id, deps)
 
         assert event['id'] == event_id
@@ -1949,11 +1970,14 @@ class TestSeoPageDataFetch:
             なし。
         """
         # 1. イベントがない公開DBと独立したキャッシュを用意する。
+        # 変数の内容: public_db: 公開用 DB のテストダブル。
         public_db = FakeDB({'events': []})
+        # 変数の内容: deps: ページデータ取得に渡す依存関係の集合。
         deps = _page_data_deps(public_db=public_db)
 
         # 2. 不正キーを繰り返し渡し、slugのみの検索とNoneのキャッシュを確かめる。
         assert fetch_event('not-a-uuid', deps) is None
+        # 変数の内容: calls_after_first: 最初の取得後に記録した DB 呼び出し回数。
         calls_after_first = list(public_db.calls)
         assert fetch_event('not-a-uuid', deps) is None
 
@@ -1967,16 +1991,22 @@ class TestSeoPageDataFetch:
             なし。
         """
         # 1. 公開記事と非公開記事を管理DBへ置き、公開DBを分けて用意する。
+        # 変数の内容: admin_db: 管理用 DB のテストダブル。
         admin_db = _QueryRecordingDB({'articles': [
             {**_article(), 'is_published': True},
             {**_article(id=MISSING_ID), 'is_published': False},
         ]})
+        # 変数の内容: public_db: 公開用 DB のテストダブル。
         public_db = FakeDB()
+        # 変数の内容: deps: ページデータ取得に渡す依存関係の集合。
         deps = _page_data_deps(public_db=public_db, admin_db=admin_db)
 
         # 2. 公開記事を2回取得し、公開条件・返却値・キャッシュを確認する。
+        # 変数の内容: article: 記事テーブルから取得した記事レコード。
         article = fetch_article(ARTICLE_ID, deps)
+        # 変数の内容: calls_after_first: 最初の取得後に記録した DB 呼び出し回数。
         calls_after_first = list(admin_db.calls)
+        # 変数の内容: cached_article: キャッシュから取得した記事レコード。
         cached_article = fetch_article(ARTICLE_ID, deps)
 
         assert article == cached_article
@@ -2007,8 +2037,11 @@ class TestSeoPageDataFetch:
             なし。
         """
         # 1. 対象データがない管理DBと公開DBを分けて依存へ注入する。
+        # 変数の内容: admin_db: 管理用 DB のテストダブル。
         admin_db = FakeDB()
+        # 変数の内容: public_db: 公開用 DB のテストダブル。
         public_db = FakeDB()
+        # 変数の内容: deps: ページデータ取得に渡す依存関係の集合。
         deps = _page_data_deps(public_db=public_db, admin_db=admin_db)
 
         # 2. 不正IDがNoneになり、どちらのDBにも検索が発生しないことを確認する。
@@ -2024,11 +2057,14 @@ class TestSeoPageDataFetch:
             なし。
         """
         # 1. 商品行のない管理DBと専用キャッシュを依存へ注入する。
+        # 変数の内容: admin_db: 管理用 DB のテストダブル。
         admin_db = _QueryRecordingDB({'products': []})
+        # 変数の内容: deps: ページデータ取得に渡す依存関係の集合。
         deps = _page_data_deps(admin_db=admin_db)
 
         # 2. 同じ商品IDを2回取得し、Noneと1回だけの問い合わせを確認する。
         assert fetch_product(PRODUCT_ID, deps) is None
+        # 変数の内容: calls_after_first: 最初の取得後に記録した DB 呼び出し回数。
         calls_after_first = list(admin_db.calls)
         assert fetch_product(PRODUCT_ID, deps) is None
 
@@ -2049,16 +2085,22 @@ class TestSeoPageDataFetch:
             なし。
         """
         # 1. 公開商品と非公開商品を管理DBへ置き、公開DBを分けて用意する。
+        # 変数の内容: admin_db: 管理用 DB のテストダブル。
         admin_db = _QueryRecordingDB({'products': [
             {**_product(), 'is_published': True},
             {**_product(id=MISSING_ID), 'is_published': False},
         ]})
+        # 変数の内容: public_db: 公開用 DB のテストダブル。
         public_db = FakeDB()
+        # 変数の内容: deps: ページデータ取得に渡す依存関係の集合。
         deps = _page_data_deps(public_db=public_db, admin_db=admin_db)
 
         # 2. 公開商品を2回取得し、公開条件・返却値・キャッシュを確かめる。
+        # 変数の内容: product: 商品テーブルから取得した商品レコード。
         product = fetch_product(PRODUCT_ID, deps)
+        # 変数の内容: calls_after_first: 最初の取得後に記録した DB 呼び出し回数。
         calls_after_first = list(admin_db.calls)
+        # 変数の内容: cached_product: キャッシュから取得した商品レコード。
         cached_product = fetch_product(PRODUCT_ID, deps)
 
         assert product == cached_product
@@ -2265,6 +2307,7 @@ class TestRobotsTxtPureFunctions:
 
         # 1. 先頭から サイトマップ指示行までの設定項目 と順番を確認する。
         # 2. 末尾改行と /api を拒否対象に含めない仕様を確認する。
+        # 変数の内容: text: 読み込んだマイグレーション SQL 本文。
         text = seo_robots.build_robots_txt(
             'www.habitatoides.com', seo.ROBOTS_DISALLOW, seo.BRAND_DOMAINS, seo.SITE_ORIGIN,
         )
@@ -2761,6 +2804,7 @@ class TestServeSpaPathTraversal:
             # 変数の内容: secret: ログに出てはいけない秘密テスト値。
             secret = f.read()
         # 2. 返るのは SPA の index.html で、そのファイルの中身ではない
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).get(raw_path)
         assert resp.status_code == 200
         assert '<div id="root">' in resp.text

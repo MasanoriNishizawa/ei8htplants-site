@@ -31,13 +31,19 @@ export default function SiteImages() {
   useUnsavedChanges(dirty)
 
   useEffect(() => {
+    // 1. 6 枚分の画像設定を並行して取得する
     Promise.all(Array.from({ length: PHOTO_COUNT }, (_, index) =>
       api.siteAssets.get(`hue-color-${String(index + 1).padStart(2, '0')}`),
     )).then((assets) => {
+      // 2. 取得した URL を保存済み・編集中の両方へ反映する
       setPhotos(assets.map(({ url }) => ({ ...emptyPhoto(), savedUrl: url, draftUrl: url })))
     }).catch(() => {
+      // 3. 取得に失敗した場合は全カードにエラーを表示する
       setPhotos((current) => current.map((photo) => ({ ...photo, error: '写真設定を読み込めませんでした。再読み込みしてください。' })))
-    }).finally(() => setLoading(false))
+    }).finally(() => {
+      // 4. 成功・失敗のどちらでも読み込み中表示を終了する
+      setLoading(false)
+    })
   }, [])
 
   /**

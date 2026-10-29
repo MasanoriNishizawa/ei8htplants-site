@@ -70,6 +70,7 @@ class TestCountSessionReservations:
             なし。
         """
         # 1. 検索済みの予約行と時間枠を集計関数に渡す。
+        # 変数の内容: actual: テスト対象関数が実際に返した人数。
         actual = count_session_reservations(reservations, SESSION)
 
         # 2. 指定時間枠だけが従来の人数規則で合算されたことを確かめる。
@@ -99,16 +100,19 @@ class TestSessionUsedCountQuery:
             なし。
         """
         # 1. Fluent な Supabase クエリを模擬し、実行結果を空の予約一覧にする。
+        # 変数の内容: query: Supabase のクエリ連鎖を模擬するモック。
         query = MagicMock(name='reservation_query')
         query.select.return_value = query
         query.eq.return_value = query
         query.neq.return_value = query
         query.execute.return_value.data = []
+        # 変数の内容: admin_supabase_mock: 管理用 Supabase クライアントのモック。
         admin_supabase_mock = MagicMock(name='admin_supabase')
         admin_supabase_mock.table.return_value = query
 
         # 2. DB クライアントを差し替えて人数集計を実行する。
         with patch('app.routes.reserve.admin_supabase', admin_supabase_mock):
+            # 変数の内容: result: テスト対象関数が返した結果。
             result = _session_used_count('event-1', SESSION, preferred_date)
 
         # 3. 予約行が空なら0人で、常時条件と日付条件の有無が仕様どおりと確かめる。
@@ -117,6 +121,7 @@ class TestSessionUsedCountQuery:
         query.select.assert_called_once_with('session_id, participants, preferred_time')
         query.eq.assert_any_call('event_id', 'event-1')
         query.neq.assert_called_once_with('status', 'cancelled')
+        # 変数の内容: date_calls: 予約日の条件に関するクエリ呼び出し一覧。
         date_calls = [item for item in query.eq.call_args_list if item.args[0] == 'preferred_date']
         if expected_date_call is None:
             assert date_calls == []

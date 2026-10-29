@@ -210,6 +210,7 @@ def event_json_ld(
         # 変数の内容: end_hhmm: 終了時刻の HH:MM 表記、start_hhmm: 開始時刻の HH:MM 表記。
         start_hhmm = end_hhmm = None
     # 3. Google の必須項目を満たす住所がない場合は Event を出さない。
+    # 変数の内容: page_content: イベントページ本文の構造化データ、venue: 本文内の会場情報、address: 応答に使う住所。
     page_content = event.get('page_content') if isinstance(event.get('page_content'), dict) else {}
     venue = page_content.get('venue') if isinstance(page_content.get('venue'), dict) else {}
     address = _str(event.get('address')).strip() or _str(venue.get('address')).strip()

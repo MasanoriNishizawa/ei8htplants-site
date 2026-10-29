@@ -21,6 +21,7 @@ def _read_sql(filename: str) -> str:
         コメントを除いた SQL 本文（大文字小文字はそのまま）
     """
     # 1. ファイルを読む
+    # 変数の内容: text: 読み込んだマイグレーション SQL 本文。
     text = (MIGRATIONS_DIR / filename).read_text(encoding='utf-8')
     # 2. 行ごとに「--」以降（コメント）を取り除く。説明文の言葉に反応しないようにするため
     return '\n'.join(line.split('--', 1)[0] for line in text.splitlines())
@@ -171,6 +172,7 @@ class TestMigration016Safety:
         revokes = re.findall(r'REVOKE ALL ON EVENT_ADMIN_INFO FROM ([^;]*);', norm)
         assert revokes, 'event_admin_info の REVOKE が無い'
         # 2. 対象のロールに anon と authenticated が両方入っている
+        # 変数の内容: roles: SQL に含まれる対象ロール名の一覧。
         roles = {r.strip() for stmt in revokes for r in stmt.split(',')}
         assert 'ANON' in roles
         assert 'AUTHENTICATED' in roles

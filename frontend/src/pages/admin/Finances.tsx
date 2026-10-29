@@ -21,20 +21,27 @@ export default function AdminFinances() {
 
   // 全イベントと収支データを同時取得し、event_id をキーにしたマップを作成する
   useEffect(() => {
+    // 1. 今後・過去のイベントと、登録済みの収支データを並行して取得する
     Promise.all([
       api.events.list(false),
       api.events.list(true),
       api.events.getAllFinances(),
     ]).then(([upcoming, past, finances]) => {
+      // 2. 今後と過去を合わせ、開始日の新しい順に並べ替える
       /** 今後と過去を合わせ、開始日の新しい順にしたイベント */
       const all = [...past, ...upcoming].sort(
         (a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
       )
       setEvents(all)
+      // 3. 収支データを event_id で引けるマップにして、画面へ反映する
       setFinanceMap(new Map(finances.map((f) => [f.event_id, f])))
     }).catch((e: unknown) => {
+      // 4. 取得に失敗したら画面用のエラー文を設定する
       setError(failMessage('収支の読み込みに失敗しました', e))
-    }).finally(() => setLoading(false))
+    }).finally(() => {
+      // 5. 成功・失敗にかかわらず読み込み表示を終了する
+      setLoading(false)
+    })
   }, [])
 
   /** 表の行（イベント・収支データ・計算結果。収支未登録なら fin と computed は null） */

@@ -114,6 +114,7 @@ class TestListPotArtists:
 
         with patch('app.routes.pot_artists.supabase', mock_sb):
             # Authorization ヘッダーなし
+            # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).get('/api/pot-artists')
 
         # 認証なしでも200が返ること
@@ -197,6 +198,7 @@ class TestAddPotArtist:
         """
         # require_auth をオーバーライドせず本来の認証チェックを走らせる
         # 1. Authorization ヘッダーなしで作成しようとすると 401 が返ること。
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).post('/api/pot-artists', json={'name': 'テスト'})
         assert resp.status_code == 401
 
@@ -233,5 +235,6 @@ class TestDeletePotArtist:
         """
         # require_auth をオーバーライドせず本来の認証チェックを走らせる
         # 1. Authorization ヘッダーなしで削除しようとすると 401 が返ること。
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).delete('/api/pot-artists/art1')
         assert resp.status_code == 401

@@ -132,6 +132,7 @@ class TestBuildArticlePageMeta:
         blocks = [{'type': 'image', 'url': 'https://cdn.example/inline.jpg'}]
 
         # 1. 依存関数を差し替えて記事ページのメタ情報を組み立てる。
+        # 変数の内容: result: テスト対象関数が返した結果。
         result = build_article_page_meta(
             '/official/journal/story-id', article, factory,
             lambda content: parsed_content.append(content) or blocks,
@@ -225,6 +226,7 @@ class TestBuildProductPageMeta:
         parsed_content = []
 
         # 1. 商品説明のパーサーとテキスト変換を注入して関数を呼ぶ。
+        # 変数の内容: result: テスト対象関数が返した結果。
         result = build_product_page_meta(
             '/official/shop/product-id', product, factory,
             lambda content: parsed_content.append(content) or [{'type': 'text', 'value': '説明ブロック'}],

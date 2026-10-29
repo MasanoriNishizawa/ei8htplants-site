@@ -1,4 +1,5 @@
--- カテゴリーカラムを products テーブルに追加
+-- 商品一覧で分類・絞り込みに使う任意のカテゴリーを products に追加する。
+-- 既存商品の未分類状態を許容するため NULL を認め、登録値は下記のカテゴリ一覧に制限する。
 
 ALTER TABLE products
   ADD COLUMN IF NOT EXISTS category TEXT

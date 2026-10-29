@@ -9,10 +9,12 @@ import ImageLightbox from '../ImageLightbox'
 
 /** テスト用の画像 URL 配列 */
 const SINGLE_IMAGE = ['https://example.com/photo1.jpg']
+/** 1枚目・2枚目の移動操作を確認するテスト用画像 */
 const TWO_IMAGES = [
   'https://example.com/photo1.jpg',
   'https://example.com/photo2.jpg',
 ]
+/** 3枚以上で前後移動を続けられることを確認するテスト用画像 */
 const THREE_IMAGES = [
   'https://example.com/photo1.jpg',
   'https://example.com/photo2.jpg',

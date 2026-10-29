@@ -45,6 +45,7 @@ class TestSendContact:
         mock_sb = _make_sb_mock()
 
         # resend モジュールをモックしてメール送信を抑制する
+        # 変数の内容: mock_resend: Resend メール送信クライアントのモック。
         mock_resend = MagicMock()
 
         with patch('app.routes.contact.admin_supabase', mock_sb), \

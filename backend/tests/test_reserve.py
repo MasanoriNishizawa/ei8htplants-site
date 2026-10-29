@@ -139,6 +139,7 @@ class TestCreateReservation:
         """
         # 必須フィールドをすべて省略した不正なボディ
         # 1. event_id・name・email が欠けたリクエストで 422 が返ること。
+        # 変数の内容: resp: API から返されたレスポンス。
         resp = TestClient(app).post('/api/reserve', json={})
         assert resp.status_code == 422
 
@@ -246,6 +247,7 @@ class TestCancelReservation:
             なし。
         """
         # キャンセル前の予約（status = 'pending'）
+        # 変数の内容: pending_row: 未確定状態の予約レコード。
         pending_row = {
             'id': 'reservation-1',
             'status': 'pending',
@@ -256,6 +258,7 @@ class TestCancelReservation:
             'created_at': '2099-01-01T00:00:00+00:00',
         }
         # キャンセル後の予約（status = 'cancelled'）
+        # 変数の内容: cancelled_row: キャンセル済み状態の予約レコード。
         cancelled_row = {**pending_row, 'status': 'cancelled'}
 
         # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントを置き換えるモック。

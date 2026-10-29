@@ -426,9 +426,10 @@ def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) 
     # 0. イベントがあるか確かめる（無い id で時間枠を作ると外部キー違反で 500 になるため）
     _ensure_event_exists(event_id)
     # 1. 既存の時間枠を読む
-    # 変数の内容: existing: 現在保存済みの時間枠、existing_by_id/label: 既存枠を照合する辞書。
+    # 変数の内容: existing: 現在保存済みの時間枠、existing_by_id: 時間枠 ID をキーに行を引く辞書。
     existing = admin_supabase.table('ws_sessions').select('id, time_label').eq('event_id', event_id).execute().data or []
     existing_by_id = {s['id']: s for s in existing}
+    # 変数の内容: existing_by_label: time_label をキー、対応する時間枠 ID を値にする照合辞書。
     existing_by_label = {s['time_label']: s['id'] for s in existing}
 
     # 2. 送られた順に、既存の枠は更新・新しい枠は作成する

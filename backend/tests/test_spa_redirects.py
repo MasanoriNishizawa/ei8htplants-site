@@ -37,6 +37,7 @@ class TestResolveSpaRedirect:
             なし。
         """
         # 1. ブランド host の管理画面トップを query 付きで解決する。
+        # 変数の内容: destination: リダイレクト先として解決された URL。
         destination = resolve_spa_redirect(
             host, 'admin', 'next=%2Fadmin%2Fevents', SITE_ORIGIN, BRAND_DOMAINS
         )
@@ -64,6 +65,7 @@ class TestResolveSpaRedirect:
             なし。
         """
         # 1. ブランド host の admin 配下を query 付きで解決する。
+        # 変数の内容: destination: リダイレクト先として解決された URL。
         destination = resolve_spa_redirect(
             host, 'admin/events/42', 'tab=photos', SITE_ORIGIN, BRAND_DOMAINS
         )
@@ -81,9 +83,11 @@ class TestResolveSpaRedirect:
             なし。
         """
         # 1. 通常 host と大文字 host を同じブランド辞書でそれぞれ解決する。
+        # 変数の内容: regular_host: 通常の公開サイトのホスト名。
         regular_host = resolve_spa_redirect(
             'ei8htplants.com', 'admin', '', SITE_ORIGIN, BRAND_DOMAINS
         )
+        # 変数の内容: uppercase_host: 大文字を含むテスト用ホスト名。
         uppercase_host = resolve_spa_redirect(
             'HABITATOIDES.COM', 'admin', '', SITE_ORIGIN, BRAND_DOMAINS
         )
@@ -124,6 +128,7 @@ class TestResolveSpaRedirect:
             なし。
         """
         # 1. 現行の移転先と query を指定して旧 URL の転送先を解決する。
+        # 変数の内容: destination: リダイレクト先として解決された URL。
         destination = resolve_spa_redirect(
             host, path, 'source=legacy&page=2', SITE_ORIGIN, BRAND_DOMAINS
         )
@@ -141,9 +146,11 @@ class TestResolveSpaRedirect:
             なし。
         """
         # 1. 未登録 host と登録 host の未登録 path をそれぞれ解決する。
+        # 変数の内容: unknown_host: 登録されていないテスト用ホスト名。
         unknown_host = resolve_spa_redirect(
             'unknown.example.com', 'habitatoides', '', SITE_ORIGIN, BRAND_DOMAINS
         )
+        # 変数の内容: unknown_path: 転送先が存在しないテスト用パス。
         unknown_path = resolve_spa_redirect(
             'ei8htplants.com', 'habitatoides/about', '', SITE_ORIGIN, BRAND_DOMAINS
         )

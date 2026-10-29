@@ -1,5 +1,6 @@
 -- オンラインショップの商品・注文・注文明細テーブルを作成し、公開読み取りと管理権限を設定する。
 
+-- オンラインショップで販売する商品の価格・在庫・公開状態・画像を保存する。
 CREATE TABLE products (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     name          TEXT        NOT NULL,
@@ -20,6 +21,7 @@ CREATE POLICY "public read published products" ON products
 CREATE POLICY "service manage products" ON products
     FOR ALL TO service_role USING (true);
 
+-- 顧客の注文と配送先、決済状態を保存する。購入時点の注文内容を管理画面で確認する。
 CREATE TABLE orders (
     id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_name     TEXT        NOT NULL,
@@ -44,6 +46,8 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "service manage orders" ON orders
     FOR ALL TO service_role USING (true);
 
+-- 注文に含まれる商品ごとの購入時点の商品名・価格・数量を保存する明細。
+-- 注文削除時は明細も削除し、商品削除時は商品IDだけを NULL にして購入履歴を残す。
 CREATE TABLE order_items (
     id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id     UUID        NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -67,6 +71,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 AS $$
 DECLARE
+    -- UPDATE が在庫を確保できた商品行数。1行以上なら減算成功として返す。
     updated integer;
 BEGIN
     UPDATE products

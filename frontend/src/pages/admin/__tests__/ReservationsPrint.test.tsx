@@ -323,9 +323,17 @@ describe('Reservations（全イベントの予約一覧）', () => {
    * @returns 非同期応答と表示のアサーション完了時に解決する Promise
    */
   it('FE-CX-06 遅れて届いたイベントAの時間枠ではなく、最後に選んだイベントBの時間枠を表示する', async () => {
-    /** イベントAのセッション取得を手動で完了させる関数 */
+    /**
+     * イベントAの時間枠取得 Promise を指定した枠で完了させる。
+     * @param sessions - イベントAの時間枠
+     * @returns なし
+     */
     let resolveSessionsA: (sessions: WsSession[]) => void = () => undefined
-    /** イベントBのセッション取得を手動で完了させる関数 */
+    /**
+     * イベントBの時間枠取得 Promise を指定した枠で完了させる。
+     * @param sessions - イベントBの時間枠
+     * @returns なし
+     */
     let resolveSessionsB: (sessions: WsSession[]) => void = () => undefined
     /** イベントAを選んだ直後にはまだ完了させないセッション取得 */
     const sessionsA = new Promise<WsSession[]>((resolve) => { resolveSessionsA = resolve })
@@ -374,6 +382,22 @@ describe('EventReservations（イベント別の予約画面）', () => {
         </Routes>
       </MemoryRouter>,
     )
+
+  /**
+   * 詳細モーダルの表示・更新に使う予約をモック一覧へ設定する。
+   * 1. 詳細欄の各項目を区別できる予約を作る。
+   * 2. 予約一覧 API のモックへ設定し、作成した予約を返す。
+   * @returns 詳細モーダルのテストで使う予約。
+   */
+  const setDetailReservation = () => {
+    /** 詳細欄で各予約情報が見分けられるよう、固有値を持たせた予約 */
+    const reservation = makeReservation({
+      id: 'r-detail', name: '詳細確認さん', email: 'detail@example.com', phone: '090-1234-5678',
+      participants: 3, bring_plant: true, bring_pot: true, note: '備考の内容',
+    })
+    vi.mocked(api.reserve.list).mockResolvedValue([reservation])
+    return reservation
+  }
 
   it('件数と人数はキャンセルを除いて「全1件 / 2名」になる', async () => {
     renderPage()
@@ -440,6 +464,116 @@ describe('EventReservations（イベント別の予約画面）', () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: '予約ページリンクをコピー' }))
     expect(await screen.findByText(/リンクをコピーできませんでした/)).toBeInTheDocument()
+  })
+
+  it('FE-CY-01 モバイルカードから詳細を開くと予約情報が表示される', /**
+   * 画面上のモバイルカードを操作し、予約情報が詳細に出ることを確認する。
+   * @returns {Promise<void>} 表示確認が完了したときに解決する。
+   */
+  async () => {
+    setDetailReservation()
+    renderPage()
+
+    // 1. 一覧のモバイルカードから予約詳細を開く。
+    fireEvent.click(await screen.findByLabelText('詳細確認さん さんの予約の詳細を開く'))
+    /** 名前付き予約情報が表示される詳細ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })
+
+    // 2. 予約者と予約内容が詳細画面に表示される。
+    expect(within(dialog).getByText('detail@example.com')).toBeInTheDocument()
+    expect(within(dialog).getByText('090-1234-5678')).toBeInTheDocument()
+    expect(within(dialog).getByText('2099-06-01')).toBeInTheDocument()
+    expect(within(dialog).getByText('11:00〜12:00')).toBeInTheDocument()
+    expect(within(dialog).getByText('3名')).toBeInTheDocument()
+    expect(within(dialog).getByText('植物・鉢')).toBeInTheDocument()
+    expect(within(dialog).getByText('備考の内容')).toBeInTheDocument()
+  })
+
+  it('FE-CY-02 詳細の内側をクリックしても閉じず、閉じる操作で閉じる', /**
+   * 詳細内のクリックが閉じる操作にならず、閉じるボタンで閉じることを確認する。
+   * @returns {Promise<void>} 開閉の確認が完了したときに解決する。
+   */
+  async () => {
+    setDetailReservation()
+    renderPage()
+    fireEvent.click(await screen.findByLabelText('詳細確認さん さんの予約の詳細を開く'))
+    /** 内側クリックと閉じるボタンの対象となる詳細ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })
+
+    // 1. 詳細内容へのクリックは背景へ伝播せず、ダイアログを保つ。
+    fireEvent.click(within(dialog).getByText('備考の内容'))
+    expect(screen.getByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })).toBeInTheDocument()
+
+    // 2. 閉じるボタンを押すとダイアログを閉じる。
+    fireEvent.click(within(dialog).getByRole('button', { name: '閉じる' }))
+    expect(screen.queryByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })).not.toBeInTheDocument()
+  })
+
+  it('FE-CY-03 詳細の背景をクリックすると閉じる', /**
+   * 詳細モーダルの背景を押すと閉じることを確認する。
+   * @returns {Promise<void>} 背景操作の確認が完了したときに解決する。
+   */
+  async () => {
+    setDetailReservation()
+    renderPage()
+    fireEvent.click(await screen.findByLabelText('詳細確認さん さんの予約の詳細を開く'))
+    /** 背景クリック時に閉じる対象の詳細ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })
+
+    // 1. ダイアログ外側の背景を押すと、詳細を閉じる。
+    fireEvent.click(dialog.parentElement as HTMLElement)
+    expect(screen.queryByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })).not.toBeInTheDocument()
+  })
+
+  it('FE-CY-04 詳細内のステータス更新成功は一覧と詳細の両方へ反映される', /**
+   * 詳細内のステータス更新が成功したとき、一覧と詳細が同じ状態になることを確認する。
+   * @returns {Promise<void>} 更新結果の確認が完了したときに解決する。
+   */
+  async () => {
+    /** ステータス更新のレスポンスに使う元の予約 */
+    const reservation = setDetailReservation()
+    vi.mocked(api.reserve.updateStatus).mockResolvedValue({ ...reservation, status: 'cancelled' })
+    renderPage()
+    fireEvent.click(await screen.findByLabelText('詳細確認さん さんの予約の詳細を開く'))
+    /** ステータス更新操作を行う詳細ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })
+
+    // 1. 詳細内でキャンセルを選び、予約 API を呼ぶ。
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'ステータス' }), { target: { value: 'cancelled' } })
+    await waitFor(() => expect(api.reserve.updateStatus).toHaveBeenCalledWith('r-detail', 'cancelled'))
+
+    // 2. API 成功後、一覧のバッジと一覧・詳細の選択欄が新しい状態になる。
+    expect(within(dialog).getByRole('combobox', { name: 'ステータス' })).toHaveValue('cancelled')
+    /** 画面上の表にある対象予約の行。badge と select の状態確認に使う */
+    const reservationRow = screen.getAllByRole('row').find((row) => row.textContent?.includes('詳細確認さん')) as HTMLElement
+    await waitFor(() => expect(within(reservationRow).getByRole('combobox', { name: '詳細確認さん さんの予約のステータス' })).toHaveValue('cancelled'))
+    expect(within(reservationRow).getByText('キャンセル', { selector: 'span' })).toBeVisible()
+  })
+
+  it('FE-CY-05 詳細内のステータス更新失敗は元状態を保ちエラーを表示する', /**
+   * 詳細内のステータス更新が失敗したとき、元状態とエラー表示を確認する。
+   * @returns {Promise<void>} 失敗時の画面確認が完了したときに解決する。
+   */
+  async () => {
+    /** 更新失敗前後の予約情報が元状態のままか調べる予約 */
+    const reservation = setDetailReservation()
+    vi.mocked(api.reserve.updateStatus).mockRejectedValue(new Error('一時障害'))
+    renderPage()
+    fireEvent.click(await screen.findByLabelText('詳細確認さん さんの予約の詳細を開く'))
+    /** 失敗後の状態を確認する詳細ダイアログ */
+    const dialog = await screen.findByRole('dialog', { name: '詳細確認さん さんの予約の詳細' })
+
+    // 1. キャンセルを選んで失敗させる。
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'ステータス' }), { target: { value: 'cancelled' } })
+    expect(await screen.findByRole('alert')).toHaveTextContent('ステータスの変更に失敗しました。元の状態のままです（一時障害）')
+
+    // 2. 一覧と詳細のどちらも元の受付済状態を表示し、再操作できる。
+    expect(within(dialog).getByRole('combobox', { name: 'ステータス' })).toHaveValue('pending')
+    /** 画面上の表にある対象予約の行。badge と select の状態確認に使う */
+    const reservationRow = screen.getAllByRole('row').find((row) => row.textContent?.includes('詳細確認さん')) as HTMLElement
+    expect(within(reservationRow).getByRole('combobox', { name: '詳細確認さん さんの予約のステータス' })).toHaveValue('pending')
+    expect(within(reservationRow).getByText('受付済', { selector: 'span' })).toBeVisible()
+    expect(reservation.status).toBe('pending')
   })
 })
 

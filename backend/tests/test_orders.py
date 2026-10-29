@@ -311,6 +311,7 @@ class TestCreateOrder:
         """
         # stock=0 で在庫不足を再現
         # 1. 在庫が注文数量を下回るとき 409 Conflict が返ること。
+        # 変数の内容: mock_sb: Supabase クライアントのモック。
         mock_sb = _make_admin_sb_for_create(stock=0)
         # 変数の内容: mock_http: 外部 HTTP 通信を置き換えるモック。
         mock_http = _make_http_mock_success()

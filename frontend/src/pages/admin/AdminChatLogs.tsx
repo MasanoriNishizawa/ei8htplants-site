@@ -27,13 +27,18 @@ export default function AdminChatLogs() {
 
   // 画面を開いたときにログを読み込む。失敗したら一覧を空にしてエラーを出す
   useEffect(() => {
+    // 1. 保存されている会話ログを取得して一覧へ反映する
     api.chatLogs.list()
       .then(setLogs)
       .catch((e: unknown) => {
+        // 2. 読み込みに失敗したら一覧を空にし、利用者へ理由を表示する
         setLogs([])
         setError(failMessage('チャット履歴の読み込みに失敗しました', e))
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        // 3. 成功・失敗のどちらでも読み込み表示を終了する
+        setLoading(false)
+      })
   }, [])
 
   return (
