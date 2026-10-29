@@ -1,9 +1,8 @@
 import { SKIP_ADMIN_AUTH, DEV_SKIP_AUTH_TOKEN } from './devAuth'
 import type { ChatSendMessage } from './chatHistory'
+import { createEventsApi } from './apiDomains/events'
 import type {
-  PageContent,
   Event,
-  EventBody,
   GalleryImage,
   SiteAsset,
   GalleryBody,
@@ -13,13 +12,8 @@ import type {
   ContactRecord,
   ReservationPayload,
   Reservation,
-  WsSession,
   Collaboration,
   CollaborationPayload,
-  EventFinances,
-  EventFinancesBody,
-  EventAdminInfo,
-  AdminInfoDashboardItem,
   Article,
   ArticleBody,
   MediaAppearance,
@@ -237,55 +231,7 @@ export const api = {
       authRequest<SiteAsset>(`/site-assets/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ url }) }),
   },
   /** イベント（公開の一覧・1 件と、管理画面の作成・更新・削除・収支・時間枠・イベントページ・管理情報） */
-  events: {
-    /** イベントの一覧を取る（past が true なら終了したイベント） */
-    list: (past = false) => request<Event[]>(`/events?past=${past}`),
-    /** イベントを 1 件取る（id かスラッグ。opts で cache などを足せる） */
-    get: (id: string, opts?: RequestInit) => request<Event>(`/events/${id}`, opts),
-    /** イベントを作る（管理者のみ） */
-    create: (body: EventBody) =>
-      authRequest<Event>('/events', { method: 'POST', body: JSON.stringify(body) }),
-    /** イベントを更新する（管理者のみ） */
-    update: (id: string, body: EventBody) =>
-      authRequest<Event>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-    /** イベントを削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/events/${id}`, { method: 'DELETE' }),
-    /** イベントの収支を取る（管理者のみ。未保存なら 404） */
-    getFinances: (id: string) =>
-      authRequest<EventFinances>(`/events/${id}/finances`),
-    /** イベントの収支を保存する（管理者のみ） */
-    saveFinances: (id: string, body: EventFinancesBody) =>
-      authRequest<EventFinances>(`/events/${id}/finances`, { method: 'PUT', body: JSON.stringify(body) }),
-    /** 全イベントの収支をまとめて取る（管理者のみ） */
-    getAllFinances: () =>
-      authRequest<EventFinances[]>('/events/finances'),
-    /** ワークショップの時間枠を取る（date を渡すとその日の枠だけ） */
-    getSessions: (id: string, date?: string) =>
-      request<WsSession[]>(`/events/${id}/sessions${date ? `?date=${encodeURIComponent(date)}` : ''}`),
-    /** ワークショップの時間枠をまとめて保存する（管理者のみ。id の無い行は新しく作る） */
-    saveSessions: (id: string, sessions: { id?: string; time_label: string; max_participants: number }[]) =>
-      authRequest<WsSession[]>(`/events/${id}/sessions`, { method: 'PUT', body: JSON.stringify({ sessions }) }),
-    /** イベントページの中身を保存する（管理者のみ） */
-    savePageContent: (id: string, page_content: PageContent) =>
-      authRequest<Event>(`/events/${id}/page`, { method: 'PATCH', body: JSON.stringify({ page_content }) }),
-    /** イベントの管理情報（搬入・搬出時間・宿泊・出店料など）を取得する */
-    getAdminInfo: (id: string) =>
-      authRequest<EventAdminInfo>(`/events/${id}/admin-info`),
-    /** イベントの管理情報を保存する */
-    saveAdminInfo: (id: string, body: EventAdminInfo) =>
-      authRequest<{ ok: boolean }>(`/events/${id}/admin-info`, { method: 'PUT', body: JSON.stringify(body) }),
-    /**
-     * 管理画面ダッシュボード用に、イベントごとの管理情報（搬入・ホテル・出店料）をまとめて取得する
-     * 対象は終了日が今日以降のイベントと、終了済みでも出店料が未払いのイベント（並びは開始日の昇順。絞り込みはバックエンド）
-     * @returns イベントごとの管理情報の一覧
-     */
-    getAdminInfoDashboard: async (): Promise<AdminInfoDashboardItem[]> => {
-      // ダッシュボードに表示する管理情報の一覧
-      const res = await authRequest<{ items: AdminInfoDashboardItem[] }>('/events/admin-info/dashboard')
-      return res.items
-    },
-  },
+  events: createEventsApi(request, authRequest),
   /** ギャラリーの画像 */
   gallery: {
     /** ギャラリーの画像を取る（brand を渡すと、その値と一致する画像だけ） */

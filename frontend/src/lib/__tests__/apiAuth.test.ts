@@ -74,6 +74,30 @@ describe('認証つきリクエストのトークン', () => {
     expect(authHeaderOf()).toBe('Bearer real-jwt')
   })
 
+  it('イベントの管理APIもセッションJWTをAuthorizationに付けて送る', async () => {
+    state.token = 'event-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ event_id: 'ev-1', sales: 12000 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    await api.events.getFinances('ev-1')
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/events/ev-1/finances')
+    expect(authHeaderOf()).toBe('Bearer event-admin-jwt')
+  })
+
+  it('イベントの公開APIはAuthorizationを付けずに送る', async () => {
+    await api.events.list()
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/events?past=false')
+    expect(authHeaderOf()).toBeUndefined()
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true

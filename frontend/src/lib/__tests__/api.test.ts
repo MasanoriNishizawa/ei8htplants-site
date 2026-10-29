@@ -218,6 +218,150 @@ describe('api.events', () => {
     expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1')
     expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
   })
+
+  it('api.events.getFinances(id) が収支を GET して応答を返す', async () => {
+    const response = { event_id: 'ev-1', sales: 12000 }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.getFinances('ev-1')
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/finances')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.saveFinances(id, body) が PUT で収支を送り応答を返す', async () => {
+    const body = {
+      sales: 12000,
+      booth_fee: 0,
+      distance: 0,
+      gas_price: 170,
+      expressway_toll: 0,
+      accommodation: 0,
+      ws_participants: 0,
+      payment_flag: false,
+      ws_payment_done: false,
+      other_expenses: 0,
+      other_expenses_note: null,
+      notes: '当日売上',
+    }
+    const response = { event_id: 'ev-1', ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.saveFinances('ev-1', body)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/finances')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.getAllFinances() が全収支を GET して配列を返す', async () => {
+    const response = [{ event_id: 'ev-1', sales: 12000 }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.getAllFinances()
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/finances')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.getSessions(id) が日付指定なしで GET して配列を返す', async () => {
+    const response = [{ id: 'session-1', time_label: '10:00', max_participants: 8 }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.getSessions('ev-1')
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/sessions')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.getSessions(id, date) が日付をエンコードして GET する', async () => {
+    const response = [{ id: 'session-1', date: '2026-11-01' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.getSessions('ev-1', '2026-11-01')
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/sessions?date=2026-11-01')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.saveSessions(id, sessions) が PUT で時間枠一覧を送り応答を返す', async () => {
+    const sessions = [{ id: 'session-1', time_label: '10:00', max_participants: 8 }]
+    const response = [{ ...sessions[0], event_id: 'ev-1' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.saveSessions('ev-1', sessions)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/sessions')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify({ sessions }) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.savePageContent(id, page_content) が PATCH で本文を送りイベントを返す', async () => {
+    const page_content = { concept: 'イベント詳細' }
+    const response = { id: 'ev-1', page_content }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.savePageContent('ev-1', page_content)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/page')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PATCH', body: JSON.stringify({ page_content }) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.getAdminInfo(id) が管理情報を GET して応答を返す', async () => {
+    const response = { event_id: 'ev-1', load_in_time: '09:00', booth_fee: 5000 }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.getAdminInfo('ev-1')
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/admin-info')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.saveAdminInfo(id, body) が PUT で管理情報を送り結果を返す', async () => {
+    const body = { event_id: 'ev-1', load_in_time: '09:00', booth_fee: 5000 }
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.saveAdminInfo('ev-1', body)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/ev-1/admin-info')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('api.events.getAdminInfoDashboard() がitemsを取り出して配列を返す', async () => {
+    const items = [{ event_id: 'ev-1', event_name: '植物市', booth_fee: 5000 }]
+    mockFetch = makeMockFetch({ items })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.events.getAdminInfoDashboard()
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/events/admin-info/dashboard')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(items)
+    expect(result).not.toHaveProperty('items')
+  })
 })
 
 describe('api.gallery', () => {
