@@ -273,6 +273,154 @@ class TestEventCRUD:
         public_images_table.select.return_value.in_.assert_called_once_with('event_id', [event['id']])
         public_images_table.select.return_value.in_.return_value.order.assert_called_once_with('display_order')
 
+    def test_イベント作成後のUUID公開読戻し失敗は500で画像読取へ進まない(self):
+        """イベントと画像のINSERT成功後に公開UUID読戻しが失敗すると500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event: INSERT応答のイベント行、event_id: 公開読戻し対象UUID、operations: 管理保存と公開読取の順序ログ。
+        event = _event_data('11111111-1111-1111-1111-111111111111', '読戻し失敗イベント')
+        event_id = event['id']
+        operations = []
+        event_table = MagicMock()
+        admin_images_table = MagicMock()
+        public_event_table = MagicMock()
+        public_images_table = MagicMock()
+        # 1. 管理側の二つのINSERTを成功させ、各execute完了をログに記録する。
+        event_response = MagicMock(data=[event])
+        event_table.insert.return_value.execute.side_effect = lambda: (
+            operations.append('event_insert'), event_response
+        )[1]
+        image_response = MagicMock(data=[])
+        admin_images_table.insert.return_value.execute.side_effect = lambda: (
+            operations.append('image_insert'), image_response
+        )[1]
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.attach_mock(event_table, 'events_table')
+        mock_admin_sb.attach_mock(admin_images_table, 'event_images_table')
+        mock_admin_sb.table.side_effect = [event_table, admin_images_table]
+
+        # 2. 公開slug検索は空、UUID id検索は一般例外とし、失敗後の画像読取を追跡する。
+        slug_query = MagicMock()
+        slug_query.execute.side_effect = lambda: (operations.append('public_slug_read'), MagicMock(data=[]))[1]
+
+        def fail_id_readback():
+            """UUIDによる公開イベント読戻しの失敗を記録して例外を返す。
+
+            Returns:
+                なし。
+
+            Raises:
+                RuntimeError: UUIDによる公開イベント読戻しを失敗させる。
+            """
+            # 1. 先行する両INSERTが完了していることを呼出順ログで確かめ、UUID検索失敗を記録する。
+            assert operations == ['event_insert', 'image_insert', 'public_slug_read']
+            operations.append('public_id_read')
+            raise RuntimeError('public event id readback failed')
+
+        id_query = MagicMock()
+        id_query.execute.side_effect = fail_id_readback
+        public_event_table.select.return_value.eq.side_effect = [slug_query, id_query]
+        mock_public_sb = MagicMock()
+        mock_public_sb.table.side_effect = [public_event_table, public_event_table, public_images_table]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb), \
+             patch('app.routes.events.supabase', mock_public_sb):
+            # 変数の内容: resp: 画像付きイベント作成APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).post('/api/events', json={
+                'name': '読戻し失敗イベント',
+                'start_date': '2099-01-01',
+                'location': '東京',
+                'image_urls': ['https://example.com/event.jpg'],
+            })
+
+        # 3. 500応答、二つのINSERT完了後のUUID検索失敗、画像読取停止を確認する。
+        assert resp.status_code == 500
+        assert operations == ['event_insert', 'image_insert', 'public_slug_read', 'public_id_read']
+        event_table.insert.return_value.execute.assert_called_once()
+        admin_images_table.insert.return_value.execute.assert_called_once()
+        assert public_event_table.select.return_value.eq.call_args_list == [
+            call('slug', event_id), call('id', event_id),
+        ]
+        public_images_table.select.assert_not_called()
+
+    def test_イベント作成後の公開画像読戻し失敗は500(self):
+        """イベントと画像のINSERT後に公開画像読戻しが失敗すると500を返す。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: event: INSERT応答のイベント行、operations: 各管理INSERTと公開readbackの順序ログ。
+        event = _event_data('11111111-1111-1111-1111-111111111111', '画像読戻し失敗イベント')
+        operations = []
+        event_table = MagicMock()
+        admin_images_table = MagicMock()
+        public_event_table = MagicMock()
+        public_images_table = MagicMock()
+        # 1. 管理側INSERTの完了順をログへ残して成功応答を返す。
+        event_response = MagicMock(data=[event])
+        event_table.insert.return_value.execute.side_effect = lambda: (
+            operations.append('event_insert'), event_response
+        )[1]
+        image_response = MagicMock(data=[])
+        admin_images_table.insert.return_value.execute.side_effect = lambda: (
+            operations.append('image_insert'), image_response
+        )[1]
+        mock_admin_sb = MagicMock()
+        mock_admin_sb.attach_mock(event_table, 'events_table')
+        mock_admin_sb.attach_mock(admin_images_table, 'event_images_table')
+        mock_admin_sb.table.side_effect = [event_table, admin_images_table]
+
+        # 2. 公開イベント検索はslug空→UUID成功、画像SELECTのみ失敗させる。
+        slug_query = MagicMock()
+        slug_query.execute.side_effect = lambda: (operations.append('public_slug_read'), MagicMock(data=[]))[1]
+        id_query = MagicMock()
+        id_query.execute.side_effect = lambda: (operations.append('public_id_read'), MagicMock(data=[event]))[1]
+        public_event_table.select.return_value.eq.side_effect = [slug_query, id_query]
+
+        def fail_image_readback():
+            """画像公開読戻しで先行処理完了を確認し、一般例外を返す。
+
+            Returns:
+                なし。
+
+            Raises:
+                RuntimeError: 公開画像の読戻しを失敗させる。
+            """
+            # 1. イベント・画像INSERTと公開イベント読戻しが済んだ順を確認して失敗段階を記録する。
+            assert operations == ['event_insert', 'image_insert', 'public_slug_read', 'public_id_read']
+            operations.append('public_image_read')
+            raise RuntimeError('public event images readback failed')
+
+        public_images_table.select.return_value.in_.return_value.order.return_value.execute.side_effect = (
+            fail_image_readback
+        )
+        mock_public_sb = MagicMock()
+        mock_public_sb.table.side_effect = [public_event_table, public_event_table, public_images_table]
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb), \
+             patch('app.routes.events.supabase', mock_public_sb):
+            # 変数の内容: resp: 画像付きイベント作成APIのHTTP応答。
+            resp = TestClient(app, raise_server_exceptions=False).post('/api/events', json={
+                'name': '画像読戻し失敗イベント',
+                'start_date': '2099-01-01',
+                'location': '東京',
+                'image_urls': ['https://example.com/event.jpg'],
+            })
+
+        # 3. 500応答と画像読戻し失敗までの順序を確認し、失敗点以後の読取がないことを確かめる。
+        assert resp.status_code == 500
+        assert operations == [
+            'event_insert', 'image_insert', 'public_slug_read', 'public_id_read', 'public_image_read',
+        ]
+        event_table.insert.return_value.execute.assert_called_once()
+        admin_images_table.insert.return_value.execute.assert_called_once()
+        assert public_event_table.select.return_value.eq.call_args_list == [
+            call('slug', event['id']), call('id', event['id']),
+        ]
+        public_images_table.select.return_value.in_.return_value.order.return_value.execute.assert_called_once()
+
     def test_イベント作成_eventsのinsert失敗時は画像保存へ進まず500(self):
         """イベント本体の INSERT 失敗は 500 となり画像テーブルを呼ばない。
 
