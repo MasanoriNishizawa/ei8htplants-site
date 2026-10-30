@@ -14,9 +14,8 @@ import { createPotArtistsApi } from './apiDomains/potArtists'
 import { createPriceCalcEntriesApi } from './apiDomains/priceCalcEntries'
 import { createChatQaApi } from './apiDomains/chatQa'
 import { createArticlesApi } from './apiDomains/articles'
+import { createDashboardStatsApi } from './apiDomains/dashboardStats'
 import type {
-  Event,
-  ContactRecord,
   ReservationPayload,
   Reservation,
   Product,
@@ -195,23 +194,8 @@ async function uploadFile(path: string, file: File): Promise<string> {
 
 /** バックエンドへの API 呼び出しをまとめたオブジェクト */
 export const api = {
-  /**
-   * ダッシュボード用の統計情報（未読問い合わせ・開催中イベント・未処理注文数）を一括取得（管理者のみ）
-   * @returns unreadContacts: 未読の問い合わせ数、activeEvents: 開催前・開催中のイベント数、pendingOrders: 支払い済み・未発送の注文数
-   */
-  stats: async (): Promise<{ unreadContacts: number; activeEvents: number; pendingOrders: number }> => {
-    // ダッシュボードの各指標に必要なデータを並行して取得する
-    const [contacts, events, orders] = await Promise.all([
-      authRequest<ContactRecord[]>('/contacts'),
-      request<Event[]>('/events?past=false'),
-      authRequest<Order[]>('/orders'),
-    ])
-    return {
-      unreadContacts: contacts.filter((c) => !c.is_read).length,
-      activeEvents: events.length,
-      pendingOrders: orders.filter((o) => o.status === 'paid').length,
-    }
-  },
+  /** ダッシュボードの統計カード用データ */
+  ...createDashboardStatsApi(request, authRequest),
   /** 画像を Storage にアップロードし、公開 URL を返す（管理者のみ） */
   upload: (file: File): Promise<string> => uploadFile('/upload', file),
   /** 動画を Storage にアップロードし、公開 URL を返す（管理者のみ） */

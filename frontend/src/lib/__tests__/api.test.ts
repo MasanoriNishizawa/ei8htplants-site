@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { type EventFinances, api } from '../api'
+import { createDashboardStatsApi } from '../apiDomains/dashboardStats'
 import type { ChatSendMessage } from '../chatHistory'
 // 収支の計算は lib/finance.ts に移ったので、移動先から直接読み込む
 import { computeFinances, fiscalYear } from '../finance'
@@ -362,6 +363,56 @@ describe('api.events', () => {
     expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
     expect(result).toEqual(items)
     expect(result).not.toHaveProperty('items')
+  })
+})
+
+describe('api.stats', () => {
+  /**
+   * 認証付き問い合わせ・注文と公開イベントを並列取得し、管理画面用の件数へ集計する契約を確かめる。
+   * @returns 3つのAPI要求が揃ったあと応答を返し、統計値を検証する。
+   */
+  it('FE-API-53: 問い合わせ・公開イベント・注文を並列取得し未読・開催中・支払い済み注文を集計する', async () => {
+    // 共通リクエスト関数の代わりに使う遅延応答の記録
+    const pending: Array<{
+      path: string
+      resolve: (data: unknown) => void
+    }> = []
+    const requestMock = vi.fn((path: string) =>
+      new Promise<unknown>((resolve) => {
+        pending.push({ path: `public:${path}`, resolve })
+      }),
+    )
+    const authRequestMock = vi.fn((path: string) =>
+      new Promise<unknown>((resolve) => {
+        pending.push({ path: `auth:${path}`, resolve })
+      }),
+    )
+    // 共通API関数のジェネリックな戻り値型にテスト用Promiseを合わせる
+    const request = requestMock as unknown as Parameters<typeof createDashboardStatsApi>[0]
+    const authRequest = authRequestMock as unknown as Parameters<typeof createDashboardStatsApi>[1]
+
+    // 1. 3要求を共通の認証付き・公開リクエスト関数へ並列で振り分ける
+    const statsPromise = createDashboardStatsApi(request, authRequest).stats()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(requestMock).toHaveBeenCalledTimes(1)
+    expect(authRequestMock).toHaveBeenCalledTimes(2)
+    expect(pending.map(({ path }) => path).sort()).toEqual([
+      'auth:/contacts',
+      'auth:/orders',
+      'public:/events?past=false',
+    ])
+
+    // 2. 各一覧の応答を返し、未読・開催中・支払い済みの条件で件数を集計する
+    pending.find(({ path }) => path === 'auth:/contacts')!.resolve([{ is_read: false }, { is_read: true }, { is_read: false }])
+    pending.find(({ path }) => path === 'public:/events?past=false')!.resolve([{ id: 'event-1' }, { id: 'event-2' }])
+    pending.find(({ path }) => path === 'auth:/orders')!.resolve([
+      { status: 'paid' },
+      { status: 'pending' },
+      { status: 'shipped' },
+      { status: 'paid' },
+    ])
+
+    await expect(statsPromise).resolves.toEqual({ unreadContacts: 2, activeEvents: 2, pendingOrders: 2 })
   })
 })
 
