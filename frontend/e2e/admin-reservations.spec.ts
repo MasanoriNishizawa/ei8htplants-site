@@ -9,8 +9,8 @@ test.describe('管理画面の当日参加登録', /**
   * @returns 含まれるテストケースを登録する。
   */
   () => {
-  test('/admin/reservations — 時間枠がないイベントを選び、当日参加を登録すると一覧に表示される', /**
-     * 予約一覧からイベントを選び、時間枠がない状態で当日参加を登録して、追加された予約行を確かめる。
+  test('/admin/reservations — 当日参加登録後、PCとスマホの予約一覧表示を切り替える', /**
+     * 時間枠がないイベントへ当日参加を登録し、PC・スマホ幅で予約一覧表示が切り替わることを確かめる。
      * @param page 操作・検証対象の Playwright ページ。
      * @returns {Promise<void>} 画面の操作とアサーションが完了したときに解決する。
      */
@@ -30,10 +30,26 @@ test.describe('管理画面の当日参加登録', /**
     await dialog.getByRole('button', { name: '登録', exact: true }).click()
     await expect(dialog).toBeHidden()
 
-    // 4. MSW が返した当日参加予約が、予約一覧の新しい行として表示されることを確認する。
+    // 4. PC幅では、MSW が返した当日参加予約がテーブルの新しい行に表示される。
     const reservationRow = page.getByRole('table').getByRole('row').filter({ hasText: '当日参加' })
     await expect(reservationRow).toHaveCount(1)
     await expect(reservationRow).toContainText('Green Market 2027')
     await expect(reservationRow).toContainText('当日参加')
+    await expect(page.getByRole('table')).toBeVisible()
+    const reservationCard = page.getByLabel('当日参加 さんの予約の詳細を開く')
+    await expect(reservationCard).toBeHidden()
+
+    // 5. スマホ幅ではカードへ切り替わり、予約の要約とイベント名を確認する。
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByRole('table')).toBeHidden()
+    await expect(reservationCard).toBeVisible()
+    await expect(reservationCard).toContainText('Green Market 2027')
+    await expect(reservationCard).toContainText('当日参加')
+
+    // 6. PC幅へ戻すとカードが隠れ、同じ予約行がテーブルに表示される。
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await expect(reservationCard).toBeHidden()
+    await expect(page.getByRole('table')).toBeVisible()
+    await expect(reservationRow).toBeVisible()
   })
 })

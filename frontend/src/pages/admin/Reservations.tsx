@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type Event, type WsSession } from '../../lib/api'
-import { STATUS_LABELS, STATUS_COLORS, STATUS_OPTIONS } from '../../lib/reservationConstants'
+import { STATUS_OPTIONS } from '../../lib/reservationConstants'
 import { formatJstDate, todayJst } from '../../lib/localDate'
-import { clickableProps } from './a11y'
 import { failMessage, statusOf } from './errorMessage'
 import { buildReservationPrintHtml, type ReservationWithTime } from './reservationPrint'
+import ReservationsList from './reservations/ReservationsList'
 import WalkinReservationModal from './WalkinReservationModal'
 
 /** 画面上部に表示する一覧読み込み・状態変更エラーの帯 */
@@ -254,9 +254,6 @@ export default function AdminReservations() {
   /** 印刷のタイトルに使う名前 */
   const selectedEventName = eventFilter === 'all' ? 'WS予約一覧' : (eventsMap.get(eventFilter) ?? 'イベント')
 
-  /** PC 用の表の見出し（「すべてのイベント」のときは、表の側でこの前に「イベント」列を足す） */
-  const headers = ['受付日', 'お名前', 'メール', '電話', '希望日', '予約時間', '人数', '持込', '備考', 'ステータス']
-
   /**
    * 「今後の開催」「過去の開催」のタブを切り替える（絞り込みと詳細は初期化）
    * @param past - 過去のタブにするか
@@ -328,110 +325,14 @@ export default function AdminReservations() {
       )}
 
       {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
-        <>
-        {/* モバイル用カードリスト */}
-        <div className="reservation-cards">
-          {filtered.map((r) => {
-            /** ステータスのバッジの色（知らないステータスは「受付済」の色） */
-            const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
-            return (
-              <div
-                key={r.id}
-                {...clickableProps(() => setSelectedRow(r))}
-                aria-label={`${r.name} さんの予約の詳細を開く`}
-                style={{ background: '#fff', border: '1px solid #e8e8f0', borderRadius: 6, padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 500, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                    {/* 予約確認メールを送れなかった予約の印 */}
-                    {r.email_failed && <span style={{ display: 'inline-block', padding: '1px 6px', background: '#fff0f0', border: '1px solid #f0b0b0', borderRadius: 3, fontSize: 10, color: '#c0392b', flexShrink: 0 }}>メール未送信</span>}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--c-muted)' }}>
-                    {eventFilter === 'all' && <span>{eventsMap.get(r.event_id) ?? ''} · </span>}
-                    {[r.session_time ?? r.preferred_time, r.preferred_date].filter(Boolean).join(' / ') || '時間未定'}
-                    {' · '}{r.participants}名
-                  </div>
-                </div>
-                <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color, flexShrink: 0 }}>
-                  {STATUS_LABELS[r.status] ?? r.status}
-                </span>
-              </div>
-            )
-          })}
-          {filtered.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>}
-        </div>
-
-        {/* PC用テーブル */}
-        <div className="reservation-table" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
-                {eventFilter === 'all' && (
-                  <th style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>イベント</th>
-                )}
-                {headers.map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => {
-                /** ステータスのバッジの色（知らないステータスは「受付済」の色） */
-                const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
-                /** 持ち込みの表示（植物・鉢） */
-                const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
-                return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
-                    {eventFilter === 'all' && (
-                      <td style={{ padding: '12px 14px', fontSize: 12, color: 'var(--c-muted)', maxWidth: 160, wordBreak: 'break-all' }}>
-                        {eventsMap.get(r.event_id) ?? '-'}
-                      </td>
-                    )}
-                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{formatJstDate(r.created_at)}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                      <span>{r.name}</span>
-                      {r.email_failed && (
-                        <span style={{ marginLeft: 8, display: 'inline-block', padding: '2px 7px', background: '#fff0f0', border: '1px solid #f0b0b0', borderRadius: 3, fontSize: 11, color: '#c0392b', fontWeight: 500, letterSpacing: 0.3 }}>
-                          メール未送信
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>{r.email.endsWith('.invalid') ? '-' : <a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a>}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>{r.preferred_date ?? '-'}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: (r.session_time ?? r.preferred_time) ? '#1c2417' : '#ccc' }}>{r.session_time ?? r.preferred_time ?? '-'}</td>
-                    <td style={{ padding: '12px 14px' }}>{r.participants}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>
-                      {bringFlags || <span style={{ color: '#ccc' }}>-</span>}
-                    </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', minWidth: 240, maxWidth: 360, wordBreak: 'break-word' }}>{r.note ?? '-'}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
-                          {STATUS_LABELS[r.status] ?? r.status}
-                        </span>
-                        <select
-                          aria-label={`${r.name} さんの予約のステータス`}
-                          value={r.status}
-                          disabled={updating === r.id}
-                          onChange={(e) => updateStatus(r.id, e.target.value)}
-                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 2, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          {STATUS_OPTIONS.map(({ value, label }) => (
-                            <option key={value} value={value}>{label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>}
-        </div>
-        </>
+        <ReservationsList
+          reservations={filtered}
+          showEventColumn={eventFilter === 'all'}
+          eventsMap={eventsMap}
+          updatingId={updating}
+          onSelectReservation={setSelectedRow}
+          onStatusUpdate={updateStatus}
+        />
       )}
 
       {/* スライドアップ詳細（スマホのカードを押すと下から出る。暗い背景を押すと閉じる） */}
