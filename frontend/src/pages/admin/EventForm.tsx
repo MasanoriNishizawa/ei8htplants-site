@@ -5,6 +5,7 @@ import { failMessage } from './errorMessage'
 import { confirmLeaveIfDirty, useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
 import EventBrandSelector from './EventBrandSelector'
 import EventImagesField from './eventForm/EventImagesField'
+import EventWorkshopField from './eventForm/EventWorkshopField'
 import EventTimeRangeSelect from './EventTimeRangeSelect'
 import { formatJaMonthDayDow, listDates } from '../../lib/localDate'
 import { WS_DEFAULT_SESSION_CAPACITY } from '../../lib/constants'
@@ -420,69 +421,21 @@ export default function AdminEventForm() {
           labelStyle={labelStyle}
         />
 
-        {/* フラグ（WS あり・予約必要） */}
-        <div style={{ display: 'flex', gap: 20 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-            <input type="checkbox" checked={form.has_workshop} onChange={(e) => set('has_workshop', e.target.checked)} />
-            ワークショップあり
-          </label>
-          {form.has_workshop && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-              <input type="checkbox" checked={form.ws_requires_reservation} onChange={(e) => set('ws_requires_reservation', e.target.checked)} />
-              予約必要
-            </label>
-          )}
-        </div>
-
-        {/* WSセッション管理（「自動設定」は開催時間に時間帯があるときだけ押せる） */}
-        {form.has_workshop && (
-          <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 4 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 8 }}>
-              <p style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" onClick={autoSetSessions} disabled={!hasTimeRange(form.time)}
-                  style={{ padding: '6px 14px', background: 'none', color: '#4a6741', border: '1px solid #4a6741', borderRadius: 2, fontSize: 13, cursor: 'pointer', opacity: hasTimeRange(form.time) ? 1 : 0.4 }}>
-                  自動設定
-                </button>
-                <button type="button" onClick={addSession}
-                  style={{ padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
-                  + 追加
-                </button>
-              </div>
-            </div>
-            {sessions.length === 0 && (
-              <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>セッションなし（時間指定なしで予約受付）</p>
-            )}
-            {sessions.map((s, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                <input
-                  type="text"
-                  aria-label={`${i + 1}回目の時間`}
-                  placeholder="例: 10:00〜11:30"
-                  value={s.time_label}
-                  onChange={(e) => setSession(i, 'time_label', e.target.value)}
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 13, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>定員</span>
-                  <input
-                    type="number"
-                    min={1}
-                    aria-label={`${i + 1}回目の定員`}
-                    value={s.max_participants}
-                    onChange={(e) => setSession(i, 'max_participants', Number(e.target.value))}
-                    style={{ ...inputStyle, width: 70, textAlign: 'right' }}
-                  />
-                  <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>名</span>
-                </div>
-                <button type="button" onClick={() => removeSession(i)} aria-label={`${i + 1}回目のセッションを消す`}
-                  style={{ padding: '0 10px', height: 40, border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', color: '#c0392b', flexShrink: 0 }}>
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* ワークショップ欄を表示コンポーネントへ分離し、状態・自動生成・保存は親フォームに残す */}
+        <EventWorkshopField
+          hasWorkshop={form.has_workshop}
+          requiresReservation={form.ws_requires_reservation}
+          sessions={sessions}
+          canAutoSetSessions={hasTimeRange(form.time)}
+          labelStyle={labelStyle}
+          inputStyle={inputStyle}
+          onWorkshopChange={(value) => set('has_workshop', value)}
+          onReservationChange={(value) => set('ws_requires_reservation', value)}
+          onAddSession={addSession}
+          onAutoSetSessions={autoSetSessions}
+          onRemoveSession={removeSession}
+          onSessionChange={setSession}
+        />
 
         {/* 保存の失敗 */}
         {saveError && <p role="alert" style={errorBoxStyle}>{saveError}</p>}

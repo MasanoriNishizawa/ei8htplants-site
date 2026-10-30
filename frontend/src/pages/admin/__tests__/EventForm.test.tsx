@@ -275,6 +275,74 @@ describe('イベントフォーム 編集', () => {
     expect(calledBody.name).toBe('テストイベント')
   })
 
+  it('WSありのイベントを保存すると、時間が入力されたセッションだけを保存する', async () => {
+    // 1. WSあり・予約不要のイベントと、時間入力済み/未入力のセッションを読み込む。
+    vi.mocked(api.events.get).mockResolvedValue({
+      ...MOCK_EVENT,
+      has_workshop: true,
+      ws_requires_reservation: false,
+    })
+    vi.mocked(api.events.getSessions).mockResolvedValue([
+      {
+        id: 'session-valid', event_id: 'mock-event-1', time_label: '10:00〜11:00',
+        max_participants: 8, reserved_count: 2, display_order: 1,
+      },
+      {
+        id: 'session-empty', event_id: 'mock-event-1', time_label: '  ',
+        max_participants: 6, reserved_count: 0, display_order: 2,
+      },
+    ])
+    renderEditForm()
+    await waitFor(() => expect(screen.getAllByRole('textbox')[0]).toHaveValue('テストイベント'))
+
+    // 2. 予約要否の初期値を確認し、時間と定員を画面から変更する。
+    expect(screen.getByRole('checkbox', { name: '予約必要' })).not.toBeChecked()
+    fireEvent.change(screen.getByRole('textbox', { name: '1回目の時間' }), { target: { value: '11:30〜12:30' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: '1回目の定員' }), { target: { value: '10' } })
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+
+    // 3. イベント body に WS 設定を保ち、変更した値で時間空白行以外を保存する。
+    await waitFor(() => {
+      expect(vi.mocked(api.events.saveSessions)).toHaveBeenCalledWith('mock-event-1', [
+        { id: 'session-valid', time_label: '11:30〜12:30', max_participants: 10 },
+      ])
+    })
+    expect(vi.mocked(api.events.update).mock.calls[0][1]).toMatchObject({
+      has_workshop: true,
+      ws_requires_reservation: false,
+    })
+  })
+
+  it('WSなしのイベントを保存すると既存セッションを空配列で置き換える', async () => {
+    // 1. WSありのイベントと既存セッションを読み込み、画面でWSを外す状態を用意する。
+    vi.mocked(api.events.get).mockResolvedValue({ ...MOCK_EVENT, has_workshop: true })
+    vi.mocked(api.events.getSessions).mockResolvedValue([
+      {
+        id: 'session-existing', event_id: 'mock-event-1', time_label: '10:00〜11:00',
+        max_participants: 8, reserved_count: 1, display_order: 1,
+      },
+    ])
+    renderEditForm()
+    await waitFor(() => expect(screen.getAllByRole('textbox')[0]).toHaveValue('テストイベント'))
+
+    // 2. 画面でWSを外すと予約要否・セッション欄が隠れることを確認する。
+    expect(screen.getByText('WSセッション（各回の時間・定員）')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'ワークショップあり' }))
+    expect(screen.queryByRole('checkbox', { name: '予約必要' })).toBeNull()
+    expect(screen.queryByText('WSセッション（各回の時間・定員）')).toBeNull()
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+
+    // 3. WSを外して保存した場合、イベント body とセッション payload が共に空状態になる。
+    await waitFor(() => {
+      expect(vi.mocked(api.events.saveSessions)).toHaveBeenCalledWith('mock-event-1', [])
+    })
+    expect(vi.mocked(api.events.update).mock.calls[0][1].has_workshop).toBe(false)
+  })
+
   it('編集画面には削除ボタンが無く、表示しても api.events.delete は呼ばれない', async () => {
     // 仕様: イベントの削除はイベント一覧（pages/admin/Events.tsx）で行い、編集画面には削除ボタンを置かない
     // 1. 編集画面を表示し、既存データの読み込みを待つ
