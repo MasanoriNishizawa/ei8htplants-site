@@ -322,13 +322,14 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page.getByRole('status')).toHaveText('保存しました')
 
     // 3. ブラウザの戻る → 編集画面ではなく確認画面（保存した値が出ている）
-    await page.goBack()
+    // React Router の同一Document内履歴遷移では load イベントが発生しないため、commit まで待つ。
+    await page.goBack({ waitUntil: 'commit' })
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
     await expect(page.getByRole('button', { name: '保存する' })).toHaveCount(0)
     await expect(viewRow(page, 'ホテル名')).toContainText('戻る確認ホテル')
 
     // 4. もう一度戻る → イベント一覧
-    await page.goBack()
+    await page.goBack({ waitUntil: 'commit' })
     await expect(page).toHaveURL(/\/admin\/events$/)
     await expect(page.getByText(EVENT_NAME, { exact: true })).toBeVisible()
   })

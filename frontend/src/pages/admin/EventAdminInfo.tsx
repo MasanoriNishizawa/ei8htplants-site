@@ -4,7 +4,7 @@ import { api, type Event, type EventAdminInfo, type EventFinances, type EventFin
 import { SectionBox } from './AdminInfoParts'
 import EventAdminInfoDateTimeField from './EventAdminInfoDateTimeField'
 import EventAdminInfoStayBoothFields from './EventAdminInfoStayBoothFields'
-import EventGuidelinesImages from './EventGuidelinesImages'
+import EventAdminInfoGuidelinesSection from './EventAdminInfoGuidelinesSection'
 import { confirmLeaveIfDirty, dirtySnapshotJson, useUnsavedChanges } from './UnsavedChanges'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
@@ -462,35 +462,22 @@ export default function EventAdminInfo() {
           onBoothFeePaidChange={(value) => set('booth_fee_paid', value)}
         />
 
-        {/* 出店要項（主催者から届いた要項の文章と画像） */}
-        <SectionBox label="出店要項" hint="画像の追加・削除は「保存する」で確定します">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label style={labelStyle} htmlFor="guidelines-text">要項の文章</label>
-              <textarea
-                id="guidelines-text"
-                value={form.guidelines_text ?? ''}
-                onChange={(e) => set('guidelines_text', e.target.value || null)}
-                rows={8}
-                placeholder="主催者から届いた出店要項の本文を貼り付け"
-                style={{ ...inputStyle, fontSize: 14, lineHeight: 1.7, resize: 'vertical' }}
-              />
-            </div>
-
-            <EventGuidelinesImages
-              urls={guidelineImages}
-              uploadProgress={uploadProgress}
-              uploadError={uploadError}
-              labelStyle={labelStyle}
-              fileInputRef={fileInputRef}
-              onAddImages={handleAddImages}
-              onRemoveImage={handleRemoveImage}
-              viewerIndex={viewerIndex}
-              onChangeViewer={setViewerIndex}
-              onCloseViewer={() => setViewerIndex(null)}
-            />
-          </div>
-        </SectionBox>
+        {/* 出店要項の表示を専用コンポーネントへ分離。state と操作処理は親に残す */}
+        <EventAdminInfoGuidelinesSection
+          guidelinesText={form.guidelines_text}
+          labelStyle={labelStyle}
+          inputStyle={inputStyle}
+          guidelineImages={guidelineImages}
+          uploadProgress={uploadProgress}
+          uploadError={uploadError}
+          fileInputRef={fileInputRef}
+          onAddImages={handleAddImages}
+          onRemoveImage={handleRemoveImage}
+          viewerIndex={viewerIndex}
+          onChangeViewer={setViewerIndex}
+          onCloseViewer={() => setViewerIndex(null)}
+          onGuidelinesTextChange={(value) => set('guidelines_text', value)}
+        />
 
         {/* メモ */}
         <SectionBox label="メモ">
