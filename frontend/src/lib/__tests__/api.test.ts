@@ -884,3 +884,66 @@ describe('api.mediaAppearances', () => {
     expect(result).toEqual(response)
   })
 })
+
+describe('api.docs', () => {
+  /** 各テストで差し替える設計書APIのfetchモック */
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    // 1. 既定では空のJSONを返すfetchモックに差し替える。
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    // 2. fetchとモック履歴をテスト間で共有しないように戻す。
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-33: api.docs.tree() がGETで設計書ツリーを取得して返す', async () => {
+    // 1. 設計書ツリーAPIが返すJSON形式のフォルダー・ファイルデータを用意する。
+    /** 設計書ツリーAPIから返るJSON */
+    const response = [{
+      type: 'dir',
+      name: '02_DD',
+      path: '02_DD',
+      children: [{ type: 'file', name: '仕様.md', path: '02_DD/仕様.md' }],
+    }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 管理画面用の設計書ツリーを取得する。
+    const result = await api.docs.tree()
+
+    // 3. ツリーURLへGETし、JSONの内容がそのまま返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/docs/tree')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-34: api.docs.content(path) がエンコードしたパスで取得しMarkdownを生テキストで返す', async () => {
+    // 1. 日本語・空白・スラッシュを含む相対パスと、JSONではないMarkdown本文を用意する。
+    /** 設計書ルートからの相対パス */
+    const path = '02_DD/設計 書/仕様.md'
+    /** APIから受け取るMarkdown本文 */
+    const markdown = '# API仕様\n\n日本語・空白・スラッシュを含む本文です。\n'
+    /** JSONパーサーを持たず、text()だけを提供するHTTP成功応答 */
+    const response = {
+      ok: true,
+      text: vi.fn().mockResolvedValue(markdown),
+    }
+    mockFetch = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定パスの設計書本文を取得する。
+    const result = await api.docs.content(path)
+
+    // 3. パス全体をencodeURIComponentでクエリ化し、JSON変換せず生テキストを返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe(`/api/docs/content?path=${encodeURIComponent(path)}`)
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(response).not.toHaveProperty('json')
+    expect(response.text).toHaveBeenCalledTimes(1)
+    expect(result).toBe(markdown)
+  })
+})

@@ -9,6 +9,7 @@ import { createShippingApi } from './apiDomains/shipping'
 import { createChatLogsApi } from './apiDomains/chatLogs'
 import { createCollaborationsApi } from './apiDomains/collaborations'
 import { createMediaAppearancesApi } from './apiDomains/mediaAppearances'
+import { createDocsApi } from './apiDomains/docs'
 import type {
   Event,
   ContactRecord,
@@ -18,7 +19,6 @@ import type {
   ArticleBody,
   ChatQA,
   ChatQABody,
-  DocTreeNode,
   PotArtist,
   PriceCalcEntry,
   PriceCalcEntryBody,
@@ -356,15 +356,7 @@ export const api = {
   /** AI チャットの会話ログ（管理者のみ。新しい順で最大 200 件） */
   chatLogs: createChatLogsApi(authRequest),
   /** 設計書（doc/ の Markdown）の閲覧（管理者のみ） */
-  docs: {
-    /** doc/ のファイルツリーを取得する */
-    tree: () => authRequest<DocTreeNode[]>('/docs/tree'),
-    /**
-     * Markdown ファイルの本文をテキストのまま取得する
-     * @param path - doc/ からの相対パス
-     */
-    content: (path: string) => authRequestText(`/docs/content?path=${encodeURIComponent(path)}`),
-  },
+  docs: createDocsApi(authRequest, authRequestText),
   /** 公開サイトの AI チャット（認証不要） */
   chat: {
     /**

@@ -282,6 +282,53 @@ describe('認証つきリクエストのトークン', () => {
     expect(result).toEqual({ ok: true })
   })
 
+  it('FE-AG-23: 設計書本文の取得APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 設計書本文の取得に使う管理者JWTとMarkdown応答を用意する。
+    state.token = 'docs-content-admin-jwt'
+    const markdown = '# API仕様\n\n設計書本文'
+    fetchSpy.mockImplementation(async () => ({
+      ok: true,
+      text: async () => markdown,
+    } as Response))
+
+    // 2. 日本語の相対パスを指定して、認証付き本文APIを呼び出す。
+    const path = '02_DD/仕様書.md'
+    const result = await api.docs.content(path)
+
+    // 3. エンコード済みURLへ1回だけ送信し、セッションJWTと本文を受け取ることを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(`/api/docs/content?path=${encodeURIComponent(path)}`)
+    expect(authHeaderOf()).toBe('Bearer docs-content-admin-jwt')
+    expect(result).toBe(markdown)
+  })
+
+  it('FE-AG-24: 設計書ツリーの取得APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 管理者セッションのJWTと、JSON形式の設計書ツリー応答を用意する。
+    state.token = 'docs-tree-admin-jwt'
+    /** ツリー取得後に画面へ渡されるフォルダーとファイルの一覧 */
+    const tree = [{
+      type: 'dir',
+      name: '02_DD',
+      path: '02_DD',
+      children: [{ type: 'file', name: '仕様.md', path: '02_DD/仕様.md' }],
+    }]
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(tree), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 認証が必要な設計書ツリーAPIを呼び出す。
+    const result = await api.docs.tree()
+
+    // 3. ツリーURLへ1回だけ送信し、JWT付きJSON応答を返すことを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/docs/tree')
+    expect(authHeaderOf()).toBe('Bearer docs-tree-admin-jwt')
+    expect(result).toEqual(tree)
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true
