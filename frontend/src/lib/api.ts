@@ -11,6 +11,7 @@ import { createCollaborationsApi } from './apiDomains/collaborations'
 import { createMediaAppearancesApi } from './apiDomains/mediaAppearances'
 import { createDocsApi } from './apiDomains/docs'
 import { createPotArtistsApi } from './apiDomains/potArtists'
+import { createPriceCalcEntriesApi } from './apiDomains/priceCalcEntries'
 import type {
   Event,
   ContactRecord,
@@ -20,8 +21,6 @@ import type {
   ArticleBody,
   ChatQA,
   ChatQABody,
-  PriceCalcEntry,
-  PriceCalcEntryBody,
   Product,
   ProductBody,
   OrderPayload,
@@ -315,16 +314,7 @@ export const api = {
   /** 鉢の作家（管理画面の価格計算） */
   potArtists: createPotArtistsApi(request, authRequest),
   /** 価格計算の記録（管理者のみ） */
-  priceCalcEntries: {
-    /** 記録の一覧を取る */
-    list: () => authRequest<PriceCalcEntry[]>('/price-calc-entries'),
-    /** 記録を追加する */
-    add: (body: PriceCalcEntryBody) =>
-      authRequest<PriceCalcEntry>('/price-calc-entries', { method: 'POST', body: JSON.stringify(body) }),
-    /** 記録を削除する */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/price-calc-entries/${id}`, { method: 'DELETE' }),
-  },
+  priceCalcEntries: createPriceCalcEntriesApi(authRequest),
   /** メディア掲載 */
   mediaAppearances: createMediaAppearancesApi(request, authRequest),
   /** AI チャット用の Q&A（管理画面の「チャットQ&A」） */

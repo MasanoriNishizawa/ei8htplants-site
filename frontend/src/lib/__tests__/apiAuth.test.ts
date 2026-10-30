@@ -383,6 +383,97 @@ describe('認証つきリクエストのトークン', () => {
     expect(result).toEqual({ ok: true })
   })
 
+  it('FE-AG-28: 価格計算記録の一覧APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 一覧取得に使う管理者JWTと、JSON配列の応答を用意する。
+    state.token = 'price-calc-list-admin-jwt'
+    /** 認証付き一覧APIから返る価格計算記録 */
+    const entries = [{
+      id: 'price-1',
+      brand: 'habitat',
+      plant_name: 'アガベ チタノタ',
+      pot_artist_name: null,
+      cost: 1500,
+      selling_price: 3800,
+      mode: 'purchase',
+      created_at: '2026-10-30T00:00:00Z',
+    }]
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(entries), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 管理者向けの価格計算記録一覧を取得する。
+    const result = await api.priceCalcEntries.list()
+
+    // 3. 一覧URLへJWTを付けて1回送信し、レコード配列を返すことを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/price-calc-entries')
+    expect(authHeaderOf()).toBe('Bearer price-calc-list-admin-jwt')
+    expect(result).toEqual(entries)
+  })
+
+  it('FE-AG-29: 価格計算記録の追加APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 追加APIへ設定する管理者JWTと登録成功の応答を用意する。
+    state.token = 'price-calc-add-admin-jwt'
+    /** APIが保存後に返す価格計算記録 */
+    const entry = {
+      id: 'price-2',
+      brand: 'habitat',
+      plant_name: 'アガベ チタノタ',
+      pot_artist_name: '山田陶房',
+      cost: 1500,
+      selling_price: 3800,
+      mode: 'purchase',
+      created_at: '2026-10-30T00:00:00Z',
+    }
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(entry), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 価格計算の登録内容を認証付きで送信する。
+    const result = await api.priceCalcEntries.add({
+      brand: entry.brand,
+      plant_name: entry.plant_name,
+      pot_artist_name: entry.pot_artist_name,
+      cost: entry.cost,
+      selling_price: entry.selling_price,
+      mode: 'purchase',
+    })
+
+    // 3. 追加URLへJWTを付けて送信し、登録されたレコードが返ることを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/price-calc-entries')
+    expect(authHeaderOf()).toBe('Bearer price-calc-add-admin-jwt')
+    expect(result).toEqual(entry)
+  })
+
+  it('FE-AG-30: 価格計算記録の削除APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 削除APIに使う管理者JWTと削除成功のJSON応答を用意する。
+    state.token = 'price-calc-delete-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 指定した価格計算記録IDを認証付きで削除する。
+    const id = 'price-3'
+    const result = await api.priceCalcEntries.delete(id)
+
+    // 3. 対象記録のURLへJWTを付けてDELETEし、成功応答を受け取ることを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(`/api/price-calc-entries/${id}`)
+    expect((fetchSpy.mock.calls[0][1] as RequestInit).method).toBe('DELETE')
+    expect(authHeaderOf()).toBe('Bearer price-calc-delete-admin-jwt')
+    expect(result).toEqual({ ok: true })
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true

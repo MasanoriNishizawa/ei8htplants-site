@@ -1019,3 +1019,88 @@ describe('api.potArtists', () => {
     expect(result).toEqual(response)
   })
 })
+
+describe('api.priceCalcEntries', () => {
+  /** 各テストで差し替える価格計算記録APIのfetchモック */
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    // 1. 既定では空のJSON応答を返すfetchに差し替える。
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    // 2. fetchとモック履歴を次のテストへ持ち越さない。
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-38: api.priceCalcEntries.list() が認証GETで記録一覧を返す', async () => {
+    // 1. 価格計算記録一覧APIが返すレコード配列を用意する。
+    /** 管理画面へ返る価格計算記録の一覧 */
+    const response = [{
+      id: 'price-1',
+      brand: 'habitat',
+      plant_name: 'アガベ チタノタ',
+      pot_artist_name: '山田陶房',
+      cost: 1500,
+      selling_price: 3800,
+      mode: 'purchase',
+      created_at: '2026-10-30T00:00:00Z',
+    }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 認証が必要な価格計算記録一覧を取得する。
+    const result = await api.priceCalcEntries.list()
+
+    // 3. 一覧URLへGETし、サーバーから返った配列をそのまま返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/price-calc-entries')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-39: api.priceCalcEntries.add(body) が認証POSTでJSON本文を送り記録を返す', async () => {
+    // 1. 登録本文と、サーバーが識別子・登録日時を付けた追加結果を用意する。
+    /** 管理画面から価格計算記録APIへ送る値 */
+    const body = {
+      brand: 'habitat',
+      plant_name: 'アガベ チタノタ',
+      pot_artist_name: '山田陶房',
+      cost: 1500,
+      selling_price: 3800,
+      mode: 'purchase' as const,
+    }
+    /** 保存後にAPIから返る価格計算記録 */
+    const response = { id: 'price-2', ...body, created_at: '2026-10-30T00:00:00Z' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 登録本文で管理者向けの追加APIを呼び出す。
+    const result = await api.priceCalcEntries.add(body)
+
+    // 3. 一覧URLへのPOST・JSON本文と、登録結果が返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/price-calc-entries')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-40: api.priceCalcEntries.delete(id) が認証DELETEで対象記録を削除して結果を返す', async () => {
+    // 1. 削除成功の応答と、削除対象となる記録IDを用意する。
+    /** 削除APIの成功応答 */
+    const response = { ok: true }
+    /** 削除対象の価格計算記録ID */
+    const id = 'price-3'
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定した価格計算記録を削除する。
+    const result = await api.priceCalcEntries.delete(id)
+
+    // 3. IDを含むURLへDELETEし、成功結果を返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe(`/api/price-calc-entries/${id}`)
+    expect(mockFetch.mock.calls[0][1]?.method).toBe('DELETE')
+    expect(result).toEqual(response)
+  })
+})
