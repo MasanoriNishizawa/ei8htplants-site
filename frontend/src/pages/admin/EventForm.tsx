@@ -5,9 +5,9 @@ import { failMessage } from './errorMessage'
 import { confirmLeaveIfDirty, useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
 import EventBrandSelector from './EventBrandSelector'
 import EventImagesField from './eventForm/EventImagesField'
+import EventDailyTimesField from './eventForm/EventDailyTimesField'
 import EventWorkshopField from './eventForm/EventWorkshopField'
-import EventTimeRangeSelect from './EventTimeRangeSelect'
-import { formatJaMonthDayDow, listDates } from '../../lib/localDate'
+import { listDates } from '../../lib/localDate'
 import { WS_DEFAULT_SESSION_CAPACITY } from '../../lib/constants'
 import { buildAutoSessions, hasTimeRange, type SessionInput } from './eventTime'
 
@@ -291,6 +291,10 @@ export default function AdminEventForm() {
   const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }
   /** 項目名（label）の共通の見た目 */
   const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1, color: 'var(--c-body)' }
+  /** 開催時間欄に表示する複数日判定と日付一覧 */
+  const isMultiDay = Boolean(form.start_date && form.end_date && form.end_date > form.start_date)
+  /** 複数日のイベントで開催時間を日ごとに設定するための日付 */
+  const eventDates = isMultiDay ? listDates(form.start_date, form.end_date) : []
 
   return (
     <div style={{ maxWidth: 700 }}>
@@ -349,61 +353,27 @@ export default function AdminEventForm() {
             {form.end_date && <span style={{ fontSize: 11, color: parseInt(form.end_date.slice(0, 4)) < 2020 ? '#c0392b' : '#8a9a7e', marginTop: 4, display: 'block' }}>確認: {form.end_date}</span>}
           </div>
         </div>
-        {/* 開催時間（複数日のときは「日ごとに異なる」で日ごとに入れられる） */}
-        <div>
-          {(() => {
-            /** 複数日のイベントか */
-            const isMultiDay = form.start_date && form.end_date && form.end_date > form.start_date
-            /** 開催する日の一覧（YYYY-MM-DD。複数日でなければ空） */
-            const dates = isMultiDay ? listDates(form.start_date, form.end_date) : []
-            return (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  {/* 日ごとの入力のときは各行のプルダウンに日付つきの読み上げ名があるので、結び付けるのは1つの時間帯のときだけ */}
-                  <label htmlFor={dailyTimesMode && isMultiDay ? undefined : 'event-time-start'} style={{ ...labelStyle, marginBottom: 0 }}>開催時間</label>
-                  {isMultiDay && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--c-body)' }}>
-                      <input
-                        type="checkbox"
-                        checked={dailyTimesMode}
-                        onChange={(e) => {
-                          /** オンにしたかどうか */
-                          const checked = e.target.checked
-                          setDailyTimesMode(checked)
-                          // オンにしたときは、各日の初期値を今の開催時間にそろえる
-                          if (checked) {
-                            /** 日付 → 開催時間の初期値 */
-                            const init: Record<string, string> = {}
-                            dates.forEach((d) => { init[d] = form.time })
-                            setDailyTimes(init)
-                          }
-                        }}
-                      />
-                      日ごとに異なる
-                    </label>
-                  )}
-                </div>
-                {dailyTimesMode && isMultiDay ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: '#f6f6fa', borderRadius: 4, border: '1px solid #dddde8' }}>
-                    {dates.map((d) => (
-                      <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 13, color: 'var(--c-body)', minWidth: 116, flexShrink: 0 }}>{formatJaMonthDayDow(d)}</span>
-                        <EventTimeRangeSelect
-                          value={dailyTimes[d] ?? ''}
-                          onChange={(v) => setDailyTimes((prev) => ({ ...prev, [d]: v }))}
-                          style={{ flex: 1 }}
-                          labelPrefix={`${formatJaMonthDayDow(d)}の`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EventTimeRangeSelect id="event-time-start" value={form.time} onChange={(v) => set('time', v)} />
-                )}
-              </>
-            )
-          })()}
-        </div>
+        {/* 開催時間欄の表示を分離し、日付計算と状態・初期値設定はフォーム側で管理する */}
+        <EventDailyTimesField
+          isMultiDay={isMultiDay}
+          dates={eventDates}
+          dailyTimesMode={dailyTimesMode}
+          dailyTimes={dailyTimes}
+          time={form.time}
+          labelStyle={labelStyle}
+          onDailyTimesModeChange={(enabled) => {
+            setDailyTimesMode(enabled)
+            // 日ごとの入力に切り替えたときは、各日を共通開催時間で初期化する。
+            if (enabled) {
+              /** 各日の日付 → 共通開催時間の初期値 */
+              const initialDailyTimes: Record<string, string> = {}
+              eventDates.forEach((date) => { initialDailyTimes[date] = form.time })
+              setDailyTimes(initialDailyTimes)
+            }
+          }}
+          onDailyTimeChange={(date, value) => setDailyTimes((previous) => ({ ...previous, [date]: value }))}
+          onTimeChange={(value) => set('time', value)}
+        />
         <div><label htmlFor="event-location" style={labelStyle}>会場名</label><input id="event-location" required style={inputStyle} value={form.location} onChange={(e) => set('location', e.target.value)} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div><label htmlFor="event-booth" style={labelStyle}>ブース番号</label><input id="event-booth" style={inputStyle} value={form.booth_number} onChange={(e) => set('booth_number', e.target.value)} /></div>

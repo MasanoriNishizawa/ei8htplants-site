@@ -152,6 +152,60 @@ describe('イベントフォーム 新規作成', () => {
     expect(callArg.name).toBe('新規テストイベント')
   })
 
+  it('複数日で日ごとの時間を選んで保存すると daily_times と共通 time が保存される', async () => {
+    // 1. 2日間の新規イベントを入力し、共通開催時間を設定する。
+    renderNewForm()
+    fireEvent.change(screen.getByLabelText('イベント名'), { target: { value: '日別時間イベント' } })
+    fireEvent.change(screen.getByLabelText('開始日'), { target: { value: '2099-06-01' } })
+    fireEvent.change(screen.getByLabelText('終了日'), { target: { value: '2099-06-02' } })
+    fireEvent.change(screen.getByLabelText('会場名'), { target: { value: 'テスト会場' } })
+    const commonSelects = screen.getAllByRole('combobox')
+    fireEvent.change(commonSelects[0], { target: { value: '10:00' } })
+    fireEvent.change(commonSelects[1], { target: { value: '17:00' } })
+
+    // 2. 日ごとの入力へ切り替え、2日分に異なる時間を選ぶ。
+    fireEvent.click(screen.getByRole('checkbox', { name: '日ごとに異なる' }))
+    const dailySelects = screen.getAllByRole('combobox')
+    fireEvent.change(dailySelects[0], { target: { value: '9:00' } })
+    fireEvent.change(dailySelects[1], { target: { value: '12:00' } })
+    fireEvent.change(dailySelects[2], { target: { value: '13:00' } })
+    fireEvent.change(dailySelects[3], { target: { value: '18:00' } })
+
+    // 3. 画面から選んだ日別値と共通時間が作成 API の payload に入ることを確認する。
+    await act(async () => { fireEvent.submit(document.querySelector('form')!) })
+    await waitFor(() => expect(vi.mocked(api.events.create)).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.events.create).mock.calls[0][0]).toMatchObject({
+      start_date: '2099-06-01',
+      end_date: '2099-06-02',
+      time: '10:00〜17:00',
+      daily_times: {
+        '2099-06-01': '9:00〜12:00',
+        '2099-06-02': '13:00〜18:00',
+      },
+    })
+  })
+
+  it('単日イベントでは日別トグルを表示せず daily_times を null で共通時間を保存する', async () => {
+    // 1. 開始日と終了日が同じイベントを入力する。
+    renderNewForm()
+    fireEvent.change(screen.getByLabelText('イベント名'), { target: { value: '単日イベント' } })
+    fireEvent.change(screen.getByLabelText('開始日'), { target: { value: '2099-06-01' } })
+    fireEvent.change(screen.getByLabelText('終了日'), { target: { value: '2099-06-01' } })
+    fireEvent.change(screen.getByLabelText('会場名'), { target: { value: 'テスト会場' } })
+    expect(screen.queryByRole('checkbox', { name: '日ごとに異なる' })).toBeNull()
+
+    // 2. 共通時間を選択して保存し、単日では日別時間を送らないことを確認する。
+    const selects = screen.getAllByRole('combobox')
+    fireEvent.change(selects[0], { target: { value: '11:00' } })
+    fireEvent.change(selects[1], { target: { value: '16:00' } })
+    await act(async () => { fireEvent.submit(document.querySelector('form')!) })
+    await waitFor(() => expect(vi.mocked(api.events.create)).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.events.create).mock.calls[0][0]).toMatchObject({
+      time: '11:00〜16:00',
+      daily_times: null,
+    })
+  })
+
   it('保存後に管理画面イベント一覧ページに遷移する（navigate が呼ばれる）', async () => {
     // フォーム送信後に /admin/events へ遷移することを確認する
     // カスタムルートで遷移先を確認する
@@ -273,6 +327,36 @@ describe('イベントフォーム 編集', () => {
     const [calledId, calledBody] = vi.mocked(api.events.update).mock.calls[0]
     expect(calledId).toBe('mock-event-1')
     expect(calledBody.name).toBe('テストイベント')
+  })
+
+  it('編集時に読み込んだ日ごとの時間を表示し、update payload に維持する', async () => {
+    // 1. 2日分の日別時間を持つ既存イベントを読み込む。
+    const dailyTimes = {
+      '2099-05-01': '9:00〜12:00',
+      '2099-05-02': '13:00〜18:00',
+    }
+    vi.mocked(api.events.get).mockResolvedValue({
+      ...MOCK_EVENT,
+      end_date: '2099-05-02',
+      daily_times: dailyTimes,
+    })
+    renderEditForm()
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: '日ごとに異なる' })).toBeChecked())
+
+    // 2. 日別の時間帯が表示された状態で保存し、読み込んだ値が update payload に残ることを確認する。
+    const selects = screen.getAllByRole('combobox')
+    await waitFor(() => {
+      expect(selects[0]).toHaveValue('9:00')
+      expect(selects[1]).toHaveValue('12:00')
+      expect(selects[2]).toHaveValue('13:00')
+      expect(selects[3]).toHaveValue('18:00')
+    })
+    await act(async () => { fireEvent.submit(document.querySelector('form')!) })
+    await waitFor(() => expect(vi.mocked(api.events.update)).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.events.update).mock.calls[0][1]).toMatchObject({
+      time: '10:00〜17:00',
+      daily_times: dailyTimes,
+    })
   })
 
   it('WSありのイベントを保存すると、時間が入力されたセッションだけを保存する', async () => {

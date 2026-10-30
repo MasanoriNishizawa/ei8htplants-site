@@ -1,0 +1,1 @@
+import{r,c as u}from"./index-CC_nu7hB.js";function n(){const[s,a]=r.useState(Array(6).fill(""));return r.useEffect(()=>{let e=!0;return Promise.all(Array.from({length:6},(t,i)=>u.siteAssets.get(`hue-color-${String(i+1).padStart(2,"0")}`).then(({url:o})=>o).catch(()=>""))).then(t=>{e&&a(t)}),()=>{e=!1}},[]),s}export{n as u};

@@ -119,4 +119,28 @@ test.describe('イベントフォーム 開催時間プルダウン', () => {
     await expect(sels.nth(0)).toHaveValue('10:00')
     await expect(sels.nth(1)).toHaveValue('16:00')
   })
+
+  test('複数日イベントで日ごとの開催時間を選択できる', /**
+     新規イベントを複数日として設定し、日別時間の切り替えと各日の開始・終了時刻を操作できることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 新規イベントで複数日の日付を設定すると日別時間の切り替えが表示されることを確認する。
+    await page.goto('/admin/events/new')
+    await page.getByLabel('開始日').fill('2099-06-01')
+    await page.getByLabel('終了日').fill('2099-06-02')
+    const dailyMode = page.getByRole('checkbox', { name: '日ごとに異なる' })
+    await expect(dailyMode).toBeVisible()
+
+    // 2. 日別モードにすると日付ごとのプルダウンが表示され、選択値が反映されることを確認する。
+    await dailyMode.check()
+    await expect(page.getByRole('combobox')).toHaveCount(4)
+    await page.getByLabel('6月1日（月）の開始時刻').selectOption('9:00')
+    await page.getByLabel('6月1日（月）の終了時刻').selectOption('12:00')
+    await page.getByLabel('6月2日（火）の開始時刻').selectOption('13:00')
+    await page.getByLabel('6月2日（火）の終了時刻').selectOption('18:00')
+    await expect(page.getByLabel('6月1日（月）の開始時刻')).toHaveValue('9:00')
+    await expect(page.getByLabel('6月2日（火）の終了時刻')).toHaveValue('18:00')
+  })
 })
