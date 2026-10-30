@@ -56,17 +56,17 @@ const REAL_DOCS = [
   {
     path: '02_DD/01_モジュール構成.md',
     heading: 'DD-01 — モジュール構成',
-    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', 'EventAdminInfoGuidelinesSection.tsx', '出店要項の文章欄と画像表示をまとめる表示部品', '枠の読み込み中・失敗・空・満席・残席数'],
+    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', 'EventAdminInfoGuidelinesSection.tsx', '出店要項の文章欄と画像表示をまとめる表示部品', 'useEventAdminInfoGuidelinesImages.ts', '画像の逐次アップロード・部分失敗・削除確認とviewer操作', '枠の読み込み中・失敗・空・満席・残席数'],
   },
   {
     path: '02_DD/03_フロントエンドロジック.md',
     heading: 'DD-03 — フロントエンドロジック',
-    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage', '単画像の入力UIは', 'CheckoutShippingAddressFields.tsx', '配送先の5項目', 'HTML標準検証に使う', 'reserve/ReserveScheduleFields.tsx', '複数日イベントの日付ラジオ', '時間枠変更時の参加人数リセット', 'EventAdminInfoGuidelinesSection.tsx', '文章欄と画像表示部品をまとめる'],
+    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage', '単画像の入力UIは', 'CheckoutShippingAddressFields.tsx', '配送先の5項目', 'HTML標準検証に使う', 'reserve/ReserveScheduleFields.tsx', '複数日イベントの日付ラジオ', '時間枠変更時の参加人数リセット', 'EventAdminInfoGuidelinesSection.tsx', '文章欄と画像表示部品をまとめる', 'useEventAdminInfoGuidelinesImages', 'hookがアップロード進捗/エラー', 'hookは画像を選択順に逐次アップロード', 'hookは注入された更新関数とアップロード関数を使います'],
   },
   {
     path: '03_PM/06_プロジェクト全体リファクタリング計画.md',
     heading: 'PM-06 — プロジェクト全体リファクタリング計画',
-    expected: ['段階2のAPI型配置整理を完了しました', '全15ドメイン', 'apiTypes.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', 'Reserve.test.tsxにFE-CU-01〜06', 'すべてPASSで確認しました', '2026-10-30 15:56の最終関連runner', 'EventAdminInfoGuidelinesSection.tsx', '文章欄と既存の画像表示部品をまとめる層'],
+    expected: ['段階2のAPI型配置整理を完了しました', '全15ドメイン', 'apiTypes.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', 'Reserve.test.tsxにFE-CU-01〜06', 'すべてPASSで確認しました', '2026-10-30 15:56の最終関連runner', 'EventAdminInfoGuidelinesSection.tsx', '文章欄と既存の画像表示部品をまとめる層', 'useEventAdminInfoGuidelinesImages', '画像の逐次アップロード・部分失敗の記録・削除確認・viewer操作を担当します', '今回の関連テストは未実施'],
   },
 ].map((doc) => ({
   ...doc,

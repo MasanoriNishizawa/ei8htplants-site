@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
 import { SectionBox } from './AdminInfoParts'
 import EventAdminInfoDateTimeField from './EventAdminInfoDateTimeField'
 import EventAdminInfoStayBoothFields from './EventAdminInfoStayBoothFields'
 import EventAdminInfoGuidelinesSection from './EventAdminInfoGuidelinesSection'
+import { useEventAdminInfoGuidelinesImages } from './useEventAdminInfoGuidelinesImages'
 import { confirmLeaveIfDirty, dirtySnapshotJson, useUnsavedChanges } from './UnsavedChanges'
 
 /** フォームの初期値。全フィールドを null/false で初期化する */
@@ -114,6 +115,23 @@ export default function EventAdminInfo() {
   /** 読み込みに失敗したかどうか。true の間は保存できなくする（空のフォームで搬入・宿泊・出店要項などを上書きしないため） */
   const [loadFailed, setLoadFailed] = useState(false)
 
+  /**
+   * 出店要項画像 URL の機能更新を受け取り、ほかの管理情報を保ったまま親フォームへ反映する。
+   * @param update - 現在の画像 URL 一覧から次の一覧を作る関数
+   * @returns なし。更新結果は親フォームの state に反映される
+   */
+  const updateGuidelineImageUrls = (update: (urls: string[]) => string[]) => {
+    setForm((previous) => ({
+      ...previous,
+      guidelines_image_urls: update(previous.guidelines_image_urls ?? []),
+    }))
+  }
+  /** 出店要項画像の一時状態と操作。URL一覧自体は親フォームが所有する */
+  const guidelineImageState = useEventAdminInfoGuidelinesImages({
+    updateImageUrls: updateGuidelineImageUrls,
+    uploadFile: (file) => api.upload(file),
+  })
+
   // 搬入日時を日付・時・分に分けて管理するローカル state（EventAdminInfo 型には含まれない）
   /** 搬入の日付 "YYYY-MM-DD"（未入力は空文字） */
   const [carryInDate, setCarryInDate] = useState<string>('')
@@ -129,21 +147,12 @@ export default function EventAdminInfo() {
   /** 搬出の分 "MM"（未選択は空文字） */
   const [carryOutMin, setCarryOutMin] = useState<string>('')
 
-  /** 出店要項画像のファイル選択 input。「画像を追加」ボタンから click() で開く */
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  /** 出店要項画像のアップロード進捗。current は今アップロード中の何枚目か（1始まり）。null ならアップロードしていない */
-  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null)
-  /** 出店要項画像のアップロード失敗メッセージ。null なら非表示 */
-  const [uploadError, setUploadError] = useState<string | null>(null)
   /**
    * 読み込み直後の入力欄の値（dirtySnapshotJson で JSON 文字列にした写し。'' と null は同じ扱い）。今の値と比べて未保存の変更があるかを判定する。
    * 判定を描画中に行うため、ref ではなく state で持つ（描画中に ref を読むと更新が画面に反映されないことがある）。
    * 読み込み前・読み込み失敗時は null（変更なしとして扱う）
    */
   const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null)
-  /** 拡大表示中の出店要項画像の位置（0始まり）。null なら拡大表示を閉じている */
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
-
   // 1. イベント情報・管理情報・収支データを並行取得してフォームに反映する
   useEffect(() => {
     if (!id) return
@@ -269,66 +278,10 @@ export default function EventAdminInfo() {
     }
   }
 
-  /**
-   * 出店要項画像のファイル選択後の処理
-   * 選ばれたファイルを1枚ずつ順にアップロードし、成功したものから URL を末尾に追加する。
-   * 失敗したファイルはスキップして最後にファイル名をまとめて表示する（成功分は残す）
-   * @param e - ファイル input の change イベント
-   * @returns 戻り値なし。
-   */
-  const handleAddImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    /** ファイル選択欄（await のあとでも value を消せるよう先に控える） */
-    const input = e.currentTarget
-    // 1. 選択されたファイルを配列に写す（input の value をクリアすると FileList も空になるため先に写す）
-    /** 選ばれたファイル */
-    const files = Array.from(input.files ?? [])
-    if (files.length === 0) return
-    setUploadError(null)
-    /** アップロードに失敗したファイル名 */
-    const failedNames: string[] = []
-    try {
-      // 2. 1枚ずつ順にアップロードし、進捗表示を更新する
-      for (let i = 0; i < files.length; i++) {
-        /** いまアップロードするファイル */
-        const file = files[i]
-        setUploadProgress({ current: i + 1, total: files.length })
-        try {
-          /** アップロードした画像の URL */
-          const url = await api.upload(file)
-          // アップロード中に削除操作があっても消えないよう、前の state を元に末尾へ追加する
-          setForm((prev) => ({ ...prev, guidelines_image_urls: [...(prev.guidelines_image_urls ?? []), url] }))
-        } catch {
-          failedNames.push(file.name)
-        }
-      }
-      // 3. 失敗したファイルがあればファイル名を添えて知らせる
-      if (failedNames.length > 0) {
-        setUploadError(`次の画像をアップロードできませんでした: ${failedNames.join('、')}（JPEG・PNG・WebP・GIF、10MB まで）`)
-      }
-    } finally {
-      setUploadProgress(null)
-      // 4. 同じファイルを続けて選んでも change が発火するよう value をクリアする
-      input.value = ''
-    }
-  }
-
-  /**
-   * 出店要項画像を一覧から外す（Storage 上のファイルは消さない。保存ボタンで確定する）
-   * @param index - 外す画像の位置（0始まり）
-   * @returns 戻り値なし。
-   */
-  const handleRemoveImage = (index: number) => {
-    if (!window.confirm('この画像を出店要項から削除しますか？（保存ボタンを押すと確定します）')) return
-    setForm((prev) => ({
-      ...prev,
-      guidelines_image_urls: (prev.guidelines_image_urls ?? []).filter((_, i) => i !== index),
-    }))
-  }
-
   /** 出店要項の画像 URL 一覧（既存データで undefined のときは空配列として扱う） */
   const guidelineImages: string[] = form.guidelines_image_urls ?? []
-  /** 出店要項画像をアップロード中かどうか */
-  const uploading = uploadProgress !== null
+  /** 出店要項画像の操作状態。保存ボタンの制御にも使う */
+  const { fileInputRef, uploadProgress, uploadError, viewerIndex, uploading } = guidelineImageState
 
   /** テキスト・数値・日付・select・文章の入力欄の共通の見た目。横幅いっぱい */
   const inputStyle: React.CSSProperties = {
@@ -462,7 +415,7 @@ export default function EventAdminInfo() {
           onBoothFeePaidChange={(value) => set('booth_fee_paid', value)}
         />
 
-        {/* 出店要項の表示を専用コンポーネントへ分離。state と操作処理は親に残す */}
+        {/* 出店要項の表示部品へ、親フォームの値とhookが管理する画像操作状態を渡す */}
         <EventAdminInfoGuidelinesSection
           guidelinesText={form.guidelines_text}
           labelStyle={labelStyle}
@@ -471,11 +424,11 @@ export default function EventAdminInfo() {
           uploadProgress={uploadProgress}
           uploadError={uploadError}
           fileInputRef={fileInputRef}
-          onAddImages={handleAddImages}
-          onRemoveImage={handleRemoveImage}
+          onAddImages={guidelineImageState.handleAddImages}
+          onRemoveImage={guidelineImageState.handleRemoveImage}
           viewerIndex={viewerIndex}
-          onChangeViewer={setViewerIndex}
-          onCloseViewer={() => setViewerIndex(null)}
+          onChangeViewer={guidelineImageState.onChangeViewer}
+          onCloseViewer={guidelineImageState.onCloseViewer}
           onGuidelinesTextChange={(value) => set('guidelines_text', value)}
         />
 
