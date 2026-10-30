@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api, type Event, type WsSession } from '../../lib/api'
-import { STATUS_LABELS, STATUS_COLORS, STATUS_OPTIONS } from '../../lib/reservationConstants'
-import { formatJstDate, todayJst } from '../../lib/localDate'
-import { clickableProps } from './a11y'
+import { todayJst } from '../../lib/localDate'
 import { failMessage, statusOf } from './errorMessage'
 import { saveBlob } from './saveBlob'
 import { backPathFrom } from '../../lib/navigation'
 import { buildReservationPrintHtml, buildReservationsCsv, type ReservationWithTime } from './eventReservationExports'
 import EventReservationDetailModal from './EventReservationDetailModal'
+import EventReservationsList from './EventReservationsList'
 
 /** エラーの帯の見た目（画面の上・当日参加のモーダルで共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
@@ -246,9 +245,6 @@ export default function AdminEventReservations() {
     fontSize: 13, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--c-body)',
   }
 
-  /** PC 用の表の見出し */
-  const headers = ['受付日', 'お名前', 'メール', '電話', '予約日', '予約時間', '人数', '持込', '備考', 'ステータス']
-
   return (
     <div>
       {/* 戻るリンク（遷移元があればそこへ、無ければイベント管理へ） */}
@@ -353,101 +349,13 @@ export default function AdminEventReservations() {
         <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p>
       ) : (
         <>
-        {/* モバイル用カードリスト */}
-        <div className="reservation-cards">
-          {filtered.map((r) => {
-            /** ステータスのバッジの色（知らないステータスは「受付済」の色） */
-            const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
-            return (
-              <div
-                key={r.id}
-                {...clickableProps(() => setSelectedRow(r))}
-                aria-label={`${r.name} さんの予約の詳細を開く`}
-                style={{ background: '#fff', border: '1px solid #e8e8f0', borderRadius: 6, padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--c-muted)' }}>
-                    {[r.session_time ?? r.preferred_time, r.preferred_date].filter(Boolean).join(' / ') || '時間未定'}
-                    {' · '}{r.participants}名
-                  </div>
-                </div>
-                <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color, flexShrink: 0 }}>
-                  {STATUS_LABELS[r.status] ?? r.status}
-                </span>
-              </div>
-            )
-          })}
-          {filtered.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>
-          )}
-        </div>
-
-        {/* PC用テーブル */}
-        <div className="reservation-table" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
-                {headers.map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => {
-                /** ステータスのバッジの色（知らないステータスは「受付済」の色） */
-                const sc = STATUS_COLORS[r.status] ?? STATUS_COLORS.pending
-                /** 持ち込みの表示（植物・鉢） */
-                const bringFlags = [r.bring_plant && '植物', r.bring_pot && '鉢'].filter(Boolean).join('・')
-                return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
-                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>
-                      {formatJstDate(r.created_at)}
-                    </td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.name}</td>
-                    {/* メール（当日参加のダミーのアドレス .invalid は出さない） */}
-                    <td style={{ padding: '12px 14px' }}>
-                      {r.email.endsWith('.invalid') ? '-' : <a href={`mailto:${r.email}`} style={{ color: '#4a6741' }}>{r.email}</a>}
-                    </td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{r.phone ?? '-'}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: r.preferred_date ? '#1c2417' : '#ccc' }}>
-                      {r.preferred_date ?? '-'}
-                    </td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: (r.session_time ?? r.preferred_time) ? '#1c2417' : '#ccc' }}>
-                      {r.session_time ?? r.preferred_time ?? '-'}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>{r.participants}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', fontSize: 12 }}>
-                      {bringFlags || <span style={{ color: '#ccc' }}>-</span>}
-                    </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--c-muted)', maxWidth: 160 }}>{r.note ?? '-'}</td>
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 500, background: sc.bg, color: sc.color }}>
-                          {STATUS_LABELS[r.status] ?? r.status}
-                        </span>
-                        <select
-                          aria-label={`${r.name} さんの予約のステータス`}
-                          value={r.status}
-                          disabled={updating === r.id}
-                          onChange={(e) => updateStatus(r.id, e.target.value)}
-                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #dddde8', borderRadius: 2, background: '#ffffff', cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          {STATUS_OPTIONS.map(({ value, label }) => (
-                            <option key={value} value={value}>{label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>予約はありません。</p>
-          )}
-        </div>
+          {/* 絞り込み済みの予約と更新操作だけを受け取り、表示を子コンポーネントへ委譲する */}
+          <EventReservationsList
+            reservations={filtered}
+            updatingId={updating}
+            onSelectReservation={setSelectedRow}
+            onStatusUpdate={updateStatus}
+          />
         </>
       )}
 
