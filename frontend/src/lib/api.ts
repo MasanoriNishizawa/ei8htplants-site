@@ -1,5 +1,5 @@
 import { SKIP_ADMIN_AUTH, DEV_SKIP_AUTH_TOKEN } from './devAuth'
-import type { ChatSendMessage } from './chatHistory'
+import { createChatApi } from './apiDomains/chat'
 import { createEventsApi } from './apiDomains/events'
 import { createGalleryApi } from './apiDomains/gallery'
 import { createStockistsApi } from './apiDomains/stockists'
@@ -304,21 +304,7 @@ export const api = {
   /** 設計書（doc/ の Markdown）の閲覧（管理者のみ） */
   docs: createDocsApi(authRequest, authRequestText),
   /** 公開サイトの AI チャット（認証不要） */
-  chat: {
-    /**
-     * 会話履歴を送って AI の返事を受け取る。
-     * 回数制限（429）・入力チェック（422）を画面側で見分けて案内を出すため、Response をそのまま返す（cancel と同じ形）
-     * @param messages - 送る会話履歴（最後は利用者の発言）
-     * @returns サーバーの Response（成功時の本文は { reply: string }）
-     */
-    send: (messages: ChatSendMessage[]) =>
-      fetch(`${BASE}/chat`, {
-        method: 'POST',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages }),
-      }),
-  },
+  chat: createChatApi((input, init) => fetch(input, init)),
 }
 
 export type * from './apiTypes'

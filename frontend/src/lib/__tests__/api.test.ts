@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { type EventFinances, api } from '../api'
+import type { ChatSendMessage } from '../chatHistory'
 // 収支の計算は lib/finance.ts に移ったので、移動先から直接読み込む
 import { computeFinances, fiscalYear } from '../finance'
 
@@ -1348,5 +1349,63 @@ describe('api.chatQa', () => {
     expect(mockFetch.mock.calls[0][0]).toBe(`/api/chat-qa/${encodeURIComponent(id)}`)
     expect(mockFetch.mock.calls[0][1]?.method).toBe('DELETE')
     expect(result).toEqual(response)
+  })
+})
+
+describe('api.chat', () => {
+  /** 公開チャットAPIへ送る会話履歴 */
+  const messages: ChatSendMessage[] = [
+    { role: 'model', content: 'こんにちは。' },
+    { role: 'user', content: '植物の育て方を教えてください。' },
+  ]
+
+  afterEach(() => {
+    // 1. fetch差し替えとモック履歴を次のテストへ持ち越さない。
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-51: api.chat.send(messages) が認証なしでno-storeのJSON POSTを行いResponseを返す', async () => {
+    // 1. 成功時のResponseを用意し、fetchが同じオブジェクトを返すようにする。
+    const response = new Response(JSON.stringify({ reply: '植物は明るい場所を好みます。' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const mockFetch = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 公開チャットAPIへ会話履歴を送る。
+    const result = await api.chat.send(messages)
+
+    // 3. URL・通信設定・本文に認証を付けず、Response自体をそのまま返すことを確かめる。
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/chat')
+    expect(mockFetch.mock.calls[0][1]).toEqual({
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }),
+    })
+    expect(mockFetch.mock.calls[0][1].headers).not.toHaveProperty('Authorization')
+    expect(result).toBe(response)
+    expect(result.status).toBe(200)
+  })
+
+  it.each([422, 429])('FE-API-52: api.chat.send(messages) はHTTP %iのResponseとstatusを呼出し側へ保つ', async (status) => {
+    // 1. 入力チェック・回数制限のHTTP応答を用意する。
+    const response = new Response(JSON.stringify({ detail: status === 422 ? [] : 'rate limit' }), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const mockFetch = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. エラーstatusの応答でも例外化せずAPI関数を呼び出す。
+    const result = await api.chat.send(messages)
+
+    // 3. 呼出し側が status と本文を判別できる同一Responseが返ることを確かめる。
+    expect(result).toBe(response)
+    expect(result.status).toBe(status)
+    expect(await result.json()).toEqual({ detail: status === 422 ? [] : 'rate limit' })
   })
 })
