@@ -10,7 +10,7 @@
  * POST /api/reserve と時間枠はテストごとに server.use で差し替える。本番には接続しない
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/node'
@@ -97,6 +97,121 @@ describe('Reserve の参加人数の上限', () => {
     // 4. 残り 3 名の枠では 3 個まで
     fireEvent.click(screen.getByRole('radio', { name: /12:00〜13:00/ }))
     expect(Array.from(select.options).map((o) => o.value)).toEqual(['1', '2', '3'])
+  })
+})
+
+describe('Reserve の日付・時間枠の選択', () => {
+  /** 日付変更・予約送信の確認に使う複数の時間枠を返す */
+  const sessions = [
+    { id: 's-morning', event_id: 'mock-upcoming-1', time_label: '11:00〜12:00', max_participants: 5, reserved_count: 1 },
+    { id: 's-afternoon', event_id: 'mock-upcoming-1', time_label: '13:00〜14:00', max_participants: 5, reserved_count: 0 },
+    { id: 's-full', event_id: 'mock-upcoming-1', time_label: '12:00〜13:00', max_participants: 2, reserved_count: 2 },
+  ]
+
+  it('予約枠を取得中は読み込み状態を表示する', async () => {
+    // 1. 予約枠 API の応答を保留し、画面に loading 状態を保つ
+    let finishRequest!: () => void
+    let notifyHandlerStarted!: () => void
+    const handlerStarted = new Promise<void>((resolve) => { notifyHandlerStarted = resolve })
+    server.use(http.get('*/api/events/:id/sessions', async () => {
+      notifyHandlerStarted()
+      await new Promise<void>((resolve) => { finishRequest = resolve })
+      return HttpResponse.json(sessions)
+    }))
+    renderReserve('mock-upcoming-1')
+
+    // 2. 予約日を選ぶと取得中の状態が見える
+    const dateGroup = await screen.findByRole('radiogroup', { name: /予約日/ })
+    fireEvent.click(within(dateGroup).getAllByRole('radio')[0])
+    expect(await screen.findByRole('status')).toHaveTextContent('読み込み中...')
+    await handlerStarted
+
+    // 3. ハンドラー開始後に保留 API を完了させ、未完了リクエストを残さない
+    await act(async () => { finishRequest() })
+    expect(await screen.findByRole('radio', { name: /11:00〜12:00/ })).toBeInTheDocument()
+  })
+
+  it('予約枠の取得失敗を表示し、再読み込み後に枠を表示する', async () => {
+    // 1. 最初の取得だけ失敗させ、再取得は予約枠を返す
+    let requestCount = 0
+    server.use(http.get('*/api/events/:id/sessions', () => {
+      requestCount += 1
+      return requestCount === 1
+        ? HttpResponse.json({ detail: 'error' }, { status: 500 })
+        : HttpResponse.json(sessions)
+    }))
+    renderReserve('mock-upcoming-1')
+    const dateGroup = await screen.findByRole('radiogroup', { name: /予約日/ })
+    fireEvent.click(within(dateGroup).getAllByRole('radio')[0])
+
+    // 2. エラー表示から再読み込みし、枠の一覧へ復帰する
+    expect(await screen.findByRole('alert')).toHaveTextContent('予約枠を読み込めませんでした。')
+    fireEvent.click(screen.getByRole('button', { name: '再読み込み' }))
+    expect(await screen.findByRole('radio', { name: /11:00〜12:00/ })).toBeInTheDocument()
+    expect(requestCount).toBe(2)
+  })
+
+  it('予約枠が空のときは当日の枠が無いことを表示する', async () => {
+    server.use(http.get('*/api/events/:id/sessions', () => HttpResponse.json([])))
+    renderReserve('mock-upcoming-1')
+    const dateGroup = await screen.findByRole('radiogroup', { name: /予約日/ })
+    fireEvent.click(within(dateGroup).getAllByRole('radio')[0])
+    expect(await screen.findByText('この日の予約枠はありません。')).toBeInTheDocument()
+  })
+
+  it('満席の時間枠は選択できず、別の時間枠へ切り替えると参加人数が 1 名になる', async () => {
+    server.use(http.get('*/api/events/:id/sessions', () => HttpResponse.json(sessions)))
+    renderReserve('mock-upcoming-1')
+    const dateGroup = await screen.findByRole('radiogroup', { name: /予約日/ })
+    fireEvent.click(within(dateGroup).getAllByRole('radio')[0])
+
+    const full = await screen.findByRole('radio', { name: /12:00〜13:00.*満席/ })
+    expect(full).toBeDisabled()
+    const available = await screen.findByRole('radio', { name: /11:00〜12:00/ })
+    fireEvent.click(available)
+    const participants = screen.getByLabelText(/参加人数/) as HTMLSelectElement
+    fireEvent.change(participants, { target: { value: '3' } })
+    fireEvent.click(await screen.findByRole('radio', { name: /13:00〜14:00/ }))
+    expect(participants).toHaveValue('1')
+  })
+
+  it('日付を変更すると選択中の時間枠と参加人数をリセットする', async () => {
+    server.use(http.get('*/api/events/:id/sessions', () => HttpResponse.json(sessions)))
+    renderReserve('mock-upcoming-1')
+    const dateGroup = await screen.findByRole('radiogroup', { name: /予約日/ })
+    const dates = within(dateGroup).getAllByRole('radio')
+    fireEvent.click(dates[0])
+    const session = await screen.findByRole('radio', { name: /11:00〜12:00/ })
+    fireEvent.click(session)
+
+    const participants = screen.getByLabelText(/参加人数/) as HTMLSelectElement
+    fireEvent.change(participants, { target: { value: '3' } })
+    expect(participants).toHaveValue('3')
+    fireEvent.click(dates[1])
+
+    // 1. 日付変更で予約枠の選択と人数が初期値へ戻る
+    expect(await screen.findByRole('radio', { name: /11:00〜12:00/ })).not.toBeChecked()
+    await waitFor(() => expect(participants).toHaveValue('1'))
+  })
+
+  it('選択した日付・時間枠・人数を予約リクエストに含める', async () => {
+    server.use(http.get('*/api/events/:id/sessions', () => HttpResponse.json(sessions)))
+    const sent = mockReserveApi(200)
+    renderReserve('mock-upcoming-1')
+    const dateGroup = await screen.findByRole('radiogroup', { name: /予約日/ })
+    const date = within(dateGroup).getAllByRole('radio')[1] as HTMLInputElement
+    fireEvent.click(date)
+    fireEvent.click(await screen.findByRole('radio', { name: /11:00〜12:00/ }))
+    fireEvent.change(screen.getByLabelText(/参加人数/), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText(/お名前/), { target: { value: '山田 花子' } })
+    fireEvent.change(screen.getByLabelText(/メールアドレス/), { target: { value: 'hanako@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: '予約する' }))
+
+    expect(await screen.findByText('予約を受け付けました')).toBeInTheDocument()
+    expect(sent[0]).toMatchObject({
+      event_id: 'mock-upcoming-1', preferred_date: date.value,
+      session_id: 's-morning', participants: 2,
+    })
   })
 })
 

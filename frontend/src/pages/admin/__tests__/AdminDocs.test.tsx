@@ -56,17 +56,17 @@ const REAL_DOCS = [
   {
     path: '02_DD/01_モジュール構成.md',
     heading: 'DD-01 — モジュール構成',
-    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx'],
+    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', '枠の読み込み中・失敗・空・満席・残席数'],
   },
   {
     path: '02_DD/03_フロントエンドロジック.md',
     heading: 'DD-03 — フロントエンドロジック',
-    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage', '単画像の入力UIは', 'CheckoutShippingAddressFields.tsx', '配送先の5項目', 'HTML標準検証に使う'],
+    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage', '単画像の入力UIは', 'CheckoutShippingAddressFields.tsx', '配送先の5項目', 'HTML標準検証に使う', 'reserve/ReserveScheduleFields.tsx', '複数日イベントの日付ラジオ', '時間枠変更時の参加人数リセット'],
   },
   {
     path: '03_PM/06_プロジェクト全体リファクタリング計画.md',
     heading: 'PM-06 — プロジェクト全体リファクタリング計画',
-    expected: ['段階2のAPI型配置整理を完了しました', '全15ドメイン', 'apiTypes.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx'],
+    expected: ['段階2のAPI型配置整理を完了しました', '全15ドメイン', 'apiTypes.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', 'Reserve.test.tsxにFE-CU-01〜06', 'すべてPASSで確認しました', '2026-10-30 15:56の最終関連runner'],
   },
 ].map((doc) => ({
   ...doc,

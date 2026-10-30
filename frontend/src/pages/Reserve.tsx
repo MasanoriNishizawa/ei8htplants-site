@@ -8,6 +8,7 @@ import { useT, useLang } from '../lib/lang'
 import { listDates, parseLocalDate } from '../lib/localDate'
 import { INPUT_MAX_LENGTH, RESERVE_MAX_PARTICIPANTS } from '../lib/constants'
 import EventInfoPanel from './reserve/EventInfoPanel'
+import ReserveScheduleFields from './reserve/ReserveScheduleFields'
 
 /** 予約フォームの値 */
 type FormState = {
@@ -251,20 +252,6 @@ export default function Reserve() {
     margin: '32px 0 16px', paddingBottom: 8, borderBottom: '1px solid #f0f0f0',
   }
 
-  /**
-   * 日付・時間帯の選択肢（ラジオボタンを包んだカード）の見た目
-   * @param selected - 選択中なら true（緑の枠）
-   * @param disabled - 選べない（満席）なら true（薄く表示）
-   * @returns 選択状態と満席状態を反映したラジオカード用の CSS スタイル
-   */
-  const radioCard = (selected: boolean, disabled = false): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-    border: `1px solid ${selected ? '#4a6741' : '#ddd'}`,
-    borderRadius: 2, cursor: disabled ? 'not-allowed' : 'pointer',
-    background: disabled ? '#f8f8f8' : selected ? '#f0f5ee' : '#fff',
-    opacity: disabled ? 0.6 : 1,
-  })
-
   // 予約完了後に出す予約内容の一覧
   const confirmRows = [
     { label: t('お名前', 'Name'), value: form.name },
@@ -409,79 +396,27 @@ export default function Reserve() {
           <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px' }}>
             <p style={sectionLabel}>{t('予約内容', 'Reservation')}</p>
 
-            {/* 予約日（複数日のイベントだけ。選び直すと時間枠と人数を戻す） */}
-            {isMultiDay && (
-              <div style={{ marginBottom: 20 }}>
-                <p id={`${uid}-date`} style={{ ...labelStyle, margin: '0 0 6px' }}>{t('予約日', 'Date')} <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span></p>
-                <div role="radiogroup" aria-labelledby={`${uid}-date`} aria-required="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {dates.map((d) => (
-                    <label key={d} style={radioCard(form.preferred_date === d)}>
-                      <input
-                        type="radio"
-                        name="preferred_date"
-                        value={d}
-                        checked={form.preferred_date === d}
-                        onChange={() => setForm((f) => ({ ...f, preferred_date: d, session_id: '', participants: 1 }))}
-                        style={{ accentColor: '#4a6741' }}
-                      />
-                      <span style={{ fontSize: 15, color: 'var(--c-ink)' }}>{fmtDate(d)}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 予約時間（WS ありのイベントだけ。満席の枠は選べない） */}
-            {event.has_workshop && (
-              <div style={{ marginBottom: 20, opacity: sessionsDisabled ? 0.4 : 1, pointerEvents: sessionsDisabled ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
-                <p id={`${uid}-time`} style={{ ...labelStyle, margin: '0 0 6px' }}>
-                  {t('予約時間', 'Time')} <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span>
-                  {sessionsDisabled && (
-                    <span style={{ textTransform: 'none', letterSpacing: 0, fontSize: 11, color: '#aaa', marginLeft: 8 }}>
-                      {t('（日付を先に選択してください）', '(Please select a date first)')}
-                    </span>
-                  )}
-                </p>
-                {/* 予約枠の取得の状態ごとの表示（取得中・失敗・枠なし・一覧） */}
-                {sessionsStatus === 'loading' ? (
-                  <p role="status" style={{ fontSize: 14, color: '#bbb', margin: 0 }}>{t('読み込み中...', 'Loading...')}</p>
-                ) : sessionsStatus === 'error' ? (
-                  <div role="alert">
-                    <p style={{ fontSize: 14, color: '#c0392b', margin: '0 0 8px' }}>{t('予約枠を読み込めませんでした。', 'Could not load the time slots.')}</p>
-                    <button type="button" onClick={() => setSessionsRetry((n) => n + 1)} style={{ padding: '6px 16px', border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', fontSize: 13 }}>
-                      {t('再読み込み', 'Retry')}
-                    </button>
-                  </div>
-                ) : sessionsStatus === 'ok' && sessions.length === 0 ? (
-                  <p style={{ fontSize: 14, color: 'var(--c-muted)', margin: 0 }}>{t('この日の予約枠はありません。', 'No time slots are available on this date.')}</p>
-                ) : sessionsStatus !== 'ok' ? null : (
-                  <div role="radiogroup" aria-labelledby={`${uid}-time`} aria-required="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {sessions.map((s) => {
-                      // この枠の残りの人数と、満席かどうか
-                      const rem = s.max_participants - s.reserved_count
-                      const full = rem <= 0
-                      return (
-                        <label key={s.id} style={radioCard(form.session_id === s.id, full)}>
-                          <input
-                            type="radio"
-                            name="session"
-                            value={s.id}
-                            disabled={full}
-                            checked={form.session_id === s.id}
-                            onChange={() => setForm((f) => ({ ...f, session_id: s.id, participants: 1 }))}
-                            style={{ accentColor: '#4a6741' }}
-                          />
-                          <span style={{ flex: 1, fontSize: 15, color: 'var(--c-ink)' }}>{s.time_label}</span>
-                          <span style={{ fontSize: 12, color: full ? '#c0392b' : '#8a9a7e' }}>
-                            {full ? t('満席', 'Full') : t(`残り ${rem} 名`, `${rem} left`)}
-                          </span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+            <ReserveScheduleFields
+              uid={uid}
+              isMultiDay={isMultiDay}
+              dates={dates}
+              preferredDate={form.preferred_date}
+              formatDate={fmtDate}
+              onSelectDate={(date) => setForm((f) => ({ ...f, preferred_date: date, session_id: '', participants: 1 }))}
+              hasWorkshop={event.has_workshop}
+              sessionsDisabled={sessionsDisabled}
+              sessionsStatus={sessionsStatus}
+              sessions={sessions.map((session) => {
+                // 1. 親で各枠の残席数と満席状態を計算し、表示部品へ渡す
+                const remaining = session.max_participants - session.reserved_count
+                return { session, remaining, full: remaining <= 0 }
+              })}
+              selectedSessionId={form.session_id}
+              onSelectSession={(sessionId) => setForm((f) => ({ ...f, session_id: sessionId, participants: 1 }))}
+              onRetrySessions={() => setSessionsRetry((n) => n + 1)}
+              labelStyle={labelStyle}
+              t={t}
+            />
 
             {/* 参加人数。時間枠のあるイベントは残りの人数（上限 RESERVE_MAX_PARTICIPANTS）までの選択肢、無いイベントは数値の入力 */}
             {event && (
