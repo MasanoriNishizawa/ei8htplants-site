@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { INPUT_MAX_LENGTH } from '../lib/constants'
+import CheckoutShippingAddressFields from './CheckoutShippingAddressFields'
 
 /** お客様情報・お届け先で扱う入力値 */
 export interface CheckoutCustomerFieldValues {
@@ -37,17 +38,6 @@ interface CheckoutCustomerFieldsProps {
   /** 入力値の変更を親画面へ知らせる */
   onChange: (field: CheckoutCustomerFieldName, value: string) => void
 }
-
-/** 都道府県の選択肢（北から順） */
-const PREFECTURES = [
-  '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
-  '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
-  '新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県',
-  '静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県',
-  '奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県',
-  '徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県',
-  '熊本県','大分県','宮崎県','鹿児島県','沖縄県',
-]
 
 /**
  * お客様情報とお届け先の入力欄を表示する制御コンポーネント。
@@ -92,31 +82,13 @@ export default function CheckoutCustomerFields({ values, uid, t, onChange }: Che
         <input id={`${uid}-phone`} type="tel" autoComplete="tel" maxLength={INPUT_MAX_LENGTH.phone} style={inputStyle} value={values.phone} onChange={(e) => onChange('phone', e.target.value)} />
       </div>
 
-      {/* お届け先の住所・備考を、既存の順序と入力属性で表示する */}
-      <p style={sectionTitle}>{t('お届け先', 'Shipping Address')}</p>
-      <div style={{ marginBottom: 16 }}>
-        <label htmlFor={`${uid}-postal`} style={labelStyle}>{t('郵便番号 *', 'Postal Code *')}</label>
-        <input id={`${uid}-postal`} required autoComplete="postal-code" maxLength={INPUT_MAX_LENGTH.postalCode} style={{ ...inputStyle, maxWidth: 160 }} value={values.postalCode} onChange={(e) => onChange('postalCode', e.target.value)} placeholder="000-0000" />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label htmlFor={`${uid}-prefecture`} style={labelStyle}>{t('都道府県 *', 'Prefecture *')}</label>
-        <select id={`${uid}-prefecture`} required style={inputStyle} value={values.prefecture} onChange={(e) => onChange('prefecture', e.target.value)}>
-          <option value="">{t('選択してください', 'Select a prefecture')}</option>
-          {PREFECTURES.map((prefecture) => <option key={prefecture} value={prefecture}>{prefecture}</option>)}
-        </select>
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label htmlFor={`${uid}-city`} style={labelStyle}>{t('市区町村 *', 'City / Town *')}</label>
-        <input id={`${uid}-city`} required maxLength={INPUT_MAX_LENGTH.city} style={inputStyle} value={values.city} onChange={(e) => onChange('city', e.target.value)} />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label htmlFor={`${uid}-address1`} style={labelStyle}>{t('番地・建物名 *', 'Street Address *')}</label>
-        <input id={`${uid}-address1`} required maxLength={INPUT_MAX_LENGTH.address} style={inputStyle} value={values.addressLine1} onChange={(e) => onChange('addressLine1', e.target.value)} />
-      </div>
-      <div style={{ marginBottom: 32 }}>
-        <label htmlFor={`${uid}-address2`} style={labelStyle}>{t('建物名・部屋番号', 'Building / Apt No.')}</label>
-        <input id={`${uid}-address2`} maxLength={INPUT_MAX_LENGTH.address} style={inputStyle} value={values.addressLine2} onChange={(e) => onChange('addressLine2', e.target.value)} />
-      </div>
+      {/* 住所入力は独立部品に委ね、備考は注文情報欄としてこの部品に残す */}
+      <CheckoutShippingAddressFields
+        values={values}
+        uid={uid}
+        t={t}
+        onChange={onChange}
+      />
       <div style={{ marginBottom: 32 }}>
         <label htmlFor={`${uid}-note`} style={labelStyle}>{t('備考', 'Notes')}</label>
         <textarea id={`${uid}-note`} maxLength={INPUT_MAX_LENGTH.note} style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={values.note} onChange={(e) => onChange('note', e.target.value)} />
