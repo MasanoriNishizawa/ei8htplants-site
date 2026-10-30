@@ -578,11 +578,60 @@ describe('api.contact', () => {
     vi.clearAllMocks()
   })
 
-  it('api.contact.send(body) が POST /api/contact を呼ぶ', async () => {
+  it('FE-API-20: api.contact.send(body) が公開 POST で送信し応答を返す', async () => {
     const body = { name: '田中', email: 'tanaka@example.com', message: 'お問い合わせ' }
-    await api.contact.send(body)
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.contact.send(body)
+
     expect(mockFetch.mock.calls[0][0]).toBe('/api/contact')
-    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST' })
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-21: api.contact.list() が管理用 GET で問い合わせ配列を返す', async () => {
+    const response = [{ id: 'contact-1', name: '田中', email: 'tanaka@example.com', message: 'お問い合わせ', is_read: false }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.contact.list()
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/contacts')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-22: api.contact.markRead(id, is_read) が PATCH で状態を送り問い合わせを返す', async () => {
+    const body = { is_read: true }
+    const response = { id: 'contact-1', name: '田中', email: 'tanaka@example.com', message: 'お問い合わせ', is_read: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.contact.markRead('contact-1', body.is_read)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/contacts/contact-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PATCH', body: JSON.stringify(body) })
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-23: api.contact.reply(id, subject, body) が管理用 POST で返信結果を返す', async () => {
+    const body = { subject: 'お問い合わせへの返信', body: 'ご連絡ありがとうございます。' }
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.contact.reply('contact-1', body.subject, body.body)
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/contacts/contact-1/reply')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
   })
 })
 

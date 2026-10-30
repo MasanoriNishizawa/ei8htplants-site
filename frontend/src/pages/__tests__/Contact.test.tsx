@@ -44,7 +44,7 @@ describe('Contact フォーム ステートマシン', () => {
   })
 
   it('送信成功後は done: フォームが非表示になり完了メッセージが表示される', async () => {
-    vi.mocked(api.contact.send).mockResolvedValue(undefined)
+    vi.mocked(api.contact.send).mockResolvedValue({ ok: true })
     render(<Contact />)
     fillForm()
     fireEvent.submit(screen.getByRole('button', { name: '送信する' }).closest('form')!)

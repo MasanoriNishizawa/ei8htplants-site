@@ -4,9 +4,9 @@ import { createEventsApi } from './apiDomains/events'
 import { createGalleryApi } from './apiDomains/gallery'
 import { createStockistsApi } from './apiDomains/stockists'
 import { createSiteAssetsApi } from './apiDomains/siteAssets'
+import { createContactApi } from './apiDomains/contact'
 import type {
   Event,
-  ContactPayload,
   ContactRecord,
   ReservationPayload,
   Reservation,
@@ -229,19 +229,7 @@ export const api = {
   /** 取扱店 */
   stockists: createStockistsApi(request, authRequest),
   /** お問い合わせ（公開フォームの送信と、管理画面の一覧・既読・返信） */
-  contact: {
-    /** お問い合わせを送る（429 は送信回数の上限） */
-    send: (body: ContactPayload) =>
-      request('/contact', { method: 'POST', body: JSON.stringify(body) }),
-    /** お問い合わせの一覧を取る（管理者のみ） */
-    list: () => authRequest<ContactRecord[]>('/contacts'),
-    /** 既読・未読を切り替える（管理者のみ） */
-    markRead: (id: string, is_read: boolean) =>
-      authRequest<ContactRecord>(`/contacts/${id}`, { method: 'PATCH', body: JSON.stringify({ is_read }) }),
-    /** お問い合わせにメールで返信する（管理者のみ） */
-    reply: (id: string, subject: string, body: string) =>
-      authRequest<{ ok: boolean }>(`/contacts/${id}/reply`, { method: 'POST', body: JSON.stringify({ subject, body }) }),
-  },
+  contact: createContactApi(request, authRequest),
   /** ワークショップの予約（公開フォームの送信・キャンセルと、管理画面の一覧・状態の変更・当日参加の登録） */
   reserve: {
     /** 予約を送る（409 は満席、429 は送信回数の上限） */
