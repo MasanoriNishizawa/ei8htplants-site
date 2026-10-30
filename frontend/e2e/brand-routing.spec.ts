@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { MOCK_GALLERY } from '../src/mocks/data'
 
 // ei8ht plants のブランドサイトと公式サイトを別 URL・別ヘッダーで公開する導線を確認する
 
@@ -35,6 +36,17 @@ test.describe('ブランドサイトと公式サイトのルーティング', ()
     await expect(approach.getByRole('heading', { name: /植物を育て|Grow plants/ })).toBeVisible()
     await expect(approach.getByText(/ひとつの植物から|From one remarkable plant/)).toBeVisible()
     await expect(approach.getByRole('link', { name: /私たちについて|OUR POINT OF VIEW/ })).toHaveAttribute('href', '/official/concept')
+    // Galleryの見出し・全件ページへのリンクと、3枚の写真が切れ目なく2周する状態を確認する。
+    const galleryHeading = page.getByRole('heading', { name: 'Gallery' })
+    const gallerySection = page.locator('section').filter({ has: galleryHeading })
+    await expect(galleryHeading).toBeVisible()
+    await expect(gallerySection.getByRole('link', { name: 'View All →' })).toHaveAttribute('href', '/official/gallery')
+    const galleryImages = gallerySection.locator('img')
+    await expect(galleryImages).toHaveCount(MOCK_GALLERY.length * 2)
+    for (let index = 0; index < MOCK_GALLERY.length; index += 1) {
+      await expect(galleryImages.nth(index)).toHaveAttribute('src', MOCK_GALLERY[index].url)
+      await expect(galleryImages.nth(index + MOCK_GALLERY.length)).toHaveAttribute('src', MOCK_GALLERY[index].url)
+    }
   })
 
   test('公式サイトの Brands メニューを押すと OUR BRANDS ページへ遷移する', /**

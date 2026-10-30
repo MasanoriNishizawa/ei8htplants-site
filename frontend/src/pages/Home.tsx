@@ -11,6 +11,7 @@ import { BRAND, TEXT_LOGO } from '../lib/brands'
 import { BRAND_SHOWCASES } from '../lib/brandShowcase'
 import { formatYen } from '../lib/format'
 import HomeApproachSection from './HomeApproachSection'
+import HomeGallerySection from './HomeGallerySection'
 
 /**
  * Instagram のリンク（href: アカウントの URL、src: ロゴ画像、cls はロゴごとの大きさの調整用、brand は画像の説明に使うブランド名）。
@@ -389,27 +390,7 @@ export default function Home() {
       {/* ─── GALLERY マーキー ───（写真があるときだけ。横に流れ続ける） */}
       {gallery.length > 0 && (
         <>
-          <section style={{ padding: 'clamp(56px, 8vw, 96px) 0' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
-                Gallery
-              </h2>
-              <Link to="/official/gallery" style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                View All →
-              </Link>
-            </div>
-            {/* マーキーの外枠（左右をぼかす）。流れる列は index.css の .home-marquee-track。
-                同じ写真の列を 2 回並べて切れ目なく流し、2 回目は読み上げで重複しないよう aria-hidden にする */}
-            <div className="home-marquee-viewport" style={{ overflow: 'hidden', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
-              <div className="home-marquee-track">
-                {[0, 1].map((round) => gallery.map((img) => (
-                  <div key={`${round}-${img.id}`} aria-hidden={round === 1 ? true : undefined} style={{ width: 'clamp(160px, 18vw, 260px)', aspectRatio: '1/1', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={img.url} alt={round === 1 ? '' : (img.alt ?? '')} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  </div>
-                )))}
-              </div>
-            </div>
-          </section>
+          <HomeGallerySection gallery={gallery} fontFamily={SERIF} />
           <hr style={divider} />
         </>
       )}
