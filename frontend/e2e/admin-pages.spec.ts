@@ -199,6 +199,23 @@ test.describe('管理画面スモークテスト', () => {
     await page.goto('/admin/price-calc')
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
+
+  // チャット履歴管理: 認証つき GET /api/chat-logs のモックデータが一覧に表示されること
+  test('E2E-E-18: /admin/chat-logs — モックの質問を表示し、開くとAIの返答を確認できる', /**
+     * チャット履歴を開き、モックの質問とAIの返答が表示されることを確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+      // 1. チャット履歴画面を開き、MSW が返す質問を表示する。
+      await page.goto('/admin/chat-logs')
+      const logRow = page.getByRole('button', { name: /次のイベントはいつですか/ })
+      await expect(logRow).toBeVisible()
+
+      // 2. 履歴行を展開し、AI の返答が表示されることを確認する。
+      await logRow.click()
+      await expect(page.getByText('イベント一覧ページをご覧ください。（モックの返事）')).toBeVisible()
+    })
 })
 
 // 認証つき API（authRequest）がダミートークンで MSW まで届き、モックのデータが画面に出ることの確認

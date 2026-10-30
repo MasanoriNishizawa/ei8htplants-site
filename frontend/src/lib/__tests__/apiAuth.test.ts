@@ -159,6 +159,22 @@ describe('認証つきリクエストのトークン', () => {
     expect(authHeaderOf()).toBe('Bearer site-asset-admin-jwt')
   })
 
+  it('FE-AG-15: チャット履歴の管理APIはセッションJWTをAuthorizationに付けて送る', async () => {
+    state.token = 'chat-log-admin-jwt'
+
+    await api.chatLogs.list()
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/chat-logs')
+    expect(authHeaderOf()).toBe('Bearer chat-log-admin-jwt')
+  })
+
+  it('FE-AG-16: チャット履歴の管理APIは通常モードでセッションが無いと送信せず401を投げる', async () => {
+    await expect(api.chatLogs.list()).rejects.toThrow('401 Unauthorized')
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true

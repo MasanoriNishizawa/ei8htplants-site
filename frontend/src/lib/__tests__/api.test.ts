@@ -675,6 +675,39 @@ describe('api.shipping', () => {
   })
 })
 
+describe('api.chatLogs', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-26: api.chatLogs.list() が管理用 GET で会話ログ配列を返す', async () => {
+    const response = [{
+      id: 'log-1',
+      user_message: '次のイベントはいつですか？',
+      ai_reply: 'イベント一覧をご覧ください。',
+      ip_hash: null,
+      created_at: '2026-10-01T10:00:00Z',
+    }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.chatLogs.list()
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/chat-logs')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
+  })
+})
+
 describe('api.reserve', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 

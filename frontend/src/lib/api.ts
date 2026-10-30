@@ -6,6 +6,7 @@ import { createStockistsApi } from './apiDomains/stockists'
 import { createSiteAssetsApi } from './apiDomains/siteAssets'
 import { createContactApi } from './apiDomains/contact'
 import { createShippingApi } from './apiDomains/shipping'
+import { createChatLogsApi } from './apiDomains/chatLogs'
 import type {
   Event,
   ContactRecord,
@@ -19,7 +20,6 @@ import type {
   MediaAppearanceBody,
   ChatQA,
   ChatQABody,
-  ChatLog,
   DocTreeNode,
   PotArtist,
   PriceCalcEntry,
@@ -374,10 +374,7 @@ export const api = {
       authRequest<{ ok: boolean }>(`/chat-qa/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   },
   /** AI チャットの会話ログ（管理者のみ。新しい順で最大 200 件） */
-  chatLogs: {
-    /** 会話ログを取る（新しい順で最大 200 件） */
-    list: () => authRequest<ChatLog[]>('/chat-logs'),
-  },
+  chatLogs: createChatLogsApi(authRequest),
   /** 設計書（doc/ の Markdown）の閲覧（管理者のみ） */
   docs: {
     /** doc/ のファイルツリーを取得する */
