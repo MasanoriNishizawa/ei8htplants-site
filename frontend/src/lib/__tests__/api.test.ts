@@ -1104,3 +1104,95 @@ describe('api.priceCalcEntries', () => {
     expect(result).toEqual(response)
   })
 })
+
+describe('api.chatQa', () => {
+  /** 各テストで差し替えるチャットQ&A APIのfetchモック */
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    // 1. 既定応答が空のJSON配列になるようにfetchを差し替える。
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    // 2. fetchの差し替えと呼び出し履歴をテストごとに初期化する。
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-41: api.chatQa.list() が全件取得用GETでQ&A一覧を返す', async () => {
+    // 1. 有効・無効を含む管理画面向けQ&A一覧を用意する。
+    /** 全件取得APIから返るQ&Aレコード一覧 */
+    const response = [
+      { id: 'qa-1', question: '水やりの頻度は？', answer: '土が乾いてから与えます。', sort_order: 1, enabled: true },
+      { id: 'qa-2', question: '冬の管理方法は？', answer: '水やりを控えます。', sort_order: 2, enabled: false },
+    ]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 管理画面向けの全Q&A一覧を取得する。
+    const result = await api.chatQa.list()
+
+    // 3. ?all=true付きのURLへGETし、一覧応答を返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/chat-qa?all=true')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-42: api.chatQa.add(body) がPOSTでJSON本文を送りQ&Aを返す', async () => {
+    // 1. 管理画面から送るQ&A本文と、サーバーがIDを付けた追加結果を用意する。
+    /** 登録するQ&Aの内容 */
+    const body = { question: '水やりの頻度は？', answer: '土が乾いてから与えます。', sort_order: 3, enabled: true }
+    /** 登録時にAPIが生成する識別子を含む応答 */
+    const response = { id: 'qa-3', ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 用意した本文で管理者向けの追加APIを呼び出す。
+    const result = await api.chatQa.add(body)
+
+    // 3. Q&A URLへのPOSTとJSON本文、追加結果が返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/chat-qa')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-43: api.chatQa.update(id, body) がエンコード済みURLへPATCHして更新結果を返す', async () => {
+    // 1. URLエンコードが必要なQ&A IDと、更新本文・更新後の応答を用意する。
+    /** 日本語・スラッシュ・空白を含む更新対象ID */
+    const id = 'Q&A/植物 質問'
+    /** 管理画面から送信するQ&A更新内容 */
+    const body = { question: '冬の水やりは？', answer: '控えめにします。', sort_order: 4, enabled: false }
+    /** 更新後にサーバーから返るQ&Aレコード */
+    const response = { id, ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定IDのQ&Aを用意した本文で更新する。
+    const result = await api.chatQa.update(id, body)
+
+    // 3. IDをencodeURIComponentで符号化したURLへPATCHし、JSON本文と更新結果を確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe(`/api/chat-qa/${encodeURIComponent(id)}`)
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PATCH', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-44: api.chatQa.delete(id) がエンコード済みURLへDELETEして結果を返す', async () => {
+    // 1. URLエンコードが必要な削除対象IDと、削除成功の応答を用意する。
+    /** 日本語・スラッシュ・空白を含む削除対象ID */
+    const id = 'Q&A/植物 質問'
+    /** 削除APIが返す成功結果 */
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定IDのQ&Aを削除する。
+    const result = await api.chatQa.delete(id)
+
+    // 3. IDをencodeURIComponentで符号化したURLへDELETEし、成功結果を返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe(`/api/chat-qa/${encodeURIComponent(id)}`)
+    expect(mockFetch.mock.calls[0][1]?.method).toBe('DELETE')
+    expect(result).toEqual(response)
+  })
+})

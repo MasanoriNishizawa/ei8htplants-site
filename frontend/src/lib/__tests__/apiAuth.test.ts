@@ -474,6 +474,125 @@ describe('認証つきリクエストのトークン', () => {
     expect(result).toEqual({ ok: true })
   })
 
+  it('FE-AG-31: チャットQ&A一覧APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 一覧APIで使う管理者JWTと、Q&A一覧のJSON応答を用意する。
+    state.token = 'chat-qa-list-admin-jwt'
+    /** 管理画面用一覧APIから返るQ&A配列 */
+    const entries = [{
+      id: 'qa-1',
+      question: '水やりの頻度は？',
+      answer: '土が乾いてから与えます。',
+      sort_order: 1,
+      enabled: true,
+    }]
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(entries), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 管理画面向けの全Q&A一覧を認証付きで取得する。
+    const result = await api.chatQa.list()
+
+    // 3. all=trueの一覧URLへJWTを付けて送信し、Q&A配列を返すことを確認する。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/chat-qa?all=true')
+    expect(authHeaderOf()).toBe('Bearer chat-qa-list-admin-jwt')
+    expect(result).toEqual(entries)
+  })
+
+  it('FE-AG-32: チャットQ&A追加APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 追加APIに使う管理者JWTと、登録成功のQ&A応答を用意する。
+    state.token = 'chat-qa-add-admin-jwt'
+    /** APIが登録後に返すQ&Aレコード */
+    const entry = {
+      id: 'qa-2',
+      question: '冬の管理方法は？',
+      answer: '水やりを控えます。',
+      sort_order: 2,
+      enabled: true,
+    }
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(entry), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 管理者向けのQ&A追加APIを実行する。
+    const result = await api.chatQa.add({
+      question: entry.question,
+      answer: entry.answer,
+      sort_order: entry.sort_order,
+      enabled: entry.enabled,
+    })
+
+    // 3. 追加URLへJWTを付けて送信し、登録結果が返ることを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/chat-qa')
+    expect(authHeaderOf()).toBe('Bearer chat-qa-add-admin-jwt')
+    expect(result).toEqual(entry)
+  })
+
+  it('FE-AG-33: チャットQ&A更新APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 更新APIに使う管理者JWTと更新後のQ&Aレコードを用意する。
+    state.token = 'chat-qa-update-admin-jwt'
+    /** 更新対象のQ&A識別子 */
+    const id = 'Q&A/植物 質問'
+    /** 更新APIが返すQ&Aレコード */
+    const entry = {
+      id,
+      question: '冬の水やりは？',
+      answer: '控えめにします。',
+      sort_order: 3,
+      enabled: false,
+    }
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(entry), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 指定IDのQ&Aを認証付きで更新する。
+    const result = await api.chatQa.update(id, {
+      question: entry.question,
+      answer: entry.answer,
+      sort_order: entry.sort_order,
+      enabled: entry.enabled,
+    })
+
+    // 3. エンコード済みURLへJWTを付けて送信し、更新結果を受け取ることを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(`/api/chat-qa/${encodeURIComponent(id)}`)
+    expect(authHeaderOf()).toBe('Bearer chat-qa-update-admin-jwt')
+    expect(result).toEqual(entry)
+  })
+
+  it('FE-AG-34: チャットQ&A削除APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 削除APIに使う管理者JWTと削除成功応答を用意する。
+    state.token = 'chat-qa-delete-admin-jwt'
+    /** 削除対象のQ&A識別子 */
+    const id = 'Q&A/植物 質問'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 指定IDのQ&Aを認証付きで削除する。
+    const result = await api.chatQa.delete(id)
+
+    // 3. エンコード済み削除URLへJWTを付けて送信し、成功結果を受け取ることを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(`/api/chat-qa/${encodeURIComponent(id)}`)
+    expect((fetchSpy.mock.calls[0][1] as RequestInit).method).toBe('DELETE')
+    expect(authHeaderOf()).toBe('Bearer chat-qa-delete-admin-jwt')
+    expect(result).toEqual({ ok: true })
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true

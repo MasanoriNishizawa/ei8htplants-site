@@ -12,6 +12,7 @@ import { createMediaAppearancesApi } from './apiDomains/mediaAppearances'
 import { createDocsApi } from './apiDomains/docs'
 import { createPotArtistsApi } from './apiDomains/potArtists'
 import { createPriceCalcEntriesApi } from './apiDomains/priceCalcEntries'
+import { createChatQaApi } from './apiDomains/chatQa'
 import type {
   Event,
   ContactRecord,
@@ -19,8 +20,6 @@ import type {
   Reservation,
   Article,
   ArticleBody,
-  ChatQA,
-  ChatQABody,
   Product,
   ProductBody,
   OrderPayload,
@@ -318,22 +317,7 @@ export const api = {
   /** メディア掲載 */
   mediaAppearances: createMediaAppearancesApi(request, authRequest),
   /** AI チャット用の Q&A（管理画面の「チャットQ&A」） */
-  chatQa: {
-    /**
-     * 無効のものも含む全件を取得する（管理画面の一覧用）。
-     * 公開の GET /chat-qa は有効なものだけを返すので、?all=true を付けて認証付きで取る
-     */
-    list: () => authRequest<ChatQA[]>('/chat-qa?all=true'),
-    /** Q&A を追加する（管理者のみ） */
-    add: (body: ChatQABody) =>
-      authRequest<ChatQA>('/chat-qa', { method: 'POST', body: JSON.stringify(body) }),
-    /** Q&A を更新する（管理者のみ） */
-    update: (id: string, body: ChatQABody) =>
-      authRequest<ChatQA>(`/chat-qa/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
-    /** Q&A を削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/chat-qa/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-  },
+  chatQa: createChatQaApi(authRequest),
   /** AI チャットの会話ログ（管理者のみ。新しい順で最大 200 件） */
   chatLogs: createChatLogsApi(authRequest),
   /** 設計書（doc/ の Markdown）の閲覧（管理者のみ） */
