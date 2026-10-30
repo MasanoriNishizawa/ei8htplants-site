@@ -635,6 +635,46 @@ describe('api.contact', () => {
   })
 })
 
+describe('api.shipping', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-24: api.shipping.getRate(prefecture) がエンコード済みクエリでGETし送料を返す', async () => {
+    const response = { fee: 850 }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.shipping.getRate('東京/神奈川')
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/shipping/rate?prefecture=%E6%9D%B1%E4%BA%AC%2F%E7%A5%9E%E5%A5%88%E5%B7%9D')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-25: api.shipping.getPrefectures() が公開GETで都道府県配列を返す', async () => {
+    const response = ['東京都', '大阪府', '北海道']
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const result = await api.shipping.getPrefectures()
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/shipping/prefectures')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+})
+
 describe('api.reserve', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 

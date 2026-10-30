@@ -5,6 +5,7 @@ import { createGalleryApi } from './apiDomains/gallery'
 import { createStockistsApi } from './apiDomains/stockists'
 import { createSiteAssetsApi } from './apiDomains/siteAssets'
 import { createContactApi } from './apiDomains/contact'
+import { createShippingApi } from './apiDomains/shipping'
 import type {
   Event,
   ContactRecord,
@@ -277,13 +278,7 @@ export const api = {
       authRequest<Product>(`/products/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ stock }) }),
   },
   /** 送料 */
-  shipping: {
-    /** 都道府県の送料を取る */
-    getRate: (prefecture: string) =>
-      request<{ fee: number }>(`/shipping/rate?prefecture=${encodeURIComponent(prefecture)}`),
-    /** 送料の設定がある都道府県の一覧を取る */
-    getPrefectures: () => request<string[]>('/shipping/prefectures'),
-  },
+  shipping: createShippingApi(request),
   /** 注文（公開の注文の確定と、管理画面の一覧・詳細・状態の変更） */
   orders: {
     /** 注文を確定する（Square で決済する。429 は送信回数の上限） */
