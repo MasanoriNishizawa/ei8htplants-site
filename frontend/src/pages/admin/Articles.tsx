@@ -5,7 +5,7 @@ import { blockImageUrls, type Block, parseBlocks, serializeBlocks } from '../../
 import { confirmDiscard, dirtySnapshotJson, useEscapeToClose, useUnsavedChanges } from './UnsavedChanges'
 import { failMessage } from './errorMessage'
 import { formatYen } from '../../lib/format'
-import { formatJstDate } from '../../lib/localDate'
+import ArticlesList from './articles/ArticlesList'
 
 /** エラーの帯の見た目（一覧の上・編集モーダルで共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
@@ -29,16 +29,6 @@ function snapshotOf(form: ArticleBody, blocks: Block[], tagInput: string): strin
 /** 新規作成のときのフォームの初期値 */
 const BLANK: ArticleBody = {
   title: '', content: '', image_urls: [], tags: [], product_ids: [], is_published: false, display_order: 0,
-}
-
-/**
- * 公開日を「2026/01/02」の形（日本時間）にする
- * @param s - ISO 形式の日時（null なら「—」）
- * @returns 表示用の文字列
- */
-function fmtDate(s: string | null): string {
-  if (!s) return '—'
-  return formatJstDate(s, true)
 }
 
 /**
@@ -281,65 +271,15 @@ export default function AdminArticles() {
       {pageError && <p role="alert" style={errorBoxStyle}>{pageError}</p>}
 
       {/* 記事の表（狭い幅では横にスクロール） */}
-      {loading ? <p style={{ color: 'var(--c-muted)' }}>読み込み中...</p> : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #dddde8', textAlign: 'left' }}>
-                {['画像', 'タイトル', 'タグ', '公開日', '状態', '操作'].map((h) => (
-                  <th key={h} style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--c-body)', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {articles.map((a) => (
-                <tr key={a.id} style={{ borderBottom: '1px solid #f0f0f5' }}>
-                  {/* 1枚目の画像（無ければ灰色の四角） */}
-                  <td style={{ padding: '10px 14px' }}>
-                    {a.image_urls[0]
-                      ? <img src={a.image_urls[0]} alt="" style={{ width: 48, height: 48, objectFit: 'cover', display: 'block', border: '1px solid #dddde8' }} />
-                      : <div style={{ width: 48, height: 48, background: '#f5f5f8', border: '1px solid #dddde8' }} />}
-                  </td>
-                  <td style={{ padding: '10px 14px', maxWidth: 240 }}>
-                    <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</p>
-                  </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {a.tags.map((t) => (
-                        <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: '#f0f0f5', color: '#666' }}>{t}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td style={{ padding: '10px 14px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{fmtDate(a.published_at)}</td>
-                  {/* 公開状態（押すとその場で切り替える） */}
-                  <td style={{ padding: '10px 14px' }}>
-                    <button
-                      onClick={() => togglePublish(a)}
-                      disabled={busyId === a.id}
-                      aria-label={`「${a.title}」の公開状態を切り替える（いまは${a.is_published ? '公開中' : '非公開'}）`}
-                      style={{
-                        padding: '3px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                        fontSize: 12, fontFamily: 'inherit',
-                        background: a.is_published ? '#d4edda' : '#f0f0f5',
-                        color: a.is_published ? '#155724' : '#666',
-                      }}
-                    >
-                      {a.is_published ? '公開中' : '非公開'}
-                    </button>
-                  </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => openEdit(a)} style={{ padding: '5px 14px', border: '1px solid #dddde8', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>編集</button>
-                      <button onClick={() => handleDelete(a)} disabled={busyId === a.id} style={{ padding: '5px 14px', border: '1px solid #f8d7da', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}>削除</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {articles.length === 0 && !pageError && <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--c-muted)' }}>記事がありません。</p>}
-        </div>
-      )}
+      <ArticlesList
+        articles={articles}
+        loading={loading}
+        hasPageError={Boolean(pageError)}
+        busyId={busyId}
+        onTogglePublish={togglePublish}
+        onEdit={openEdit}
+        onDelete={handleDelete}
+      />
 
       {/* 編集モーダル（暗い背景を押すと、変更があれば確認してから閉じる） */}
       {editing !== null && (
