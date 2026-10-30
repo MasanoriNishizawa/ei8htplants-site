@@ -9,7 +9,7 @@
 - 存在しない注文の更新は 404
 """
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -323,6 +323,53 @@ class TestSquareFailures:
         assert resp.status_code == 402
         assert resp.json()['detail'] == 'カードが拒否されました'
         assert _rpc_names(mock_sb) == ['decrement_stock', 'increment_stock']
+
+
+class TestOrderItemsSaveFailure:
+    """決済後に注文明細の保存が失敗した場合の扱い。"""
+
+    def test_決済成功後に注文明細の保存が失敗すると500で通知し在庫を戻さない(self):
+        """注文本体保存後の明細保存例外で500と通知を試み、保存順と在庫確保を保つこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_sb: テーブルごとに異なる応答を返す Supabase モック。
+        # 変数の内容: operation_order: 注文本体と明細の保存実行順を記録する一覧。
+        # 変数の内容: notify_admin: 決済後のエラー通知呼び出しを記録するモック。
+        # 変数の内容: mock_http: 成功した Square 決済を返す HTTP モック。
+        # 変数の内容: resp: 注文 API から返される HTTP 応答。
+        # 1. 商品読み取り・注文本体保存は成功させ、明細保存だけが失敗するモックを組み立てる。
+        mock_sb = MagicMock()
+        products_table = MagicMock()
+        orders_table = MagicMock()
+        order_items_table = MagicMock()
+        operation_order: list[str] = []
+
+        products_table.select.return_value.in_.return_value.execute.return_value.data = [SAMPLE_PRODUCT]
+        mock_sb.table.side_effect = [products_table, orders_table, order_items_table]
+        mock_sb.rpc.return_value.execute.return_value.data = True
+        orders_table.insert.return_value.execute.side_effect = lambda: (
+            operation_order.append('orders.insert.execute') or MagicMock(data=[SAMPLE_ORDER])
+        )
+        order_items_table.insert.return_value.execute.side_effect = lambda: (
+            operation_order.append('order_items.insert.execute') or (_ for _ in ()).throw(RuntimeError('明細保存失敗'))
+        )
+        mock_http = _make_http_mock_success()
+
+        # 2. 決済後の通知を記録しながら注文を作り、現行 API のエラー応答を受け取る。
+        with patch('app.routes.orders._notify_admin_critical') as notify_admin:
+            resp = _post_order(ORDER_REQUEST, mock_sb, mock_http)
+
+        # 3. 500・通知・決済後に確保在庫を戻さないことと DB 呼出順を確かめる。
+        assert resp.status_code == 500
+        assert 'お支払いは完了しています' in resp.json()['detail']
+        mock_http.post.assert_called_once()
+        notify_admin.assert_called_once()
+        assert notify_admin.call_args.args[0] == '課金済み注文レコード作成失敗'
+        assert operation_order == ['orders.insert.execute', 'order_items.insert.execute']
+        assert mock_sb.table.call_args_list == [call('products'), call('orders'), call('order_items')]
+        assert _rpc_names(mock_sb) == ['decrement_stock']
 
 
 class TestOrderStatusLiteral:

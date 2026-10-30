@@ -5,112 +5,10 @@ import DOMPurify from 'dompurify'
 import { api, type DocTreeNode } from '../../lib/api'
 import { processDocLinks } from './docLinks'
 import AdminDocsContent from './AdminDocsContent'
+import AdminDocsTree from './AdminDocsTree'
 
 /** 設計書のファイルツリーの1項目（api.ts の型をこの画面ではこの名前で使う） */
 type TreeNode = DocTreeNode
-
-/**
- * 設計書ファイルツリーを再帰的に描画するサイドバーコンポーネント
- * @param nodes - 表示するツリーノード一覧
- * @param selected - 現在選択中のファイルパス
- * @param onSelect - ファイル選択時のコールバック
- * @param depth - 現在のネスト深さ（インデント計算用）
- * @returns フォルダとファイルのボタンを並べたリスト（開いているフォルダの中は再帰で描画する）
- */
-function FileTree({
-  nodes,
-  selected,
-  onSelect,
-  depth = 0,
-}: {
-  nodes: TreeNode[]
-  selected: string
-  onSelect: (path: string) => void
-  depth?: number
-}) {
-  /** フォルダのパス → 開いているかどうか */
-  const [open, setOpen] = useState<Record<string, boolean>>({})
-
-  /**
-   * フォルダが開いているかどうか。自分で開閉していないフォルダは、選択中のファイルを含むときだけ開く
-   * （設計書の中のリンクから別のフォルダのファイルを開いたとき、ツリーでもそのファイルが見えるようにする）
-   * @param path - フォルダのパス
-   * @returns 開いていれば true
-   */
-  const isOpen = (path: string) => open[path] ?? selected.startsWith(`${path}/`)
-
-  /**
-   * フォルダの開閉を切り替える
-   * @param path - フォルダのパス
-   * @returns 戻り値なし。
-   */
-  const toggle = (path: string) =>
-    setOpen((prev) => ({ ...prev, [path]: !(prev[path] ?? selected.startsWith(`${path}/`)) }))
-
-  return (
-    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-      {nodes.map((node) => (
-        <li key={node.path}>
-          {/* フォルダは開閉ボタン（開いていれば中身を1段深く描画）、ファイルは選ぶボタン（.md は表示しない） */}
-          {node.type === 'dir' ? (
-            <>
-              <button
-                onClick={() => toggle(node.path)}
-                aria-expanded={isOpen(node.path)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  width: '100%',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: `6px 8px 6px ${depth * 12 + 8}px`,
-                  fontSize: 13,
-                  color: 'var(--c-muted)',
-                  letterSpacing: '0.5px',
-                  textAlign: 'left',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <span aria-hidden="true" style={{ fontSize: 10 }}>{isOpen(node.path) ? '▼' : '▶'}</span>
-                {node.name}
-              </button>
-              {isOpen(node.path) && node.children && (
-                <FileTree
-                  nodes={node.children}
-                  selected={selected}
-                  onSelect={onSelect}
-                  depth={depth + 1}
-                />
-              )}
-            </>
-          ) : (
-            <button
-              onClick={() => onSelect(node.path)}
-              aria-current={selected === node.path ? 'true' : undefined}
-              style={{
-                display: 'block',
-                width: '100%',
-                background: selected === node.path ? '#f0f4ee' : 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: `6px 8px 6px ${depth * 12 + 20}px`,
-                fontSize: 13,
-                color: selected === node.path ? 'var(--c-ink)' : 'var(--c-body)',
-                textAlign: 'left',
-                fontFamily: 'inherit',
-                borderRadius: 4,
-              }}
-            >
-              {node.name.replace(/\.md$/, '')}
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
-  )
-}
 
 /**
  *  スマホ幅（index.css の .admin-docs の切り替えと同じ 768px 以下）かどうか
@@ -302,53 +200,15 @@ export default function AdminDocs() {
 
   return (
     <div className="admin-docs" style={{ display: 'flex', gap: 0, minHeight: 'calc(100vh - 80px)' }}>
-      {/* サイドバー（目次）。スマホでは本文の上に置き、tocOpen が false のときはツリーを隠す */}
-      <aside
-        className={`admin-docs-toc${tocOpen ? '' : ' toc-collapsed'}`}
-        style={{
-          width: 240,
-          flexShrink: 0,
-          borderRight: '1px solid #dddde8',
-          padding: '16px 8px',
-          overflowY: 'auto',
-          maxHeight: 'calc(100vh - 80px)',
-          position: 'sticky',
-          top: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '0 0 12px 8px' }}>
-          <h2
-            style={{
-              fontSize: 11,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              color: 'var(--c-muted)',
-              margin: 0,
-              fontWeight: 400,
-            }}
-          >
-            設計書
-          </h2>
-          {/* 目次の開閉ボタン（スマホだけ。PC では index.css で隠す） */}
-          <button
-            type="button"
-            className="admin-docs-toc-toggle"
-            onClick={() => setTocOpen((v) => !v)}
-            aria-expanded={tocOpen}
-            aria-controls="admin-docs-tree"
-            style={{ display: 'none', background: 'none', border: '1px solid #dddde8', borderRadius: 4, padding: '6px 10px', fontSize: 12, color: 'var(--c-body)', cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            {tocOpen ? '目次を閉じる' : '目次を開く'}
-          </button>
-        </div>
-        {/* 目次の読み込みの失敗（目次を閉じていても見えるよう、ツリーの外に出す） */}
-        {treeError && (
-          <p role="alert" style={{ color: '#c0392b', fontSize: 13, margin: '0 8px 12px' }}>{treeError}</p>
-        )}
-        <div id="admin-docs-tree" className="admin-docs-tree">
-          <FileTree nodes={tree} selected={selected} onSelect={selectFile} />
-        </div>
-      </aside>
+      {/* 目次と再帰ツリーの表示を子へ委譲し、取得・URL 選択・開閉 state はこの画面に残す。 */}
+      <AdminDocsTree
+        nodes={tree}
+        selected={selected}
+        tocOpen={tocOpen}
+        treeError={treeError}
+        onSelect={selectFile}
+        onToggleToc={() => setTocOpen((v) => !v)}
+      />
 
       {/* 本文の状態表示と Markdown の配置は専用の表示部品に任せる */}
       <AdminDocsContent
