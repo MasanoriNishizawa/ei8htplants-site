@@ -7,13 +7,12 @@ import { createSiteAssetsApi } from './apiDomains/siteAssets'
 import { createContactApi } from './apiDomains/contact'
 import { createShippingApi } from './apiDomains/shipping'
 import { createChatLogsApi } from './apiDomains/chatLogs'
+import { createCollaborationsApi } from './apiDomains/collaborations'
 import type {
   Event,
   ContactRecord,
   ReservationPayload,
   Reservation,
-  Collaboration,
-  CollaborationPayload,
   Article,
   ArticleBody,
   MediaAppearance,
@@ -313,16 +312,7 @@ export const api = {
       authRequest<{ ok: boolean }>(`/articles/${id}`, { method: 'DELETE' }),
   },
   /** コラボレーション事例 */
-  collaborations: {
-    /** コラボレーションの一覧を取る */
-    list: () => request<Collaboration[]>('/collaborations'),
-    /** コラボレーションを追加する（管理者のみ） */
-    add: (body: CollaborationPayload) =>
-      authRequest<Collaboration>('/collaborations', { method: 'POST', body: JSON.stringify(body) }),
-    /** コラボレーションを削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/collaborations/${id}`, { method: 'DELETE' }),
-  },
+  collaborations: createCollaborationsApi(request, authRequest),
   /** 鉢の作家（管理画面の価格計算） */
   potArtists: {
     /** 作家の一覧を取る */

@@ -708,6 +708,72 @@ describe('api.chatLogs', () => {
   })
 })
 
+describe('api.collaborations', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-27: api.collaborations.list() が公開 GET でコラボレーション一覧を返す', async () => {
+    // 1. GET の応答として返すコラボレーション一覧を用意する。
+    /** 一覧取得APIから返るモックデータ */
+    const response = [{ id: 'collab-1', title: '植物と器の展示', partner_name: '山田陶房' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 公開一覧APIを呼び出す。
+    const result = await api.collaborations.list()
+
+    // 3. GET先とメソッド、一覧データがそのまま返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/collaborations')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-28: api.collaborations.add(body) が POST で本文を送り追加結果を返す', async () => {
+    // 1. 管理画面から送る入力本文と、サーバーが返す追加レコードを用意する。
+    /** コラボレーション追加APIへ送信する内容 */
+    const body = { title: '植物と器の展示', partner_name: '山田陶房', description: '共同展示を開催します。' }
+    /** 登録時にサーバーが生成する属性を含む応答 */
+    const response = { id: 'collab-2', ...body, video_url: null, image_url: null, event_date: null, display_order: 0, created_at: '2026-10-30T00:00:00Z' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 用意した本文で管理者向け追加APIを呼び出す。
+    const result = await api.collaborations.add(body)
+
+    // 3. POST先・本文と、追加されたレコードが返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/collaborations')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-29: api.collaborations.delete(id) が対象 URL に DELETE して結果を返す', async () => {
+    // 1. 成功時に返る削除結果と、対象のコラボレーションIDを用意する。
+    /** 削除APIが返す成功結果 */
+    const response = { ok: true }
+    /** 削除対象の識別子 */
+    const id = 'collab-3'
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定したIDのコラボレーションを削除する。
+    const result = await api.collaborations.delete(id)
+
+    // 3. 対象IDのURLへDELETEし、成功結果が返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe(`/api/collaborations/${id}`)
+    expect(mockFetch.mock.calls[0][1]?.method).toBe('DELETE')
+    expect(result).toEqual(response)
+  })
+})
+
 describe('api.reserve', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 

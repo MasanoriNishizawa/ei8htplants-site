@@ -152,6 +152,26 @@ test.describe('管理画面スモークテスト', () => {
     await expect(page.getByRole('heading').or(page.getByRole('button')).first()).toBeVisible()
   })
 
+  // コラボレーションの削除確認に応答し、対象の行だけが一覧から消えることを確かめる。
+  test('E2E-E-19: /admin/collaborations — 確認後に対象のコラボレーションを削除できる', /**
+     コラボレーションを追加し、削除確認を承認すると一覧からその項目が消えることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} 追加・削除と画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+      // 1. 管理画面でテスト用のコラボレーションを追加する。
+      await page.goto('/admin/collaborations')
+      await page.getByLabel('タイトル').fill('削除確認テスト')
+      await page.getByRole('button', { name: '追加', exact: true }).click()
+      await expect(page.getByText('削除確認テスト', { exact: true })).toBeVisible()
+
+      // 2. 確認ダイアログを承認し、一覧から項目が取り除かれることを確かめる。
+      page.once('dialog', (dialog) => dialog.accept())
+      await page.getByRole('button', { name: '削除確認テストを削除' }).click()
+      await expect(page.getByText('削除確認テスト', { exact: true })).toHaveCount(0)
+    }
+  )
+
   // 記事管理: ページが表示されること（GET /api/articles → [] ハンドラー済み）
   test('/admin/articles — 記事管理ページが表示される', /**
      記事管理ページを開き、ページの見出しまたは操作ボタンが表示されることを確認する。

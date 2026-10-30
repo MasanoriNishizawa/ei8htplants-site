@@ -175,6 +175,49 @@ describe('認証つきリクエストのトークン', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
+  it('FE-AG-17: コラボレーションの公開一覧はAuthorizationを付けずに送る', async () => {
+    await api.collaborations.list()
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/collaborations')
+    expect(authHeaderOf()).toBeUndefined()
+  })
+
+  it('FE-AG-18: コラボレーションの管理追加APIはセッションJWTをAuthorizationに付ける', async () => {
+    state.token = 'collaboration-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ id: 'collab-1', title: '植物と器の展示' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    await api.collaborations.add({ title: '植物と器の展示' })
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/collaborations')
+    expect(authHeaderOf()).toBe('Bearer collaboration-admin-jwt')
+  })
+
+  it('FE-AG-19: コラボレーションの管理削除APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 管理者セッションに設定するJWTを用意し、削除成功のJSONを返すようにする。
+    state.token = 'collaboration-delete-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. コラボレーションの削除APIを実行する。
+    await api.collaborations.delete('collab-1')
+
+    // 3. 対象URLへ1回だけ送信し、セッションJWTを付けたことを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/collaborations/collab-1')
+    expect(authHeaderOf()).toBe('Bearer collaboration-delete-admin-jwt')
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true
