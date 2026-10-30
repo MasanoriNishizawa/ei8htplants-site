@@ -593,6 +593,92 @@ describe('認証つきリクエストのトークン', () => {
     expect(result).toEqual({ ok: true })
   })
 
+  it('FE-AG-35: 記事の公開一覧と詳細はセッションが無くても認証なしで取得できる', async () => {
+    // 1. 公開一覧には配列、記事詳細には1件の記事を返す。
+    /** 公開記事の詳細APIから返る記事 */
+    const articleResponse = { id: 'article-1', title: '植物と暮らす', is_published: true }
+    fetchSpy.mockImplementation(async (input: RequestInfo | URL) =>
+      new Response(JSON.stringify(input === '/api/articles' ? [] : articleResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. セッションを設定せずに公開記事APIを取得する。
+    const list = await api.articles.list()
+    const article = await api.articles.get('article-1')
+
+    // 3. 2つの公開URLが認証なしで呼ばれ、JSON応答が返ることを確認する。
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/articles')
+    expect(fetchSpy.mock.calls[1][0]).toBe('/api/articles/article-1')
+    expect(authHeaderOf(0)).toBeUndefined()
+    expect(authHeaderOf(1)).toBeUndefined()
+    expect(list).toEqual([])
+    expect(article).toEqual(articleResponse)
+  })
+
+  it('FE-AG-36: 記事の管理用全件取得・作成・更新・削除はセッションJWTを付ける', async () => {
+    // 1. 記事管理APIに使う管理者JWTと、JSON応答を用意する。
+    state.token = 'article-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+    /** 作成・更新で共通して送る記事本文 */
+    const body = {
+      title: '管理記事',
+      content: null,
+      image_urls: [],
+      tags: [],
+      product_ids: [],
+      is_published: false,
+      display_order: 1,
+    }
+
+    // 2. 管理画面が利用する4種類の認証付き記事操作を呼び出す。
+    await api.articles.list(true)
+    await api.articles.create(body)
+    await api.articles.update('article-1', body)
+    await api.articles.delete('article-1')
+
+    // 3. 各操作が1回ずつ実行され、同じセッションJWTを付けることを確認する。
+    expect(fetchSpy).toHaveBeenCalledTimes(4)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/articles?all=true')
+    expect(fetchSpy.mock.calls[1][0]).toBe('/api/articles')
+    expect(fetchSpy.mock.calls[2][0]).toBe('/api/articles/article-1')
+    expect(fetchSpy.mock.calls[3][0]).toBe('/api/articles/article-1')
+    // 呼び出し位置ごとに同じ管理者JWTが付いていることを確認する。
+    for (let callIndex = 0; callIndex < 4; callIndex += 1) {
+      expect(authHeaderOf(callIndex)).toBe('Bearer article-admin-jwt')
+    }
+  })
+
+  it('FE-AG-37: 記事の管理APIはセッションが無いとfetchせず401になる', async () => {
+    // 1. 記事の作成・更新に使う最小の本文を用意する。
+    /** 管理APIの呼び出しで利用する記事本文 */
+    const body = {
+      title: '管理記事',
+      content: null,
+      image_urls: [],
+      tags: [],
+      product_ids: [],
+      is_published: false,
+      display_order: 1,
+    }
+
+    // 2. セッションの無い通常モードで各管理操作が401を拒否することを確認する。
+    await expect(api.articles.list(true)).rejects.toThrow('401 Unauthorized')
+    await expect(api.articles.create(body)).rejects.toThrow('401 Unauthorized')
+    await expect(api.articles.update('article-1', body)).rejects.toThrow('401 Unauthorized')
+    await expect(api.articles.delete('article-1')).rejects.toThrow('401 Unauthorized')
+
+    // 3. 認証に失敗した操作はAPIサーバーへ送信されないことを確かめる。
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true

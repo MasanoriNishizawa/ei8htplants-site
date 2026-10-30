@@ -13,13 +13,12 @@ import { createDocsApi } from './apiDomains/docs'
 import { createPotArtistsApi } from './apiDomains/potArtists'
 import { createPriceCalcEntriesApi } from './apiDomains/priceCalcEntries'
 import { createChatQaApi } from './apiDomains/chatQa'
+import { createArticlesApi } from './apiDomains/articles'
 import type {
   Event,
   ContactRecord,
   ReservationPayload,
   Reservation,
-  Article,
-  ArticleBody,
   Product,
   ProductBody,
   OrderPayload,
@@ -289,25 +288,7 @@ export const api = {
       authRequest<Order>(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status, carrier, tracking_number: trackingNumber }) }),
   },
   /** Journal の記事 */
-  articles: {
-    /**
-     * 記事一覧を取得する
-     * @param all - true なら非公開も含む全件（管理画面用。サーバーが認証を求めるのでログインのトークンを付ける）
-     */
-    list: (all = false) =>
-      all ? authRequest<Article[]>('/articles?all=true') : request<Article[]>('/articles'),
-    /** 記事を 1 件取る（無ければ 404） */
-    get: (id: string) => request<Article>(`/articles/${id}`),
-    /** 記事を作る（管理者のみ） */
-    create: (body: ArticleBody) =>
-      authRequest<Article>('/articles', { method: 'POST', body: JSON.stringify(body) }),
-    /** 記事を更新する（管理者のみ） */
-    update: (id: string, body: ArticleBody) =>
-      authRequest<Article>(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-    /** 記事を削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/articles/${id}`, { method: 'DELETE' }),
-  },
+  articles: createArticlesApi(request, authRequest),
   /** コラボレーション事例 */
   collaborations: createCollaborationsApi(request, authRequest),
   /** 鉢の作家（管理画面の価格計算） */

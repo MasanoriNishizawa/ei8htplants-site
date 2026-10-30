@@ -565,6 +565,160 @@ describe('api.products', () => {
   })
 })
 
+describe('api.articles', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-45: api.articles.list() が公開GET /api/articlesを呼び、記事一覧を返す', async () => {
+    // 1. 公開一覧APIから返る記事を用意する。
+    /** 公開記事一覧APIの応答 */
+    const response = [{
+      id: 'article-1',
+      title: '植物と暮らす',
+      content: null,
+      image_urls: [],
+      tags: ['植物'],
+      product_ids: [],
+      is_published: true,
+      display_order: 1,
+      published_at: '2026-10-30T00:00:00Z',
+      created_at: '2026-10-29T00:00:00Z',
+    }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 既定値の公開記事一覧を取得する。
+    const result = await api.articles.list()
+
+    // 3. クエリなしの公開GETを使い、認証を付けず一覧応答を返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/articles')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-46: api.articles.list(true) が認証付きGET /api/articles?all=trueを呼ぶ', async () => {
+    // 1. 公開・非公開を含む記事一覧の応答を用意する。
+    /** 管理用の全記事一覧APIの応答 */
+    const response = [
+      { id: 'article-1', title: '公開記事', is_published: true },
+      { id: 'article-2', title: '下書き', is_published: false },
+    ]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 管理画面用に非公開記事も含む一覧を取得する。
+    const result = await api.articles.list(true)
+
+    // 3. all=trueのGETに認証が付き、全記事の応答を返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/articles?all=true')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-47: api.articles.get(id) が公開GET /api/articles/:idを呼ぶ', async () => {
+    // 1. 詳細APIから返る記事を用意する。
+    /** 記事詳細APIの応答 */
+    const response = { id: 'article-1', title: '植物と暮らす', is_published: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定IDの記事詳細を取得する。
+    const result = await api.articles.get('article-1')
+
+    // 3. 既存どおりIDを未エンコードで含む公開GETを使い、認証なしで応答を返す。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/articles/article-1')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-48: api.articles.create(body) が認証付きPOSTでJSON本文を送り作成結果を返す', async () => {
+    // 1. 作成する記事本文と、作成後のAPI応答を用意する。
+    /** 記事作成APIへ送る本文 */
+    const body = {
+      title: '新しい記事',
+      content: '{"blocks":[]}',
+      image_urls: ['https://example.com/article.jpg'],
+      tags: ['植物', '暮らし'],
+      product_ids: ['product-1'],
+      is_published: false,
+      display_order: 2,
+    }
+    /** APIが作成時に採番して返す記事 */
+    const response = { id: 'article-new', ...body, published_at: null, created_at: '2026-10-30T00:00:00Z' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 管理画面から記事を作成する。
+    const result = await api.articles.create(body)
+
+    // 3. 認証付きPOSTとJSON本文、作成結果が維持されることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/articles')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-49: api.articles.update(id, body) が認証付きPUTでJSON本文を送り更新結果を返す', async () => {
+    // 1. 更新対象ID、送信する記事本文、更新後の応答を用意する。
+    /** 記事更新の対象ID */
+    const id = 'article-1'
+    /** 記事更新APIへ送る本文 */
+    const body = {
+      title: '更新した記事',
+      content: null,
+      image_urls: [],
+      tags: ['更新'],
+      product_ids: [],
+      is_published: true,
+      display_order: 3,
+    }
+    /** APIが更新後に返す記事 */
+    const response = { id, ...body, published_at: '2026-10-30T00:00:00Z', created_at: '2026-10-29T00:00:00Z' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定した記事を管理画面から更新する。
+    const result = await api.articles.update(id, body)
+
+    // 3. IDを未エンコードで含む認証付きPUTとJSON本文、更新結果を確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/articles/article-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify(body) })
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-50: api.articles.delete(id) が認証付きDELETEを呼び削除結果を返す', async () => {
+    // 1. 削除対象IDと成功応答を用意する。
+    /** 記事削除の対象ID */
+    const id = 'article-1'
+    /** 削除APIの成功応答 */
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定した記事を管理画面から削除する。
+    const result = await api.articles.delete(id)
+
+    // 3. IDを未エンコードで含む認証付きDELETEと削除結果を確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/articles/article-1')
+    expect(mockFetch.mock.calls[0][1]?.method).toBe('DELETE')
+    expect((mockFetch.mock.calls[0][1]?.headers as Record<string, string> | undefined)?.Authorization).toBe('Bearer test-token')
+    expect(result).toEqual(response)
+  })
+})
+
 describe('api.contact', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 
