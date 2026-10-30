@@ -4,6 +4,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { api, type DocTreeNode } from '../../lib/api'
 import { processDocLinks } from './docLinks'
+import AdminDocsContent from './AdminDocsContent'
 
 /** 設計書のファイルツリーの1項目（api.ts の型をこの画面ではこの名前で使う） */
 type TreeNode = DocTreeNode
@@ -349,29 +350,16 @@ export default function AdminDocs() {
         </div>
       </aside>
 
-      {/* コンテンツ */}
-      <div ref={contentAreaRef} className="admin-docs-body" style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', minWidth: 0 }}>
-        {/* 本文の読み込みの失敗 */}
-        {error && !loading && (
-          <p role="alert" style={{ color: '#c0392b', fontSize: 14 }}>{error}</p>
-        )}
-        {/* ファイルを選ぶ前の案内 */}
-        {!selected && (
-          <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>
-            目次からファイルを選択してください。
-          </p>
-        )}
-        {loading && <p style={{ color: 'var(--c-muted)', fontSize: 14 }}>読み込み中...</p>}
-        {content && !loading && !error && (
-          /* 本文（リンクのクリックは handleContentClick でまとめて受ける） */
-          <div
-            ref={contentRef}
-            className="docs-markdown"
-            onClick={handleContentClick}
-            dangerouslySetInnerHTML={{ __html: content }}
-          />
-        )}
-      </div>
+      {/* 本文の状態表示と Markdown の配置は専用の表示部品に任せる */}
+      <AdminDocsContent
+        selected={selected}
+        loading={loading}
+        error={error}
+        content={content}
+        contentAreaRef={contentAreaRef}
+        contentRef={contentRef}
+        onContentClick={handleContentClick}
+      />
     </div>
   )
 }
