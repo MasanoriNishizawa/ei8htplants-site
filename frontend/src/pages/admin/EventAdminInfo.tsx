@@ -3,6 +3,7 @@ import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Event, type EventAdminInfo, type EventFinances, type EventFinancesBody } from '../../lib/api'
 import { SectionBox } from './AdminInfoParts'
 import EventAdminInfoDateTimeField from './EventAdminInfoDateTimeField'
+import EventAdminInfoStayBoothFields from './EventAdminInfoStayBoothFields'
 import EventGuidelinesImages from './EventGuidelinesImages'
 import { confirmLeaveIfDirty, dirtySnapshotJson, useUnsavedChanges } from './UnsavedChanges'
 
@@ -81,9 +82,6 @@ function splitDateTime(value: string | null | undefined): DateTimeParts {
   const [h, m] = timePart.split(':')
   return { date, hour: h ?? '', min: m ? m.slice(0, 2) : '' }
 }
-
-/** 出店料支払い方法の選択肢 */
-const PAY_METHODS = ['当日現金', '事前振込', 'その他'] as const
 
 /**
  * イベント管理情報（搬入・搬出・宿泊・出店料・出店要項・メモ）を入力・保存するページ
@@ -446,105 +444,23 @@ export default function EventAdminInfo() {
           </div>
         </SectionBox>
 
-        {/* 宿泊 */}
-        <SectionBox label="宿泊">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label htmlFor="hotel-name" style={labelStyle}>ホテル名</label>
-              <input
-                id="hotel-name"
-                type="text"
-                style={inputStyle}
-                value={form.hotel_name ?? ''}
-                placeholder="宿泊ホテル名（任意）"
-                onChange={(e) => set('hotel_name', e.target.value || null)}
-              />
-            </div>
-            <div>
-              <label htmlFor="hotel-fee" style={labelStyle}>宿泊料金</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  id="hotel-fee"
-                  type="number"
-                  min={0}
-                  style={{ ...inputStyle, textAlign: 'right' }}
-                  value={form.hotel_fee ?? ''}
-                  placeholder="0"
-                  onChange={(e) => set('hotel_fee', e.target.value === '' ? null : Number(e.target.value))}
-                />
-                <span style={{ fontSize: 13, color: 'var(--c-muted)', flexShrink: 0 }}>円</span>
-              </div>
-            </div>
-          </div>
-        </SectionBox>
-
-        {/* 出店料 */}
-        <SectionBox label="出店料">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label htmlFor="booth-fee" style={labelStyle}>出店料</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  id="booth-fee"
-                  type="number"
-                  min={0}
-                  style={{ ...inputStyle, textAlign: 'right' }}
-                  value={form.booth_fee ?? ''}
-                  placeholder="0"
-                  onChange={(e) => set('booth_fee', e.target.value === '' ? null : Number(e.target.value))}
-                />
-                <span style={{ fontSize: 13, color: 'var(--c-muted)', flexShrink: 0 }}>円</span>
-              </div>
-            </div>
-            <div>
-              <label htmlFor="booth-fee-pay-method" style={labelStyle}>支払い方法</label>
-              <select
-                id="booth-fee-pay-method"
-                style={inputStyle}
-                value={form.booth_fee_pay_method ?? ''}
-                onChange={(e) => set('booth_fee_pay_method', e.target.value || null)}
-              >
-                <option value="">未設定</option>
-                {PAY_METHODS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="booth-fee-due" style={labelStyle}>支払い期限</label>
-              <input
-                id="booth-fee-due"
-                type="date"
-                style={inputStyle}
-                value={form.booth_fee_due ?? ''}
-                onChange={(e) => set('booth_fee_due', e.target.value || null)}
-              />
-            </div>
-            {/* 支払い済みチェックボックス */}
-            <div>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                cursor: 'pointer',
-                padding: '12px 14px',
-                background: form.booth_fee_paid ? '#f0f5ee' : '#ffffff',
-                border: `1px solid ${form.booth_fee_paid ? '#b8d4ae' : '#dddde8'}`,
-                borderRadius: 4,
-              }}>
-                <input
-                  type="checkbox"
-                  checked={form.booth_fee_paid ?? false}
-                  onChange={(e) => set('booth_fee_paid', e.target.checked)}
-                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4a6741', flexShrink: 0 }}
-                />
-                <span style={{ fontSize: 14, fontWeight: form.booth_fee_paid ? 500 : 400 }}>
-                  支払い済み
-                </span>
-              </label>
-            </div>
-          </div>
-        </SectionBox>
+        {/* 宿泊と出店料の入力欄は表示専用の子コンポーネントへ分離。state と更新処理は親に残す */}
+        <EventAdminInfoStayBoothFields
+          hotelName={form.hotel_name}
+          hotelFee={form.hotel_fee}
+          boothFee={form.booth_fee}
+          boothFeePayMethod={form.booth_fee_pay_method}
+          boothFeeDue={form.booth_fee_due}
+          boothFeePaid={form.booth_fee_paid}
+          inputStyle={inputStyle}
+          labelStyle={labelStyle}
+          onHotelNameChange={(value) => set('hotel_name', value)}
+          onHotelFeeChange={(value) => set('hotel_fee', value)}
+          onBoothFeeChange={(value) => set('booth_fee', value)}
+          onBoothFeePayMethodChange={(value) => set('booth_fee_pay_method', value)}
+          onBoothFeeDueChange={(value) => set('booth_fee_due', value)}
+          onBoothFeePaidChange={(value) => set('booth_fee_paid', value)}
+        />
 
         {/* 出店要項（主催者から届いた要項の文章と画像） */}
         <SectionBox label="出店要項" hint="画像の追加・削除は「保存する」で確定します">
