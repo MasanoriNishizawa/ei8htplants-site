@@ -18,6 +18,7 @@ import { createDashboardStatsApi } from './apiDomains/dashboardStats'
 import { createProductsApi } from './apiDomains/products'
 import { createOrdersApi } from './apiDomains/orders'
 import { createReserveApi } from './apiDomains/reserve'
+import { createUploadsApi } from './apiDomains/uploads'
 
 /** API の URL の頭（同じオリジンの /api。開発中は Vite のプロキシでバックエンドへ送る） */
 const BASE = '/api'
@@ -169,31 +170,12 @@ async function authRequestText(path: string): Promise<string> {
   return res.text()
 }
 
-/**
- * ファイルを1つ multipart/form-data で送り、保存先の公開 URL を受け取る（画像・動画のアップロードの共通部分）
- * @param path - アップロード先の API パス（'/upload' または '/upload/video'）
- * @param file - 送るファイル
- * @returns 保存したファイルの公開 URL
- */
-async function uploadFile(path: string, file: File): Promise<string> {
-  // 送るファイルを file という名前で入れる（サーバーの受け取り名と同じ）
-  const form = new FormData()
-  form.append('file', file)
-  // アップロード API の成功応答
-  const res = await authFetchOk(path, { method: 'POST', body: form })
-  // Storage に保存したファイルの公開 URL
-  const { url } = await res.json()
-  return url
-}
-
 /** バックエンドへの API 呼び出しをまとめたオブジェクト */
 export const api = {
   /** ダッシュボードの統計カード用データ */
   ...createDashboardStatsApi(request, authRequest),
-  /** 画像を Storage にアップロードし、公開 URL を返す（管理者のみ） */
-  upload: (file: File): Promise<string> => uploadFile('/upload', file),
-  /** 動画を Storage にアップロードし、公開 URL を返す（管理者のみ） */
-  uploadVideo: (file: File): Promise<string> => uploadFile('/upload/video', file),
+  /** 画像・動画の Storage アップロード操作 */
+  ...createUploadsApi(authFetchOk),
   /** 公開サイトの管理画像 */
   siteAssets: createSiteAssetsApi(request, authRequest),
   /** イベント（公開の一覧・1 件と、管理画面の作成・更新・削除・収支・時間枠・イベントページ・管理情報） */

@@ -64,7 +64,8 @@ describe('認証つきリクエストのトークン', () => {
   })
 
   afterEach(() => {
-    fetchSpy.mockRestore()
+    // fetch と各テスト内で作る FormData.append の spy を、成功・失敗に関わらず復元する。
+    vi.restoreAllMocks()
   })
 
   it('セッションがあれば、その JWT を Authorization に付けて送る', async () => {
@@ -726,6 +727,31 @@ describe('認証つきリクエストのトークン', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
+  it('FE-API-73: 画像アップロードは画像用URLへ元のFileを認証付きmultipartで送り公開URLを返す', async () => {
+    // 1. 画像アップロードの応答URLと管理者セッションのJWTを用意する。
+    state.token = 'image-upload-jwt'
+    const file = new File(['画像データ'], 'leaf.jpg', { type: 'image/jpeg' })
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ url: 'https://example.com/leaf.jpg' }), { status: 200 })
+    )
+
+    // 2. FormData.append に同じ File オブジェクトが file 名で渡されることを記録し、統合APIを呼び出す。
+    const appendSpy = vi.spyOn(FormData.prototype, 'append')
+    const url = await api.upload(file)
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    const form = init.body as FormData
+
+    // 3. パス・認証・multipartの送信契約と、返却された公開URLを確認する。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/upload')
+    expect(authHeaderOf()).toBe('Bearer image-upload-jwt')
+    expect(init.method).toBe('POST')
+    expect(appendSpy).toHaveBeenCalledWith('file', file)
+    expect(form.get('file')).toMatchObject({ name: 'leaf.jpg', type: 'image/jpeg' })
+    expect(init.headers).not.toHaveProperty('Content-Type')
+    expect(url).toBe('https://example.com/leaf.jpg')
+  })
+
   it('動画アップロード（uploadVideo）もセッションがあれば JWT、無ければ省略モードでダミーを付ける', async () => {
     fetchSpy.mockImplementation(async () =>
       new Response(JSON.stringify({ url: 'https://example.com/v.mp4' }), { status: 200 })
@@ -743,5 +769,30 @@ describe('認証つきリクエストのトークン', () => {
     state.skip = false
     await expect(api.uploadVideo(new File(['x'], 'v.mp4'))).rejects.toThrow('401 Unauthorized')
     expect(fetchSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('FE-API-74: 動画アップロードは動画用URLへ元のFileを認証付きmultipartで送り公開URLを返す', async () => {
+    // 1. 動画アップロードの応答URLと管理者セッションのJWTを用意する。
+    state.token = 'video-upload-jwt'
+    const file = new File(['動画データ'], 'growth.mp4', { type: 'video/mp4' })
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ url: 'https://example.com/growth.mp4' }), { status: 200 })
+    )
+
+    // 2. FormData.append に同じ File オブジェクトが file 名で渡されることを記録し、統合APIを呼び出す。
+    const appendSpy = vi.spyOn(FormData.prototype, 'append')
+    const url = await api.uploadVideo(file)
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    const form = init.body as FormData
+
+    // 3. パス・認証・multipartの送信契約と、返却された公開URLを確認する。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/upload/video')
+    expect(authHeaderOf()).toBe('Bearer video-upload-jwt')
+    expect(init.method).toBe('POST')
+    expect(appendSpy).toHaveBeenCalledWith('file', file)
+    expect(form.get('file')).toMatchObject({ name: 'growth.mp4', type: 'video/mp4' })
+    expect(init.headers).not.toHaveProperty('Content-Type')
+    expect(url).toBe('https://example.com/growth.mp4')
   })
 })
