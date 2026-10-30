@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api, type Event, type PageContent } from '../../lib/api'
 import { failMessage } from './errorMessage'
 import { useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
+import EventSiteImageInput from './eventSite/EventSiteImageInput'
 
 /** ラインナップの1件（名称・説明・画像） */
 type LineupItem = NonNullable<PageContent['lineup']>[number]
@@ -65,68 +66,6 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: 24 }}>
       <h3 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 18, fontWeight: 300, letterSpacing: 2, margin: '0 0 20px', paddingBottom: 12, borderBottom: '1px solid #dddde8' }}>{title}</h3>
       {children}
-    </div>
-  )
-}
-
-/**
- * 画像アップロード入力コンポーネント。ファイル選択後にアップロードして URL を返す
- * @param value - 現在の画像 URL
- * @param onChange - 画像 URL が変更された際のコールバック（削除したときは空文字を渡す）
- * @returns 四角いサムネイル（押すとファイルを選べる）と削除ボタン
- */
-function ImageInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  /** アップロード中なら true（枠を薄くし、ファイル選択を止める） */
-  const [uploading, setUploading] = useState(false)
-  /**
-   * 選んだ画像をアップロードし、URL を onChange で返す（失敗したら alert で知らせる）
-   * @param e - ファイル選択の change イベント
-   * @returns 戻り値なし。
-   */
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    /** 選ばれたファイル（選ぶのをやめたときは undefined） */
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    try {
-      // アップロード先の URL を、フォームの画像 URL として反映する。
-      const url = await api.upload(file)
-      onChange(url)
-    } catch {
-      alert('アップロードに失敗しました')
-    } finally {
-      setUploading(false)
-      // 同じファイルを選び直しても change が起きるよう、選択を空に戻す
-      e.target.value = ''
-    }
-  }
-  /** サムネイルの枠（ファイルを選ぶ label）の見た目。88px の正方形 */
-  const thumb: React.CSSProperties = {
-    width: 88, height: 88, borderRadius: 4, border: '1px solid #dddde8',
-    overflow: 'hidden', position: 'relative', flexShrink: 0, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: '#f5f5f8',
-  }
-  return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-      <label style={{ ...thumb, opacity: uploading ? 0.5 : 1 }}>
-        {value && !value.startsWith('blob:') ? (
-          <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <span style={{ fontSize: 24, color: '#aaa' }}>{uploading ? '…' : '+'}</span>
-        )}
-        <input type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} disabled={uploading} />
-      </label>
-      {/* 画像があるときだけ出す削除ボタン */}
-      {value && !value.startsWith('blob:') && (
-        <button
-          type="button"
-          onClick={() => onChange('')}
-          style={{ fontSize: 12, color: '#c0392b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          削除
-        </button>
-      )}
     </div>
   )
 }
@@ -431,7 +370,7 @@ export default function AdminEventSite() {
                 <textarea value={item.description ?? ''} onChange={(e) => setLineupItem(i, { description: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
               </Field>
               <Field label="画像">
-                <ImageInput value={item.image_url ?? ''} onChange={(v) => setLineupItem(i, { image_url: v })} />
+                <EventSiteImageInput value={item.image_url ?? ''} onChange={(v) => setLineupItem(i, { image_url: v })} />
               </Field>
             </div>
           ))}
@@ -460,7 +399,7 @@ export default function AdminEventSite() {
                 <textarea value={guest.bio ?? ''} onChange={(e) => setGuestItem(i, { bio: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
               </Field>
               <Field label="プロフィール画像">
-                <ImageInput value={guest.image_url ?? ''} onChange={(v) => setGuestItem(i, { image_url: v })} />
+                <EventSiteImageInput value={guest.image_url ?? ''} onChange={(v) => setGuestItem(i, { image_url: v })} />
               </Field>
               <Field label="Instagram URL">
                 <input value={guest.instagram_url ?? ''} onChange={(e) => setGuestItem(i, { instagram_url: e.target.value })} placeholder="https://www.instagram.com/..." style={inputStyle} />

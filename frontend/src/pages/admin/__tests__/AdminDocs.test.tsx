@@ -56,17 +56,17 @@ const REAL_DOCS = [
   {
     path: '02_DD/01_モジュール構成.md',
     heading: 'DD-01 — モジュール構成',
-    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts'],
+    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts', 'EventSiteImageInput.tsx'],
   },
   {
     path: '02_DD/03_フロントエンドロジック.md',
     heading: 'DD-03 — フロントエンドロジック',
-    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage'],
+    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage', '単画像の入力UIは'],
   },
   {
     path: '03_PM/06_プロジェクト全体リファクタリング計画.md',
     heading: 'PM-06 — プロジェクト全体リファクタリング計画',
-    expected: ['段階2のAPI型配置整理を完了しました', '全15ドメイン', 'apiTypes.ts'],
+    expected: ['段階2のAPI型配置整理を完了しました', '全15ドメイン', 'apiTypes.ts', 'EventSiteImageInput.tsx'],
   },
 ].map((doc) => ({
   ...doc,

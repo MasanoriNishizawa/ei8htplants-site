@@ -255,6 +255,37 @@ test.describe('イベントページの編集（AdminEventSite）', () => {
     await expect(page.getByRole('button', { name: '保存しました' })).toBeVisible()
     await expectSidebarFree(page)
   })
+
+  test('ラインナップ画像をアップロードして保存すると、画像 URL が保存要求に含まれる', /**
+     * 「/admin/events/mock-upcoming-1/site」を開き、ラインナップを追加する、画像をアップロードする、保存する。アップロードした画像 URL が保存要求に含まれ、サムネイル表示が保たれることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} 画像アップロード・保存要求と画面表示の確認が完了したときに解決する。
+     */
+    async ({ page }) => {
+      // 1. イベントページ編集を開き、画像を設定するためのラインナップ欄を追加する。
+      await page.goto('/admin/events/mock-upcoming-1/site')
+      await expect(page.getByRole('button', { name: '+ ラインナップを追加' })).toBeVisible()
+      await page.getByRole('button', { name: '+ ラインナップを追加' }).click()
+
+      // 2. MSW が返すローカル画像URLを親フォームへ取り込み、サムネイルに表示する。
+      const imageInput = page.locator('input[type="file"]').first()
+      await imageInput.setInputFiles('public/img/habitatOides/habitat_oides_hero.jpg')
+      const thumbnail = imageInput.locator('xpath=..').locator('img')
+      await expect(thumbnail).toHaveAttribute('src', '/img/logo-habitatoides.png')
+      await expect(imageInput).toHaveValue('')
+
+      // 3. 保存要求を捕捉し、画像 URL が page_content の保存対象に含まれることを確かめる。
+      const saveRequestPromise = page.waitForRequest((request) =>
+        request.method() === 'PATCH' && request.url().includes('/api/events/mock-upcoming-1/page'),
+      )
+      await page.getByRole('button', { name: '保存', exact: true }).click()
+      const saveRequest = await saveRequestPromise
+      const requestBody = saveRequest.postDataJSON() as { page_content?: { lineup?: Array<{ image_url?: string }> } }
+      expect(requestBody.page_content?.lineup?.[0]?.image_url).toBe('/img/logo-habitatoides.png')
+      await expect(page.getByRole('button', { name: '保存しました' })).toBeVisible()
+      await expect(thumbnail).toHaveAttribute('src', '/img/logo-habitatoides.png')
+    }
+  )
 })
 
 test.describe('コラボレーション・鉢作家・メディア出演の追加欄', () => {
