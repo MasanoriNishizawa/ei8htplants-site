@@ -228,6 +228,40 @@ describe('Reserve の送信結果ごとの表示', () => {
     expect(sent[0]).toMatchObject({ event_id: 'mock-no-time', name: '山田 花子', email: 'hanako@example.com', participants: 1 })
   })
 
+  it('参加者情報の任意項目と持ち込み選択を予約リクエストと完了画面に反映する', async () => {
+    const sent = mockReserveApi(200)
+    renderReserve('mock-no-time')
+
+    // 1. 必須項目と、電話番号・持ち込み選択・備考を入力する
+    fireEvent.change(await screen.findByLabelText(/お名前/), { target: { value: '山田 花子' } })
+    fireEvent.change(screen.getByLabelText(/メールアドレス/), { target: { value: 'hanako@example.com' } })
+    fireEvent.change(screen.getByLabelText(/電話番号（任意）/), { target: { value: '090-1234-5678' } })
+    fireEvent.change(screen.getByLabelText(/参加人数/), { target: { value: '2' } })
+    fireEvent.click(screen.getByLabelText('植物を持ち込む'))
+    fireEvent.click(screen.getByLabelText('鉢を持ち込む'))
+    fireEvent.change(screen.getByLabelText(/備考（任意）/), { target: { value: '午前中に伺います' } })
+
+    // 2. 予約を送信し、親画面から API へ全項目が渡ることを確認する
+    fireEvent.click(screen.getByRole('button', { name: '予約する' }))
+    expect(await screen.findByText('予約を受け付けました')).toBeInTheDocument()
+    expect(sent[0]).toMatchObject({
+      event_id: 'mock-no-time',
+      name: '山田 花子',
+      email: 'hanako@example.com',
+      phone: '090-1234-5678',
+      participants: 2,
+      bring_plant: true,
+      bring_pot: true,
+      note: '午前中に伺います',
+    })
+
+    // 3. 送信した電話番号・持ち込み状態・備考が完了画面にも表示されることを確認する
+    expect(screen.getByText('090-1234-5678')).toBeInTheDocument()
+    expect(screen.getByText('植物持ち込み').parentElement).toHaveTextContent('あり')
+    expect(screen.getByText('鉢持ち込み').parentElement).toHaveTextContent('あり')
+    expect(screen.getByText('午前中に伺います')).toBeInTheDocument()
+  })
+
   it('409 のときは「このセッションは満席になりました」が出て、「戻る」でフォームに戻れる', async () => {
     mockReserveApi(409, { detail: 'full' })
     await fillAndSubmitSimple()

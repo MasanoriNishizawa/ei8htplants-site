@@ -56,12 +56,12 @@ const REAL_DOCS = [
   {
     path: '02_DD/01_モジュール構成.md',
     heading: 'DD-01 — モジュール構成',
-    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', 'EventAdminInfoGuidelinesSection.tsx', '出店要項の文章欄と画像表示をまとめる表示部品', 'useEventAdminInfoGuidelinesImages.ts', '画像の逐次アップロード・部分失敗・削除確認とviewer操作', '枠の読み込み中・失敗・空・満席・残席数'],
+    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts', 'EventSiteImageInput.tsx', 'CheckoutShippingAddressFields.tsx', 'ReserveScheduleFields.tsx', 'ReserveCustomerFields.tsx', '参加人数、氏名・メール・電話、植物/鉢の持ち込み、備考の入力UIを表示する', 'EventAdminInfoGuidelinesSection.tsx', '出店要項の文章欄と画像表示をまとめる表示部品', 'useEventAdminInfoGuidelinesImages.ts', '画像の逐次アップロード・部分失敗・削除確認とviewer操作', '枠の読み込み中・失敗・空・満席・残席数'],
   },
   {
     path: '02_DD/03_フロントエンドロジック.md',
     heading: 'DD-03 — フロントエンドロジック',
-    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage', '単画像の入力UIは', 'CheckoutShippingAddressFields.tsx', '配送先の5項目', 'HTML標準検証に使う', 'reserve/ReserveScheduleFields.tsx', '複数日イベントの日付ラジオ', '時間枠変更時の参加人数リセット', 'EventAdminInfoGuidelinesSection.tsx', '文章欄と画像表示部品をまとめる', 'useEventAdminInfoGuidelinesImages', 'hookがアップロード進捗/エラー', 'hookは画像を選択順に逐次アップロード', 'hookは注入された更新関数とアップロード関数を使います'],
+    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage', '単画像の入力UIは', 'CheckoutShippingAddressFields.tsx', '配送先の5項目', 'HTML標準検証に使う', 'reserve/ReserveScheduleFields.tsx', '複数日イベントの日付ラジオ', '時間枠変更時の参加人数リセット', 'reserve/ReserveCustomerFields.tsx', '表示部品は参加人数と各入力値', '入力変更はcallbackで親へ通知し', '独自stateや予約API・送信処理は持ちません。', 'フォームstate、人数変更時の値更新', '予約payload作成・送信、完了画面を維持します。', 'EventAdminInfoGuidelinesSection.tsx', '文章欄と画像表示部品をまとめる', 'useEventAdminInfoGuidelinesImages', 'hookがアップロード進捗/エラー', 'hookは画像を選択順に逐次アップロード', 'hookは注入された更新関数とアップロード関数を使います'],
   },
   {
     path: '03_PM/06_プロジェクト全体リファクタリング計画.md',
@@ -136,7 +136,8 @@ describe('AdminDocs の本文のリンク', () => {
     // 3. 本文が切り替わり、ツリーでも選択中になる（別フォルダも自動で開く）
     expect(await screen.findByRole('heading', { name: 'API 仕様' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '概要' })).toBeNull()
-    expect(screen.getByRole('button', { name: '06_API仕様' })).toHaveAttribute('aria-current', 'true')
+    // 本文の切替とツリー側の選択属性が別々の描画に反映されても、選択状態まで待つ
+    await waitFor(() => expect(screen.getByRole('button', { name: '06_API仕様' })).toHaveAttribute('aria-current', 'true'))
   })
 
   it('.md へのリンクに #見出し があると、開いた後にその見出しまでスクロールする', async () => {

@@ -8,6 +8,7 @@ import { useT, useLang } from '../lib/lang'
 import { listDates, parseLocalDate } from '../lib/localDate'
 import { INPUT_MAX_LENGTH, RESERVE_MAX_PARTICIPANTS } from '../lib/constants'
 import EventInfoPanel from './reserve/EventInfoPanel'
+import ReserveCustomerFields from './reserve/ReserveCustomerFields'
 import ReserveScheduleFields from './reserve/ReserveScheduleFields'
 
 /** 予約フォームの値 */
@@ -418,68 +419,36 @@ export default function Reserve() {
               t={t}
             />
 
-            {/* 参加人数。時間枠のあるイベントは残りの人数（上限 RESERVE_MAX_PARTICIPANTS）までの選択肢、無いイベントは数値の入力 */}
-            {event && (
-              <div style={{ marginBottom: 20, opacity: participantsDisabled ? 0.4 : 1, transition: 'opacity 0.2s' }}>
-                <label htmlFor={`${uid}-participants`} style={labelStyle}>{t('参加人数', 'Participants')} <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span></label>
-                {expectsSessions ? (
-                  <select
-                    id={`${uid}-participants`}
-                    disabled={participantsDisabled}
-                    style={{ ...inputStyle, width: 120, cursor: participantsDisabled ? 'not-allowed' : 'default' }}
-                    value={form.participants}
-                    onChange={(e) => set('participants', Number(e.target.value))}
-                  >
-                    {form.session_id && selectedRemaining > 0
-                      ? Array.from({ length: Math.min(selectedRemaining, RESERVE_MAX_PARTICIPANTS) }, (_, i) => i + 1).map((n) => (
-                          <option key={n} value={n}>{t(`${n} 名`, `${n}`)}</option>
-                        ))
-                      : <option value={1}>—</option>
-                    }
-                  </select>
-                ) : (
-                  <input id={`${uid}-participants`} required type="number" min={1} max={RESERVE_MAX_PARTICIPANTS} style={{ ...inputStyle, width: 100 }} value={form.participants} onChange={(e) => set('participants', Number(e.target.value))} />
-                )}
-              </div>
-            )}
-
-            <p style={sectionLabel}>{t('お客様情報', 'Your Information')}</p>
-
-            {/* お名前・メールアドレス（必須）・電話番号（任意） */}
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor={`${uid}-name`} style={labelStyle}>{t('お名前', 'Name')} <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span></label>
-              <input id={`${uid}-name`} required autoComplete="name" maxLength={INPUT_MAX_LENGTH.name} style={inputStyle} value={form.name} onChange={(e) => set('name', e.target.value)} />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor={`${uid}-email`} style={labelStyle}>{t('メールアドレス', 'Email')} <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span></label>
-              <input id={`${uid}-email`} required type="email" autoComplete="email" style={inputStyle} value={form.email} onChange={(e) => set('email', e.target.value)} />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor={`${uid}-phone`} style={labelStyle}>{t('電話番号（任意）', 'Phone (optional)')}</label>
-              <input id={`${uid}-phone`} type="tel" autoComplete="tel" maxLength={INPUT_MAX_LENGTH.phone} style={inputStyle} value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="090-0000-0000" />
-            </div>
-
-            {/* 植物・鉢の持ち込み（任意） */}
-            <div style={{ marginBottom: 20 }}>
-              <p id={`${uid}-bring`} style={{ ...labelStyle, margin: '0 0 6px' }}>{t('持ち込み（任意）', 'Bring your own (optional)')}</p>
-              <div role="group" aria-labelledby={`${uid}-bring`} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 15 }}>
-                  <input type="checkbox" checked={form.bring_plant} onChange={(e) => set('bring_plant', e.target.checked)} style={{ width: 18, height: 18, accentColor: '#4a6741' }} />
-                  {t('植物を持ち込む', 'Bring a plant')}
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 15 }}>
-                  <input type="checkbox" checked={form.bring_pot} onChange={(e) => set('bring_pot', e.target.checked)} style={{ width: 18, height: 18, accentColor: '#4a6741' }} />
-                  {t('鉢を持ち込む', 'Bring a pot')}
-                </label>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 0 }}>
-              <label htmlFor={`${uid}-note`} style={labelStyle}>{t('備考（任意）', 'Notes (optional)')}</label>
-              <textarea id={`${uid}-note`} rows={4} maxLength={INPUT_MAX_LENGTH.note} style={{ ...inputStyle, resize: 'vertical' }} value={form.note} onChange={(e) => set('note', e.target.value)} />
-            </div>
+            {/* 参加人数・参加者情報の入力表示。値・判定・変更処理は親が管理する */}
+            <ReserveCustomerFields
+              uid={uid}
+              participants={form.participants}
+              name={form.name}
+              email={form.email}
+              phone={form.phone}
+              bringPlant={form.bring_plant}
+              bringPot={form.bring_pot}
+              note={form.note}
+              expectsSessions={expectsSessions}
+              participantsDisabled={participantsDisabled}
+              selectedSessionId={form.session_id}
+              selectedRemaining={selectedRemaining}
+              maxParticipants={RESERVE_MAX_PARTICIPANTS}
+              nameMaxLength={INPUT_MAX_LENGTH.name}
+              phoneMaxLength={INPUT_MAX_LENGTH.phone}
+              noteMaxLength={INPUT_MAX_LENGTH.note}
+              inputStyle={inputStyle}
+              labelStyle={labelStyle}
+              sectionLabel={sectionLabel}
+              t={t}
+              onParticipantsChange={(value) => set('participants', value)}
+              onNameChange={(value) => set('name', value)}
+              onEmailChange={(value) => set('email', value)}
+              onPhoneChange={(value) => set('phone', value)}
+              onBringPlantChange={(value) => set('bring_plant', value)}
+              onBringPotChange={(value) => set('bring_pot', value)}
+              onNoteChange={(value) => set('note', value)}
+            />
 
             {/* 送信に失敗したときの案内 */}
             {status === 'error' && <p role="alert" style={{ color: '#c0392b', fontSize: 14, marginTop: 16, marginBottom: 0 }}>{errorMsg}</p>}
