@@ -10,6 +10,7 @@ import { parseLocalDate } from '../lib/localDate'
 import { BRAND, TEXT_LOGO } from '../lib/brands'
 import { BRAND_SHOWCASES } from '../lib/brandShowcase'
 import { formatYen } from '../lib/format'
+import HomeApproachSection from './HomeApproachSection'
 
 /**
  * Instagram のリンク（href: アカウントの URL、src: ロゴ画像、cls はロゴごとの大きさの調整用、brand は画像の説明に使うブランド名）。
@@ -276,15 +277,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-action">
-        <div className="home-action-copy">
-          <p className="home-section-index">02 / OUR APPROACH</p>
-          <h2>{t(<>植物を育て、<br />景色を仕立て、<br /><em>ともに暮らす。</em></>, <>Grow plants.<br />Shape a place.<br /><em>Live together.</em></>)}</h2>
-          <p>{t('ひとつの植物から、部屋の景色や人とのつながりまで。私たちは植物と過ごす時間を、いくつもの形で提案します。', 'From one remarkable plant to a landscape shared with others, we explore the many ways plants can become part of everyday life.')}</p>
-          <Link to="/official/concept">{t('私たちについて', 'OUR POINT OF VIEW')} <span>↗</span></Link>
-        </div>
-        <div className="home-action-mark" aria-hidden="true"><span>PLANTS</span><i /><b>∞</b></div>
-      </section>
+      <HomeApproachSection
+        title={t(<>植物を育て、<br />景色を仕立て、<br /><em>ともに暮らす。</em></>, <>Grow plants.<br />Shape a place.<br /><em>Live together.</em></>)}
+        description={t('ひとつの植物から、部屋の景色や人とのつながりまで。私たちは植物と過ごす時間を、いくつもの形で提案します。', 'From one remarkable plant to a landscape shared with others, we explore the many ways plants can become part of everyday life.')}
+        action={<Link to="/official/concept">{t('私たちについて', 'OUR POINT OF VIEW')} <span>↗</span></Link>}
+      />
 
       <hr style={divider} />
 

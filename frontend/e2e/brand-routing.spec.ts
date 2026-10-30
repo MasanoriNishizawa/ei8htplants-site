@@ -30,6 +30,11 @@ test.describe('ブランドサイトと公式サイトのルーティング', ()
     await expect(page.locator('.home-hero')).toBeVisible()
     await expect(page.getByRole('navigation').getByRole('link', { name: 'Brands', exact: true })).toHaveAttribute('href', '/official/brands')
     await expect(page.getByRole('navigation', { name: 'ei8ht plants' })).toHaveCount(0)
+    // OUR APPROACH の表示・親から渡した紹介リンクも公式ホーム上で確認する。
+    const approach = page.locator('.home-action')
+    await expect(approach.getByRole('heading', { name: /植物を育て|Grow plants/ })).toBeVisible()
+    await expect(approach.getByText(/ひとつの植物から|From one remarkable plant/)).toBeVisible()
+    await expect(approach.getByRole('link', { name: /私たちについて|OUR POINT OF VIEW/ })).toHaveAttribute('href', '/official/concept')
   })
 
   test('公式サイトの Brands メニューを押すと OUR BRANDS ページへ遷移する', /**
