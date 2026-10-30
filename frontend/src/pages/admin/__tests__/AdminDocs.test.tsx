@@ -7,6 +7,9 @@
  * api.docs はモックにして、本番のサーバーには接続しない
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import AdminDocs from '../AdminDocs'
@@ -47,6 +50,53 @@ const CONTENTS: Record<string, string> = {
   ].join('\n'),
   '02_DD/06_API仕様.md': '# API 仕様\n\n## イベント\n\nイベントの API の説明',
 }
+
+/** 実リポジトリの設計書本文を、テストファイル位置からの相対URLで読み込む */
+const REAL_DOCS = [
+  {
+    path: '02_DD/01_モジュール構成.md',
+    heading: 'DD-01 — モジュール構成',
+    expected: ['API型定義ファイルツリー', 'gallery.ts', 'priceCalcEntries.ts'],
+  },
+  {
+    path: '02_DD/03_フロントエンドロジック.md',
+    heading: 'DD-03 — フロントエンドロジック',
+    expected: ['API 型定義の配置', 'apiTypes/gallery.ts', 'apiTypes/priceCalcEntries.ts', 'GalleryImage'],
+  },
+  {
+    path: '03_PM/06_プロジェクト全体リファクタリング計画.md',
+    heading: 'PM-06 — プロジェクト全体リファクタリング計画',
+    expected: ['段階2のAPI型配置整理を完了しました', '全15ドメイン', 'apiTypes.ts'],
+  },
+].map((doc) => ({
+  ...doc,
+  // 1. テストファイルの絶対パスからリポジトリのdoc/を解決し、runnerの起動位置に依存せず本文を読む
+  markdown: readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../doc', doc.path), 'utf8'),
+}))
+
+/** 実文書3件をAdminDocsのAPIツリーノードとして選べる形にする */
+const REAL_DOC_TREE = [
+  {
+    type: 'dir' as const,
+    name: '02_DD',
+    path: '02_DD',
+    children: REAL_DOCS.filter((doc) => doc.path.startsWith('02_DD/')).map((doc) => ({
+      type: 'file' as const,
+      name: doc.path.split('/')[1],
+      path: doc.path,
+    })),
+  },
+  {
+    type: 'dir' as const,
+    name: '03_PM',
+    path: '03_PM',
+    children: REAL_DOCS.filter((doc) => doc.path.startsWith('03_PM/')).map((doc) => ({
+      type: 'file' as const,
+      name: doc.path.split('/')[1],
+      path: doc.path,
+    })),
+  },
+]
 
 /**
  * 設計書の画面を開き、最初のファイル（01_概要）をツリーから選んで本文が出るまで待つ
@@ -136,5 +186,54 @@ describe('AdminDocs の本文のリンク', () => {
     vi.mocked(api.docs.content).mockRejectedValueOnce(new Error('500'))
     fireEvent.click(screen.getByRole('link', { name: 'API 仕様へ' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('ファイルの取得に失敗しました')
+  })
+})
+
+describe('AdminDocs の実文書本文表示', () => {
+  beforeEach(() => {
+    vi.mocked(api.docs.tree).mockReset()
+    vi.mocked(api.docs.content).mockReset()
+    vi.mocked(api.docs.tree).mockResolvedValue(REAL_DOC_TREE)
+    vi.mocked(api.docs.content).mockImplementation((path: string) => {
+      const doc = REAL_DOCS.find((candidate) => candidate.path === path)
+      return doc ? Promise.resolve(doc.markdown) : Promise.reject(new Error('404'))
+    })
+  })
+
+  /**
+   * 実文書を選択し、Markdown描画後に指定本文が表示されることを確かめる。
+   * @param doc - 実リポジトリから読み込んだ文書と表示確認用の見出し・本文文字列
+   * @returns 文書の見出しと本文が表示されるまで待つPromise
+   */
+  async function expectRealDocRendered(doc: (typeof REAL_DOCS)[number]) {
+    // 1. 実リポジトリの文書ツリーを読み込み、対象ファイルを選択する
+    render(
+      <MemoryRouter initialEntries={[`/admin/docs?path=${encodeURIComponent(doc.path)}`]}>
+        <AdminDocs />
+      </MemoryRouter>,
+    )
+
+    // 2. 選択中の実ファイルをAPIモック経由で取得し、見出しと実本文が描画されるのを待つ
+    expect(await screen.findByRole('heading', { name: doc.heading })).toBeInTheDocument()
+    await waitFor(() => expect(api.docs.content).toHaveBeenCalledWith(doc.path))
+    // renderedMarkdown: AdminDocsがMarkdownから生成した本文コンテナ。
+    const renderedMarkdown = document.querySelector('.docs-markdown')
+    expect(renderedMarkdown).toBeInTheDocument()
+    // 3. この文書に期待する見出し・識別文字列が描画本文に含まれることを1件ずつ確認する
+    for (const text of doc.expected) {
+      expect(renderedMarkdown).toHaveTextContent(text)
+    }
+  }
+
+  it('モジュール構成の実本文をMarkdownとして表示する', async () => {
+    await expectRealDocRendered(REAL_DOCS[0])
+  })
+
+  it('フロントエンドロジックの実本文をMarkdownとして表示する', async () => {
+    await expectRealDocRendered(REAL_DOCS[1])
+  })
+
+  it('プロジェクト全体リファクタリング計画の実本文をMarkdownとして表示する', async () => {
+    await expectRealDocRendered(REAL_DOCS[2])
   })
 })
