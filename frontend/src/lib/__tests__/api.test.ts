@@ -603,17 +603,132 @@ describe('api.products', () => {
     vi.clearAllMocks()
   })
 
-  it('api.products.list() が GET /api/products を呼ぶ', async () => {
-    await api.products.list()
-    // all=false の場合はクエリなし
+  it('FE-API-54: list() は認証なしGETで商品一覧を返す', async () => {
+    // 1. 公開商品一覧APIから返るデータを用意する。
+    const response = [{ id: 'prod-1', name: '観葉植物' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 公開一覧を取得し、URL・認証境界・応答を確かめる。
+    const result = await api.products.list()
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch.mock.calls[0][0]).toBe('/api/products')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.headers).not.toHaveProperty('Authorization')
+    expect(result).toEqual(response)
   })
 
-  it('api.products.get(id) が GET /api/products/:id を呼ぶ', async () => {
-    mockFetch = makeMockFetch({ id: 'prod-1' })
+  it('FE-API-55: list(true) は認証付きGETで全商品を取得する', async () => {
+    // 1. 管理画面用の商品一覧を用意する。
+    const response = [{ id: 'prod-hidden', name: '非公開商品' }]
+    mockFetch = makeMockFetch(response)
     vi.stubGlobal('fetch', mockFetch)
-    await api.products.get('prod-1')
+
+    // 2. 全件一覧のクエリと認証ヘッダーを確かめる。
+    const result = await api.products.list(true)
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/products?all=true')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ Authorization: 'Bearer test-token' })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-56: get(id) は認証なしGETで指定商品の詳細を返す', async () => {
+    // 1. 商品詳細APIから返るデータを用意する。
+    const response = { id: 'prod-1', name: '観葉植物' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定IDのURL・認証境界・応答を確かめる。
+    const result = await api.products.get('prod-1')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch.mock.calls[0][0]).toBe('/api/products/prod-1')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.headers).not.toHaveProperty('Authorization')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-57: create(body) は認証付きPOSTで商品データを送る', async () => {
+    // 1. 作成する商品の入力とAPI応答を用意する。
+    const body = {
+      name: '新しい商品', price: 1200, stock: 3, image_urls: [], tags: [],
+      is_published: false, display_order: 1, category: null,
+    }
+    const response = { id: 'prod-new', ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 認証付きPOSTのURL・本文・応答を確かめる。
+    const result = await api.products.create(body)
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/products')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'POST', body: JSON.stringify(body),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-58: update(id, body) は認証付きPUTで商品データを送る', async () => {
+    // 1. 更新する商品の入力とAPI応答を用意する。
+    const body = {
+      name: '更新商品', price: 2400, stock: 5, image_urls: ['/product.jpg'], tags: ['植物'],
+      is_published: true, display_order: 2, category: '観葉植物' as const,
+    }
+    const response = { id: 'prod-1', ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 認証付きPUTのID・本文・応答を確かめる。
+    const result = await api.products.update('prod-1', body)
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/products/prod-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'PUT', body: JSON.stringify(body),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-59: delete(id) は認証付きDELETEで削除結果を返す', async () => {
+    // 1. 削除APIの応答を用意する。
+    const response = { ok: true }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 認証付きDELETEのID・本文なし・応答を確かめる。
+    const result = await api.products.delete('prod-1')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/products/prod-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'DELETE', headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined()
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-60: updateStock(id, stock) は認証付きPATCHで在庫数だけを送る', async () => {
+    // 1. 更新後の商品データを用意する。
+    const response = { id: 'prod-1', stock: 7 }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 認証付きPATCHのID・在庫本文・応答を確かめる。
+    const result = await api.products.updateStock('prod-1', 7)
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/products/prod-1/stock')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'PATCH', body: JSON.stringify({ stock: 7 }),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(result).toEqual(response)
   })
 })
 

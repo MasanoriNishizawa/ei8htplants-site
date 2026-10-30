@@ -15,11 +15,10 @@ import { createPriceCalcEntriesApi } from './apiDomains/priceCalcEntries'
 import { createChatQaApi } from './apiDomains/chatQa'
 import { createArticlesApi } from './apiDomains/articles'
 import { createDashboardStatsApi } from './apiDomains/dashboardStats'
+import { createProductsApi } from './apiDomains/products'
 import type {
   ReservationPayload,
   Reservation,
-  Product,
-  ProductBody,
   OrderPayload,
   Order,
   OrderDetail,
@@ -234,28 +233,7 @@ export const api = {
       authRequest<Reservation>('/reserve/walkin', { method: 'POST', body: JSON.stringify(body) }),
   },
   /** ショップの商品 */
-  products: {
-    /**
-     * 商品一覧を取得する
-     * @param all - true なら非公開も含む全件（管理画面用。サーバーが認証を求めるのでログインのトークンを付ける）
-     */
-    list: (all = false) =>
-      all ? authRequest<Product[]>('/products?all=true') : request<Product[]>('/products'),
-    /** 商品を 1 件取る（無ければ 404） */
-    get: (id: string) => request<Product>(`/products/${id}`),
-    /** 商品を作る（管理者のみ） */
-    create: (body: ProductBody) =>
-      authRequest<Product>('/products', { method: 'POST', body: JSON.stringify(body) }),
-    /** 商品を更新する（管理者のみ） */
-    update: (id: string, body: ProductBody) =>
-      authRequest<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-    /** 商品を削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/products/${id}`, { method: 'DELETE' }),
-    /** 在庫数だけを変える（管理者のみ） */
-    updateStock: (id: string, stock: number) =>
-      authRequest<Product>(`/products/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ stock }) }),
-  },
+  products: createProductsApi(request, authRequest),
   /** 送料 */
   shipping: createShippingApi(request),
   /** 注文（公開の注文の確定と、管理画面の一覧・詳細・状態の変更） */
