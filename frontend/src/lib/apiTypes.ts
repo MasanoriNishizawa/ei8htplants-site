@@ -252,6 +252,20 @@ export interface ReservationPayload {
   lang?: string
 }
 
+/** 管理画面から当日参加の予約を登録するときに送る内容 */
+export interface WalkinReservationPayload {
+  /** 登録するイベントの ID */
+  event_id: string
+  /** 参加人数 */
+  participants: number
+  /** 時間枠の ID（任意） */
+  session_id?: string
+  /** 希望の時間（任意） */
+  preferred_time?: string
+  /** 予約日（YYYY-MM-DD、任意） */
+  preferred_date?: string
+}
+
 /** ワークショップの予約 1 件（管理画面で見る形） */
 export interface Reservation {
   /** 予約の ID */

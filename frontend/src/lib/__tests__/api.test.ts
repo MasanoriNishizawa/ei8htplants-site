@@ -1241,7 +1241,8 @@ describe('api.reserve', () => {
     vi.clearAllMocks()
   })
 
-  it('api.reserve.create(body) が POST /api/reserve を呼ぶ', async () => {
+  it('FE-API-67: create(body) は認証なしPOSTで予約を送り応答を返す', async () => {
+    // 1. 公開予約フォームから送る内容と作成APIの応答を用意する。
     const body = {
       event_id: 'ev-1',
       name: '山田',
@@ -1250,9 +1251,122 @@ describe('api.reserve', () => {
       bring_plant: false,
       bring_pot: false,
     }
-    await api.reserve.create(body)
+    const response = { id: 'res-1', ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 予約を送り、公開POSTのURL・本文・認証境界・応答を確かめる。
+    const result = await api.reserve.create(body)
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch.mock.calls[0][0]).toBe('/api/reserve')
-    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST' })
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(mockFetch.mock.calls[0][1]?.headers).not.toHaveProperty('Authorization')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-68: list() は認証付きGETで管理用予約一覧を返す', async () => {
+    // 1. 管理画面の予約一覧APIから返るデータを用意する。
+    const response = [{ id: 'res-1', event_id: 'ev-1', name: '山田' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 全予約を取得し、認証付きGETのURL・ヘッダー・応答を確かめる。
+    const result = await api.reserve.list()
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/reserves')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ Authorization: 'Bearer test-token' })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-69: list(eventId) はイベントIDをエンコードした認証付きGETで予約一覧を返す', async () => {
+    // 1. 指定イベントの予約一覧APIから返るデータを用意する。
+    const response = [{ id: 'res-2', event_id: 'ev 1&x', name: '佐藤' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 特殊文字を含むイベントIDを指定し、エンコード済みURLと認証を確かめる。
+    const result = await api.reserve.list('ev 1&x')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/reserves?event_id=ev%201%26x')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ Authorization: 'Bearer test-token' })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-70: updateStatus(id, status) は認証付きPATCHで状態を送り更新結果を返す', async () => {
+    // 1. 更新後の予約データを用意する。
+    const response = { id: 'res-1', status: 'confirmed' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 予約状態を更新し、URL・認証・JSON本文・応答を確かめる。
+    const result = await api.reserve.updateStatus('res-1', 'confirmed')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/reserves/res-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'confirmed' }),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-71: cancel(token) は未加工のResponseを認証なしno-store JSON POSTで返す', async () => {
+    // 1. キャンセルAPIが返す競合応答を用意し、本文が読み取られないことも確認できるようにする。
+    const response = new Response(JSON.stringify({ detail: '予約はすでにキャンセル済みです' }), {
+      status: 409,
+      headers: { 'Content-Type': 'application/json' },
+    })
+    mockFetch = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. キャンセルを送り、Responseの同一性・URL・設定・トークン本文・認証境界を確かめる。
+    const result = await api.reserve.cancel('cancel-token-1')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/reserve/cancel')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: 'cancel-token-1' }),
+    })
+    expect(mockFetch.mock.calls[0][1]?.headers).not.toHaveProperty('Authorization')
+    expect(result).toBe(response)
+    expect(result.status).toBe(409)
+    expect(result.bodyUsed).toBe(false)
+    await expect(result.json()).resolves.toEqual({ detail: '予約はすでにキャンセル済みです' })
+  })
+
+  it('FE-API-72: addWalkin(body) は認証付きPOSTで当日参加予約を送り応答を返す', async () => {
+    // 1. 管理画面から登録する当日参加の内容と応答を用意する。
+    const body = {
+      event_id: 'ev-1',
+      participants: 2,
+      session_id: 'session-1',
+      preferred_time: '午後',
+      preferred_date: '2026-11-01',
+    }
+    const response = { id: 'res-walkin-1', ...body }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 当日参加を登録し、認証付きPOSTのURL・本文・応答を確かめる。
+    const result = await api.reserve.addWalkin(body)
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/reserve/walkin')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(result).toEqual(response)
   })
 })
 

@@ -17,10 +17,7 @@ import { createArticlesApi } from './apiDomains/articles'
 import { createDashboardStatsApi } from './apiDomains/dashboardStats'
 import { createProductsApi } from './apiDomains/products'
 import { createOrdersApi } from './apiDomains/orders'
-import type {
-  ReservationPayload,
-  Reservation,
-} from './apiTypes'
+import { createReserveApi } from './apiDomains/reserve'
 
 /** API の URL の頭（同じオリジンの /api。開発中は Vite のプロキシでバックエンドへ送る） */
 const BASE = '/api'
@@ -208,28 +205,7 @@ export const api = {
   /** お問い合わせ（公開フォームの送信と、管理画面の一覧・既読・返信） */
   contact: createContactApi(request, authRequest),
   /** ワークショップの予約（公開フォームの送信・キャンセルと、管理画面の一覧・状態の変更・当日参加の登録） */
-  reserve: {
-    /** 予約を送る（409 は満席、429 は送信回数の上限） */
-    create: (body: ReservationPayload) =>
-      request('/reserve', { method: 'POST', body: JSON.stringify(body) }),
-    /** 予約の一覧を取る（管理者のみ。eventId を渡すとそのイベントの予約だけ） */
-    list: (eventId?: string) =>
-      authRequest<Reservation[]>(eventId ? `/reserves?event_id=${encodeURIComponent(eventId)}` : '/reserves'),
-    /** 予約の状態を変える（管理者のみ） */
-    updateStatus: (id: string, status: string) =>
-      authRequest<Reservation>(`/reserves/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-    /** 予約をキャンセルする（メールのキャンセル ID）。認証不要。ステータスコードで結果を判定するため Response をそのまま返す */
-    cancel: (token: string) =>
-      fetch(`${BASE}/reserve/cancel`, {
-        method: 'POST',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      }),
-    /** 当日参加の予約を登録する（管理者のみ） */
-    addWalkin: (body: { event_id: string; participants: number; session_id?: string; preferred_time?: string; preferred_date?: string }) =>
-      authRequest<Reservation>('/reserve/walkin', { method: 'POST', body: JSON.stringify(body) }),
-  },
+  reserve: createReserveApi(request, authRequest, (...args) => fetch(...args), BASE),
   /** ショップの商品 */
   products: createProductsApi(request, authRequest),
   /** 送料 */
