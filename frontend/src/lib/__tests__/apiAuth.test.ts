@@ -218,6 +218,70 @@ describe('認証つきリクエストのトークン', () => {
     expect(authHeaderOf()).toBe('Bearer collaboration-delete-admin-jwt')
   })
 
+  it('FE-AG-20: メディア掲載の公開一覧はAuthorizationを付けずに送る', async () => {
+    // 1. 公開一覧の応答を返すモックのまま、メディア掲載一覧を取得する。
+    const result = await api.mediaAppearances.list()
+
+    // 2. 公開一覧URLへ1回だけ送信し、認証ヘッダーを付けないことを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/media-appearances')
+    expect(authHeaderOf()).toBeUndefined()
+    expect(result).toEqual([])
+  })
+
+  it('FE-AG-21: メディア掲載の管理追加APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 管理者セッションのJWTと追加後に返るレコードを用意する。
+    state.token = 'media-appearance-admin-jwt'
+    const response = {
+      id: 'media-1',
+      title: '植物のある暮らし',
+      youtube_url: 'https://www.youtube.com/watch?v=abcdefghijk',
+      description: null,
+      published_at: null,
+      display_order: 0,
+      created_at: '2026-10-30T00:00:00Z',
+    }
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 管理画面向けの追加APIを実行する。
+    const result = await api.mediaAppearances.add({
+      title: response.title,
+      youtube_url: response.youtube_url,
+    })
+
+    // 3. 追加URLへの送信にセッションJWTが使われ、応答が返ることを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/media-appearances')
+    expect(authHeaderOf()).toBe('Bearer media-appearance-admin-jwt')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-AG-22: メディア掲載の管理削除APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 削除用の管理者JWTと、削除成功の応答を用意する。
+    state.token = 'media-appearance-delete-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 指定したメディア掲載の削除APIを実行する。
+    const result = await api.mediaAppearances.delete('media-2')
+
+    // 3. 対象URLへのDELETEと、セッションJWT付きの送信を確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/media-appearances/media-2')
+    expect((fetchSpy.mock.calls[0][1] as RequestInit).method).toBe('DELETE')
+    expect(authHeaderOf()).toBe('Bearer media-appearance-delete-admin-jwt')
+    expect(result).toEqual({ ok: true })
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true

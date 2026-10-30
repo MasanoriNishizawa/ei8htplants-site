@@ -801,3 +801,86 @@ describe('api.reserve', () => {
     expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST' })
   })
 })
+
+describe('api.mediaAppearances', () => {
+  /** 各テストで差し替えるメディア掲載 API の fetch モック */
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    // 1. 既定では空の成功応答を返す fetch に差し替える。
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    // 2. テスト間にグローバル fetch とモック履歴を持ち越さない。
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-30: api.mediaAppearances.list() が公開 GET で一覧と応答を返す', async () => {
+    // 1. 公開一覧APIから返るメディア掲載データを用意する。
+    /** 公開一覧APIの応答データ */
+    const response = [{
+      id: 'media-1',
+      title: '植物のある暮らし',
+      youtube_url: 'https://www.youtube.com/watch?v=abcdefghijk',
+      description: '番組で紹介されました。',
+      published_at: '2026-10-01',
+      display_order: 2,
+      created_at: '2026-10-01T00:00:00Z',
+    }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 公開一覧APIを呼び出し、取得結果を受け取る。
+    const result = await api.mediaAppearances.list()
+
+    // 3. 一覧URLをGETし、サーバーの一覧応答をそのまま返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/media-appearances')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-31: api.mediaAppearances.add(body) が POST 本文を送り追加結果を返す', async () => {
+    // 1. 追加時に送る本文と、登録後にサーバーから返るレコードを用意する。
+    /** 管理画面から追加APIへ送信する内容 */
+    const body = {
+      title: '植物のある暮らし',
+      youtube_url: 'https://www.youtube.com/watch?v=abcdefghijk',
+      description: '番組で紹介されました。',
+      published_at: '2026-10-01',
+      display_order: 2,
+    }
+    /** 登録時にサーバーが生成する識別子・日時を含む応答 */
+    const response = { id: 'media-2', ...body, created_at: '2026-10-30T00:00:00Z' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 用意した本文で認証付きの追加APIを呼び出す。
+    const result = await api.mediaAppearances.add(body)
+
+    // 3. 一覧URLへのPOST・JSON本文と、追加されたレコードが返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/media-appearances')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-32: api.mediaAppearances.delete(id) が対象 URL に DELETE して結果を返す', async () => {
+    // 1. 削除APIの成功応答と、削除対象の識別子を用意する。
+    /** 削除APIが返す成功結果 */
+    const response = { ok: true }
+    /** 削除対象のメディア掲載ID */
+    const id = 'media-3'
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定したメディア掲載を削除する。
+    const result = await api.mediaAppearances.delete(id)
+
+    // 3. 対象IDのURLへDELETEし、成功応答が返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe(`/api/media-appearances/${id}`)
+    expect(mockFetch.mock.calls[0][1]?.method).toBe('DELETE')
+    expect(result).toEqual(response)
+  })
+})

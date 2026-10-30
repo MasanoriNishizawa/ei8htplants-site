@@ -8,6 +8,7 @@ import { createContactApi } from './apiDomains/contact'
 import { createShippingApi } from './apiDomains/shipping'
 import { createChatLogsApi } from './apiDomains/chatLogs'
 import { createCollaborationsApi } from './apiDomains/collaborations'
+import { createMediaAppearancesApi } from './apiDomains/mediaAppearances'
 import type {
   Event,
   ContactRecord,
@@ -15,8 +16,6 @@ import type {
   Reservation,
   Article,
   ArticleBody,
-  MediaAppearance,
-  MediaAppearanceBody,
   ChatQA,
   ChatQABody,
   DocTreeNode,
@@ -336,16 +335,7 @@ export const api = {
       authRequest<{ ok: boolean }>(`/price-calc-entries/${id}`, { method: 'DELETE' }),
   },
   /** メディア掲載 */
-  mediaAppearances: {
-    /** メディア掲載の一覧を取る */
-    list: () => request<MediaAppearance[]>('/media-appearances'),
-    /** メディア掲載を追加する（管理者のみ） */
-    add: (body: MediaAppearanceBody) =>
-      authRequest<MediaAppearance>('/media-appearances', { method: 'POST', body: JSON.stringify(body) }),
-    /** メディア掲載を削除する（管理者のみ） */
-    delete: (id: string) =>
-      authRequest<{ ok: boolean }>(`/media-appearances/${id}`, { method: 'DELETE' }),
-  },
+  mediaAppearances: createMediaAppearancesApi(request, authRequest),
   /** AI チャット用の Q&A（管理画面の「チャットQ&A」） */
   chatQa: {
     /**
