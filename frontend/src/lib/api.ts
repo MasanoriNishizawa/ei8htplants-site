@@ -16,12 +16,10 @@ import { createChatQaApi } from './apiDomains/chatQa'
 import { createArticlesApi } from './apiDomains/articles'
 import { createDashboardStatsApi } from './apiDomains/dashboardStats'
 import { createProductsApi } from './apiDomains/products'
+import { createOrdersApi } from './apiDomains/orders'
 import type {
   ReservationPayload,
   Reservation,
-  OrderPayload,
-  Order,
-  OrderDetail,
 } from './apiTypes'
 
 /** API の URL の頭（同じオリジンの /api。開発中は Vite のプロキシでバックエンドへ送る） */
@@ -236,19 +234,8 @@ export const api = {
   products: createProductsApi(request, authRequest),
   /** 送料 */
   shipping: createShippingApi(request),
-  /** 注文（公開の注文の確定と、管理画面の一覧・詳細・状態の変更） */
-  orders: {
-    /** 注文を確定する（Square で決済する。429 は送信回数の上限） */
-    create: (body: OrderPayload) =>
-      request<{ order_id: string }>('/orders', { method: 'POST', body: JSON.stringify(body) }),
-    /** 注文の一覧を取る（管理者のみ） */
-    list: () => authRequest<Order[]>('/orders'),
-    /** 注文を明細つきで 1 件取る（管理者のみ） */
-    get: (id: string) => authRequest<OrderDetail>(`/orders/${id}`),
-    /** 注文の状態（と配送業者・追跡番号）を変える（管理者のみ） */
-    updateStatus: (id: string, status: string, carrier?: string, trackingNumber?: string) =>
-      authRequest<Order>(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status, carrier, tracking_number: trackingNumber }) }),
-  },
+  /** 注文（公開の注文確定と、管理画面の一覧・詳細・状態変更） */
+  orders: createOrdersApi(request, authRequest),
   /** Journal の記事 */
   articles: createArticlesApi(request, authRequest),
   /** コラボレーション事例 */

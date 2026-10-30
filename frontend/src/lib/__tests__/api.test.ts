@@ -732,6 +732,139 @@ describe('api.products', () => {
   })
 })
 
+describe('api.orders', () => {
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-61: create(body) は認証なしPOSTで注文内容を送り注文IDを返す', async () => {
+    // 1. 公開サイトから送る注文内容と、作成APIの応答を用意する。
+    const body = {
+      customer_name: '山田 花子',
+      customer_email: 'hanako@example.com',
+      postal_code: '100-0001',
+      prefecture: '東京都',
+      city: '千代田区',
+      address_line1: '千代田1-1',
+      items: [{ product_id: 'product-1', quantity: 2 }],
+      source_id: 'square-token',
+    }
+    const response = { order_id: 'order-1' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 注文を確定し、公開POSTのURL・本文・認証境界・応答を確かめる。
+    const result = await api.orders.create(body)
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/orders')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+    expect(mockFetch.mock.calls[0][1]?.headers).not.toHaveProperty('Authorization')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-62: list() はBearer認証付きGETで注文一覧を返す', async () => {
+    // 1. 管理画面の注文一覧APIから返るデータを用意する。
+    const response = [{ id: 'order-1', customer_name: '山田 花子' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 注文一覧を取得し、認証付きGETのURL・ヘッダー・応答を確かめる。
+    const result = await api.orders.list()
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/orders')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ Authorization: 'Bearer test-token' })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-63: get(id) はBearer認証付きGETで指定注文の明細を返す', async () => {
+    // 1. 注文明細APIから返るデータを用意する。
+    const response = { id: 'order-1', items: [{ id: 'item-1', product_name: '観葉植物' }] }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定注文を取得し、IDを含むURL・認証ヘッダー・応答を確かめる。
+    const result = await api.orders.get('order-1')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/orders/order-1')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ Authorization: 'Bearer test-token' })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-64: updateStatus(id) はBearer認証付きPATCHで配送情報を送り更新結果を返す', async () => {
+    // 1. 配送情報を含む更新結果を用意する。
+    const response = { id: 'order-1', status: 'shipped', carrier: 'ヤマト運輸', tracking_number: '1234567890' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 注文状態を更新し、URL・認証・JSON本文・応答を確かめる。
+    const result = await api.orders.updateStatus('order-1', 'shipped', 'ヤマト運輸', '1234567890')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/orders/order-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'shipped', carrier: 'ヤマト運輸', tracking_number: '1234567890' }),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-65: updateStatus(id) で配送情報を省略するとundefined項目をJSON本文から省く', async () => {
+    // 1. 配送情報を省いた更新後の注文を用意する。
+    const response = { id: 'order-1', status: 'processing' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 状態だけを更新し、JSON.stringify が省略値を落とす既存契約を確かめる。
+    const result = await api.orders.updateStatus('order-1', 'processing')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/orders/order-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'processing' }),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-66: updateStatus(id) で追跡番号を省略しても配送業者を本文に残す', async () => {
+    // 1. 追跡番号を省いた注文状態の更新結果を用意する。
+    const response = { id: 'order-1', status: 'shipped', carrier: 'ヤマト運輸', tracking_number: null }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 配送業者だけを指定して更新し、undefinedの追跡番号だけがJSON本文から落ちることを確かめる。
+    const result = await api.orders.updateStatus('order-1', 'shipped', 'ヤマト運輸')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/orders/order-1')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'shipped', carrier: 'ヤマト運輸', tracking_number: undefined }),
+      headers: { Authorization: 'Bearer test-token' },
+    })
+    expect(mockFetch.mock.calls[0][1]?.body).toBe('{"status":"shipped","carrier":"ヤマト運輸"}')
+    expect(result).toEqual(response)
+  })
+})
+
 describe('api.articles', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 
