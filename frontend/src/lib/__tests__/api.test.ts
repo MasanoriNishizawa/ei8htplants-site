@@ -947,3 +947,75 @@ describe('api.docs', () => {
     expect(result).toBe(markdown)
   })
 })
+
+describe('api.potArtists', () => {
+  /** 各テストで差し替える鉢作家APIのfetchモック */
+  let mockFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    // 1. 既定応答を空のJSON配列にしてfetchを差し替える。
+    mockFetch = makeMockFetch([])
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    // 2. fetchとモック履歴をテスト間で持ち越さない。
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('FE-API-35: api.potArtists.list() が公開GETで鉢作家一覧を返す', async () => {
+    // 1. 公開一覧APIから返る鉢作家配列を用意する。
+    /** 公開鉢作家一覧APIのJSON応答 */
+    const response = [
+      { id: 'artist-1', name: '山田陶房', created_at: '2026-10-01T00:00:00Z' },
+      { id: 'artist-2', name: '佐藤窯', created_at: '2026-10-02T00:00:00Z' },
+    ]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 公開鉢作家一覧を取得する。
+    const result = await api.potArtists.list()
+
+    // 3. 一覧URLをGETし、応答配列を返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/pot-artists')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-36: api.potArtists.add(name) が認証POSTで名前を送り追加結果を返す', async () => {
+    // 1. 作家名と、登録後にサーバーから返る鉢作家データを用意する。
+    /** 管理画面から登録する鉢作家名 */
+    const name = '山田陶房'
+    /** 登録時にサーバーが採番するIDと日時を含む応答 */
+    const response = { id: 'artist-3', name, created_at: '2026-10-30T00:00:00Z' }
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定した名前で認証付き追加APIを実行する。
+    const result = await api.potArtists.add(name)
+
+    // 3. 一覧URLへのPOST本文と追加されたデータが返ることを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/pot-artists')
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ name }) })
+    expect(result).toEqual(response)
+  })
+
+  it('FE-API-37: api.potArtists.delete(id) が未エンコードIDのURLへDELETEして結果を返す', async () => {
+    // 1. 削除成功の応答と、URLへの埋め込み方を確認するIDを用意する。
+    /** 削除APIの成功応答 */
+    const response = { ok: true }
+    /** 既存API契約でそのままURLへ使う削除対象ID */
+    const id = 'artist/a-1'
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 指定した鉢作家を削除する。
+    const result = await api.potArtists.delete(id)
+
+    // 3. IDをencodeURIComponentで変換せずURLに埋め、DELETE結果を返すことを確かめる。
+    expect(mockFetch.mock.calls[0][0]).toBe(`/api/pot-artists/${id}`)
+    expect(mockFetch.mock.calls[0][1]?.method).toBe('DELETE')
+    expect(result).toEqual(response)
+  })
+})

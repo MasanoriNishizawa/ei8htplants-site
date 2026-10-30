@@ -329,6 +329,60 @@ describe('認証つきリクエストのトークン', () => {
     expect(result).toEqual(tree)
   })
 
+  it('FE-AG-25: 鉢作家の公開一覧はAuthorizationを付けずに送る', async () => {
+    // 1. 空の一覧応答を使って公開APIから鉢作家一覧を取得する。
+    const result = await api.potArtists.list()
+
+    // 2. 公開一覧URLに1回だけ送信し、Authorizationが無いことを確かめる。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/pot-artists')
+    expect(authHeaderOf()).toBeUndefined()
+    expect(result).toEqual([])
+  })
+
+  it('FE-AG-26: 鉢作家の追加APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 管理者JWTと追加成功時のJSON応答を用意する。
+    state.token = 'pot-artist-add-admin-jwt'
+    const artist = { id: 'artist-1', name: '山田陶房', created_at: '2026-10-30T00:00:00Z' }
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify(artist), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 認証付きで鉢作家を追加する。
+    const result = await api.potArtists.add(artist.name)
+
+    // 3. POST先とBearer JWT、サーバーが返した登録結果を確認する。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/pot-artists')
+    expect(authHeaderOf()).toBe('Bearer pot-artist-add-admin-jwt')
+    expect(result).toEqual(artist)
+  })
+
+  it('FE-AG-27: 鉢作家の削除APIはセッションJWTをAuthorizationに付ける', async () => {
+    // 1. 管理者JWTと削除成功のJSON応答を用意する。
+    state.token = 'pot-artist-delete-admin-jwt'
+    fetchSpy.mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    // 2. 指定したIDの鉢作家を認証付きで削除する。
+    const id = 'artist-2'
+    const result = await api.potArtists.delete(id)
+
+    // 3. 削除URLとHTTPメソッド、Bearer JWTおよび成功応答を確認する。
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy.mock.calls[0][0]).toBe(`/api/pot-artists/${id}`)
+    expect((fetchSpy.mock.calls[0][1] as RequestInit).method).toBe('DELETE')
+    expect(authHeaderOf()).toBe('Bearer pot-artist-delete-admin-jwt')
+    expect(result).toEqual({ ok: true })
+  })
+
   it('セッションがあれば、ログイン省略モードでもダミーではなく JWT を付ける', async () => {
     state.token = 'real-jwt'
     state.skip = true
