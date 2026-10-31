@@ -35,7 +35,7 @@ def _order_with_items(items: list) -> dict:
 
 
 def _post_order(payload: dict, mock_sb: MagicMock, mock_http: MagicMock, mock_resend: MagicMock | None = None,
-                resend_key: str = '', contact_to: str = ''):
+                resend_key: str = '', contact_to: str = '', raise_server_exceptions: bool = True):
     """注文 API を呼ぶ（DB・Square・メールはすべてモック）。
 
     Args:
@@ -45,6 +45,7 @@ def _post_order(payload: dict, mock_sb: MagicMock, mock_http: MagicMock, mock_re
         mock_resend: resend のモック（省略時は新しい MagicMock）
         resend_key: RESEND_API_KEY に入れる値
         contact_to: CONTACT_TO_EMAIL に入れる値
+        raise_server_exceptions: サーバー例外をクライアントへ送出するかどうか
 
     Returns:
         応答
@@ -56,7 +57,7 @@ def _post_order(payload: dict, mock_sb: MagicMock, mock_http: MagicMock, mock_re
          patch('app.routes.orders.SQUARE_ACCESS_TOKEN', 'test-token'), \
          patch('app.routes.orders.RESEND_API_KEY', resend_key), \
          patch('app.routes.orders.CONTACT_TO_EMAIL', contact_to):
-        return TestClient(app).post('/api/orders', json=payload)
+        return TestClient(app, raise_server_exceptions=raise_server_exceptions).post('/api/orders', json=payload)
 
 
 def _rpc_names(mock_sb: MagicMock) -> list[str]:
@@ -463,6 +464,61 @@ class TestOrderStatusLiteral:
 
 class TestOrderMultiItemStockRollback:
     """複数品目の在庫確保失敗時に補償を続け、決済・注文保存を止める。"""
+
+    def test_2品目目の在庫確保RPCが例外なら500で先行品目を補償し決済と注文保存をしない(self):
+        """2品目目のRPC例外で500を返し、先行品目の補償を試みること。
+
+        2品目目の例外はモックで実行前に送出し、実DBへの適用有無は検証しない。
+
+        Args:
+            self: pytest が生成したテストクラスのインスタンス。
+
+        Returns:
+            なし。
+        """
+        # 1. 十分な在庫の商品応答と、1品目目の成功・2品目目の実行前例外・先行品目の補償応答を用意する。
+        # 変数の内容: mock_sb: 商品検索・在庫RPC・注文保存を模擬するSupabaseモック。
+        mock_sb = _make_admin_sb_for_create()
+        # 変数の内容: products: 注文対象となる2商品と、事前在庫チェックで使う商品情報。
+        products = [
+            {**SAMPLE_PRODUCT, 'id': 'product-1', 'name': '先行商品', 'stock': 5},
+            {**SAMPLE_PRODUCT, 'id': 'product-2', 'name': '後続商品', 'stock': 5},
+        ]
+        mock_sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data = products
+        # 変数の内容: decrement_first: 1品目目の在庫確保成功応答。
+        decrement_first = MagicMock()
+        decrement_first.execute.return_value.data = True
+        # 変数の内容: decrement_second: execute 呼び出し時に失敗する2品目目の在庫確保応答。
+        decrement_second = MagicMock()
+        decrement_second.execute.side_effect = RuntimeError('在庫確保RPCの実行に失敗しました')
+        # 変数の内容: rollback_first: 先行1品目の補償 RPC 応答。
+        rollback_first = MagicMock()
+        mock_sb.rpc.side_effect = [decrement_first, decrement_second, rollback_first]
+        # 変数の内容: mock_http: Squareへの決済リクエストを記録するHTTPモック。
+        mock_http = _make_http_mock_success()
+        # 変数の内容: payload: 先行品目の確保後に2品目目のRPCが例外になる注文リクエスト。
+        payload = _order_with_items([
+            {'product_id': 'product-1', 'quantity': 2},
+            {'product_id': 'product-2', 'quantity': 3},
+        ])
+
+        # 2. モックされたDBとSquareだけを使い、サーバー例外をHTTPレスポンスとして受け取って注文を作成する。
+        # 変数の内容: resp: 注文APIが返したHTTP 500応答。
+        resp = _post_order(payload, mock_sb, mock_http, raise_server_exceptions=False)
+
+        # 3. 500応答、先行品目の補償呼び出し、RPC順序・引数、および決済と注文保存の停止を確認する。
+        assert resp.status_code == 500
+        assert _rpc_names(mock_sb) == ['decrement_stock', 'decrement_stock', 'increment_stock']
+        assert mock_sb.rpc.call_args_list == [
+            call('decrement_stock', {'p_product_id': 'product-1', 'p_quantity': 2}),
+            call('decrement_stock', {'p_product_id': 'product-2', 'p_quantity': 3}),
+            call('increment_stock', {'p_product_id': 'product-1', 'p_quantity': 2}),
+        ]
+        decrement_first.execute.assert_called_once()
+        decrement_second.execute.assert_called_once()
+        rollback_first.execute.assert_called_once()
+        mock_http.post.assert_not_called()
+        mock_sb.table.return_value.insert.assert_not_called()
 
     def test_2品目の2件目確保失敗で先行1件だけを戻し決済と注文保存をしない(self):
         """2品目目の在庫確保が失敗した場合、1品目目だけを補償して409を返すこと。
