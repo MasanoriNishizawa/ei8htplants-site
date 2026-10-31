@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api, type Article, type ArticleBody, type Product } from '../../lib/api'
-import BlockEditor from '../../components/BlockEditor'
 import { blockImageUrls, type Block, parseBlocks, serializeBlocks } from '../../lib/blocks'
 import { confirmDiscard, dirtySnapshotJson, useEscapeToClose, useUnsavedChanges } from './UnsavedChanges'
 import { failMessage } from './errorMessage'
-import { formatYen } from '../../lib/format'
 import ArticlesList from './articles/ArticlesList'
+import ArticleEditorModal from './articles/ArticleEditorModal'
 
 /** エラーの帯の見た目（一覧の上・編集モーダルで共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
@@ -250,13 +249,6 @@ export default function AdminArticles() {
     }
   }
 
-  /** 編集モーダルの入力欄（タイトル・タグ）の共通の見た目。横幅いっぱい */
-  const inputStyle: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', padding: '9px 12px',
-    border: '1px solid #dddde8', fontSize: 14, fontFamily: 'inherit',
-    color: 'var(--c-ink)', background: '#fff', outline: 'none',
-  }
-
   return (
     <div>
       {/* 見出しと記事追加ボタン */}
@@ -281,105 +273,25 @@ export default function AdminArticles() {
         onDelete={handleDelete}
       />
 
-      {/* 編集モーダル（暗い背景を押すと、変更があれば確認してから閉じる） */}
       {editing !== null && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={closeByBackdrop}>
-          <div role="dialog" aria-modal="true" aria-labelledby="article-modal-title" style={{ background: '#fff', maxWidth: 680, width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: 32 }} onClick={(e) => e.stopPropagation()}>
-            <h3 id="article-modal-title" style={{ margin: '0 0 24px', fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontWeight: 300, fontSize: 22 }}>
-              {editing === 'new' ? '記事追加' : '記事編集'}
-            </h3>
-
-            <div style={{ marginBottom: 16 }}>
-              <label htmlFor="article-title" style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>タイトル *</label>
-              <input id="article-title" required style={inputStyle} value={form.title} onChange={(e) => set('title', e.target.value)} />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              {/* ブロックエディタは複数の入力欄の集まりなので、label ではなく見出しの文字にする */}
-              <p style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, margin: '0 0 10px' }}>本文・画像</p>
-              <BlockEditor blocks={blocks} onChange={setBlocks} />
-            </div>
-
-            {/* タグ（付いているタグの一覧と、追加の入力欄） */}
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor="article-tag-input" style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, marginBottom: 6 }}>タグ</label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                {form.tags.map((t) => (
-                  <span key={t} style={{ fontSize: 12, padding: '4px 10px', background: '#f0f0f5', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {t}
-                    <button onClick={() => removeTag(t)} aria-label={`タグ「${t}」を外す`} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#999', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
-                  </span>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  id="article-tag-input"
-                  style={{ ...inputStyle, flex: 1 }}
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
-                  placeholder="タグを入力して Enter"
-                />
-                <button onClick={addTag} style={{ padding: '9px 16px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>追加</button>
-              </div>
-            </div>
-
-            {/* 関連商品（商品が1つも無ければ出さない） */}
-            {products.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                {/* 中の各商品はチェックボックスを label で包んでいるので、ここは見出しの文字にする */}
-                <p style={{ display: 'block', fontSize: 11, color: '#999', letterSpacing: 1, margin: '0 0 8px' }}>関連商品（記事から購入できる商品）</p>
-                <div style={{ border: '1px solid #dddde8', maxHeight: 220, overflowY: 'auto' }}>
-                  {products.map((p) => {
-                    /** この商品を関連商品に選んでいるか */
-                    const selected = (form.product_ids ?? []).includes(p.id)
-                    return (
-                      <label
-                        key={p.id}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                          borderBottom: '1px solid #f0f0f5', cursor: 'pointer',
-                          background: selected ? '#f0f7f0' : '#fff',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleProduct(p.id)}
-                          style={{ flexShrink: 0 }}
-                        />
-                        {p.image_urls[0] && (
-                          <img src={p.image_urls[0]} alt="" style={{ width: 36, height: 36, objectFit: 'cover', flexShrink: 0 }} />
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--c-muted)' }}>{formatYen(p.price)}{p.stock === 0 && <span style={{ color: '#c0392b', marginLeft: 8 }}>売り切れ</span>}</p>
-                        </div>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--c-ink)' }}>
-                <input type="checkbox" checked={form.is_published} onChange={(e) => set('is_published', e.target.checked)} />
-                公開する
-              </label>
-            </div>
-
-            {/* 保存の失敗 */}
-            {saveError && <p role="alert" style={errorBoxStyle}>{saveError}</p>}
-
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <button onClick={closeByBackdrop} style={{ padding: '10px 20px', border: '1px solid #dddde8', background: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>キャンセル</button>
-              <button onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', background: 'var(--c-ink)', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {saving ? '保存中...' : '保存'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ArticleEditorModal
+          editing={editing}
+          form={form}
+          blocks={blocks}
+          tagInput={tagInput}
+          products={products}
+          saving={saving}
+          saveError={saveError}
+          errorBoxStyle={errorBoxStyle}
+          onFieldChange={set}
+          onBlocksChange={setBlocks}
+          onTagInputChange={setTagInput}
+          onAddTag={addTag}
+          onRemoveTag={removeTag}
+          onToggleProduct={toggleProduct}
+          onRequestClose={closeByBackdrop}
+          onSave={handleSave}
+        />
       )}
     </div>
   )
