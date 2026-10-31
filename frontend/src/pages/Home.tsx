@@ -7,16 +7,12 @@ import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
 import { parseLocalDate } from '../lib/localDate'
 import { TEXT_LOGO } from '../lib/brands'
-import { formatYen } from '../lib/format'
 import HomeApproachSection from './HomeApproachSection'
 import HomeGallerySection from './HomeGallerySection'
 import HomeBrandShowcase from './HomeBrandShowcase'
 import HomeSocialSection from './HomeSocialSection'
-
-/** 見出し用（明朝体）の書体 */
-const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
-/** 本文用（ゴシック体）の書体 */
-const SANS = "'Noto Sans JP', sans-serif"
+import HomeShopSection from './HomeShopSection'
+import { SERIF, SANS } from './homeTypography'
 
 /**
  * 記事コンテンツからテキストブロックを抽出し、指定文字数で切り詰めた抜粋を返す
@@ -147,39 +143,7 @@ export default function Home() {
       {/* ─── SHOP ───（商品があるときだけ。在庫切れは画像を暗くして SOLD OUT を重ねる） */}
       {products.length > 0 && (
         <>
-          <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
-              <h2 style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', letterSpacing: '0.06em', margin: 0, color: 'var(--c-ink)' }}>
-                Shop
-              </h2>
-              <Link to="/official/shop" style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', color: 'var(--c-muted)', textDecoration: 'none', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                View All →
-              </Link>
-            </div>
-            <div className="home-shop-grid">
-              {products.map((p) => (
-                // ホバー・キーボード選択で画像を拡大する（index.css の .home-shop-card / .home-zoom-img）
-                <Link key={p.id} to={`/official/shop/${p.id}`} className="home-shop-card" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                  <div>
-                    <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--c-border)', overflow: 'hidden', marginBottom: 12 }}>
-                      {p.image_urls[0] ? (
-                        <img src={p.image_urls[0]} alt={p.name} className="home-zoom-img" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', background: 'var(--c-faint)' }} />
-                      )}
-                      {p.stock === 0 && (
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', letterSpacing: '4px', color: '#ffffff', border: '1px solid rgba(255,255,255,0.6)', padding: '6px 16px' }}>SOLD OUT</span>
-                        </div>
-                      )}
-                    </div>
-                    <p style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-body)', color: 'var(--c-ink)', margin: '0 0 5px', lineHeight: 1.5 }}>{p.name}</p>
-                    <p style={{ fontFamily: SANS, fontSize: 'var(--brand-type-navigation)', color: 'var(--c-muted)', margin: 0 }}>{formatYen(p.price)}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
+          <HomeShopSection products={products} />
           <hr style={divider} />
         </>
       )}

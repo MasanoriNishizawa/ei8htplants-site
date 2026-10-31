@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { MOCK_GALLERY } from '../src/mocks/data'
+import { MOCK_GALLERY, MOCK_PRODUCTS } from '../src/mocks/data'
 
 // ei8ht plants のブランドサイトと公式サイトを別 URL・別ヘッダーで公開する導線を確認する
 
@@ -171,5 +171,32 @@ test.describe('ブランドサイトと公式サイトのルーティング', ()
 
     await expect(page).toHaveURL(/\/official\/brands$/)
     await expect(page.getByRole('heading', { name: /Our Brands\./ })).toBeVisible()
+  })
+
+  test('公式ホームのShopに商品3件と詳細リンク、View All、売切れを表示する', /**
+     * /official上でMOCK_PRODUCTSの商品順・詳細URL・Shop一覧URLと、stock=0の売切れ表示を確かめる。
+     * @param page 操作・検証対象のPlaywrightページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. /officialを開き、Shop見出しと商品fixtureと同じ3カードを確認する。
+    await page.goto('/official')
+    const heading = page.getByRole('heading', { name: 'Shop' })
+    const section = page.locator('section').filter({ has: heading })
+    const cards = section.locator('.home-shop-card')
+    await expect(heading).toBeVisible()
+    await expect(cards).toHaveCount(MOCK_PRODUCTS.length)
+
+    // 2. カード順、詳細URL、価格、一覧リンクが商品データと一致することを確認する。
+    for (const [index, product] of MOCK_PRODUCTS.entries()) {
+      await expect(cards.nth(index)).toHaveAttribute('href', `/official/shop/${product.id}`)
+      await expect(cards.nth(index)).toContainText(product.name)
+      await expect(cards.nth(index)).toContainText(`¥${product.price.toLocaleString('ja-JP')}`)
+    }
+    await expect(section.getByRole('link', { name: 'View All →' })).toHaveAttribute('href', '/official/shop')
+
+    // 3. fixture内の在庫切れ商品にはSOLD OUTを表示し、在庫あり商品には表示しない。
+    await expect(cards.nth(2).getByText('SOLD OUT', { exact: true })).toBeVisible()
+    await expect(cards.nth(0).getByText('SOLD OUT', { exact: true })).toHaveCount(0)
   })
 })
