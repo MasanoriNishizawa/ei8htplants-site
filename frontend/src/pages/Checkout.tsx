@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api, ApiError, type Product } from '../lib/api'
+import { orderErrorMessage } from '../lib/checkout/orderErrorMessage'
 import { useCart } from '../lib/cart'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
@@ -84,80 +85,6 @@ type CartNotice =
 
 /** 送料の取得の状態（idle: 未選択か取得済み / loading: 取得中 / error: 取得に失敗） */
 type ShippingStatus = 'idle' | 'loading' | 'error'
-
-/** useT() が返す翻訳関数（日本語と英語の文を受け取り、今の言語の方を返す） */
-type Translate = (ja: string, en: string) => string
-
-/**
- * 注文の送信に失敗したときに出す文言を作る。
- * ApiError の message は「422 [{...}]」のようにステータスと JSON を並べた開発向けの形なので、そのまま出さない。
- * 日本語表示ではサーバーの日本語の detail（在庫不足の商品名など）を使い、英語表示ではステータスに合わせた英語の文にする
- * 1. 429（回数制限）・422（入力チェック）は専用の文言
- * 2. 402（カードの決済失敗）は Square の説明（英語）があれば添える
- * 3. 500・502 は「お支払いは完了している」「決済されたか分からない」を取り違えると二重払いにつながるため、detail の中身で分ける
- * 4. それ以外（400・404・409）は日本語なら detail、英語ならステータスごとの文。どれにも当たらなければ共通の文
- * @param err - catch で受け取った値
- * @param t - 翻訳関数
- * @returns 画面に出す文言
- */
-function orderErrorMessage(err: unknown, t: Translate): string {
-  // 共通の失敗の文（ステータスが読めない通信の失敗なども含む）
-  const fallback = t('注文処理に失敗しました。もう一度お試しください。', 'Order failed. Please try again.')
-  if (!(err instanceof ApiError)) return fallback
-  // サーバーの説明（文字列のときだけ使う。422 の項目ごとの配列は使わない）
-  const detail = typeof err.detail === 'string' ? err.detail : ''
-  // 日本語表示ならサーバーの detail、英語表示なら en を返す（detail が無ければ日本語は ja を使う）
-  /**
-   * サーバーの detail があれば優先し、なければ日本語の案内文を使って表示言語向けの文言を返す。
-   * @param ja - 日本語の案内文
-   * @param en - 英語の案内文
-   * @returns 現在の表示言語に合わせた案内文。
-   */
-  const fromDetail = (ja: string, en: string) => t(detail || ja, en)
-  // 1. 回数制限・入力チェック
-  if (err.status === 429) {
-    return t('送信回数の上限に達しました。しばらく待ってからもう一度お試しください。', 'You have reached the submission limit. Please wait a while and try again.')
-  }
-  if (err.status === 422) {
-    return t(
-      '入力内容を確かめてください。お名前・メールアドレス・電話番号・ご住所・備考に誤りや長すぎる項目がないかご確認ください。',
-      'Please check your entries. Make sure your name, email, phone number, address and notes are correct and not too long.',
-    )
-  }
-  // 2. カードの決済失敗（Square の説明は英語なので、どちらの言語でも補足として添える）
-  if (err.status === 402) {
-    /** 共通の日本語エラーに添える Square の追加説明（既定文と重複する場合は空） */
-    const note = detail && detail !== '決済に失敗しました' ? `（${detail}）` : ''
-    return t(
-      `カードの決済ができませんでした。カード情報をご確認いただくか、別のカードをお試しください。${note}`,
-      `Your card could not be charged. Please check your card details or try another card.${note ? ` (${detail})` : ''}`,
-    )
-  }
-  // 3. サーバー・決済サービスの失敗
-  if (err.status === 500) {
-    if (detail.includes('お支払いは完了')) {
-      return fromDetail('', 'An error occurred while processing your order, but your payment has been completed. Please contact us via the contact page.')
-    }
-    return t('ただいまご注文を受け付けられません。時間をおいて再度お試しください。', 'We cannot accept orders right now. Please try again later.')
-  }
-  if (err.status === 502) {
-    if (detail.includes('確認できませんでした')) {
-      return fromDetail('', 'We could not confirm the payment result. To avoid a double charge, please contact us via the contact page before ordering again.')
-    }
-    return fromDetail('決済サービスでエラーが発生しました。時間をおいて再度お試しください。', 'A payment service error occurred. Please try again later.')
-  }
-  // 4. 購入できない商品・在庫不足など
-  if (err.status === 409) {
-    return fromDetail('在庫が不足しています。カートの数量をご確認ください。', 'Some items are out of stock. Please check the quantities in your cart.')
-  }
-  if (err.status === 404) {
-    return fromDetail('商品が見つかりません。カートの内容をご確認ください。', 'An item in your cart could not be found. Please check your cart.')
-  }
-  if (err.status === 400) {
-    return fromDetail('ご注文の内容に購入できない商品やお届け先が含まれています。', 'Your order contains an item or shipping address that cannot be accepted.')
-  }
-  return fallback
-}
 
 /**
  * 経過時間で失敗にする Promise を作る（Square の読み込みが固まったとき用）
