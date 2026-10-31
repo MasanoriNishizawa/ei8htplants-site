@@ -1,12 +1,12 @@
 import { cloneElement, isValidElement, useEffect, useId, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, type Event, type PageContent } from '../../lib/api'
+import type { EventSiteLineupItem } from '../../lib/apiTypes/events'
 import { failMessage } from './errorMessage'
 import { useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
 import EventSiteImageInput from './eventSite/EventSiteImageInput'
+import EventSiteLineupEditor from './eventSite/EventSiteLineupEditor'
 
-/** ラインナップの1件（名称・説明・画像） */
-type LineupItem = NonNullable<PageContent['lineup']>[number]
 /** ゲスト・出展者の1件（名前・肩書き・プロフィール・画像・Instagram） */
 type GuestItem = NonNullable<PageContent['guests']>[number]
 
@@ -248,8 +248,27 @@ export default function AdminEventSite() {
    * @param patch - 変える項目と値
    * @returns 戻り値なし。
    */
-  const setLineupItem = (i: number, patch: Partial<LineupItem>) =>
+  const setLineupItem = (i: number, patch: Partial<EventSiteLineupItem>) =>
     set('lineup', (pc.lineup ?? []).map((it, j) => j === i ? { ...it, ...patch } : it))
+
+  /**
+   * ラインナップの指定行を削除し、更新後の配列を親 state に保存する。
+   * 1. 空配列フォールバックを適用して対象行だけを除く
+   * 2. 更新後の配列を既存の state 更新関数へ渡す
+   * @param i - 削除する行の番号（0始まり）
+   * @returns 戻り値なし
+   */
+  const removeLineupItem = (i: number) =>
+    set('lineup', (pc.lineup ?? []).filter((_, j) => j !== i))
+
+  /**
+   * 空のラインナップ行を末尾に追加し、更新後の配列を親 state に保存する。
+   * 1. 未設定の一覧は空配列として扱う
+   * 2. 既存の保存形式と同じ空項目を末尾に追加する
+   * @returns 戻り値なし
+   */
+  const addLineupItem = () =>
+    set('lineup', [...(pc.lineup ?? []), { title: '', description: '', image_url: '' }])
 
   /**
    * ゲストの i 番目の一部を変える
@@ -356,28 +375,12 @@ export default function AdminEventSite() {
 
         {/* ラインナップ */}
         <Card title="ラインナップ">
-          {(pc.lineup ?? []).map((item, i) => (
-            <div key={i} style={{ border: '1px solid #e4e4ee', borderRadius: 4, padding: '16px 16px 4px', marginBottom: 12 }}>
-              {/* 何件目かと、この1件の削除ボタン */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 12, color: 'var(--c-muted)', letterSpacing: 1 }}>ラインナップ {i + 1}</span>
-                <button onClick={() => set('lineup', (pc.lineup ?? []).filter((_, j) => j !== i))} style={{ padding: '4px 10px', border: '1px solid #f0b8ae', borderRadius: 2, fontSize: 12, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
-              </div>
-              <Field label="名称">
-                <input value={item.title} onChange={(e) => setLineupItem(i, { title: e.target.value })} style={inputStyle} />
-              </Field>
-              <Field label="説明">
-                <textarea value={item.description ?? ''} onChange={(e) => setLineupItem(i, { description: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-              </Field>
-              <Field label="画像">
-                <EventSiteImageInput value={item.image_url ?? ''} onChange={(v) => setLineupItem(i, { image_url: v })} />
-              </Field>
-            </div>
-          ))}
-          <button onClick={() => set('lineup', [...(pc.lineup ?? []), { title: '', description: '', image_url: '' }])}
-            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 4, fontSize: 13, color: 'var(--c-muted)', background: 'none', cursor: 'pointer', width: '100%' }}>
-            + ラインナップを追加
-          </button>
+          <EventSiteLineupEditor
+            items={pc.lineup ?? []}
+            onItemChange={setLineupItem}
+            onRemove={removeLineupItem}
+            onAdd={addLineupItem}
+          />
         </Card>
 
         {/* ゲスト・出展者 */}

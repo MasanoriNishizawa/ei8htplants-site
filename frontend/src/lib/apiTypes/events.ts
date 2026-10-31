@@ -64,6 +64,9 @@ export interface PageContent {
   }
 }
 
+/** イベント公開ページのラインナップ1件（名称・説明・画像 URL） */
+export type EventSiteLineupItem = NonNullable<PageContent['lineup']>[number]
+
 /** イベント（API から受け取る形） */
 export interface Event {
   /** イベントの ID（UUID） */
@@ -242,4 +245,3 @@ export interface AdminInfoDashboardItem {
   /** 出店料の支払い済みフラグ */
   booth_fee_paid: boolean
 }
-

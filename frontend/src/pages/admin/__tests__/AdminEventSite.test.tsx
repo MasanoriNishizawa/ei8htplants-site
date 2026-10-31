@@ -7,7 +7,7 @@
  * api はモックにして本番には接続しない
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AdminEventSite from '../AdminEventSite'
 import { api, ApiError, type Event, type PageContent } from '../../../lib/api'
@@ -25,6 +25,16 @@ const EVENT = {
   is_past: false, display_order: 1, images: [], daily_times: null,
   page_content: { archive: { enabled: true, title: '', message: '', gallery: ['https://example.com/1.jpg'] } },
 } as unknown as Event
+
+/**
+ * 保存済みラインナップを含むイベントを作る。
+ * @param lineup - イベントページに保存済みのラインナップ行
+ * @returns 指定したラインナップを公開ページ内容に含むイベント
+ */
+const eventWithLineup = (lineup: NonNullable<PageContent['lineup']>): Event => ({
+  ...EVENT,
+  page_content: { ...EVENT.page_content, lineup },
+}) as Event
 
 /**
  * 編集画面を開く
@@ -86,6 +96,72 @@ describe('AdminEventSite のギャラリー画像 URL', () => {
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
     expect(await screen.findByRole('button', { name: '保存しました' })).toBeInTheDocument()
     expect(localStorage.getItem('event_dirty_ev-1')).toBe('1')
+  })
+})
+
+describe('AdminEventSite のラインナップ編集', () => {
+  it('保存済みのラインナップ名称・説明・画像を表示する', async () => {
+    vi.mocked(api.events.get).mockResolvedValue(eventWithLineup([
+      { title: '春の植物', description: '育てやすい植物', image_url: 'https://example.com/plant.jpg' },
+    ]))
+    renderPage()
+
+    const title = await screen.findByDisplayValue('春の植物')
+    expect(screen.getByDisplayValue('育てやすい植物')).toBeInTheDocument()
+    const card = screen.getByText('ラインナップ 1').parentElement?.parentElement
+    expect(card?.querySelector('img')).toHaveAttribute('src', 'https://example.com/plant.jpg')
+    expect(title).toBeInTheDocument()
+  })
+
+  it('編集した名称・説明・画像を既存形式の保存 payload に反映する', async () => {
+    const saved = eventWithLineup([
+      { title: '春の植物', description: '育てやすい植物', image_url: 'https://example.com/plant.jpg' },
+    ])
+    vi.mocked(api.events.get).mockResolvedValue(saved)
+    vi.mocked(api.events.savePageContent).mockResolvedValue(saved)
+    renderPage()
+    await screen.findByDisplayValue('春の植物')
+
+    fireEvent.change(screen.getByDisplayValue('春の植物'), { target: { value: '夏の植物' } })
+    fireEvent.change(screen.getByDisplayValue('育てやすい植物'), { target: { value: '日差しに強い植物' } })
+    vi.mocked(api.upload).mockResolvedValue('https://example.com/summer.jpg')
+    const imageInput = screen.getByDisplayValue('夏の植物').closest('div')?.parentElement?.querySelector('input[type="file"]')
+    fireEvent.change(imageInput as HTMLInputElement, {
+      target: { files: [new File(['plant'], 'summer.jpg', { type: 'image/jpeg' })] },
+    })
+    await waitFor(() => expect(api.upload).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(imageInput).toHaveValue(''))
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+
+    await waitFor(() => expect(api.events.savePageContent).toHaveBeenCalledTimes(1))
+    const sent = vi.mocked(api.events.savePageContent).mock.calls[0][1] as PageContent
+    expect(sent.lineup).toEqual([
+      { title: '夏の植物', description: '日差しに強い植物', image_url: 'https://example.com/summer.jpg' },
+    ])
+  })
+
+  it('行を追加・削除して保存しても既存のラインナップ形式を保つ', async () => {
+    const first = { title: '一番目', description: '説明 1', image_url: 'https://example.com/1.jpg' }
+    const second = { title: '削除対象', description: '説明 2', image_url: 'https://example.com/2.jpg' }
+    const saved = eventWithLineup([first, second])
+    vi.mocked(api.events.get).mockResolvedValue(saved)
+    vi.mocked(api.events.savePageContent).mockResolvedValue(saved)
+    renderPage()
+    await screen.findByDisplayValue('一番目')
+
+    fireEvent.click(screen.getByRole('button', { name: '+ ラインナップを追加' }))
+    fireEvent.change(screen.getAllByLabelText('名称')[2], { target: { value: '追加した項目' } })
+    fireEvent.change(screen.getAllByLabelText('説明')[2], { target: { value: '追加説明' } })
+    const secondCard = screen.getByText('ラインナップ 2').parentElement?.parentElement
+    fireEvent.click(within(secondCard as HTMLElement).getAllByRole('button', { name: '削除' })[0])
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+
+    await waitFor(() => expect(api.events.savePageContent).toHaveBeenCalledTimes(1))
+    const sent = vi.mocked(api.events.savePageContent).mock.calls[0][1] as PageContent
+    expect(sent.lineup).toEqual([
+      first,
+      { title: '追加した項目', description: '追加説明', image_url: '' },
+    ])
   })
 })
 
