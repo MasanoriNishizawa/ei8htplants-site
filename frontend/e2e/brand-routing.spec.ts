@@ -49,6 +49,51 @@ test.describe('ブランドサイトと公式サイトのルーティング', ()
     }
   })
 
+  test('公式ホームのブランド紹介はPCでhover展開し、スマホで全カードの展開情報を表示する', /**
+     * /official上のブランドカード3枚とOUR BRANDSリンクを確認し、PCのhover幅切替と390px時の展開情報・縦並びを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. PC幅で公式HOMEを開き、ブランド見出し・一覧リンク・3枚のカード順を確認する。
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto('/official')
+    const heading = page.getByRole('heading', { name: '私たちのブランド' })
+    const section = page.locator('section').filter({ has: heading })
+    const cards = section.locator('.brand-strip-item')
+    await expect(heading).toBeVisible()
+    await expect(section.getByRole('link', { name: /すべてのブランド/ })).toHaveAttribute('href', '/official/brands')
+    await expect(cards).toHaveCount(3)
+    await expect(cards.nth(0)).toHaveAttribute('href', /ei8htplants\.com/)
+    await expect(cards.nth(1)).toHaveAttribute('href', /habitatoides\.com/)
+    await expect(cards.nth(2)).toHaveAttribute('href', /huebyei8htplants\.com/)
+
+    // 2. 2枚目へhoverすると幅が先頭カードより広がることを確認する。
+    await cards.nth(1).hover()
+    await expect.poll(async () => cards.nth(1).evaluate((card) => card.getBoundingClientRect().width)).toBeGreaterThan(
+      await cards.nth(0).evaluate((card) => card.getBoundingClientRect().width),
+    )
+
+    // 3. 390pxへ変更し、全カードのロゴと遷移表示が見え、説明文が非表示で縦に並ぶことを確認する。
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.reload()
+    for (const [index, description] of [
+      'アガベや塊根植物など、個性的なフォルムを持つビザールプランツ。',
+      '植物と石、砂、鉢を重ねて、自生地の景色を仕立てる。',
+      '葉の色とフォルムを楽しみ、植物を暮らしの景色に迎える。',
+    ].entries()) {
+      await expect(cards.nth(index).getByText('View Brand')).toBeVisible()
+      await expect(cards.nth(index).locator('img').last()).toBeVisible()
+      await expect(cards.nth(index).getByText(description, { exact: true })).toHaveCount(0)
+      expect(await cards.nth(index).evaluate((card) => card.style.flex)).toBe('')
+    }
+    const cardBounds = await Promise.all((await cards.all()).map((card) => card.boundingBox()))
+    expect(cardBounds.every((bounds) => bounds !== null)).toBe(true)
+    expect(cardBounds[0]!.y).toBeLessThan(cardBounds[1]!.y)
+    expect(cardBounds[1]!.y).toBeLessThan(cardBounds[2]!.y)
+    expect(cardBounds.every((bounds) => Math.abs(bounds!.width - 390) < 1)).toBe(true)
+  })
+
   test('公式サイトの Brands メニューを押すと OUR BRANDS ページへ遷移する', /**
      * 「/official」を開く、「Brands」をクリックする、URLが「\/official\/brands$」になること、「Our Brands\.」が画面に表示されることを確認する。
      * @param page 操作・検証対象の Playwright ページ。
