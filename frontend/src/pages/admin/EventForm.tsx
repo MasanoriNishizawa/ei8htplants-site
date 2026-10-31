@@ -4,6 +4,7 @@ import { api, type EventBody } from '../../lib/api'
 import { failMessage } from './errorMessage'
 import { confirmLeaveIfDirty, useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
 import EventBrandSelector from './EventBrandSelector'
+import EventIdentityFields from './eventForm/EventIdentityFields'
 import EventImagesField from './eventForm/EventImagesField'
 import EventDailyTimesField from './eventForm/EventDailyTimesField'
 import EventWorkshopField from './eventForm/EventWorkshopField'
@@ -304,40 +305,26 @@ export default function AdminEventForm() {
       {/* 編集時の読み込みの失敗（このときは保存できない） */}
       {loadError && <p role="alert" style={{ ...errorBoxStyle, marginBottom: 20 }}>{loadError}</p>}
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* イベント名（スラッグを手で編集するまでは、名前に合わせてスラッグも作り直す） */}
-        <div>
-          <label htmlFor="event-name" style={labelStyle}>イベント名</label>
-          <input id="event-name" required style={inputStyle} value={form.name} onChange={(e) => {
-            set('name', e.target.value)
-            if (slugAuto) set('slug', toSlug(e.target.value))
-          }} />
-        </div>
-        {/* URL スラッグ（英小文字・数字・ハイフン以外は入力時に取り除く） */}
-        <div>
-          <label htmlFor="event-slug" style={labelStyle}>URL スラッグ <span style={{ fontSize: 11, color: 'var(--c-muted)', fontWeight: 400 }}>（英数字・ハイフンのみ）</span></label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>/events/</span>
-            <input
-              id="event-slug"
-              style={{ ...inputStyle, fontFamily: 'monospace' }}
-              placeholder="plant-market-2026"
-              value={form.slug}
-              onChange={(e) => {
-                set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
-                // 手で編集したので、以後はイベント名に合わせて変えない
-                setSlugAuto(false)
-              }}
-            />
-            {form.name && (
-              /* 「自動生成」を押したら名前から作り直し、以後もまた名前に合わせて作り直す */
-              <button type="button" onClick={() => { set('slug', toSlug(form.name)); setSlugAuto(true) }}
-                style={{ padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', background: '#fff' }}>
-                自動生成
-              </button>
-            )}
-          </div>
-          {form.slug && <p style={{ fontSize: 11, color: 'var(--c-muted)', margin: '4px 0 0' }}>ei8htplants.com/official/events/{form.slug}</p>}
-        </div>
+        {/* イベント名と URL スラッグの入力 UI を分離。値の加工と自動生成状態は親フォームが維持する */}
+        <EventIdentityFields
+          name={form.name}
+          slug={form.slug}
+          inputStyle={inputStyle}
+          labelStyle={labelStyle}
+          onNameChange={(value) => {
+            set('name', value)
+            if (slugAuto) set('slug', toSlug(value))
+          }}
+          onSlugChange={(value) => {
+            set('slug', value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+            // 手で編集したので、以後はイベント名に合わせて変えない
+            setSlugAuto(false)
+          }}
+          onRegenerateSlug={() => {
+            set('slug', toSlug(form.name))
+            setSlugAuto(true)
+          }}
+        />
         {/* 開始日・終了日（2020 年より前は打ち間違いの可能性があるので確認の文字を赤くする） */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
