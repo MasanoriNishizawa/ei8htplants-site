@@ -286,6 +286,47 @@ test.describe('イベントページの編集（AdminEventSite）', () => {
       await expect(thumbnail).toHaveAttribute('src', '/img/logo-habitatoides.png')
     }
   )
+
+  test('ゲストを追加して入力すると未保存確認が有効になり、保存後は解除されて内容が送られる', /**
+     * イベントページにゲストを追加してプロフィール項目を入力し、未保存確認と保存後の解除、PATCH の guests 内容を確認する。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} 画面状態と保存要求の検証が完了したときに解決する。
+     */
+    async ({ page }) => {
+      // 1. イベントページを開き、ゲストを追加してプロフィールの各欄が表示されることを確かめる。
+      await page.goto('/admin/events/mock-upcoming-1/site')
+      await expect(page.getByRole('button', { name: '+ ゲストを追加' })).toBeVisible()
+      await page.getByRole('button', { name: '+ ゲストを追加' }).click()
+      const guestCard = page.getByText('ゲスト 1').locator('..').locator('..')
+      await expect(guestCard.getByLabel('名前')).toBeVisible()
+      await expect(guestCard.getByLabel('役割・肩書き')).toBeVisible()
+      await expect(guestCard.getByLabel('プロフィール')).toBeVisible()
+      await expect(guestCard.getByText('プロフィール画像')).toBeVisible()
+      await expect(guestCard.getByLabel('Instagram URL')).toBeVisible()
+      await guestCard.getByLabel('名前').fill('森 花子')
+      await guestCard.getByLabel('役割・肩書き').fill('植物家')
+      await guestCard.getByLabel('プロフィール').fill('季節の植物を紹介します。')
+      await guestCard.getByLabel('Instagram URL').fill('https://instagram.com/mori')
+
+      // 2. 入力後は移動時の未保存確認が出て、キャンセル後も編集画面に留まることを確認する。
+      await expectSidebarBlocked(page)
+
+      // 3. 保存要求に page_content.guests が含まれ、保存後は未保存確認が解除されることを確かめる。
+      const saveRequestPromise = page.waitForRequest((request) =>
+        request.method() === 'PATCH' && request.url().includes('/api/events/mock-upcoming-1/page'),
+      )
+      await page.getByRole('button', { name: '保存', exact: true }).click()
+      const saveRequest = await saveRequestPromise
+      const requestBody = saveRequest.postDataJSON() as {
+        page_content?: { guests?: Array<{ name?: string; role?: string; bio?: string; image_url?: string; instagram_url?: string }> }
+      }
+      expect(requestBody.page_content?.guests).toEqual([
+        { name: '森 花子', role: '植物家', bio: '季節の植物を紹介します。', image_url: '', instagram_url: 'https://instagram.com/mori' },
+      ])
+      await expect(page.getByRole('button', { name: '保存しました' })).toBeVisible()
+      await expectSidebarFree(page)
+    }
+  )
 })
 
 test.describe('コラボレーション・鉢作家・メディア出演の追加欄', () => {

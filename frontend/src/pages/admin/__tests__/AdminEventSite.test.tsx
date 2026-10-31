@@ -37,6 +37,16 @@ const eventWithLineup = (lineup: NonNullable<PageContent['lineup']>): Event => (
 }) as Event
 
 /**
+ * 保存済みゲストを含むイベントを作る。
+ * @param guests - イベントページに保存済みのゲスト
+ * @returns 指定したゲストを公開ページ内容に含むイベント
+ */
+const eventWithGuests = (guests: NonNullable<PageContent['guests']>): Event => ({
+  ...EVENT,
+  page_content: { ...EVENT.page_content, guests },
+}) as Event
+
+/**
  * 編集画面を開く
  * @returns render の結果
  */
@@ -161,6 +171,116 @@ describe('AdminEventSite のラインナップ編集', () => {
     expect(sent.lineup).toEqual([
       first,
       { title: '追加した項目', description: '追加説明', image_url: '' },
+    ])
+  })
+})
+
+describe('AdminEventSite のゲスト編集', () => {
+  it('保存済みゲストの各項目を表示し、複数項目と画像を編集して既存の順序・値とともに保存する', /**
+   * 保存済みプロフィールの表示、複数項目・画像の変更、順序を保った保存 payload を確認する。
+   * @returns {Promise<void>} 表示と保存内容の検証が完了したときに解決する。
+   */
+  async () => {
+    const first = {
+      name: '山田 花子',
+      role: '植物家',
+      bio: '季節の草花を育てています。',
+      image_url: 'https://example.com/hanako.jpg',
+      instagram_url: 'https://instagram.com/hanako',
+    }
+    const second = {
+      name: '佐藤 太郎',
+      role: '陶芸作家',
+      bio: '土の表情を器にしています。',
+      image_url: 'https://example.com/taro.jpg',
+      instagram_url: 'https://instagram.com/taro',
+    }
+    const saved = eventWithGuests([first, second])
+    vi.mocked(api.events.get).mockResolvedValue(saved)
+    vi.mocked(api.events.savePageContent).mockResolvedValue(saved)
+    vi.mocked(api.upload).mockResolvedValue('https://example.com/hanako-new.jpg')
+    renderPage()
+
+    // 1. 保存済みの2名について、プロフィール項目と画像がフォームに表示されることを確認する。
+    const firstName = await screen.findByDisplayValue(first.name)
+    expect(screen.getByDisplayValue(first.role)).toBeInTheDocument()
+    expect(screen.getByDisplayValue(first.bio)).toBeInTheDocument()
+    expect(screen.getByDisplayValue(first.instagram_url)).toBeInTheDocument()
+    expect(screen.getByDisplayValue(second.name)).toBeInTheDocument()
+    expect(screen.getByDisplayValue(second.role)).toBeInTheDocument()
+    expect(screen.getByDisplayValue(second.bio)).toBeInTheDocument()
+    expect(screen.getByDisplayValue(second.instagram_url)).toBeInTheDocument()
+    const firstCard = screen.getByText('ゲスト 1').parentElement?.parentElement as HTMLElement
+    const secondCard = screen.getByText('ゲスト 2').parentElement?.parentElement as HTMLElement
+    expect(firstCard.querySelector('img')).toHaveAttribute('src', first.image_url)
+    expect(secondCard.querySelector('img')).toHaveAttribute('src', second.image_url)
+
+    // 2. 1人目の文字項目と画像、2人目のInstagramを変更し、画像アップロード完了を待つ。
+    fireEvent.change(firstName, { target: { value: '山田 花子 改' } })
+    fireEvent.change(screen.getByDisplayValue(first.role), { target: { value: '園芸家' } })
+    fireEvent.change(screen.getByDisplayValue(first.bio), { target: { value: '新しいプロフィールです。' } })
+    fireEvent.change(screen.getByDisplayValue(second.instagram_url), { target: { value: 'https://instagram.com/taro_new' } })
+    const imageInput = firstCard.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(imageInput, {
+      target: { files: [new File(['portrait'], 'hanako.jpg', { type: 'image/jpeg' })] },
+    })
+    await waitFor(() => expect(api.upload).toHaveBeenCalledWith(expect.any(File)))
+    await waitFor(() => expect(imageInput).toHaveValue(''))
+    expect(firstCard.querySelector('img')).toHaveAttribute('src', 'https://example.com/hanako-new.jpg')
+
+    // 3. 親画面から保存し、編集した内容と未変更の値が順序を保って送られることを確認する。
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+    await waitFor(() => expect(api.events.savePageContent).toHaveBeenCalledTimes(1))
+    const sent = vi.mocked(api.events.savePageContent).mock.calls[0][1] as PageContent
+    expect(sent.guests).toEqual([
+      {
+        ...first,
+        name: '山田 花子 改',
+        role: '園芸家',
+        bio: '新しいプロフィールです。',
+        image_url: 'https://example.com/hanako-new.jpg',
+      },
+      { ...second, instagram_url: 'https://instagram.com/taro_new' },
+    ])
+  })
+
+  it('ゲストを追加して別のゲストを削除しても、残る順序と空の追加項目を保存する', /**
+   * 追加・削除後のゲスト順序と、新規項目の空値が保存 payload に残ることを確認する。
+   * @returns {Promise<void>} 画面と保存 payload の検証が完了したときに解決する。
+   */
+  async () => {
+    const first = { name: '残すゲスト', role: '園芸家', bio: '残すプロフィール', image_url: 'https://example.com/keep.jpg', instagram_url: 'https://instagram.com/keep' }
+    const removed = { name: '削除するゲスト', role: '作家', bio: '削除するプロフィール', image_url: 'https://example.com/remove.jpg', instagram_url: 'https://instagram.com/remove' }
+    const saved = eventWithGuests([first, removed])
+    vi.mocked(api.events.get).mockResolvedValue(saved)
+    vi.mocked(api.events.savePageContent).mockResolvedValue(saved)
+    renderPage()
+    await screen.findByDisplayValue(first.name)
+
+    // 1. 末尾に空のゲストを追加し、既存2人目を削除する。
+    fireEvent.click(screen.getByRole('button', { name: '+ ゲストを追加' }))
+    expect(screen.getByText('ゲスト 3')).toBeInTheDocument()
+    const removedCard = screen.getByText('ゲスト 2').parentElement?.parentElement as HTMLElement
+    fireEvent.click(within(removedCard).getAllByRole('button', { name: '削除' })[0])
+
+    // 2. 保存前に残ったカードの順序と、新規カードの全フィールドが空であることを確認する。
+    expect(screen.getByText('ゲスト 1')).toBeInTheDocument()
+    expect(screen.getByText('ゲスト 2')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue(removed.name)).toBeNull()
+    const addedCard = screen.getByText('ゲスト 2').parentElement?.parentElement as HTMLElement
+    expect(within(addedCard).getByLabelText('名前')).toHaveValue('')
+    expect(within(addedCard).getByLabelText('役割・肩書き')).toHaveValue('')
+    expect(within(addedCard).getByLabelText('プロフィール')).toHaveValue('')
+    expect(within(addedCard).getByLabelText('Instagram URL')).toHaveValue('')
+    expect(addedCard.querySelector('img')).toBeNull()
+
+    // 3. 保存 payload でも、1人目の値・順序と追加項目の空値が維持されることを確認する。
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+    await waitFor(() => expect(api.events.savePageContent).toHaveBeenCalledTimes(1))
+    const sent = vi.mocked(api.events.savePageContent).mock.calls[0][1] as PageContent
+    expect(sent.guests).toEqual([
+      first,
+      { name: '', role: '', bio: '', image_url: '', instagram_url: '' },
     ])
   })
 })

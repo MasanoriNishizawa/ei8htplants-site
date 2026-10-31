@@ -4,8 +4,8 @@ import { api, type Event, type PageContent } from '../../lib/api'
 import type { EventSiteLineupItem } from '../../lib/apiTypes/events'
 import { failMessage } from './errorMessage'
 import { useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
-import EventSiteImageInput from './eventSite/EventSiteImageInput'
 import EventSiteLineupEditor from './eventSite/EventSiteLineupEditor'
+import EventSiteGuestsEditor from './eventSite/EventSiteGuestsEditor'
 
 /** ゲスト・出展者の1件（名前・肩書き・プロフィール・画像・Instagram） */
 type GuestItem = NonNullable<PageContent['guests']>[number]
@@ -279,6 +279,25 @@ export default function AdminEventSite() {
   const setGuestItem = (i: number, patch: Partial<GuestItem>) =>
     set('guests', (pc.guests ?? []).map((g, j) => j === i ? { ...g, ...patch } : g))
 
+  /**
+   * ゲスト・出展者の指定カードを削除して親 state を更新する。
+   * 1. 未設定の一覧を空配列として扱う
+   * 2. 指定位置以外のカードを保存形式の配列として親 state に渡す
+   * @param i - 削除するカードの番号（0始まり）
+   * @returns 戻り値なし
+   */
+  const removeGuestItem = (i: number) =>
+    set('guests', (pc.guests ?? []).filter((_, j) => j !== i))
+
+  /**
+   * 空のゲスト・出展者カードを末尾に追加する。
+   * 1. 未設定の一覧を空配列として扱う
+   * 2. 既存の保存形式に沿った空項目を末尾へ追加して親 state に渡す
+   * @returns 戻り値なし
+   */
+  const addGuestItem = () =>
+    set('guests', [...(pc.guests ?? []), { name: '', role: '', bio: '', image_url: '', instagram_url: '' }])
+
   // 読み込みに失敗したら、編集フォームは出さずに案内と再読み込みボタンだけ出す
   if (loadError) {
     return (
@@ -385,34 +404,12 @@ export default function AdminEventSite() {
 
         {/* ゲスト・出展者 */}
         <Card title="ゲスト・出展者">
-          {(pc.guests ?? []).map((guest, i) => (
-            <div key={i} style={{ border: '1px solid #e4e4ee', borderRadius: 4, padding: '16px 16px 4px', marginBottom: 12 }}>
-              {/* 何件目かと、この1件の削除ボタン */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 12, color: 'var(--c-muted)', letterSpacing: 1 }}>ゲスト {i + 1}</span>
-                <button onClick={() => set('guests', (pc.guests ?? []).filter((_, j) => j !== i))} style={{ padding: '4px 10px', border: '1px solid #f0b8ae', borderRadius: 2, fontSize: 12, color: '#c0392b', background: 'none', cursor: 'pointer' }}>削除</button>
-              </div>
-              <Field label="名前">
-                <input value={guest.name} onChange={(e) => setGuestItem(i, { name: e.target.value })} style={inputStyle} />
-              </Field>
-              <Field label="役割・肩書き">
-                <input value={guest.role ?? ''} onChange={(e) => setGuestItem(i, { role: e.target.value })} placeholder="陶芸作家" style={inputStyle} />
-              </Field>
-              <Field label="プロフィール">
-                <textarea value={guest.bio ?? ''} onChange={(e) => setGuestItem(i, { bio: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-              </Field>
-              <Field label="プロフィール画像">
-                <EventSiteImageInput value={guest.image_url ?? ''} onChange={(v) => setGuestItem(i, { image_url: v })} />
-              </Field>
-              <Field label="Instagram URL">
-                <input value={guest.instagram_url ?? ''} onChange={(e) => setGuestItem(i, { instagram_url: e.target.value })} placeholder="https://www.instagram.com/..." style={inputStyle} />
-              </Field>
-            </div>
-          ))}
-          <button onClick={() => set('guests', [...(pc.guests ?? []), { name: '', role: '', bio: '', image_url: '', instagram_url: '' }])}
-            style={{ padding: '9px 20px', border: '1px dashed #b0b0c4', borderRadius: 4, fontSize: 13, color: 'var(--c-muted)', background: 'none', cursor: 'pointer', width: '100%' }}>
-            + ゲストを追加
-          </button>
+          <EventSiteGuestsEditor
+            items={pc.guests ?? []}
+            onItemChange={setGuestItem}
+            onRemove={removeGuestItem}
+            onAdd={addGuestItem}
+          />
         </Card>
 
         {/* アーカイブ */}
