@@ -94,6 +94,45 @@ test.describe('ブランドサイトと公式サイトのルーティング', ()
     expect(cardBounds.every((bounds) => Math.abs(bounds!.width - 390) < 1)).toBe(true)
   })
 
+  test('公式ホームのInstagramリンク順とX・Threads共有先を表示する', /**
+     * /officialのInstagramリンク3件の順序・URL・安全属性と、X・Threadsの共有リンクに含まれるURL・本文を確認する。
+     * @param page 操作・検証対象のPlaywrightページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. 公式HOMEを開き、Instagram見出しを含む領域を特定する。
+    await page.goto('/official')
+    const instagramHeading = page.getByText('Instagram', { exact: true })
+    const socialSection = page.locator('section').filter({ has: instagramHeading })
+    await expect(instagramHeading).toBeVisible()
+
+    // 2. ロゴ画像を含むリンクを取得し、3ブランドの指定順・href・安全な別タブ属性を確かめる。
+    const instagramLinks = socialSection.locator('a').filter({ has: page.locator('img') })
+    const expectedInstagramUrls = [
+      'https://www.instagram.com/habitatoides/',
+      'https://www.instagram.com/ei8ht.plants/',
+      'https://www.instagram.com/hue_by.ei8ht.plants/',
+    ]
+    await expect(instagramLinks).toHaveCount(expectedInstagramUrls.length)
+    for (const [index, href] of expectedInstagramUrls.entries()) {
+      await expect(instagramLinks.nth(index)).toHaveAttribute('href', href)
+      await expect(instagramLinks.nth(index)).toHaveAttribute('target', '_blank')
+      await expect(instagramLinks.nth(index)).toHaveAttribute('rel', 'noopener noreferrer')
+    }
+
+    // 3. XとThreadsの共有リンクに公式HOMEのURLと固定の共有文が含まれることを確認する。
+    const expectedUrl = `${new URL(page.url()).origin}/official`
+    const expectedText = 'ei8ht plants — Collect the strange.'
+    const xShareUrl = new URL(await socialSection.getByRole('link', { name: 'Post on X' }).getAttribute('href') ?? '')
+    expect(xShareUrl.origin + xShareUrl.pathname).toBe('https://x.com/intent/tweet')
+    expect(xShareUrl.searchParams.get('url')).toBe(expectedUrl)
+    expect(xShareUrl.searchParams.get('text')).toBe(expectedText)
+
+    const threadsShareUrl = new URL(await socialSection.getByRole('link', { name: 'Share on Threads' }).getAttribute('href') ?? '')
+    expect(threadsShareUrl.origin + threadsShareUrl.pathname).toBe('https://www.threads.net/intent/post')
+    expect(threadsShareUrl.searchParams.get('text')).toBe(`${expectedText}\n${expectedUrl}`)
+  })
+
   test('公式サイトの Brands メニューを押すと OUR BRANDS ページへ遷移する', /**
      * 「/official」を開く、「Brands」をクリックする、URLが「\/official\/brands$」になること、「Our Brands\.」が画面に表示されることを確認する。
      * @param page 操作・検証対象の Playwright ページ。

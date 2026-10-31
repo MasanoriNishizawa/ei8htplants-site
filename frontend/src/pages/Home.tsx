@@ -4,24 +4,14 @@ import EventPreview from '../components/EventPreview'
 import { api, type Event, type GalleryImage, type Product, type Article } from '../lib/api'
 import { parseBlocks } from '../lib/blocks'
 import PageMeta from '../components/PageMeta'
-import ShareButtons from '../components/ShareButtons'
 import { useT } from '../lib/lang'
 import { parseLocalDate } from '../lib/localDate'
-import { BRAND, TEXT_LOGO } from '../lib/brands'
+import { TEXT_LOGO } from '../lib/brands'
 import { formatYen } from '../lib/format'
 import HomeApproachSection from './HomeApproachSection'
 import HomeGallerySection from './HomeGallerySection'
 import HomeBrandShowcase from './HomeBrandShowcase'
-
-/**
- * Instagram のリンク（href: アカウントの URL、src: ロゴ画像、cls はロゴごとの大きさの調整用、brand は画像の説明に使うブランド名）。
- * Habitat Oides を先頭に置くため、標準の並び順とは変えている
- */
-const IG_LINKS = [
-  { brandInfo: BRAND.habitatOides, cls: 'habitat' },
-  { brandInfo: BRAND.ei8htPlants, cls: 'ei8ht' },
-  { brandInfo: BRAND.hue, cls: 'hue' },
-].map(({ brandInfo, cls }) => ({ href: brandInfo.instagramUrl, src: brandInfo.logo, cls, brand: brandInfo.name }))
+import HomeSocialSection from './HomeSocialSection'
 
 /** 見出し用（明朝体）の書体 */
 const SERIF = "'Cormorant Garamond', 'Noto Serif JP', serif"
@@ -245,36 +235,7 @@ export default function Home() {
         </>
       )}
 
-      {/* ─── INSTAGRAM ───（3 ブランドのロゴから各アカウントへ。下にシェアボタン） */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px)', textAlign: 'center' }}>
-        <p style={{ fontFamily: SANS, fontSize: 'var(--brand-type-meta)', letterSpacing: '4px', color: 'var(--c-faint)', margin: '0 0 8px', textTransform: 'uppercase' }}>{t('フォロー', 'Follow us')}</p>
-        <p style={{ fontFamily: SERIF, fontSize: 'var(--brand-type-subheading)', fontWeight: 300, fontStyle: 'italic', color: 'var(--c-ink)', margin: '0 0 clamp(28px, 4vw, 44px)', letterSpacing: '0.06em' }}>Instagram</p>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'clamp(24px, 5vw, 60px)', flexWrap: 'wrap' }}>
-          {IG_LINKS.map(({ href, src, cls, brand }) => (
-            <a
-              key={href}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'clamp(90px, 12vw, 140px)', height: 'clamp(90px, 12vw, 140px)', overflow: 'hidden' }}
-            >
-              <img
-                src={src}
-                alt={t(`${brand} の Instagram`, `${brand} on Instagram`)}
-                style={{
-                  width: cls === 'ei8ht' ? '140%' : cls === 'hue' ? '115%' : '100%',
-                  height: cls === 'habitat' ? '100%' : 'auto',
-                  objectFit: cls === 'habitat' ? 'cover' : undefined,
-                  borderRadius: cls === 'habitat' ? '20%' : undefined,
-                }}
-              />
-            </a>
-          ))}
-        </div>
-        <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center' }}>
-          <ShareButtons url={`${window.location.origin}/official`} text="ei8ht plants — Collect the strange." />
-        </div>
-      </section>
+      <HomeSocialSection />
     </>
   )
 }
