@@ -9,6 +9,7 @@
 - 存在しない注文の更新は 404
 """
 import logging
+from types import SimpleNamespace
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -749,3 +750,72 @@ class TestOrderMultiItemStockRollback:
         )
         mock_http.post.assert_not_called()
         mock_sb.table.return_value.insert.assert_not_called()
+
+
+class TestOrderNotificationFailure:
+    """注文確定後の通知メール失敗時にも処理を継続することを確認する。"""
+
+    def test_購入者確認メールが失敗しても管理者通知を試行し注文IDを返す(self):
+        """購入者向け送信例外後も管理者通知を試し、保存済み注文のHTTP 200応答を返すこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: events: 注文保存・購入者通知・管理者通知の順番を記録するイベント一覧。
+        events = []
+        # 変数の内容: mock_sb: 商品・在庫・注文保存のDB処理を模擬するモック。
+        mock_sb = _make_admin_sb_for_create()
+        # 変数の内容: insert_execute: 注文本体・明細のinsert実行を順に記録するモック。
+        insert_execute = mock_sb.table.return_value.insert.return_value.execute
+
+        def record_insert():
+            """注文本体と注文明細の保存順を記録し、それぞれのDB応答を返す。
+
+            Returns:
+                注文本体の保存時は保存済み注文を、明細保存時は空の成功結果を返す。
+            """
+            if not events:
+                events.append('注文保存')
+                return SimpleNamespace(data=[SAMPLE_ORDER])
+            events.append('注文明細保存')
+            return SimpleNamespace(data=[])
+
+        insert_execute.side_effect = record_insert
+        # 変数の内容: mock_http: Square決済成功を返すHTTPモック。
+        mock_http = _make_http_mock_success()
+        # 変数の内容: mock_resend: 購入者メールは例外、管理者メールは成功として記録するResendモック。
+        mock_resend = MagicMock()
+
+        def record_email(payload):
+            """宛先に応じて通知イベントを記録し、購入者メールだけ例外にする。
+
+            Args:
+                payload: Resendへ渡されるメール内容。
+
+            Returns:
+                管理者向けメールでは成功結果を返す。
+            """
+            if payload['to'] == ['test@example.com']:
+                events.append('購入者確認メール送信')
+                raise RuntimeError('購入者メール送信失敗')
+            events.append('管理者通知送信')
+            return {'id': 'admin-mail-id'}
+
+        mock_resend.Emails.send.side_effect = record_email
+
+        # 1. メールAPIキーと管理者宛先を設定して、モックだけで注文APIを呼び出す。
+        resp = _post_order(
+            ORDER_REQUEST,
+            mock_sb,
+            mock_http,
+            mock_resend,
+            resend_key='test-key',
+            contact_to='admin@example.com',
+        )
+
+        # 2. 注文保存後に購入者メール、管理者通知の順で試行し、注文成立の応答を維持する。
+        assert events == ['注文保存', '注文明細保存', '購入者確認メール送信', '管理者通知送信']
+        assert resp.status_code == 200
+        assert resp.json() == {'order_id': SAMPLE_ORDER['id']}
+        assert insert_execute.call_count == 2
+        assert mock_resend.Emails.send.call_count == 2
