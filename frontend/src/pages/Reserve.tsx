@@ -1,12 +1,13 @@
 import { useEffect, useId, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { api, ApiError, type WsSession } from '../lib/api'
+import { api, type WsSession } from '../lib/api'
 import PageMeta from '../components/PageMeta'
 import { useApi } from '../hooks/useApi'
 import { httpStatusOf } from '../lib/httpError'
 import { useT, useLang } from '../lib/lang'
 import { listDates, parseLocalDate } from '../lib/localDate'
 import { INPUT_MAX_LENGTH, RESERVE_MAX_PARTICIPANTS } from '../lib/constants'
+import { reserve400Message } from '../lib/reserve/errorMessage'
 import EventInfoPanel from './reserve/EventInfoPanel'
 import ReserveCustomerFields from './reserve/ReserveCustomerFields'
 import ReserveScheduleFields from './reserve/ReserveScheduleFields'
@@ -38,38 +39,6 @@ const BLANK: FormState = {
   name: '', email: '', phone: '', participants: 1, note: '',
   session_id: '', bring_plant: false, bring_pot: false,
   preferred_date: '',
-}
-
-/** 予約の 400 のうち「受付終了」を表すサーバーの detail（backend/app/routes/reserve.py の文言と同じ） */
-const RESERVE_CLOSED_DETAILS = [
-  'このイベントの予約受付は終了しています',
-  'この日の予約受付は終了しています',
-]
-
-/** 予約の 400 のうち「日付・時間が予約枠と合わない」を表すサーバーの detail */
-const RESERVE_MISMATCH_DETAILS = [
-  '予約日がイベントの開催期間外です',
-  'ワークショップの時間枠が正しくありません',
-]
-
-/**
- * 予約の送信が 400 になったときの文言を作る。
- * 日本語表示ではサーバーの detail をそのまま出し、英語表示では detail の種類（受付終了／日付・時間の不一致）に合わせた英語にする。
- * 知らない detail・detail が無いときは、日付と時間を選び直す案内（従来の文言）にする
- * @param err - catch で受け取った値
- * @param t - 翻訳関数（useT() の戻り値）
- * @returns 画面に出す文言
- */
-function reserve400Message(err: unknown, t: <T>(ja: T, en: T) => T): string {
-  // サーバーの説明（文字列のときだけ）
-  const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : ''
-  if (RESERVE_CLOSED_DETAILS.includes(detail)) {
-    return t(detail, 'Reservations for this date or event are closed. Please choose another date or event.')
-  }
-  if (RESERVE_MISMATCH_DETAILS.includes(detail)) {
-    return t(detail, 'The selected date or time does not match this event. Please choose the date and time again.')
-  }
-  return t('選んだ日付または時間がこのイベントの予約枠と合いません。日付と時間を選び直してください。', 'The selected date or time does not match this event. Please choose the date and time again.')
 }
 
 /**

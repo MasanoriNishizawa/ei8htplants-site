@@ -82,7 +82,8 @@ test.describe('Reserve', () => {
     async ({ page }) => {
     // 1. Green Market 2027のIDを指定して予約ページを開き、イベント名が表示されることを確認する。
     await page.goto('/official/reserve?event_id=mock-upcoming-1')
-    await expect(page.getByText('Green Market 2027').first()).toBeVisible()
+    // 1. EventInfoPanel がイベント名だけを表示する段落を特定し、別の部分一致要素に依存しない。
+    await expect(page.locator('p').filter({ hasText: /^Green Market 2027$/ })).toBeVisible()
   })
 
   // 左カラムのイベント・ワークショップ案内の表示契約を確認する
