@@ -5,15 +5,15 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   // テストのファイルを置くフォルダ
   testDir: './e2e',
-  // テストは 1 つずつ順に動かす（同じ開発サーバーとモックを使うため）
-  // fullyParallel: 同じモック・開発サーバーを共有するため、テストファイルを並列化しない。
+  // 同じspec内の状態依存を避けるため、spec内テストは引き続き順に実行する。
+  // fullyParallel: false を保ち、独立したspecファイルだけをworker間で処理する。
   fullyParallel: false,
   // CI では test.only の消し忘れをエラーにする
   forbidOnly: !!process.env.CI,
   // CI でだけ、失敗したテストを 1 回やり直す
   retries: process.env.CI ? 1 : 0,
-  // workers: 同時に動かすworker数を1つに固定する。
-  workers: 1,
+  // workers: 独立したspecファイルを最大2つずつ処理し、共有ページ状態を持ち込まず待ち時間を短縮する。
+  workers: 2,
   // 結果を 1 行ずつ表示する
   reporter: 'list',
   use: {
