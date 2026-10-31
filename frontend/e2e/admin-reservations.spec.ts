@@ -52,4 +52,40 @@ test.describe('管理画面の当日参加登録', /**
     await expect(page.getByRole('table')).toBeVisible()
     await expect(reservationRow).toBeVisible()
   })
+
+  test('/admin/reservations — 390pxで予約詳細を開いて内容を確認し、閉じる', /**
+    * スマートフォン幅の予約カードから詳細 sheet を開き、イベント情報を確認して閉じられることを確かめる。
+    * @param page 操作・検証対象の Playwright ページ。
+    * @returns {Promise<void>} 画面の操作とアサーションが完了したときに解決する。
+    */
+    async ({ page }) => {
+      // 1. 画面幅 390px で管理画面を開き、当日参加を作成できる状態にする。
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.goto('/admin/reservations')
+      await expect(page.getByRole('heading', { name: 'WS予約一覧' })).toBeVisible()
+      await expect(page.getByRole('table')).toBeHidden()
+      await page.getByRole('button', { name: '当日参加を追加' }).click()
+
+      // 2. 時間枠が無い Green Market 2027 を選んで当日参加予約を作成する。
+      const walkinDialog = page.getByRole('dialog', { name: '当日参加を追加' })
+      await walkinDialog.getByLabel('イベント').selectOption({ label: 'Green Market 2027' })
+      await expect(walkinDialog.getByText('この日の枠はありません')).toBeVisible()
+      await walkinDialog.getByRole('button', { name: '登録', exact: true }).click()
+      await expect(walkinDialog).toBeHidden()
+
+      // 3. 作成したカードから詳細を開き、予約者・イベント・持ち込みなしの情報を確認する。
+      const reservationCard = page.getByLabel('当日参加 さんの予約の詳細を開く')
+      await expect(reservationCard).toBeVisible()
+      await reservationCard.click()
+      const detailDialog = page.getByRole('dialog', { name: '当日参加 さんの予約の詳細' })
+      await expect(detailDialog).toBeVisible()
+      await expect(detailDialog).toContainText('Green Market 2027')
+      await expect(detailDialog).toContainText('当日参加')
+      await expect(detailDialog).toContainText('なし')
+
+      // 4. 閉じる操作で詳細が消え、予約カードの一覧へ戻る。
+      await detailDialog.getByRole('button', { name: '閉じる' }).click()
+      await expect(detailDialog).toBeHidden()
+      await expect(reservationCard).toBeVisible()
+    })
 })

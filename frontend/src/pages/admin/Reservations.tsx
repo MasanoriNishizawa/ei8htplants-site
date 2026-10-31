@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type Event, type WsSession } from '../../lib/api'
-import { STATUS_OPTIONS } from '../../lib/reservationConstants'
-import { formatJstDate, todayJst } from '../../lib/localDate'
+import { todayJst } from '../../lib/localDate'
 import { failMessage, statusOf } from './errorMessage'
 import { buildReservationPrintHtml, type ReservationWithTime } from './reservationPrint'
 import ReservationsList from './reservations/ReservationsList'
+import ReservationDetailSheet from './reservations/ReservationDetailSheet'
 import WalkinReservationModal from './WalkinReservationModal'
 
 /** 画面上部に表示する一覧読み込み・状態変更エラーの帯 */
@@ -337,57 +337,13 @@ export default function AdminReservations() {
 
       {/* スライドアップ詳細（スマホのカードを押すと下から出る。暗い背景を押すと閉じる） */}
       {selectedRow && (
-        <>
-        {/* スマートフォン詳細の背景領域。押すと詳細を閉じる */}
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}
-          onClick={() => setSelectedRow(null)}
-        >
-          {/* 詳細カード本体。内容をスクロール可能にし、背景クリックを伝播させない */}
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${selectedRow.name} さんの予約の詳細`}
-            style={{ background: '#fff', width: '100%', maxWidth: 560, borderRadius: '12px 12px 0 0', padding: '24px 20px 40px', maxHeight: '85dvh', overflowY: 'auto' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <span style={{ fontWeight: 500, fontSize: 16 }}>{selectedRow.name}</span>
-              <button onClick={() => setSelectedRow(null)} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--c-muted)', lineHeight: 1, padding: '4px 8px' }}>×</button>
-            </div>
-            {[
-              ...(eventFilter === 'all' ? [{ label: 'イベント', value: eventsMap.get(selectedRow.event_id) ?? '-' }] : []),
-              { label: '受付日', value: formatJstDate(selectedRow.created_at) },
-              { label: 'メール', value: selectedRow.email.endsWith('.invalid') ? '-' : <a href={`mailto:${selectedRow.email}`} style={{ color: '#4a6741' }}>{selectedRow.email}</a> },
-              ...(selectedRow.phone ? [{ label: '電話', value: selectedRow.phone }] : []),
-              ...(selectedRow.preferred_date ? [{ label: '希望日', value: selectedRow.preferred_date }] : []),
-              ...((selectedRow.session_time ?? selectedRow.preferred_time) ? [{ label: '予約時間', value: selectedRow.session_time ?? selectedRow.preferred_time }] : []),
-              { label: '人数', value: `${selectedRow.participants}名` },
-              { label: '持込', value: [selectedRow.bring_plant && '植物', selectedRow.bring_pot && '鉢'].filter(Boolean).join('・') || 'なし' },
-              ...(selectedRow.note ? [{ label: '備考', value: selectedRow.note }] : []),
-            ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 8, padding: '8px 0', borderBottom: '1px solid #f0f0f5', fontSize: 14 }}>
-                <span style={{ color: 'var(--c-muted)', fontSize: 12 }}>{label}</span>
-                <span style={{ color: 'var(--c-ink)' }}>{value}</span>
-              </div>
-            ))}
-            <div style={{ marginTop: 20 }}>
-              <label htmlFor="reservation-detail-status" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 8 }}>ステータス</label>
-              <select
-                id="reservation-detail-status"
-                value={selectedRow.status}
-                disabled={updating === selectedRow.id}
-                onChange={(e) => updateStatus(selectedRow.id, e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', background: '#fff', cursor: 'pointer' }}
-              >
-                {STATUS_OPTIONS.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-        </>
+        <ReservationDetailSheet
+          reservation={selectedRow}
+          eventName={eventFilter === 'all' ? eventsMap.get(selectedRow.event_id) ?? '-' : undefined}
+          updating={updating === selectedRow.id}
+          onClose={() => setSelectedRow(null)}
+          onStatusChange={(status) => updateStatus(selectedRow.id, status)}
+        />
       )}
 
       {/* 当日参加モーダルの入力と API 処理は専用コンポーネントへ委譲する */}
