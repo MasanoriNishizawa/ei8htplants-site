@@ -8,6 +8,7 @@ import { backPathFrom } from '../../lib/navigation'
 import { buildReservationPrintHtml, buildReservationsCsv, type ReservationWithTime } from './eventReservationExports'
 import EventReservationDetailModal from './EventReservationDetailModal'
 import EventReservationsList from './EventReservationsList'
+import EventWalkinReservationModal from './EventWalkinReservationModal'
 
 /** エラーの帯の見た目（画面の上・当日参加のモーダルで共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
@@ -369,91 +370,24 @@ export default function AdminEventReservations() {
         />
       )}
 
-      {/* 当日参加の追加モーダル（暗い背景を押すと閉じる） */}
+      {/* イベント固有の当日参加 UI だけを子へ渡し、状態と登録処理はこの画面に残す */}
       {showWalkin && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
-          onClick={() => setShowWalkin(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="event-walkin-title"
-            style={{ background: '#fff', borderRadius: 8, padding: '28px 32px', width: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="event-walkin-title" style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 500 }}>当日参加を追加</h3>
-
-            {/* 複数日のイベントのときだけ参加日を見せる */}
-            {event?.end_date && event.end_date !== event.start_date && (
-              <div style={{ marginBottom: 16 }}>
-                {/* 参加日は今日で固定の表示なので、入力欄ではなく文字として出す */}
-                <span style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</span>
-                <div style={{ padding: '8px 12px', border: '1px solid #f0f0f5', borderRadius: 4, fontSize: 14, background: '#fafafa', color: 'var(--c-ink)' }}>
-                  {walkinDate}
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginBottom: 16 }}>
-              <label htmlFor="event-walkin-session" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>時間枠</label>
-              {/* 時間枠があれば選ぶ、無ければ時間を文字で入れる */}
-              {sessions.length > 0 ? (
-                <select
-                  id="event-walkin-session"
-                  value={walkinSession}
-                  onChange={(e) => setWalkinSession(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}
-                >
-                  <option value="">-- 選択 --</option>
-                  {sessions.map((s) => (
-                    <option key={s.id} value={s.id}>{s.time_label}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  id="event-walkin-session"
-                  type="text"
-                  placeholder="例: 10:00〜11:30"
-                  value={walkinTime}
-                  onChange={(e) => setWalkinTime(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-                />
-              )}
-            </div>
-
-            <div style={{ marginBottom: 24 }}>
-              <label htmlFor="event-walkin-participants" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加人数</label>
-              <input
-                id="event-walkin-participants"
-                type="number"
-                min={1}
-                value={walkinParticipants}
-                onChange={(e) => setWalkinParticipants(Math.max(1, parseInt(e.target.value) || 1))}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit', textAlign: 'right', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* 当日参加の追加の失敗 */}
-            {walkinError && <p role="alert" style={errorBoxStyle}>{walkinError}</p>}
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowWalkin(false)}
-                style={{ padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4, background: '#fff', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={submitWalkin}
-                disabled={walkinSaving || (sessions.length > 0 && !walkinSession)}
-                style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', opacity: (sessions.length > 0 && !walkinSession) ? 0.5 : 1 }}
-              >
-                {walkinSaving ? '登録中...' : '登録'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EventWalkinReservationModal
+          event={event}
+          sessions={sessions}
+          walkinSession={walkinSession}
+          walkinTime={walkinTime}
+          walkinParticipants={walkinParticipants}
+          walkinDate={walkinDate}
+          walkinSaving={walkinSaving}
+          walkinError={walkinError}
+          errorBoxStyle={errorBoxStyle}
+          onClose={() => setShowWalkin(false)}
+          onSessionChange={setWalkinSession}
+          onTimeChange={setWalkinTime}
+          onParticipantsChange={setWalkinParticipants}
+          onSubmit={submitWalkin}
+        />
       )}
     </div>
   )

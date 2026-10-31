@@ -42,3 +42,34 @@ test.describe('イベント別予約の詳細モーダル', /**
     await expect(detailDialog).toBeHidden()
   })
 })
+
+/**
+ * イベント別予約画面の当日参加追加モーダルが多日開催・自由時間入力と連動することを確認する。
+ */
+test.describe('イベント別予約の当日参加追加', () => {
+  test('複数日イベントで参加日を表示し、時間と人数を登録して予約詳細へ反映する', async ({ page }) => {
+    // 1. WS あり・複数日イベントの予約管理を開く。
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/admin/events/mock-upcoming-1/reservations')
+    await expect(page.getByRole('heading', { name: 'Green Market 2027' })).toBeVisible()
+    await page.getByRole('button', { name: '当日参加を追加' }).click()
+    /** 複数日イベントの当日参加入力欄 */
+    const dialog = page.getByRole('dialog', { name: '当日参加を追加' })
+    await expect(dialog.getByText('参加日')).toBeVisible()
+
+    // 2. 時間枠が無いイベント用の自由入力欄と参加人数を操作して登録する。
+    await dialog.getByLabel('時間枠').fill('14:00〜15:00')
+    await dialog.getByLabel('参加人数').fill('2')
+    await dialog.getByRole('button', { name: '登録', exact: true }).click()
+    await expect(dialog).toBeHidden()
+
+    // 3. 作成された当日参加予約の詳細に送信内容が反映されたことを確認する。
+    await page.getByLabel('当日参加 さんの予約の詳細を開く').click()
+    /** 新規作成した当日参加予約の詳細 */
+    const detailDialog = page.getByRole('dialog', { name: '当日参加 さんの予約の詳細' })
+    await expect(detailDialog).toBeVisible()
+    await expect(detailDialog.getByText('14:00〜15:00')).toBeVisible()
+    await expect(detailDialog.getByText('2名')).toBeVisible()
+    await detailDialog.getByRole('button', { name: '閉じる' }).click()
+  })
+})

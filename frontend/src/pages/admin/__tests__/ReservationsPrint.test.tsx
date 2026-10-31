@@ -466,6 +466,34 @@ describe('EventReservations（イベント別の予約画面）', () => {
     expect(await screen.findByText(/リンクをコピーできませんでした/)).toBeInTheDocument()
   })
 
+  it('イベント別の当日参加は選んだ時間枠・人数・今日の日付を送信し、成功後に一覧へ加えて閉じる', async () => {
+    /** API 成功後に画面へ追加する予約 */
+    const created = makeReservation({
+      id: 'event-walkin-1', event_id: EVENT.id, name: '当日参加', email: '', participants: 2,
+      status: 'confirmed', session_id: SESSION.id, preferred_date: todayJst(), preferred_time: SESSION.time_label,
+    })
+    vi.mocked(api.reserve.list).mockResolvedValue([])
+    vi.mocked(api.reserve.addWalkin).mockResolvedValue(created)
+    renderPage()
+
+    // 1. 当日参加ダイアログで時間枠と人数を指定して登録する。
+    fireEvent.click(await screen.findByRole('button', { name: '当日参加を追加' }))
+    const dialog = await screen.findByRole('dialog', { name: '当日参加を追加' })
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '時間枠' }), { target: { value: SESSION.id } })
+    fireEvent.change(within(dialog).getByRole('spinbutton', { name: '参加人数' }), { target: { value: '2' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '登録' }))
+
+    // 2. 送信内容、一覧反映、ダイアログ終了を確認する。
+    await waitFor(() => expect(api.reserve.addWalkin).toHaveBeenCalledWith({
+      event_id: EVENT.id,
+      participants: 2,
+      session_id: SESSION.id,
+      preferred_date: todayJst(),
+    }))
+    expect(await screen.findAllByText('当日参加')).not.toHaveLength(0)
+    expect(screen.queryByRole('dialog', { name: '当日参加を追加' })).not.toBeInTheDocument()
+  })
+
   it('FE-CY-01 モバイルカードから詳細を開くと予約情報が表示される', /**
    * 画面上のモバイルカードを操作し、予約情報が詳細に出ることを確認する。
    * @returns {Promise<void>} 表示確認が完了したときに解決する。
