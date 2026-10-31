@@ -537,6 +537,41 @@ describe('Checkout を開いたときの商品の取り直し（404・通信の�
     await waitFor(() => expect(savedIds()).toEqual([]))
   })
 
+  it('売り切れ商品はカートから外し、soldout の案内と空のカート表示を出す', async () => {
+    // 1. 唯一の商品をカートに入れ、最新の在庫数が0の商品を返す
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify([{ product: PRODUCT, quantity: 1 }]))
+    vi.mocked(api.products.get).mockResolvedValue({ ...PRODUCT, stock: 0 })
+
+    await renderCheckout()
+
+    // 2. 売り切れ理由を知らせ、カートと注文フォームを空状態へ切り替える
+    expect(await screen.findByRole('status')).toHaveTextContent('「鉢 S」は売り切れのためカートから削除しました')
+    expect(screen.getByText('カートに商品がありません。')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /注文を確定する/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(savedIds()).toEqual([]))
+  })
+
+  it('在庫減少と価格変更を画面に知らせ、最新価格と調整数で注文内容を更新する', async () => {
+    // 1. 鉢 M は2点注文中とし、最新情報では在庫1点・価格6,000円に変える
+    vi.mocked(api.products.get).mockImplementation((id: string) =>
+      id === 'p-2'
+        ? Promise.resolve({ ...PRODUCT_B, stock: 1, price: 6000 })
+        : Promise.resolve(PRODUCT),
+    )
+    await renderWithTwoItems()
+
+    // 2. 2種類の変更通知と、最新数量・価格から計算した注文サマリーを確かめる
+    const notices = await screen.findByRole('status')
+    expect(notices).toHaveTextContent('「鉢 M」の在庫が1点になりました（数量を変更しました）')
+    expect(notices).toHaveTextContent('「鉢 M」の価格が ¥5,200 から ¥6,000 に変わりました。合計は新しい価格で計算しています')
+
+    const summary = screen.getByText('ご注文内容').parentElement!.parentElement!
+    const productRow = within(summary).getByText('鉢 M').parentElement!.parentElement!
+    expect(within(productRow).getByText('× 1')).toBeInTheDocument()
+    expect(within(productRow).getByText('¥6,000')).toBeInTheDocument()
+    expect(within(summary).getByText('¥9,800')).toBeInTheDocument()
+  })
+
   it('通信の失敗（404 以外）の商品はカートに残し、「最新の在庫・価格を確認できませんでした」を出す', async () => {
     vi.mocked(api.products.get).mockImplementation((id: string) =>
       id === 'p-2' ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve(PRODUCT),

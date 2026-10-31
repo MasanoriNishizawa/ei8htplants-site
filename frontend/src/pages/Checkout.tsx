@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { api, ApiError, type Product } from '../lib/api'
+import { api, ApiError } from '../lib/api'
 import { orderErrorMessage } from '../lib/checkout/orderErrorMessage'
+import { reconcileCartProducts, type CartProductLookupResult, type CartNotice } from '../lib/checkout/reconcileCartProducts'
 import { useCart } from '../lib/cart'
 import { useT } from '../lib/lang'
 import PageMeta from '../components/PageMeta'
@@ -67,22 +68,6 @@ const BLANK: FormState = {
   addressLine1: '', addressLine2: '', note: '',
 }
 
-/**
- * 最新の商品情報と比べて分かった、カートの変更のお知らせ。
- * 文章ではなく種類と値で持ち、表示するときに今の言語で文章にする（言語を切り替えても追従させるため）
- * - soldout: 売り切れでカートから外した
- * - stock: 在庫が減ったので数量を在庫数まで減らした（stock: 今の在庫）
- * - price: 値段が変わった（oldPrice: カートに入れたときの値段、newPrice: 今の値段）
- * - removed: 商品が削除された（取り直しで 404）のでカートから外した
- * - unchecked: 通信の失敗などで最新の情報を確かめられなかった（カートには残す）
- */
-type CartNotice =
-  | { kind: 'soldout'; name: string }
-  | { kind: 'removed'; name: string }
-  | { kind: 'unchecked'; name: string }
-  | { kind: 'stock'; name: string; stock: number }
-  | { kind: 'price'; name: string; oldPrice: number; newPrice: number }
-
 /** 送料の取得の状態（idle: 未選択か取得済み / loading: 取得中 / error: 取得に失敗） */
 type ShippingStatus = 'idle' | 'loading' | 'error'
 
@@ -139,38 +124,12 @@ export default function Checkout() {
     // 2. 商品ごとに最新の情報を取る。商品が削除されていた（404）ら 'gone'、通信の失敗などは null（カートからは消さない）
     Promise.all(snapshot.map((i) => api.products.get(i.product.id).catch((e: unknown): 'gone' | null =>
       e instanceof ApiError && e.status === 404 ? 'gone' : null,
-    ))).then((results) => {
+    ))).then((results: CartProductLookupResult[]) => {
       if (cancelled) return
-      // 取り直せた最新の商品
-      const latest: Product[] = []
-      // 見つかった変更のお知らせ
-      const found: CartNotice[] = []
-      // 3. 削除済み・確かめられなかった商品・売り切れ・在庫の減少・値段の変更を見つける
-      results.forEach((p, idx) => {
-        // 比べる元のカートの行
-        const cartItem = snapshot[idx]
-        // 削除された商品は注文できないのでカートから外して知らせる
-        if (p === 'gone') {
-          remove(cartItem.product.id)
-          found.push({ kind: 'removed', name: cartItem.product.name })
-          return
-        }
-        // 通信の失敗などはカートに残し、最新の情報を確かめられなかったことだけ知らせる
-        if (!p) {
-          found.push({ kind: 'unchecked', name: cartItem.product.name })
-          return
-        }
-        latest.push(p)
-        if (p.stock <= 0) {
-          found.push({ kind: 'soldout', name: p.name })
-          return
-        }
-        if (p.stock < cartItem.quantity) found.push({ kind: 'stock', name: p.name, stock: p.stock })
-        if (p.price !== cartItem.product.price) {
-          found.push({ kind: 'price', name: p.name, oldPrice: cartItem.product.price, newPrice: p.price })
-        }
-      })
-      // 4. カートを最新の情報に置き換え、お知らせを出す
+      // 3. 副作用のない照合関数で最新情報・削除対象・お知らせをまとめる
+      const { latest, removedIds, notices: found } = reconcileCartProducts(snapshot, results)
+      // 4. 削除対象を元の結果順に外し、照合前と同じタイミングで最新情報を反映する
+      removedIds.forEach((productId) => remove(productId))
       syncProducts(latest)
       setNotices(found)
     })
