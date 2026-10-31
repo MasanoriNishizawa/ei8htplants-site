@@ -574,6 +574,84 @@ class TestSessionAndDateValidation:
 class TestReservationFailurePaths:
     """予約処理を分割する前に、DB・メール・Webhookの失敗時の応答を固定する。"""
 
+    def test_受付メールとemail_failed保存が失敗しても管理者通知を試み予約行を返す(self):
+        """受付メールと失敗フラグ更新の双方が失敗しても予約行を返し通知へ進むこと。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: inserted_row: insert が返した予約行、reservations: email_failed 更新を失敗させる予約テーブル、admin_sb: DB モック、call_order: 呼び出し順序の記録。
+        inserted_row = {**SAVED_ROW, 'id': 'reservation-email-failure'}
+        reservations = _table_mock(insert_data=[inserted_row])
+        # 変数の内容: call_order: 失敗処理・通知・HTTP応答の順序を記録するイベント列。
+        call_order: list[str] = []
+
+        def fail_confirmation(*args: Any, **kwargs: Any) -> None:
+            """受付メール送信失敗を記録して例外にする。
+
+            Args:
+                *args: 受付メール送信の位置引数。
+                **kwargs: 受付メール送信のキーワード引数。
+
+            Returns:
+                なし。RuntimeError を送出する。
+            """
+            # 1. 失敗イベントを記録して、予約APIのエラー処理へ進める。
+            call_order.append('confirmation_failed')
+            raise RuntimeError('mail unavailable')
+
+        def fail_email_failed_update() -> None:
+            """email_failed 更新の実行失敗を記録して例外にする。
+
+            Args:
+                なし。
+
+            Returns:
+                なし。RuntimeError を送出する。
+            """
+            # 1. DB更新の実行を記録した後、DB障害を発生させる。
+            call_order.append('email_failed_update_failed')
+            raise RuntimeError('database unavailable')
+
+        def notify_admin(*args: Any, **kwargs: Any) -> None:
+            """管理者通知の試行を記録する。
+
+            Args:
+                *args: 管理者通知の位置引数。
+                **kwargs: 管理者通知のキーワード引数。
+
+            Returns:
+                なし。
+            """
+            # 1. 管理者通知関数が呼ばれた順序を記録する。
+            call_order.append('admin_notification')
+
+        reservations.update.return_value.eq.return_value.execute.side_effect = fail_email_failed_update
+        admin_sb = _db({'workshop_reservations': reservations})
+
+        # 1. 受付メールと email_failed 更新をそれぞれ必ず例外にする。
+        # 2. 管理者通知を試みた後にHTTP応答を受け取る順序をイベント列で確認する。
+        with patch.object(reserve_module, '_load_mail_context', return_value=(dict(EVENT), '10:00〜11:00')), \
+             patch.object(reserve_module, '_send_confirmation', side_effect=fail_confirmation), \
+             patch.object(reserve_module, '_send_admin_notification', side_effect=notify_admin):
+            # 変数の内容: resp: 受付メールと email_failed 更新失敗を経た予約 API 応答。
+            resp = _post(BASE_REQUEST, _public_sb(), admin_sb, key='test-key')
+            call_order.append('http_response_returned')
+
+        assert resp.status_code == 200
+        assert resp.json()['id'] == 'reservation-email-failure'
+        assert 'email_failed' not in resp.json()
+        reservations.insert.assert_called_once()
+        reservations.update.assert_called_once_with({'email_failed': True})
+        reservations.update.return_value.eq.assert_called_once_with('id', 'reservation-email-failure')
+        reservations.update.return_value.eq.return_value.execute.assert_called_once()
+        assert call_order == [
+            'confirmation_failed',
+            'email_failed_update_failed',
+            'admin_notification',
+            'http_response_returned',
+        ]
+
     def test_予約の保存に失敗すると500でメールを送らない(self):
         """予約 insert の障害は成功扱いせず、後続のメール送信も行わないこと。
 
