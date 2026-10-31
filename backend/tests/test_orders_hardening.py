@@ -610,3 +610,86 @@ class TestOrderMultiItemStockRollback:
         rollback_second.execute.assert_called_once()
         mock_http.post.assert_not_called()
         mock_sb.table.return_value.insert.assert_not_called()
+
+    def test_3品目目失敗で先行補償がFalseでも残りを戻し409と決済停止を維持する(self, caplog):
+        """3品目目の確保失敗時、先行補償が False でも残りの補償を続け CRITICAL を記録すること。
+
+        Args:
+            caplog: pytest が提供するログ記録 fixture。
+
+        Returns:
+            なし。
+        """
+        # 1. 3商品の在庫を用意し、確保成功2件・失敗1件と、False を返す補償および成功する補償を設定する。
+        # 変数の内容: mock_sb: 商品検索・在庫RPC・注文保存を模擬するSupabaseモック。
+        mock_sb = _make_admin_sb_for_create()
+        # 変数の内容: products: 注文対象3商品と事前在庫チェック用の商品情報。
+        products = [
+            {**SAMPLE_PRODUCT, 'id': 'product-1', 'name': '先行商品1', 'stock': 5},
+            {**SAMPLE_PRODUCT, 'id': 'product-2', 'name': '先行商品2', 'stock': 5},
+            {**SAMPLE_PRODUCT, 'id': 'product-3', 'name': '競合商品', 'stock': 5},
+        ]
+        mock_sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data = products
+        # 変数の内容: decrement_first: 1品目目の在庫確保成功応答。
+        decrement_first = MagicMock()
+        decrement_first.execute.return_value.data = True
+        # 変数の内容: decrement_second: 2品目目の在庫確保成功応答。
+        decrement_second = MagicMock()
+        decrement_second.execute.return_value.data = True
+        # 変数の内容: decrement_third: 3品目目の在庫確保失敗応答。
+        decrement_third = MagicMock()
+        decrement_third.execute.return_value.data = False
+        # 変数の内容: rollback_first: 1品目目の補償が明示的な False を返すRPCモック。
+        rollback_first = MagicMock()
+        rollback_first.execute.return_value.data = False
+        # 変数の内容: rollback_second: 2品目目の在庫を戻す成功応答。
+        rollback_second = MagicMock()
+        caplog.set_level(logging.CRITICAL, logger='app.routes.orders')
+        mock_sb.rpc.side_effect = [
+            decrement_first,
+            decrement_second,
+            decrement_third,
+            rollback_first,
+            rollback_second,
+        ]
+        # 変数の内容: mock_http: Squareへの決済リクエストを記録するHTTPモック。
+        mock_http = _make_http_mock_success()
+        # 変数の内容: payload: 2品を確保した後、3品目で競合する注文リクエスト。
+        payload = _order_with_items([
+            {'product_id': 'product-1', 'quantity': 1},
+            {'product_id': 'product-2', 'quantity': 2},
+            {'product_id': 'product-3', 'quantity': 3},
+        ])
+
+        # 2. モックされたDBとSquareを使って注文を試み、3品目目で在庫競合を起こす。
+        # 変数の内容: resp: 補償が False を返しても注文APIが返す在庫競合のHTTP応答。
+        resp = _post_order(payload, mock_sb, mock_http)
+
+        # 3. HTTP 409を維持し、先行2品目への補償を両方試み、CRITICALを記録して決済・注文保存を止める。
+        assert resp.status_code == 409
+        assert '競合商品' in resp.json()['detail']
+        assert _rpc_names(mock_sb) == [
+            'decrement_stock',
+            'decrement_stock',
+            'decrement_stock',
+            'increment_stock',
+            'increment_stock',
+        ]
+        assert mock_sb.rpc.call_args_list[3].args[1] == {
+            'p_product_id': 'product-1',
+            'p_quantity': 1,
+        }
+        assert mock_sb.rpc.call_args_list[4].args[1] == {
+            'p_product_id': 'product-2',
+            'p_quantity': 2,
+        }
+        rollback_first.execute.assert_called_once()
+        rollback_second.execute.assert_called_once()
+        assert any(
+            record.levelno == logging.CRITICAL
+            and '商品 product-1・数 1' in record.getMessage()
+            and 'increment_stock が False を返しました' in record.getMessage()
+            for record in caplog.records
+        )
+        mock_http.post.assert_not_called()
+        mock_sb.table.return_value.insert.assert_not_called()

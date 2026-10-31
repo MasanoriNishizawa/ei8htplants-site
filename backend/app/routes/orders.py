@@ -194,6 +194,7 @@ def _rollback_stock(reserved: list[tuple[str, int]]) -> None:
     """在庫確保のロールバックを行い、確保した分の在庫を元に戻す。
 
     個々のロールバック失敗は CRITICAL ログを出力して処理を継続する。
+    RPC が明示的に False を返した場合も、在庫を戻せなかった失敗として記録する。
 
     Args:
         reserved: ロールバック対象の (product_id, quantity) タプルのリスト
@@ -205,10 +206,14 @@ def _rollback_stock(reserved: list[tuple[str, int]]) -> None:
     # 変数の内容: pid: 在庫を戻す商品 ID、qty: その商品について元に戻す数量。
     for pid, qty in reserved:
         try:
-            admin_supabase.rpc('increment_stock', {
+            # 変数の内容: result: 在庫加算 RPC の実行結果。
+            result = admin_supabase.rpc('increment_stock', {
                 'p_product_id': pid,
                 'p_quantity': qty,
             }).execute()
+            # 2. RPC が明示的に False を返した場合は記録し、次の商品への補償を続ける。
+            if result.data is False:
+                logger.critical('在庫の戻しに失敗しました（商品 %s・数 %s）: increment_stock が False を返しました', pid, qty)
         # 変数の内容: e: except で捕捉した処理例外。
         except Exception as e:
             logger.critical('在庫の戻しに失敗しました（商品 %s・数 %s）: %s', pid, qty, error_summary(e))
