@@ -3,51 +3,10 @@ import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
 import { api } from '../lib/api'
 import { MAX_MESSAGE_CHARS, toSendHistory, type ChatMessage } from '../lib/chatHistory'
+import ChatMessageText from './ChatMessageText'
 
 /** 画面に表示するチャットメッセージ（定義は lib/chatHistory.ts） */
 type Message = ChatMessage
-
-/** 本文を URL とそれ以外に分ける正規表現（括弧で囲んでいるので split の結果に URL も残る） */
-const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g
-/** URL末尾に来やすい句読点・括弧類（日本語・ASCII）。リンクから外して後ろに普通の文字として出す */
-const TRAILING_PUNCT = /[）」、。！？』】〕)\].,;:!?'"]+$/
-
-/**
- * テキスト内のURLをリンクに変換して返す
- * @param line - 1 行分の本文
- * @returns 文字とリンクの要素の配列
- */
-function renderWithLinks(line: string) {
-  // URL とそれ以外を交互に並べた配列
-  const parts = line.split(URL_SPLIT_RE)
-  return parts.flatMap((part, i) => {
-    if (!part.startsWith('http')) return [<span key={i}>{part}</span>]
-    // 末尾の句読点を除いた URL と、除いた句読点
-    const url = part.replace(TRAILING_PUNCT, '')
-    /** URL としてリンクにせず後ろへ表示する末尾の句読点 */
-    const trailing = part.slice(url.length)
-    // URL 部分を新しいタブで開くリンク要素にしたもの
-    const link = <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecorationColor: 'currentColor' }}>{url}</a>
-    return trailing ? [link, <span key={`${i}t`}>{trailing}</span>] : [link]
-  })
-}
-
-/**
- * メッセージ本文を改行・URL対応で表示するサブコンポーネント
- * @param text - 表示するテキスト
- * @returns 行ごとに改行を入れた本文
- */
-function MessageText({ text }: { text: string }) {
-  // 改行で分けた行
-  const lines = text.split('\n')
-  return (
-    <span>
-      {lines.map((line, i) => (
-        <span key={i}>{renderWithLinks(line)}{i < lines.length - 1 && <br />}</span>
-      ))}
-    </span>
-  )
-}
 
 /**
  * 植物相談・ワークショップ案内AIチャットページ
@@ -239,7 +198,7 @@ export default function Chat() {
                 boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                 border: msg.role === 'model' ? '1px solid #eee' : 'none',
               }}>
-                <MessageText text={msg.content} />
+                <ChatMessageText text={msg.content} />
               </div>
             </div>
           ))}

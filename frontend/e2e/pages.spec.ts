@@ -14,6 +14,7 @@ const routes = [
   '/official/shop',
   '/official/collaborations',
   '/official/media',
+  '/official/chat',
   '/official/reserve',
   // コンセプトページ（共通 Layout）
   '/official/concept',
@@ -43,3 +44,15 @@ for (const path of routes) {
     await expect(page).toHaveTitle(/ei8ht plants/)
   })
 }
+
+test('公式チャットに入力欄を表示し、空の送信ボタンを無効にする', /**
+ * /official/chat の入力欄と、空欄の間は送信できない初期状態を確認する。
+ * @param page 操作・検証対象の Playwright ページ。
+ * @returns {Promise<void>} 画面アサーションが完了したときに解決する。
+ */ async ({ page }) => {
+  // 1. 公式チャットを開き、入力欄が表示されていることを確認する
+  await page.goto('/official/chat')
+  await expect(page.getByRole('textbox', { name: /メッセージを入力|Type a message/ })).toBeVisible()
+  // 2. 入力が空の初期状態では送信ボタンを押せないことを確認する
+  await expect(page.getByRole('button', { name: /送信|Send/ })).toBeDisabled()
+})
