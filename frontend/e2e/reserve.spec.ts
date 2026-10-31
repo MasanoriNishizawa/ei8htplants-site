@@ -122,7 +122,7 @@ test.describe('Reserve', () => {
   })
 
   // 終了したイベントは受付終了の案内を出す
-  test('終了したイベントの event_id で開くと「受付を終了しました」が出て予約ボタンは出ない', /**
+  test('終了したイベントの event_id で開くと受付終了の説明とイベント一覧リンクが出て予約ボタンは出ない', /**
      * 「/official/reserve?event_id=mock-past-1」を開く、「受付を終了しました」が画面に表示されること、存在しないイベントIDでエラー案内を表示し、予約ボタンを表示しないことを確認する。
      * @param page 操作・検証対象の Playwright ページ。
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
@@ -131,6 +131,10 @@ test.describe('Reserve', () => {
     // 1. 終了済みイベントの予約ページを開き、受付終了の案内を出して予約ボタンを隠すことを確認する。
     await page.goto('/official/reserve?event_id=mock-past-1')
     await expect(page.getByText('受付を終了しました')).toBeVisible()
+    await expect(page.getByText('このイベントの予約受付は終了しています。次回のワークショップをお待ちください。'))
+      .toBeVisible()
+    await expect(page.getByRole('link', { name: 'イベント一覧へ' }))
+      .toHaveAttribute('href', '/official/events')
     await expect(page.getByRole('button', { name: /予約する/ })).toHaveCount(0)
   })
 
@@ -183,7 +187,7 @@ test.describe('Reserve', () => {
     await expect(page.getByText('予約を受け付けました')).toHaveCount(0)
   })
 
-  test('必要な項目を入れて予約すると「予約を受け付けました」と予約内容が表示される', /**
+  test('必要な項目を入れて予約すると「予約を受け付けました」と氏名・メール・イベント・人数が表示される', /**
      * 「/official/reserve?event_id=…」を開く、「お名前」へ入力する、「メールアドレス」へ入力する、「予約を受け付けました」が画面に表示されること、「hanako@example.com」が画面に表示されることを確認する。
      * @param page 操作・検証対象の Playwright ページ。
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
@@ -202,7 +206,9 @@ test.describe('Reserve', () => {
     expect(body.participants).toBe(10)
     // 3. 完了の表示と予約内容
     await expect(page.getByText('予約を受け付けました')).toBeVisible()
+    await expect(page.getByText('山田 花子').first()).toBeVisible()
     await expect(page.getByText('hanako@example.com').first()).toBeVisible()
+    await expect(page.getByText('time 未設定のイベント').first()).toBeVisible()
     await expect(page.getByText('10 名')).toBeVisible()
   })
 })

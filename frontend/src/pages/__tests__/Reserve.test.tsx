@@ -228,7 +228,7 @@ describe('Reserve の送信結果ごとの表示', () => {
     expect(sent[0]).toMatchObject({ event_id: 'mock-no-time', name: '山田 花子', email: 'hanako@example.com', participants: 1 })
   })
 
-  it('参加者情報の任意項目と持ち込み選択を予約リクエストと完了画面に反映する', async () => {
+  it('参加者情報を予約リクエストと完了画面に反映する。氏名・メール・イベント・電話番号・参加人数・植物/鉢の持ち込み・備考を送信し、完了詳細に表示する', async () => {
     const sent = mockReserveApi(200)
     renderReserve('mock-no-time')
 
@@ -257,17 +257,24 @@ describe('Reserve の送信結果ごとの表示', () => {
 
     // 3. 送信した電話番号・持ち込み状態・備考が完了画面にも表示されることを確認する
     expect(screen.getByText('090-1234-5678')).toBeInTheDocument()
+    expect(screen.getByText('お名前').parentElement).toHaveTextContent('山田 花子')
+    expect(screen.getByText('メール').parentElement).toHaveTextContent('hanako@example.com')
+    expect(screen.getByText('イベント').parentElement).toHaveTextContent('time 未設定のイベント')
+    expect(screen.getByText('参加人数').parentElement).toHaveTextContent('2 名')
     expect(screen.getByText('植物持ち込み').parentElement).toHaveTextContent('あり')
     expect(screen.getByText('鉢持ち込み').parentElement).toHaveTextContent('あり')
     expect(screen.getByText('午前中に伺います')).toBeInTheDocument()
   })
 
-  it('409 のときは「このセッションは満席になりました」が出て、「戻る」でフォームに戻れる', async () => {
+  it('409 のときは満席案内から戻るとフォームが再表示され、入力済みの名前とメールアドレスが保持される', async () => {
     mockReserveApi(409, { detail: 'full' })
     await fillAndSubmitSimple()
     expect(await screen.findByText('このセッションは満席になりました')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '戻る' }))
     expect(await screen.findByRole('button', { name: '予約する' })).toBeEnabled()
+    // 4. 結果画面から戻っても、再入力を避けるため名前とメールアドレスを維持する
+    expect(screen.getByLabelText(/お名前/)).toHaveValue('山田 花子')
+    expect(screen.getByLabelText(/メールアドレス/)).toHaveValue('hanako@example.com')
   })
 
   it('429 のときは送信回数の上限の文言が出て、予約ボタンはまた押せる', async () => {

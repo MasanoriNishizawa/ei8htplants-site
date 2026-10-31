@@ -11,6 +11,7 @@ import { reserve400Message } from '../lib/reserve/errorMessage'
 import EventInfoPanel from './reserve/EventInfoPanel'
 import ReserveCustomerFields from './reserve/ReserveCustomerFields'
 import ReserveScheduleFields from './reserve/ReserveScheduleFields'
+import ReserveResultView, { type ReserveResultState } from './reserve/ReserveResultView'
 
 /** 予約フォームの値 */
 type FormState = {
@@ -236,6 +237,15 @@ export default function Reserve() {
     ...(form.note ? [{ label: t('備考', 'Notes'), value: form.note }] : []),
   ]
 
+  /** 終了・満席・完了のいずれかを示す表示状態。通常の入力中と送信エラーでは null */
+  const resultViewState: ReserveResultState | null = event?.is_past
+    ? 'closed'
+    : status === 'full'
+      ? 'full'
+      : status === 'done'
+        ? 'done'
+        : null
+
   // ページの見出し（イベントが見つからないとき・読み込み中も同じものを出す）
   const pageHeader = (
     <div style={{ marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid var(--c-border)' }}>
@@ -313,56 +323,17 @@ export default function Reserve() {
           {/* 左：イベント概要・ワークショップと問い合わせ案内 */}
           <EventInfoPanel event={event} t={t} />
 
-          {/* 右：フォーム（終了したイベント・満席・完了のときは代わりにそれぞれの案内） */}
+          {/* 右：終了・満席・完了の案内、または予約フォーム */}
           <div>
-        {/* 終了したイベントは受付終了の案内 */}
-        {event.is_past ? (
-          <div style={{ textAlign: 'center', padding: '48px 20px' }}>
-            <p style={{ fontSize: 18, fontWeight: 300, letterSpacing: '0.05em', color: 'var(--c-ink)', marginBottom: 12 }}>
-              {t('受付を終了しました', 'Registration is closed')}
-            </p>
-            <p style={{ fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.8, marginBottom: 28 }}>
-              {t('このイベントの予約受付は終了しています。次回のワークショップをお待ちください。', 'Reservations for this event are no longer available. Please look forward to the next workshop.')}
-            </p>
-            <Link to="/official/events" style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
-              {t('イベント一覧へ', 'Back to events')}
-            </Link>
-          </div>
-        ) : status === 'full' ? (
-          // 満席で受け付けられなかった。「戻る」で時間枠を選び直させる
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <p style={{ fontSize: 18, color: '#c0392b', marginBottom: 16 }}>{t('このセッションは満席になりました', 'This session is now full')}</p>
-            <p style={{ fontSize: 14, color: 'var(--c-muted)', marginBottom: 24 }}>{t('別の回をお選びいただくか、次回のワークショップをお待ちください。', 'Please choose another time slot or wait for the next workshop.')}</p>
-            <button onClick={() => { setStatus('idle'); set('session_id', '') }} style={{ padding: '10px 24px', border: '1px solid #dddde8', borderRadius: 4, background: 'none', cursor: 'pointer', fontSize: 14 }}>
-              {t('戻る', 'Back')}
-            </button>
-          </div>
-        ) : status === 'done' ? (
-          // 予約の完了と予約内容
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ background: '#f0f6f0', border: '1px solid #b0d4b0', borderRadius: 4, padding: '36px 32px', marginBottom: 32 }}>
-              <p style={{ fontSize: 22, fontWeight: 300, letterSpacing: '0.08em', color: '#2d5a2d', margin: '0 0 16px' }}>{t('予約を受け付けました', 'Reservation received')}</p>
-              <p style={{ fontSize: 14, color: 'var(--c-body)', lineHeight: 1.9, margin: 0 }}>
-                {t(
-                  <><span>確認メールを </span><strong>{form.email}</strong><span> にお送りしました。</span><br />届かない場合は迷惑メールフォルダをご確認ください。</>,
-                  <><span>A confirmation email has been sent to </span><strong>{form.email}</strong><span>.</span><br />If you don't see it, check your spam folder.</>
-                )}
-              </p>
-            </div>
-            <div style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '24px 28px', textAlign: 'left', marginBottom: 32 }}>
-              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--c-muted)', margin: '0 0 16px' }}>{t('予約内容', 'Reservation Details')}</p>
-              {confirmRows.map(({ label, value }) => (
-                <div key={label} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0f0f5' }}>
-                  <span style={{ fontSize: 12, color: 'var(--c-muted)' }}>{label}</span>
-                  <span style={{ fontSize: 14, color: 'var(--c-ink)' }}>{value}</span>
-                </div>
-              ))}
-            </div>
-            <Link to="/official/events" style={{ display: 'inline-block', padding: '12px 28px', border: '1px solid #dddde8', borderRadius: 4, color: 'var(--c-muted)', textDecoration: 'none', fontSize: 14 }}>
-              {t('イベント一覧へ戻る', 'Back to events')}
-            </Link>
-          </div>
-        ) : (
+            {resultViewState ? (
+              <ReserveResultView
+                state={resultViewState}
+                email={form.email}
+                confirmRows={confirmRows}
+                onBackFromFull={() => { setStatus('idle'); set('session_id', '') }}
+                t={t}
+              />
+            ) : (
           <form onSubmit={submit} style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px' }}>
             <p style={sectionLabel}>{t('予約内容', 'Reservation')}</p>
 
