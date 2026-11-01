@@ -5,6 +5,7 @@ import { SectionBox } from './AdminInfoParts'
 import EventAdminInfoDateTimeField from './EventAdminInfoDateTimeField'
 import EventAdminInfoStayBoothFields from './EventAdminInfoStayBoothFields'
 import EventAdminInfoGuidelinesSection from './EventAdminInfoGuidelinesSection'
+import EventAdminInfoNotesAndActions from './EventAdminInfoNotesAndActions'
 import { useEventAdminInfoGuidelinesImages } from './useEventAdminInfoGuidelinesImages'
 import { confirmLeaveIfDirty, dirtySnapshotJson, useUnsavedChanges } from './UnsavedChanges'
 
@@ -432,43 +433,15 @@ export default function EventAdminInfo() {
           onGuidelinesTextChange={(value) => set('guidelines_text', value)}
         />
 
-        {/* メモ */}
-        <SectionBox label="メモ">
-          <textarea
-            value={form.notes ?? ''}
-            onChange={(e) => set('notes', e.target.value || null)}
-            rows={4}
-            placeholder="予約が必要なことや注意事項"
-            style={{ width: '100%', padding: '10px 14px', border: 'none', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', background: 'transparent', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
-          />
-        </SectionBox>
-
-        {/* 保存ボタン */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-          {/* アップロード中に保存すると途中までの画像しか保存されないため、アップロード完了まで押せなくする。
-              読み込みに失敗したときも、空のフォームで上書きしないよう押せなくする */}
-          <button
-            type="submit"
-            disabled={saving || uploading || loadFailed}
-            style={{
-              padding: '12px 32px',
-              background: 'var(--c-ink)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 4,
-              minHeight: 44,
-              cursor: saving || uploading || loadFailed ? 'default' : 'pointer',
-              fontSize: 15,
-              opacity: saving || uploading || loadFailed ? 0.6 : 1,
-            }}
-          >
-            {saving ? '保存中...' : '保存する'}
-          </button>
-          {/* 入力がまだ保存されていないときの注意。画面を離れると変更が消える */}
-          {isDirty && (
-            <span style={{ fontSize: 13, color: '#b9770e' }}>未保存の変更があります</span>
-          )}
-        </div>
+        {/* メモ欄と保存操作の表示を子へ分離し、入力値・保存処理・未保存判定は親で管理する */}
+        <EventAdminInfoNotesAndActions
+          notes={form.notes}
+          onNotesChange={(value) => set('notes', value)}
+          saving={saving}
+          uploading={uploading}
+          loadFailed={loadFailed}
+          isDirty={isDirty}
+        />
       </form>
     </div>
 
