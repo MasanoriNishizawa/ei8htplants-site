@@ -3,7 +3,10 @@ import re
 from typing import Optional
 
 # 変数の内容: キャッシュを避ける予約枠と管理画面編集画像の API パス。
-_NO_STORE_PATH_RE = re.compile(r'^/api/(?:events/[^/]+/sessions|site-assets/[^/]+)$')
+# - /api/events/{id}/sessions: 予約枠（残数が変わりやすい）
+# - /api/site-assets/{key}: サイト画像の1件取得
+# - /api/site-assets: サイト画像の一括取得（?prefix=... はクエリ文字列なので path には含まれない）
+_NO_STORE_PATH_RE = re.compile(r'^/api/(?:events/[^/]+/sessions|site-assets(?:/[^/]+)?)$')
 
 # 変数の内容: 認証なしで取得できる API に設定する CDN・ブラウザー向けのキャッシュ時間。
 _PUBLIC_API_CACHE = 'public, s-maxage=300, max-age=60'

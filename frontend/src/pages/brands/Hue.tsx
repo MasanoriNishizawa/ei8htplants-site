@@ -4,16 +4,30 @@ import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
 import { useHueImages } from '../../sites/hue/useHueImages'
+import { usePageImageEditMode } from '../../lib/pageImageEdit'
+import { HUE_PAGE_SLOTS } from '../../lib/pageImageSlots'
+import PageImageSlotTarget from '../../components/PageImageSlotTarget'
+
+/**
+ * 色の写真の番号（0 始まり）から、管理画面の枠のキーを返す（'hue-color-01' など）。
+ * @param index - 0 始まりの写真の番号
+ * @returns 枠のキー
+ */
+const hueSlotKey = (index: number) => HUE_PAGE_SLOTS[index]?.key ?? `hue-color-${String(index + 1).padStart(2, '0')}`
 
 /**
  * HUE 専用サイトを描画し、色とフォルムから植物を楽しむブランド体験を提供する。
+ * 管理画面「ページ画像の編集」のプレビュー（編集モード）では、動きを「動きを減らす設定」と同じ止めた状態にし、
+ * 6枚の色写真の上に枠（PageImageSlotTarget）を重ねる。写真の並びの枠が本体で、同じ写真を使う3章・カードの枠は2つ目以降の枠にする。
  * @returns HUE ブランドトップの React 要素。
  */
 export default function Hue() {
   // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
-  // 管理画面から設定した6枚の色写真
+  // 管理画面から設定した6枚の色写真（編集モードなら草稿）
   const paletteImages = useHueImages()
+  // 管理画面のプレビュー（編集モード）か
+  const editMode = usePageImageEditMode()
   // ページ全体の動き用クラスと進捗 CSS 変数を設定するルート要素
   const homeRef = useRef<HTMLDivElement>(null)
   // スクロール進捗で背景の変化を制御するヒーロー領域
@@ -34,8 +48,8 @@ export default function Hue() {
 
     // スクロール表示演出の対象要素
     const revealItems = Array.from(root.querySelectorAll<HTMLElement>('[data-hue-reveal]'))
-    // OS 設定でアニメーションを減らす必要があるか
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // OS 設定でアニメーションを減らす必要があるか（管理画面のプレビューの編集モードでも、同じく動きを止める）
+    const reducedMotion = editMode || window.matchMedia('(prefers-reduced-motion: reduce)').matches
     root.classList.add('hue-motion-ready')
 
     if (reducedMotion || !('IntersectionObserver' in window)) {
@@ -127,7 +141,7 @@ export default function Hue() {
       root.style.removeProperty('--hue-hero-progress')
       if (storyTrackRef.current) storyTrackRef.current.style.transform = ''
     }
-  }, [])
+  }, [editMode])
 
   // トップページの横移動ストーリーで表示する3つの章
   const stories = [
@@ -136,6 +150,7 @@ export default function Hue() {
       title: t(<>朝の光で、<br />葉の表情に気づく。</>, <>Notice a leaf in the morning light.</>),
       body: t('窓辺の光が変わるたび、葉の色も違って見える。昨日は見過ごした小さな変化が、植物と暮らす楽しみになります。', 'As the light shifts by the window, foliage takes on a different tone. Small changes become part of the pleasure of living with a plant.'),
       image: paletteImages[0],
+      slotKey: hueSlotKey(0),
       caption: t('朝の光と葉の色', 'MORNING LIGHT / FOLIAGE'),
     },
     {
@@ -143,6 +158,7 @@ export default function Hue() {
       title: t(<>伸びる線を、<br />ゆっくり眺める。</>, <>Follow the shape as it grows.</>),
       body: t('新しい葉の重なりや、枝が描く線。植物が育つ時間を眺めると、部屋の中にもゆるやかなリズムが生まれます。', 'A new leaf, the line of a branch. Watching a plant grow brings a slower rhythm into the room.'),
       image: paletteImages[2],
+      slotKey: hueSlotKey(2),
       caption: t('葉が描くかたち', 'THE SHAPE OF GROWTH'),
     },
     {
@@ -150,14 +166,15 @@ export default function Hue() {
       title: t(<>一鉢から、<br />部屋の景色をつくる。</>, <>Let one plant shape a room.</>),
       body: t('お気に入りの鉢と、いつもの家具。その組み合わせの中に植物を迎えると、見慣れた場所に自分らしい景色ができます。', 'Bring a plant together with a favorite pot and familiar furniture. A personal scene begins to take shape.'),
       image: paletteImages[4],
+      slotKey: hueSlotKey(4),
       caption: t('暮らしになじむ一鉢', 'A PLANT IN ITS PLACE'),
     },
   ]
   // 下部に並べる HUE 編集ページへのリンク一覧
   const readingLinks = [
-    { href: '/about', label: t('HUEについて', 'ABOUT HUE'), title: t('植物と暮らす、HUEのこと。', 'A life with plants, in the HUE way.'), image: paletteImages[1], index: '01' },
-    { href: '/choose', label: t('一鉢の選び方', 'CHOOSING A PLANT'), title: t('好き、から始める一鉢選び。', 'Start with what you love.'), image: paletteImages[3], index: '02' },
-    { href: '/living', label: t('植物のある部屋', 'PLANTS AT HOME'), title: t('一鉢から、部屋の景色をつくる。', 'Let one plant shape a room.'), image: paletteImages[5], index: '03' },
+    { href: '/about', label: t('HUEについて', 'ABOUT HUE'), title: t('植物と暮らす、HUEのこと。', 'A life with plants, in the HUE way.'), image: paletteImages[1], slotKey: hueSlotKey(1), index: '01' },
+    { href: '/choose', label: t('一鉢の選び方', 'CHOOSING A PLANT'), title: t('好き、から始める一鉢選び。', 'Start with what you love.'), image: paletteImages[3], slotKey: hueSlotKey(3), index: '02' },
+    { href: '/living', label: t('植物のある部屋', 'PLANTS AT HOME'), title: t('一鉢から、部屋の景色をつくる。', 'Let one plant shape a room.'), image: paletteImages[5], slotKey: hueSlotKey(5), index: '03' },
   ]
 
   return (
@@ -218,9 +235,12 @@ export default function Hue() {
         <h2 id="hue-color-title" data-hue-reveal="rise">{t('一鉢から、暮らしを選ぶ。', 'Choose by feeling.')}</h2>
         <p className="hue-color-intro" data-hue-reveal="rise">{t('朝の光に葉の色を見つける。部屋に似合う形を選ぶ。植物と過ごす日々を、自分らしく。', 'Notice the leaves in morning light. Find a shape that feels at home. Live with plants in your own way.')}</p>
         <div className="hue-photo-grid" aria-label={t('HUE by ei8ht plants の植物写真', 'Plant photos from HUE by ei8ht plants')}>
+          {/* 写真1枚ずつの切り抜き。編集モードでは hue-photo-shape--edit を付け、重ねる枠の位置の基準にする（index.css） */}
           {paletteImages.map((url, index) => (
-            <div className="hue-photo-shape" key={index} data-hue-reveal="photo" style={{ '--photo-index': index } as React.CSSProperties}>
+            <div className={`hue-photo-shape${editMode ? ' hue-photo-shape--edit' : ''}`} key={index} data-hue-reveal="photo" style={{ '--photo-index': index } as React.CSSProperties}>
               {url && <img src={url} alt={t(`HUE by ei8ht plants の植物 ${index + 1}`, `HUE by ei8ht plants plant ${index + 1}`)} loading="lazy" />}
+              {/* 編集モードのときだけ、写真の上に枠を重ねる（この並びの枠が本体） */}
+              <PageImageSlotTarget slotKey={hueSlotKey(index)} empty={!url} className="page-edit-target--center" />
             </div>
           ))}
         </div>
@@ -238,6 +258,8 @@ export default function Hue() {
                     {story.image && <img src={story.image} alt={story.caption} loading="lazy" />}
                     <figcaption>{story.caption}</figcaption>
                     <span className="hue-story-visual-index">0{index + 1}</span>
+                    {/* 編集モードのときだけ、同じ写真の2つ目の枠を重ねる */}
+                    <PageImageSlotTarget slotKey={story.slotKey} empty={!story.image} secondary className="page-edit-target--center" />
                   </figure>
                 </article>
               ))}
@@ -264,6 +286,8 @@ export default function Hue() {
               <figure className="hue-reading-image">
                 {item.image && <img src={item.image} alt="" loading="lazy" />}
                 <span>{item.index}</span>
+                {/* 編集モードのときだけ、同じ写真の2つ目の枠を重ねる（リンクの中なので span の枠） */}
+                <PageImageSlotTarget slotKey={item.slotKey} empty={!item.image} secondary className="page-edit-target--center" />
               </figure>
               <p className="hue-story-kicker">{item.label}</p>
               <h3>{item.title}</h3>

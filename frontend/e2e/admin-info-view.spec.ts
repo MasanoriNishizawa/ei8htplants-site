@@ -197,10 +197,10 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await expect(page.getByText('要項の画像（3 枚）')).toBeVisible()
     // 入力欄は無く、編集ボタンが上下2か所にある
     await expect(page.getByRole('button', { name: '保存する' })).toHaveCount(0)
-    await expect(page.getByRole('link', { name: '編集' })).toHaveCount(2)
+    await expect(page.getByRole('link', { name: '編集', exact: true })).toHaveCount(2)
 
     // 3. 「編集」で編集画面へ
-    await page.getByRole('link', { name: '編集' }).first().click()
+    await page.getByRole('link', { name: '編集', exact: true }).first().click()
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info/edit$`))
     await expect(page.getByRole('button', { name: '保存する' })).toBeVisible()
 
@@ -239,7 +239,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
     // 確認画面に移ってから「編集」を押す（一覧の各行にも「編集」があるので、移る前に押すと別の画面へ行く）
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
-    await page.getByRole('link', { name: '編集' }).last().click()
+    await page.getByRole('link', { name: '編集', exact: true }).last().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 
     // 2. ホテル名を入れても保存せずに「← 戻る」。未保存の確認ダイアログは OK（破棄して戻る）にする
@@ -313,7 +313,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await page.goto('/admin/events')
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
-    await page.getByRole('link', { name: '編集' }).first().click()
+    await page.getByRole('link', { name: '編集', exact: true }).first().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 
     // 2. 値を変えて保存 → 確認画面
@@ -345,7 +345,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
     // 確認画面に移ってから「編集」を押す（一覧の各行にも「編集」があるので、移る前に押すと別の画面へ行く）
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
-    await page.getByRole('link', { name: '編集' }).first().click()
+    await page.getByRole('link', { name: '編集', exact: true }).first().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 
     // 2. 「編集」は push なので、ブラウザの戻るで確認画面へ戻り、進むで編集画面に戻れる
@@ -447,7 +447,7 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await page.goto(`/admin/events/${EMPTY_EVENT_ID}/admin-info`)
     await expect(page.getByText(/まだ管理情報が登録されていません/)).toBeVisible()
     await expect(viewRow(page, '支払い状況')).toContainText('未入力')
-    await expect(page.getByRole('link', { name: '編集' })).toHaveCount(2)
+    await expect(page.getByRole('link', { name: '編集', exact: true })).toHaveCount(2)
   })
 
   test('確認画面で出店要項のサムネイルを押すと拡大表示が開き、閉じるで閉じる', /**
@@ -491,7 +491,7 @@ test.describe('管理情報の確認画面 — スマホ幅（375x812）', () =>
 
     // 3. 主要な要素が画面の横幅に収まる
     await expectWithinViewportX(page, page.getByRole('link', { name: '← 戻る' }), '戻るリンク')
-    const edits = page.getByRole('link', { name: '編集' })
+    const edits = page.getByRole('link', { name: '編集', exact: true })
     await expectWithinViewportX(page, edits.nth(0), '上の編集ボタン')
     await expectWithinViewportX(page, edits.nth(1), '下の編集ボタン')
     // 3 枚の出店要項サムネイルを順に確認するための 1 始まり番号。

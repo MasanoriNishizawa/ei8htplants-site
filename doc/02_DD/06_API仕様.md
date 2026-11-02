@@ -1406,6 +1406,90 @@ POST と同じ形の全項目で上書きする。初めて公開する（今ま
 
 ---
 
+## Site Assets（サイト画像。2026-11-02 に記載・一括取得と URL の確認を追加）
+
+公開ページのうち、管理画面から差し替えられる画像の URL を、決まったキーごとに1件ずつ保存する（テーブル `site_assets`。[DD-05](05_データベース詳細.md) の「site_assets」）。画像のファイル自体は `POST /api/upload` で Storage に保存し、返った URL をここに保存する。
+
+| メソッド | パス | 認証 | 内容 |
+|---|---|---|---|
+| GET | `/api/site-assets?prefix={頭の文字列}` | 不要 | 頭が prefix で始まるキーの URL をまとめて返す（2026-11-02 追加） |
+| GET | `/api/site-assets/{key}` | 不要 | 1件の URL を返す |
+| PUT | `/api/site-assets/{key}` | Bearer JWT 必須 | 1件の URL を保存する（行がなければ作る） |
+
+**使えるキー**（これ以外のキーは、読み書きとも `404`）
+
+| キー | 使う所 |
+|---|---|
+| `hue-color-study`・`hue-color-01`〜`hue-color-06`（7個） | HUE のトップページの写真（01〜06）。`hue-color-study` はトップページの枠の一覧にはない |
+| `habitat-hero-01`〜`habitat-hero-05`・`habitat-sign`・`habitat-object-01`〜`habitat-object-06`（12個。2026-11-02 追加） | Habitat Oides のトップページの一番上の画像・右下のサイン・動くオブジェクト |
+| `ei8ht-hero`・`ei8ht-wordmark`（2個。2026-11-02 追加） | ei8ht plants のトップページのメインの写真・ロゴ（文字） |
+
+キーの一覧は `backend/app/routes/site_assets.py` の `EDITABLE_KEYS`（`HUE_COLOR_KEYS`・`HABITAT_MOTION_KEYS`・`EI8HT_HOME_KEYS` を合わせたもの）。画面側の枠の一覧（`frontend/src/lib/habitatMotionSlots.ts`・`pageImageSlots.ts`）と同じキーにする。
+
+### GET /api/site-assets?prefix=
+
+**クエリ**: `prefix`（必須。100文字まで。例 `habitat-`）
+
+**レスポンス `200`**: 許可しているキーのうち、頭が `prefix` で始まるものを**キー名の昇順**で返す。まだ保存したことのないキーも `url` を `""` にして含める（キーの数だけ必ず返る）。
+
+```json
+[
+  {"key": "habitat-hero-01", "url": "https://xxxx.supabase.co/storage/v1/object/public/images/abc.jpg"},
+  {"key": "habitat-hero-02", "url": ""},
+  ...
+  {"key": "habitat-sign", "url": ""}
+]
+```
+
+| prefix の例 | 返る件数 |
+|---|---|
+| `habitat-` | 12件 |
+| `ei8ht-` | 2件 |
+| `hue-color-` | 7件（`hue-color-01`〜`06` のあとに `hue-color-study`） |
+
+- `prefix` を付けない・空のとき、当てはまるキーが1つもないときは `404`（`{"detail": "Site asset not found"}`）。全部のキーを一度に読まれないようにするため
+- `prefix` が100文字を超えると `422`
+- データベースは1回だけ読む
+
+### GET /api/site-assets/{key}
+
+**レスポンス `200`**: `{"key": "hue-color-01", "url": "https://..."}`。まだ保存したことのないキーは `{"key": "...", "url": ""}`。
+
+### PUT /api/site-assets/{key}
+
+**リクエストボディ**
+
+```json
+{ "url": "https://xxxx.supabase.co/storage/v1/object/public/images/abc.jpg" }
+```
+
+`url` は前後の空白を取り除いてから、次の3つの形のどれかであることを確かめる（2026-11-02 追加）。最大 2048 文字。
+
+| 受け付ける形 | 例 | 使い道 |
+|---|---|---|
+| 空の文字 `""` | `""` | 画像を外す（公開ページはプロジェクト内の画像か、空の枠に戻る） |
+| `/` で始まるサイト内のパス | `/img/hue/01.jpg` | プロジェクト内の画像を指す |
+| `https://` で始まる URL | Supabase Storage の公開 URL | アップロードした画像 |
+
+次のものは `422`（入力の誤り）にして保存しない。
+
+- `//` で始まるもの（別のサイトを指す URL になる）
+- 途中に空白・タブ・改行などの制御文字や、バックスラッシュ（`\`）が入っているもの（ブラウザが `//` で始まる別サイトの URL と同じに読んでしまうことがあるため）
+- `http://`・`javascript:`・`data:` で始まるもの、大文字の `HTTPS://`、`img/a.jpg` のように `/` で始まらないパス、文字以外の値
+- 2048 文字を超えるもの
+
+空白だけの値は、取り除くと空になるので「画像を外す」として保存する。
+
+**レスポンス `200`**: 保存した行 `{"key": "...", "url": "..."}`
+
+ログインしていないときは `401`。
+
+### キャッシュ（2026-11-02 変更）
+
+GET の2つ（一括・1件）は、ほかの認証のいらない GET と違って、ブラウザや CDN に保存させない（`Cache-Control: no-store`）。管理画面で保存した画像が、すぐ公開ページに出るようにするため。それまでは1件の取得だけが対象だった（[DD-04](04_バックエンドロジック.md) の「12. SPA フォールバック」のキャッシュ規則）。
+
+---
+
 ## Pot Artists（鉢作家）
 
 | メソッド | パス | 認証 | 内容 |
@@ -1679,6 +1763,9 @@ api.articles.delete(id)                  → DELETE /api/articles/{id}  (auth)
 api.reserve.addWalkin(body)              → POST   /api/reserve/walkin  (auth)
 api.shipping.getRate(prefecture)         → GET    /api/shipping/rate?prefecture=...
 api.shipping.getPrefectures()            → GET    /api/shipping/prefectures
+api.siteAssets.list(prefix)              → GET    /api/site-assets?prefix={prefix}  ← 2026-11-02 追加
+api.siteAssets.get(key)                  → GET    /api/site-assets/{key}
+api.siteAssets.save(key, url)            → PUT    /api/site-assets/{key}  (auth)
 api.potArtists.list()                    → GET    /api/pot-artists
 api.potArtists.add(name)                 → POST   /api/pot-artists  (auth)
 api.potArtists.delete(id)                → DELETE /api/pot-artists/{id}  (auth)
@@ -1715,4 +1802,4 @@ api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  �
 
 2026-10-21 から、`getAccessToken()` は Supabase のプログラム（`lib/supabase.ts`）を呼ばれたときに初めて読み込む（`await import('./supabase')`）。公開ページだけを見る人が読み込まないようにして、最初の表示を速くするため。
 
-*最終更新: 2026-10-26（Host別robots.txt・sitemap.xmlの返却を追加）／2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*
+*最終更新: 2026-11-02（Site Assets（サイト画像）の章を追加: 使えるキー（Habitat Oides の12個・ei8ht plants の2個を追加）、一括取得 GET /api/site-assets?prefix=、PUT の url の確かめ方と 422、キャッシュしないこと。APIクライアントの対応表に api.siteAssets を追加）／2026-10-26（Host別robots.txt・sitemap.xmlの返却を追加）／2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*

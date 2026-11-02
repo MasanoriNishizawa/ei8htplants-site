@@ -75,12 +75,16 @@ PG-01〜PG-07・PG-12〜PG-24 の公式サイトページは `Layout`（ショ�
 | PG-A20 | [設計書](pages/admin/20_Docs.md) | `/admin/docs` | FT-01 |
 | PG-A21 | [チャットQ&A](pages/admin/21_ChatQA.md) | `/admin/chat-qa` | FT-01, FT-24 |
 | PG-A22 | [チャット履歴](pages/admin/22_ChatLogs.md) | `/admin/chat-logs` | FT-01, FT-24 |
+| PG-A23 | [Habitat Oides 画像](pages/admin/23_HabitatImages.md) | `/admin/habitat-images` | FT-01, FT-15（2026-11-02 追加） |
+| PG-A24 | [ページ画像の編集](pages/admin/24_PageEditor.md) | `/admin/page-editor/:brand`（プレビューは `/admin/page-preview/:brand`） | FT-01, FT-15, FT-27（2026-11-02 追加） |
 
-管理ページの設計書のファイル名の番号は、PG-A01〜PG-A10 は ID の番号と同じ、PG-A14 は `11_Finances.md`、PG-A15 以降は ID の番号と同じ（`15_`〜`22_`）。
+管理ページの設計書のファイル名の番号は、PG-A01〜PG-A10 は ID の番号と同じ、PG-A14 は `11_Finances.md`、PG-A15 以降は ID の番号と同じ（`15_`〜`24_`。`23_`・`24_` は 2026-11-02 追加）。
 
 このほか、イベント管理の中に次の画面がある（ID は付けず、[PG-A02 イベント管理](pages/admin/02_Events.md) に書いている）: イベントの新規作成・編集（`/admin/events/new`・`/admin/events/:id/edit`）、管理情報の確認・編集（`/admin/events/:id/admin-info`・`/admin/events/:id/admin-info/edit`）、画像ダウンロード（`/admin/events/:id/images`）。
 
 管理画面の中で、どの画面にも当たらない URL（`/admin/〜`）を開いたときは、サイドメニューを残したまま「ページが見つかりません」とダッシュボードへのボタンを出す（`pages/admin/AdminNotFound.tsx`。ID は付けていない。2026-10-22 追加）。
+
+サイドメニューの「サイト画像」（`/admin/site-images`。`pages/admin/SiteImages.tsx`。HUE のトップページの6枚の写真を登録する）は、ID もページ設計書もない。同じ6枚は PG-A24 ページ画像の編集の「HUE」のタブでも変えられる（2026-11-02 記載）。
 
 ---
 
@@ -88,7 +92,7 @@ PG-01〜PG-07・PG-12〜PG-24 の公式サイトページは `Layout`（ショ�
 
 | ID | ファイル | 機能名 | 使用ページ |
 |---|---|---|---|
-| FT-01 | [認証](features/01_認証.md) | Supabase Auth ログイン・セッション管理 | PG-A01〜PG-A22（AdminLayout共通） |
+| FT-01 | [認証](features/01_認証.md) | Supabase Auth ログイン・セッション管理 | PG-A01〜PG-A24（AdminLayout共通） |
 | FT-02 | [APIクライアント](features/02_APIクライアント.md) | `lib/api.ts` リクエスト処理・型定義 | 全ページ |
 | FT-03 | [イベント表示](features/03_イベント表示.md) | EventPreview レンダリング・画像スライドショー・EventSite | PG-01, PG-02, PG-20 |
 | FT-04 | [ギャラリー](features/04_ギャラリー.md) | ブランドフィルタータブ・グリッド・ライトボックス・管理画面での追加・削除・並べ替え | PG-01, PG-03, PG-A03 |
@@ -102,12 +106,12 @@ PG-01〜PG-07・PG-12〜PG-24 の公式サイトページは `Layout`（ショ�
 | FT-12 | [イベント管理](features/12_イベント管理.md) | イベントCRUD・画像管理・ブランド選択・収支・サイト編集・管理情報（出店要項を含む。2026-10-16 に確認画面を追加）・画像ダウンロード（2026-10-16 追加） | PG-A02, PG-A11〜PG-A13 |
 | FT-13 | ショップ／EC（機能設計書は未作成） | カート・決済(Square)・注文・商品カテゴリーフィルター | PG-14〜PG-17, PG-19, PG-A08, PG-A09 |
 | FT-14 | ジャーナル（機能設計書は未作成） | 記事一覧・タグフィルター・ブロックエディタ・関連商品リンク | PG-18, PG-19, PG-A10 |
-| FT-15 | ファイルアップロード（機能設計書は未作成） | 画像(images bucket)・動画(videos bucket) Supabase Storage 保存 | 管理画面全般 |
+| FT-15 | ファイルアップロード（機能設計書は未作成） | 画像(images bucket)・動画(videos bucket) Supabase Storage 保存 | 管理画面全般（PG-A23・PG-A24 の画像の差し替えを含む） |
 | FT-23 | 収支（機能設計書は未作成） | イベントごとの収支の入力・全体の収支・手伝いの支払い集計・ワークショップ集計 | PG-A11, PG-A14〜PG-A16 |
 | FT-24 | [AIチャット](features/13_AIチャット.md) | Gemini による植物相談・ワークショップ案内のチャット。管理画面での Q&A 登録・会話履歴の確認 | PG-22, PG-A21, PG-A22 |
 | FT-25 | [分析ダッシュボード](features/14_分析ダッシュボード.md) | 収支・予約・注文・問い合わせ・アクセス数のグラフ（Streamlit Community Cloud で公開。管理画面と同じアカウントでログイン。2026-10-17 追加） | PG-A01（サイドメニュー「分析 ↗」から新しいタブで開く） |
 | FT-26 | [検索エンジン・SNS 向けの情報](features/15_検索エンジン・SNS向け情報.md) | ページを返すときにタイトル・説明・SNS のプレビュー用の情報（OGP）・正式な URL・構造化データを入れる。`robots.txt`・`sitemap.xml`（2026-10-21 追加） | 公開ページ全部（管理画面などには noindex） |
-| FT-27 | [ブランド別ドメインとサイト表示](features/16_ブランド別ドメインとサイト表示.md) | 3ブランドのドメイン判定、専用レイアウト、管理画面への転送、旧URLの転送（2026-10-26 追加） | PG-01, PG-09, PG-10, PG-11, PG-A01〜PG-A22 |
+| FT-27 | [ブランド別ドメインとサイト表示](features/16_ブランド別ドメインとサイト表示.md) | 3ブランドのドメイン判定、専用レイアウト、管理画面への転送、旧URLの転送（2026-10-26 追加） | PG-01, PG-09, PG-10, PG-11, PG-A01〜PG-A24（PG-A24 のプレビューは3ブランドのトップページの部品を使う） |
 
 FT-16〜FT-22 は使っていない（欠番）。
 
@@ -147,4 +151,4 @@ FT-16〜FT-22 は使っていない（欠番）。
 | PG-A09 | PG-A12 |
 | PG-13（`/chat`） | PG-22 |
 
-*最終更新: 2026-10-26（3ブランドのドメイン別ページURLとFT-27を追加）／2026-10-22（存在しない URL のページ（公開サイト・管理画面）を追記）／2026-10-22（PG-15〜PG-17・PG-19〜PG-24、PG-A15〜PG-A22 のページ設計書を追加。FT-23・FT-24 を索引に追加。旧 ID の対照表を追加）*
+*最終更新: 2026-11-02（管理ページ PG-A23 Habitat Oides 画像・PG-A24 ページ画像の編集を追加）／2026-10-26（3ブランドのドメイン別ページURLとFT-27を追加）／2026-10-22（存在しない URL のページ（公開サイト・管理画面）を追記）／2026-10-22（PG-15〜PG-17・PG-19〜PG-24、PG-A15〜PG-A22 のページ設計書を追加。FT-23・FT-24 を索引に追加。旧 ID の対照表を追加）*

@@ -1,0 +1,92 @@
+/*
+ * 管理画面「ページ画像の編集」のプレビューで、差し替えられる画像の上に重ねる枠（PageImageSlotTarget）の CSS
+ * 枠の要素は編集モードのときしか出さないので、ふつうの公開ページには影響しない。
+ * 色は管理画面のプレビューで目立つ青（#2f6fd6）にそろえる。
+ */
+
+/* 枠のボタン本体: 親の要素いっぱいに重ねる透明なボタン。ページの文字や暗い膜（z-index 1）より手前に出す */
+.page-edit-target {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  transition: background-color .15s, outline-color .15s;
+}
+
+/* hover・キーボードで選んだとき: 青い枠線と、薄い青の塗りを出す */
+.page-edit-target:hover,
+.page-edit-target:focus-visible {
+  outline-color: #2f6fd6;
+  background: rgba(47, 111, 214, .14);
+}
+
+/* 選んでいる枠: hover していなくても、太めの枠線を出したままにする */
+.page-edit-target.is-selected {
+  outline: 3px solid #2f6fd6;
+  outline-offset: -3px;
+}
+
+/* 画像のない枠: 点線の枠を常に出して、空いている枠だと分かるようにする */
+.page-edit-target--empty {
+  outline: 2px dashed rgba(47, 111, 214, .7);
+  background: rgba(47, 111, 214, .06);
+}
+
+/* 枠の名前のラベル: 枠の左上に小さく出す。普段は隠し、hover・選択中・空の枠のときだけ見せる */
+.page-edit-target-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  padding: 4px 9px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #2f6fd6;
+  color: #fff;
+  font: 500 12px/1.4 'Noto Sans JP', sans-serif;
+  letter-spacing: .04em;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s;
+}
+
+/* ラベルを見せるとき: hover・キーボードで選んだとき・選んでいる枠・空の枠 */
+.page-edit-target:hover .page-edit-target-label,
+.page-edit-target:focus-visible .page-edit-target-label,
+.page-edit-target.is-selected .page-edit-target-label,
+.page-edit-target--empty .page-edit-target-label {
+  opacity: 1;
+}
+
+/* 空の枠のラベル: 選んでいないときは白地に青文字にして、hover の青いラベルと見分ける */
+.page-edit-target--empty:not(.is-selected):not(:hover) .page-edit-target-label {
+  background: rgba(255, 255, 255, .92);
+  color: #2f6fd6;
+}
+
+/* ページの中の差し替えられる画像を、枠を重ねるために包む要素（ei8ht plants のロゴなど。編集モードのときだけ使う） */
+.page-edit-frame {
+  position: relative;
+  display: block;
+  width: fit-content;
+}
+
+/* ラベルを枠の中央に出す枠（HUE の丸い写真など、角が切り抜かれて左上のラベルが隠れる置き場所で使う） */
+.page-edit-target--center .page-edit-target-label {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

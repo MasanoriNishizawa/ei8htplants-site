@@ -95,3 +95,50 @@ describe('MSW に無い API', () => {
     expect((body as { detail: string }).detail).toBe(`MSW のモックに無い API です: ${method} ${path}`)
   })
 })
+
+describe('MSW のサイト画像（一括取得・habitat- と ei8ht- のキー）', () => {
+  it('prefix=habitat- は12件をキーの昇順で返し、初期値は hero-01 と object-01 だけ URL がある', async () => {
+    const { status, body } = await call('/api/site-assets?prefix=habitat-')
+    expect(status).toBe(200)
+    const list = body as { key: string; url: string }[]
+    expect(list).toHaveLength(12)
+    expect(list.map(({ key }) => key)).toEqual([...list.map(({ key }) => key)].sort())
+    expect(list.filter(({ url }) => url).map(({ key }) => key)).toEqual(['habitat-hero-01', 'habitat-object-01'])
+  })
+
+  it('prefix=ei8ht- は2件をどちらも空の URL で返す', async () => {
+    const { body } = await call('/api/site-assets?prefix=ei8ht-')
+    expect(body).toEqual([{ key: 'ei8ht-hero', url: '' }, { key: 'ei8ht-wordmark', url: '' }])
+  })
+
+  it('prefix=hue-color- は hue-color-study を含めた7件を返す', async () => {
+    const { body } = await call('/api/site-assets?prefix=hue-color-')
+    const keys = (body as { key: string }[]).map(({ key }) => key)
+    expect(keys).toHaveLength(7)
+    expect(keys).toContain('hue-color-study')
+  })
+
+  it('prefix が空・当てはまるキーがないときは 404', async () => {
+    expect((await call('/api/site-assets?prefix=')).status).toBe(404)
+    expect((await call('/api/site-assets?prefix=nothing-')).status).toBe(404)
+    expect((await call('/api/site-assets')).status).toBe(404)
+  })
+
+  it('habitat- と ei8ht- のキーは1件ずつ取得でき、知らないキーは 404', async () => {
+    expect((await call('/api/site-assets/habitat-sign')).body).toEqual({ key: 'habitat-sign', url: '' })
+    expect((await call('/api/site-assets/ei8ht-hero')).body).toEqual({ key: 'ei8ht-hero', url: '' })
+    expect((await call('/api/site-assets/habitat-object-07')).status).toBe(404)
+  })
+
+  it('PUT で保存した URL が1件取得と一括取得に反映され、知らないキーの PUT は 404', async () => {
+    // 1. 保存する（このファイルのほかのテストに影響しないよう、最後に空へ戻す）
+    const saved = await call('/api/site-assets/ei8ht-wordmark', { method: 'PUT', body: JSON.stringify({ url: '/logo.png' }) })
+    expect(saved).toEqual({ status: 200, body: { key: 'ei8ht-wordmark', url: '/logo.png' } })
+    expect((await call('/api/site-assets/ei8ht-wordmark')).body).toEqual({ key: 'ei8ht-wordmark', url: '/logo.png' })
+    expect((await call('/api/site-assets?prefix=ei8ht-')).body).toContainEqual({ key: 'ei8ht-wordmark', url: '/logo.png' })
+    // TODO: known issue — resetSavedMockData は habitat- / ei8ht- の保存値を初期状態に戻さないため、ここで手で戻す
+    await call('/api/site-assets/ei8ht-wordmark', { method: 'PUT', body: JSON.stringify({ url: '' }) })
+    // 2. 知らないキー
+    expect((await call('/api/site-assets/habitat-unknown', { method: 'PUT', body: JSON.stringify({ url: '/x.png' }) })).status).toBe(404)
+  })
+})

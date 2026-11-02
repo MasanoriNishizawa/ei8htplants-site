@@ -456,6 +456,21 @@ describe('api.siteAssets', () => {
     expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify({ url }) })
     expect(result).toEqual(response)
   })
+
+  it('api.siteAssets.list(prefix) が prefix をエンコードして一括取得の GET を送り配列を返す', async () => {
+    // 1. 一括取得の応答（キーと URL の配列）を返すモックにする
+    const response = [{ key: 'habitat-hero-01', url: '/a.jpg' }, { key: 'habitat-sign', url: '' }]
+    mockFetch = makeMockFetch(response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    // 2. 記号を含む prefix で呼ぶ
+    const result = await api.siteAssets.list('habitat-&x')
+
+    // 3. クエリの prefix がエンコードされ、認証なしの GET で送られ、配列がそのまま返る
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/site-assets?prefix=habitat-%26x')
+    expect(mockFetch.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+    expect(result).toEqual(response)
+  })
 })
 
 describe('api.gallery', () => {

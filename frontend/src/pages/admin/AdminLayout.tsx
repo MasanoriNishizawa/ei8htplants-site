@@ -31,6 +31,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/events', label: 'イベント' },
   { to: '/admin/gallery', label: 'ギャラリー' },
   { to: '/admin/site-images', label: 'サイト画像' },
+  { to: '/admin/habitat-images', label: 'Habitat Oides 画像' },
+  // 3ブランドのトップページを見ながら、画像をクリックして差し替える編集画面（開くとブランドのタブで選べる）
+  { to: '/admin/page-editor', label: 'ページ画像の編集' },
   { to: '/admin/stockists', label: '取扱店' },
   { to: '/admin/reservations', label: 'WS予約' },
   { to: '/admin/collaborations', label: 'コラボレーション' },
@@ -68,11 +71,17 @@ const navStyle = ({ isActive }: { isActive: boolean }, sub = false): React.CSSPr
   whiteSpace: 'nowrap',
 })
 
+/** メニューを出さずにページ本体だけを出す管理画面のパスの頭（「ページ画像の編集」の iframe の中のプレビュー） */
+const BARE_PATH_PREFIX = '/admin/page-preview/'
+
 /**
  * 管理画面全体のレイアウト。Supabase 認証を担い、未認証時はログインフォームを表示する
- * @returns 確認中は何も出さず、未ログインならログインフォーム、ログイン済みなら管理画面の枠
+ * 「ページ画像の編集」のプレビュー（/admin/page-preview/:brand）は、ログインを確かめたうえで、メニューを出さずにページ本体だけを出す
+ * @returns 確認中は何も出さず、未ログインならログインフォーム、ログイン済みなら管理画面の枠（プレビューならページ本体だけ）
  */
 export default function AdminLayout() {
+  /** 今のパス（メニューを出さないプレビューかを見分ける） */
+  const { pathname } = useLocation()
   /** 最初のセッションの確認中か（確認中は何も表示しない） */
   const [checking, setChecking] = useState(true)
   /** ログインしているか */
@@ -173,6 +182,15 @@ export default function AdminLayout() {
       </form>
     </div>
   )
+
+  // 「ページ画像の編集」のプレビュー: メニューを出さずにページ本体だけを出す（iframe の中で公開ページと同じ見た目にするため）
+  if (pathname.startsWith(BARE_PATH_PREFIX)) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Outlet />
+      </Suspense>
+    )
+  }
 
   // 未保存の変更の確認（サイドメニュー）を使えるよう、ログイン後の画面全体を Provider で包む
   return (

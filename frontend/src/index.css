@@ -1310,8 +1310,14 @@ textarea,
 .brand-site-header--habitat-oides .brand-site-nav a,
 .brand-site-header--habitat-oides .brand-site-switcher a { font-family: 'M PLUS 1 Code', monospace; letter-spacing: .025em; }
 .brand-site-footer--habitat-oides { color: #ede7da; background: #172532; }
-.habitat-home { overflow: hidden; }
-.habitat-hero { min-height: min(760px, calc(100svh - 82px)); position: relative; display: flex; align-items: center; color: #fffaf1; background: #172532; overflow: hidden; }
+/* Habitat Oides トップページの外枠: 横にはみ出した部分（浮かぶオブジェクトなど）を切る。
+   overflow:hidden だとスクロールの基準になって中の position:sticky（縦書き見出し・浮かぶオブジェクトの見出し）が効かなくなるため、
+   対応ブラウザでは overflow:clip（スクロールの基準にならずに切るだけ）を使う */
+.habitat-home { overflow: hidden; overflow: clip; }
+/* 一番上の画像: ヘッダーの下から画面の下までいっぱいに広げる（参考サイトの 100svh の MV）。
+   ヘッダーの高さはブランドサイトの CSS 変数（PC は 82px）を使い、変数がない公式サイトの中では 82px にする。
+   管理画面のプレビューは変数を 0px にするので、画面いっぱいになる */
+.habitat-hero { min-height: calc(100svh - var(--brand-site-header-height, 82px)); position: relative; display: flex; align-items: center; color: #fffaf1; background: #172532; overflow: hidden; }
 .habitat-hero-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 54%; }
 .habitat-hero-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(12, 26, 38, .82), rgba(16, 29, 38, .42) 54%, rgba(16, 29, 38, .08)), linear-gradient(0deg, rgba(12, 26, 38, .28), transparent 40%); }
 .habitat-hero-copy { z-index: 1; position: relative; width: min(780px, 78vw); margin: 0 auto 0 10vw; padding: 100px 0 120px; }
@@ -1326,9 +1332,8 @@ textarea,
 .habitat-button--light { color: #172532; background: #f3e8d5; }
 .habitat-button--outline { color: #fffaf1; border: 1px solid rgba(255,255,255,.65); }
 .habitat-button--navy { color: #fffaf1; background: #172532; margin-top: 20px; }
-.habitat-hero-index, .habitat-hero-side-label { position: absolute; z-index: 1; bottom: 28px; color: #e6d7bd; font-size: var(--brand-type-caption); letter-spacing: .15em; }
-.habitat-hero-index { left: 5vw; }
-.habitat-hero-side-label { right: 5vw; writing-mode: vertical-rl; }
+/* 右端の縦書きの小さな文字: 右下のスライダーの操作（habitatMotion.css の .habitat-hero-controls）と重ならないよう、その上に置く */
+.habitat-hero-side-label { position: absolute; z-index: 1; right: 5vw; bottom: 96px; color: #e6d7bd; font-size: var(--brand-type-caption); letter-spacing: .15em; writing-mode: vertical-rl; }
 .habitat-world { max-width: 1320px; margin: 0 auto; padding: 116px 6vw 110px; }
 .habitat-section-kicker { display: flex; align-items: center; width: max-content; max-width: 100%; gap: 14px; color: #8c6b50; padding: 0; border: 0; }
 .habitat-section-kicker span:first-child { display: grid; width: 38px; height: 38px; place-items: center; flex: 0 0 auto; border: 1px solid #b8784d; border-radius: 50%; color: #b8784d; font: 400 var(--brand-type-meta)/1 'M PLUS 1 Code', monospace; letter-spacing: 0; }
@@ -1418,12 +1423,89 @@ textarea,
 .hue-photo-grid { max-width: 1280px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; margin: 0 auto 76px; }
 .hue-photo-shape { width: 100%; aspect-ratio: 1 / .76; overflow: hidden; border-radius: 48% 52% 44% 56% / 48% 42% 58% 52%; transform: rotate(calc(var(--photo-index) * 4deg)); background: #eee9e0; }
 .hue-photo-shape img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* 管理画面「ページ画像の編集」のプレビュー（編集モード）だけ: 重ねる枠（.page-edit-target・position:absolute）が
+   写真の切り抜きの中に収まるよう、切り抜きを位置の基準にする。公開ページではこのクラスを付けないので見た目は変わらない */
+.hue-photo-shape--edit { position: relative; }
 /* 管理画面「サイトの写真」: 画像設定カードを幅に応じた列数で並べ、プレビューを丸みのある切り抜きで表示する */
 .admin-site-image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; }
 .admin-site-image-card { padding: 20px; background: #fff; border: 1px solid #dddde8; border-radius: 6px; }
 .admin-site-image-preview { width: min(100%, 250px); aspect-ratio: 1 / .76; display: grid; place-items: center; margin: 0 auto 16px; overflow: hidden; border-radius: 48% 52% 44% 56% / 48% 42% 58% 52%; transform: rotate(calc(var(--photo-index) * 4deg)); }
 .admin-site-image-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .admin-site-image-preview--empty { color: #777; background: #f5f3ef; font-size: var(--brand-type-navigation); }
+/* 管理画面「Habitat Oides 画像」のプレビュー枠: 画像の縦横比を保ってカードの幅に収め、透過画像が見えるよう薄い格子の背景を敷く */
+.admin-habitat-image-preview { width: 100%; aspect-ratio: 4 / 3; display: grid; place-items: center; margin: 0 0 16px; overflow: hidden; border: 1px solid #e4e2dc; border-radius: 4px; background: #f5f3ef repeating-conic-gradient(#ebe8e1 0 25%, transparent 0 50%) 0 0 / 20px 20px; }
+/* 一番上の画像のプレビュー: 横長の写真なので 16:10 にし、枠いっぱいに切り抜いて出す */
+.admin-habitat-image-preview--hero { aspect-ratio: 16 / 10; }
+.admin-habitat-image-preview--hero img { width: 100%; height: 100%; object-fit: cover; }
+/* サイン・オブジェクトのプレビュー: 透過画像の全体が見えるよう、切り抜かずに収める */
+.admin-habitat-image-preview img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+/* 画像がない枠: 「未設定」と、プロジェクト内の画像の有無を中央に縦に並べる */
+.admin-habitat-image-preview--empty { align-content: center; gap: 6px; padding: 12px; color: #666; background: #f5f3ef; text-align: center; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.admin-habitat-image-preview--empty strong { color: #444; font-size: 15px; font-weight: 500; }
+/* ---- 管理画面「ページ画像の編集」（pages/admin/PageEditor.tsx） ---- */
+/* ブランドのタブの並び: 下に線を引き、タブを横に並べる（狭い幅では折り返す） */
+.page-editor-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 16px; border-bottom: 1px solid #dddde8; }
+/* タブ1つ: 文字のリンク。選んでいるタブは濃い色の下線と太字にする */
+.page-editor-tab { padding: 10px 16px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: #555; font-size: 15px; text-decoration: none; }
+.page-editor-tab:hover { color: #1c2417; }
+.page-editor-tab.is-active { border-bottom-color: #1c2417; color: #1c2417; font-weight: 600; }
+/* 上の操作の帯: 左に表示幅の切り替え、右に変更の件数と保存ボタン（狭い幅では折り返す） */
+.page-editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+/* 表示幅の切り替え: 2つのボタンをつなげた形にする */
+.page-editor-viewports { display: inline-flex; border: 1px solid #c9c9d6; border-radius: 4px; overflow: hidden; }
+.page-editor-viewport { padding: 8px 14px; border: 0; background: #fff; color: #444; font-size: 14px; cursor: pointer; }
+.page-editor-viewport + .page-editor-viewport { border-left: 1px solid #c9c9d6; }
+.page-editor-viewport.is-active { background: #1c2417; color: #fff; }
+/* 変更の件数と保存ボタンの並び */
+.page-editor-save-area { display: flex; align-items: center; gap: 12px; }
+.page-editor-count { color: #555; font-size: 14px; }
+/* 保存ボタン: 濃い色の塗り。押せないときは灰色にする */
+.page-editor-save { padding: 10px 22px; border: 0; border-radius: 4px; background: #1c2417; color: #fff; font-size: 15px; cursor: pointer; }
+.page-editor-save:disabled { background: #aaa; cursor: default; }
+/* 読み込み・保存の結果の案内（失敗は赤、成功は緑） */
+.page-editor-message { margin: 0 0 12px; font-size: 14px; line-height: 1.7; }
+.page-editor-message--error { color: #a33; }
+.page-editor-message--ok { color: #28623d; }
+/* 枠の一覧: 小さなボタンを横に並べる（狭い幅では折り返す） */
+.page-editor-slots { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 16px; }
+.page-editor-slots-title { margin-right: 4px; color: #777; font-size: 13px; }
+/* 枠のボタン1つ: 角丸の枠線のボタン。選んでいる枠は青い塗りにする（プレビューの枠線と同じ青） */
+.page-editor-slot-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #c9c9d6; border-radius: 999px; background: #fff; color: #333; font-size: 13px; cursor: pointer; }
+.page-editor-slot-chip.is-active { border-color: #2f6fd6; background: #2f6fd6; color: #fff; }
+/* 枠のボタンの中の「変更あり」「失敗」の小さな札 */
+.page-editor-slot-changed, .page-editor-slot-failed { padding: 1px 6px; border-radius: 3px; font-size: 11px; }
+.page-editor-slot-changed { background: #f3e2b8; color: #6b4e09; }
+.page-editor-slot-failed { background: #f5d0d0; color: #8a1f1f; }
+/* プレビューとパネルの並び: パネルがないときはプレビューだけ、あるときは右に 320px のパネルを置く */
+.page-editor-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+.page-editor-layout.has-panel { grid-template-columns: minmax(0, 1fr) 320px; }
+/* プレビューを置く枠: 幅を測って iframe を縮小する。はみ出しは隠す */
+.page-editor-stage { min-width: 0; overflow: hidden; }
+/* iframe の外枠: 縮小したあとの大きさにして、影をつける */
+.page-editor-frame-box { position: relative; overflow: hidden; margin: 0 auto; border: 1px solid #d6d6e0; background: #fff; box-shadow: 0 6px 24px rgba(30, 30, 50, .1); }
+/* iframe 本体: 表示幅の大きさのまま左上を軸に縮小する */
+.page-editor-frame { display: block; border: 0; transform-origin: 0 0; }
+/* プレビューの下の説明 */
+.page-editor-stage-note { margin: 8px 0 0; color: #777; font-size: 13px; line-height: 1.6; text-align: center; }
+/* パネル: 白いカード。PC 幅ではスクロールしても上に貼りつく */
+.page-editor-panel { position: sticky; top: 0; padding: 18px; background: #fff; border: 1px solid #dddde8; border-radius: 6px; }
+.page-editor-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.page-editor-panel-head h2 { margin: 0 0 6px; font-size: 18px; font-weight: 500; }
+.page-editor-panel-note { margin: 0 0 12px; color: #666; font-size: 13px; line-height: 1.7; }
+/* 今の画像のプレビュー: 縦横比を保って収め、透過画像が見えるよう薄い格子の背景を敷く */
+.page-editor-panel-preview { display: grid; place-items: center; aspect-ratio: 4 / 3; margin: 0 0 8px; overflow: hidden; border: 1px solid #e4e2dc; border-radius: 4px; background: #f5f3ef repeating-conic-gradient(#ebe8e1 0 25%, transparent 0 50%) 0 0 / 20px 20px; }
+.page-editor-panel-preview img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+.page-editor-panel-preview--empty { color: #777; font-size: 14px; }
+/* 今の画像の出どころと「未保存の変更あり」の札 */
+.page-editor-panel-source { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; color: #555; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.page-editor-panel-changed { padding: 1px 6px; border-radius: 3px; background: #f3e2b8; color: #6b4e09; font-size: 12px; font-weight: 500; }
+.page-editor-panel-label { display: block; margin: 0 0 8px; color: #555; font-size: 14px; }
+.page-editor-panel-hint { margin: 0; color: #777; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+/* 狭い幅（1000px 以下）: パネルをプレビューの下に出し、貼りつけない */
+@media (max-width: 1000px) {
+  .page-editor-layout.has-panel { grid-template-columns: minmax(0, 1fr); }
+  .page-editor-panel { position: static; }
+}
 /* HUE のスクロール演出: 進捗に応じてヒーローを移動・フェードし、表示領域に入った要素をぼかしから表示する */
 .hue-hero-copy { transform: translate3d(0, calc(var(--hue-hero-progress, 0) * -28px), 0); opacity: calc(1 - var(--hue-hero-progress, 0) * .45); }
 .hue-hero-art { transform: translate3d(calc(var(--hue-hero-progress, 0) * 3vw), calc(var(--hue-hero-progress, 0) * 8vh), 0) scale(calc(1 - var(--hue-hero-progress, 0) * .08)); opacity: calc(1 - var(--hue-hero-progress, 0) * .35); will-change: transform, opacity; }
@@ -1562,7 +1644,7 @@ textarea,
   .brand-site-footer-inner { grid-template-columns: 1fr; }
   .brand-site-footer nav { gap: 12px; }
   .brand-site-footer-meta { grid-column: 1; align-items: flex-start; gap: 12px; flex-direction: column; }
-  .habitat-hero { min-height: min(680px, calc(100svh - var(--brand-site-header-height))); align-items: flex-end; }
+  .habitat-hero { min-height: calc(100svh - var(--brand-site-header-height)); align-items: flex-end; }
   .habitat-hero-image { object-position: 58% center; }
   .habitat-hero-overlay { background: linear-gradient(0deg, rgba(12,26,38,.9), rgba(12,26,38,.15) 85%); }
   .habitat-hero-copy { width: auto; margin: 0; padding: 80px 24px 80px; }

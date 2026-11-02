@@ -71,6 +71,9 @@ const PriceCalc = lazy(adminPageLoaders.PriceCalc)
 const AdminPotArtists = lazy(adminPageLoaders.AdminPotArtists)
 const AdminMedia = lazy(adminPageLoaders.AdminMedia)
 const AdminSiteImages = lazy(adminPageLoaders.SiteImages)
+const AdminHabitatImages = lazy(adminPageLoaders.HabitatImages)
+const AdminPageEditor = lazy(adminPageLoaders.PageEditor)
+const AdminPagePreview = lazy(adminPageLoaders.PagePreview)
 const AdminDocs = lazy(adminPageLoaders.AdminDocs)
 const AdminChatQA = lazy(adminPageLoaders.AdminChatQA)
 const AdminChatLogs = lazy(adminPageLoaders.AdminChatLogs)
@@ -218,6 +221,13 @@ export default function App() {
             <Route path="pot-artists" element={<AdminPotArtists />} />
             <Route path="media" element={<AdminMedia />} />
             <Route path="site-images" element={<AdminSiteImages />} />
+            {/* Habitat Oides トップページの動く画像（一番上の画像・サイン・動くオブジェクト） */}
+            <Route path="habitat-images" element={<AdminHabitatImages />} />
+            {/* ページ画像の編集（3ブランドのトップページを見ながら画像を差し替える）。ブランドを指定しなければ ei8ht plants を開く */}
+            <Route path="page-editor" element={<Navigate to="/admin/page-editor/ei8htplants" replace />} />
+            <Route path="page-editor/:brand" element={<AdminPageEditor />} />
+            {/* ページ画像の編集の iframe の中に出すプレビュー（AdminLayout はメニューを出さず、ページ本体だけを出す） */}
+            <Route path="page-preview/:brand" element={<AdminPagePreview />} />
             <Route path="docs" element={<AdminDocs />} />
             <Route path="chat-qa" element={<AdminChatQA />} />
             <Route path="chat-logs" element={<AdminChatLogs />} />

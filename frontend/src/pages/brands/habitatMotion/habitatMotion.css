@@ -1,0 +1,227 @@
+/*
+ * Habitat Oides トップページ（HabitatOides.tsx）の動きの演出の CSS
+ * 参考サイト（garni.co.jp）の CSS の値（時間・イージング・位置）に合わせている。
+ * このページだけで使うので index.css には入れず、HabitatOides.tsx から import してページと一緒に読み込む。
+ * ページの基本の見た目（.habitat-hero・.habitat-world など）は index.css にあり、ここでは動きの部分だけを足す。
+ *
+ * 重なりの順（z-index）
+ * - スプラッシュ   : 1500（ヘッダー 1000 も含めて画面全体を覆う最初の演出。1.8 秒で消える）
+ * - ヘッダー       : 1000（index.css の .brand-site-header）
+ * - スライダーの操作: 45（右下のサインと重なっても、番号と前後のボタンが見えて押せるよう、サインより手前）
+ * - 右下のサイン   : 40（ヘッダーより下）
+ * - 浮かぶオブジェクト: 1〜2（セクションの中だけ）
+ */
+
+/* ======== 1. 最初の演出（スプラッシュ） ======== */
+
+/* スプラッシュの外枠: 画面全体に固定し、中央にロゴを置く。読み込み待ちの間は下のページを触れないようにする */
+.habitat-splash { position: fixed; z-index: 1500; inset: 0; display: grid; place-items: center; pointer-events: auto; }
+/* 演出中（幕が縮んでいる間）は、下のページのクリックを邪魔しない */
+.habitat-splash--leaving { pointer-events: none; }
+/* 白い幕: 画面いっぱいの白。演出中は前半で下を軸に広がった状態を保ち、後半で上を軸に縮む（1.8s） */
+.habitat-splash-curtain { position: absolute; inset: 0; background: #fff; transform-origin: bottom; }
+.habitat-splash--leaving .habitat-splash-curtain { animation: habitat-splash-curtain 1.8s cubic-bezier(0.39, 0.575, 0.565, 1) forwards; }
+/* ロゴの2段を縦に重ねる枠（白い幕の上に出す） */
+.habitat-splash-logo { position: relative; z-index: 1; display: grid; justify-items: center; gap: 14px; }
+/* ロゴの1段: overflow:hidden の窓。中身が窓の下から上がってきて、上へ抜ける */
+.habitat-splash-line { display: block; overflow: hidden; }
+/* 窓の中身: 最初は窓の下（上段 110%・下段 120%）に隠しておく */
+.habitat-splash-line > * { display: block; transform: translateY(var(--habitat-splash-from, 110%)); }
+.habitat-splash-line--lower { --habitat-splash-from: 120%; }
+/* 演出中: 0%→45% で上がり、50% まで止まり、100% で上へ抜ける（1.5s） */
+.habitat-splash--leaving .habitat-splash-line > * { animation: habitat-splash-rise 1.5s cubic-bezier(0.39, 0.575, 0.565, 1) forwards; }
+/* 上段のロゴ画像の大きさ */
+.habitat-splash-line--upper img { width: clamp(120px, 14vw, 180px); height: auto; }
+/* 下段のブランドの言葉 */
+.habitat-splash-line--lower span { color: #172532; font: 400 clamp(12px, 1.2vw, 15px)/1.4 'M PLUS 1 Code', monospace; letter-spacing: .22em; text-transform: uppercase; white-space: nowrap; }
+
+/* 白い幕の動き: 前半は下を軸に広がった状態を保ち、50.001% で軸を上に変えて、上へ縮んで抜ける */
+@keyframes habitat-splash-curtain {
+  0% { transform-origin: bottom; transform: scaleY(1); }
+  50% { transform-origin: bottom; transform: scaleY(1); }
+  50.001% { transform-origin: top; transform: scaleY(1); }
+  100% { transform-origin: top; transform: scaleY(0) translateY(-100%); }
+}
+/* ロゴの動き: 窓の下 → 0（45%〜50% は止まる）→ 窓の上へ抜ける */
+@keyframes habitat-splash-rise {
+  0% { transform: translateY(var(--habitat-splash-from, 110%)); }
+  45% { transform: translateY(0); }
+  50% { transform: translateY(0); }
+  100% { transform: translateY(-110%); }
+}
+/* 本文の浮かび上がり: 透明から不透明へ */
+@keyframes habitat-body-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* 読み込み待ちの間、スプラッシュ以外の本文（各セクション・サイン）は透明にしておく */
+.habitat-home[data-splash="waiting"] > :not(.habitat-splash) { opacity: 0; }
+/* 演出中: 本文を 0.8s 遅れて 1s で浮かび上がらせる */
+.habitat-home[data-splash="leaving"] > :not(.habitat-splash) { animation: habitat-body-in 1s .8s both; }
+
+/* ======== 2. 一番上の画像（フェードで切り替わるスライダー） ======== */
+
+/* 画像を重ねる外枠: ヒーローいっぱいに広げる（文言と暗い膜はこの上に重なる） */
+.habitat-hero-slides { position: absolute; inset: 0; }
+/* 1枚ずつの画像: 普段は透明。表示中の1枚だけ不透明にし、400ms ease でフェードする */
+.habitat-hero-slide { opacity: 0; transition: opacity 400ms ease; }
+.habitat-hero-slide.is-active { opacity: 1; }
+/* 動きを減らす設定のとき: フェードせずに切り替える */
+.habitat-hero-slides--static .habitat-hero-slide { transition: none; }
+/* 右下の操作部分「Prev 01 / 05 Next」: 文言と右下のサイン（z-index 40）より手前に重ね、横に並べる */
+.habitat-hero-controls { position: absolute; z-index: 45; right: 5vw; bottom: 24px; display: flex; align-items: center; gap: 14px; color: #e6d7bd; font: 400 var(--brand-type-caption)/1 'M PLUS 1 Code', monospace; letter-spacing: .15em; }
+/* 前後のボタン: 枠や背景をなくし、文字だけのボタンにする（押しやすいよう上下に余白を取る） */
+.habitat-hero-arrow { padding: 10px 4px; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: uppercase; cursor: pointer; transition: opacity .2s; }
+.habitat-hero-arrow:hover { opacity: .64; }
+.habitat-hero-arrow:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
+/* 番号「01 / 05」: 数字の幅をそろえる */
+.habitat-hero-counter { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ======== 3. 右下に固定するサイン ======== */
+
+/* サインの外枠: 画面の右下に固定し、クリックを邪魔しない。ヘッダー（1000）より下に重ねる */
+.habitat-brand-sign { position: fixed; z-index: 40; right: 2.5%; bottom: 2%; width: clamp(140px, 16vw, 260px); pointer-events: none; }
+/* サインの画像: 枠の幅いっぱいに、縦横比を保って出す */
+.habitat-brand-sign img { display: block; width: 100%; height: auto; }
+
+/* ======== 4. 画像の出方 ======== */
+
+/* 外枠: はみ出した部分（拡大した画像・白い幕）を隠す */
+.habitat-reveal { position: relative; overflow: hidden; }
+/* 中の画像: 枠の幅いっぱいに出す（高さは置き場所ごとに決める） */
+.habitat-reveal > img { display: block; width: 100%; }
+
+/* overlay（img-overlay）: 画像は透明・1.3 倍から、3s 遅延 0.2s で不透明・等倍へ */
+.habitat-reveal--overlay > img { opacity: 0; transform: scale(1.3); transition: opacity 3s .2s cubic-bezier(0.19, 1, 0.22, 1), transform 3s .2s cubic-bezier(0.19, 1, 0.22, 1); }
+.habitat-reveal--overlay.is-visible > img { opacity: 1; transform: scale(1); }
+/* overlay の幕（::after）: 左上を軸に、1s 遅延 0.1s で縦に縮んで消える。色は置き場所の背景色に合わせて変えられる */
+.habitat-reveal--overlay::after { position: absolute; z-index: 1; inset: 0; background: var(--habitat-reveal-curtain, #fff); transform-origin: 0 0; transition: transform 1s .1s cubic-bezier(0.19, 1, 0.22, 1); content: ''; pointer-events: none; }
+.habitat-reveal--overlay.is-visible::after { transform: scaleY(0); }
+
+/* brightness（brimg）: 画像は透明・明るさ 200% から、不透明（0.8s）・明るさ 100%（1.5s）へ */
+.habitat-reveal--brightness > img { opacity: 0; filter: brightness(200%); transition: opacity .8s cubic-bezier(0.61, 1, 0.88, 1), filter 1.5s cubic-bezier(0.61, 1, 0.88, 1); }
+.habitat-reveal--brightness.is-visible > img { opacity: 1; filter: brightness(100%); }
+
+/* 世界観の写真・ワークショップの写真: 枠の高さいっぱいに広げ、画像は切り抜いて敷き詰める */
+.habitat-world-image > .habitat-reveal,
+.habitat-workshop-image > .habitat-reveal { height: 100%; }
+.habitat-world-image > .habitat-reveal > img,
+.habitat-workshop-image > .habitat-reveal > img { height: 100%; object-fit: cover; }
+
+/* ======== 5. 画像がまだない枠（placeholder） ======== */
+
+/* 薄い枠: 文字は出さず、点線の枠だけを薄く出す（色は置き場所の文字色に合わせる） */
+.habitat-placeholder { box-sizing: border-box; border: 1px dashed currentColor; opacity: .22; }
+/* 画像の枠いっぱい: 縦横比は置き場所ごとの CSS 変数で決める */
+.habitat-placeholder--fill { width: 100%; aspect-ratio: var(--habitat-object-ratio, 4 / 3); }
+/* 一番上の画像が1枚もないとき: ヒーローの背景いっぱいに出す */
+.habitat-placeholder--hero { position: absolute; inset: 16px; }
+
+/* ======== 6. 縦書きの見出し ======== */
+
+/* 世界観のセクション: 左に縦書き見出しの列、右に本文の列を並べる */
+.habitat-world--motion { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: clamp(20px, 3vw, 48px); }
+/* 本文の列: 縦書き見出しより手前に出す */
+.habitat-world-body { position: relative; z-index: 1; min-width: 0; }
+/* 縦書き見出しのレール: セクションの高さいっぱいに伸びる列（この中で見出しが貼りつく） */
+.habitat-vertical-rail { position: relative; pointer-events: none; }
+/* 縦書きの大きな見出し: ヘッダーの下に貼りつき、セクションをスクロールする間ずっと見えている */
+.habitat-vertical-title { position: sticky; top: calc(var(--brand-site-header-height, 82px) + 24px); margin: 0; color: rgba(154, 104, 71, .26); font: 300 clamp(56px, 7.6vw, 104px)/1 'Noto Sans JP', sans-serif; letter-spacing: .08em; white-space: nowrap; writing-mode: vertical-rl; }
+
+/* ======== 7. 浮かぶオブジェクト（素材のセクション） ======== */
+
+/* 素材のセクション: 濃い背景なので、画像の出方の幕も同じ色にする */
+.habitat-elements { --habitat-reveal-curtain: #172532; }
+/* 素材の3項目: パララックスで下へずれたオブジェクト（z-index 1）が重なっても、文字が手前に出るようにする */
+.habitat-elements-grid { position: relative; z-index: 2; }
+/* 帯の外枠: セクションの左右の余白を打ち消して、画面の幅いっぱいに広げる */
+.habitat-floating { margin: 40px -8vw 80px; }
+/* 見出しの周り: 参考サイトの min-height 975px（1366px 幅のとき）に合わせ、画面幅に比例させる */
+.habitat-floating-stage { position: relative; min-height: clamp(560px, 71.4vw, 975px); }
+/* 中央の見出し: 帯の中でヘッダーの下に貼りつき、オブジェクトより手前に出す */
+.habitat-floating-heading { position: sticky; z-index: 2; top: var(--brand-site-header-height, 82px); display: grid; place-items: center; height: min(calc(100svh - var(--brand-site-header-height, 82px)), 560px); padding: 0 8vw; text-align: center; }
+/* 見出しの文字: 元の素材の見出しと同じ書体・大きさ。重なったオブジェクトの上でも読めるよう、薄い影をつける */
+.habitat-floating-heading h2 { max-width: 14em; margin: 0; font: 400 var(--brand-type-title)/1.3 'Noto Sans JP', sans-serif; letter-spacing: .015em; text-shadow: 0 1px 18px rgba(23, 37, 50, .65); }
+/* オブジェクト1つ: パララックスで動かすので transform を先に準備しておく */
+.habitat-floating-item { position: absolute; z-index: 1; will-change: transform; }
+/* オブジェクトの画像: 縦横比を保って、枠の幅いっぱいに出す */
+.habitat-floating-item .habitat-reveal > img { height: auto; }
+/* 01: 左上（幅 343/1366） */
+.habitat-floating-item--01 { top: 0; left: 0; width: 25.1%; }
+/* 02: 右上から少し下（幅 403/1366） */
+.habitat-floating-item--02 { top: 15%; right: 0; width: 29.5%; }
+/* 03: 右寄りの中段（幅 230/1366） */
+.habitat-floating-item--03 { top: 35vw; right: 18.5%; width: 16.8%; }
+/* 帯の下側: 04 と 05 を左右に並べる */
+.habitat-floating-lower { position: relative; display: flex; align-items: flex-start; justify-content: space-between; }
+.habitat-floating-lower .habitat-floating-item { position: relative; }
+/* 04: 左下。上の帯に食い込ませる（幅 579/1366） */
+.habitat-floating-item--04 { width: 42.4%; margin-top: -15%; margin-left: 2.5%; }
+/* 05: 右下 */
+.habitat-floating-item--05 { width: 24%; margin-top: 6%; margin-right: 8%; }
+/* 06: PC では出さない（スマホだけ） */
+.habitat-floating-item--06 { display: none; }
+
+/* ======== 8. スマホ表示（767px 以下） ======== */
+@media (max-width: 767px) {
+  /* スライダーの操作: 矢印を隠して番号だけを右下に出す */
+  .habitat-hero-controls { right: 24px; bottom: 24px; }
+  .habitat-hero-arrow { display: none; }
+  /* サイン: 右から 7.2%、幅 52.6% */
+  .habitat-brand-sign { right: 7.2%; width: 52.6%; }
+  /* 世界観のセクション: 縦書き見出しを本文の後ろ（右端）に薄く重ね、本文の幅を確保する */
+  .habitat-world--motion { display: block; position: relative; }
+  .habitat-vertical-rail { position: absolute; z-index: 0; top: 0; right: 4px; bottom: 0; }
+  .habitat-vertical-title { font-size: 44px; color: rgba(154, 104, 71, .16); }
+  /* 浮かぶオブジェクト: 帯を低くし（360px）、縦に並べ直す */
+  .habitat-floating-stage { min-height: 360px; }
+  .habitat-floating-heading { height: 300px; padding: 0 24px; }
+  .habitat-floating-item--01 { width: 42%; max-width: 42%; }
+  .habitat-floating-item--02 { top: 10%; width: 40%; }
+  .habitat-floating-item--03 { top: auto; right: 10%; bottom: 0; width: 26%; }
+  .habitat-floating-lower { flex-wrap: wrap; margin-top: 24px; }
+  .habitat-floating-item--04 { width: 68%; margin: 0; }
+  /* 05: 04 の右下に少し重ねる（04 と同じ行に入らない幅なので次の行になり、margin-left:auto で右に寄る） */
+  .habitat-floating-item--05 { width: 38%; margin: -6% 0 0 auto; }
+  /* 06: スマホでだけ出す。05 と同じ行に入らないよう左の余白を 14% にして、さらに次の行の左寄りに置く */
+  .habitat-floating-item--06 { display: block; width: 52%; margin: 6% 0 0 14%; }
+}
+/* セクションの左右の余白が 24px になる幅（index.css と同じ 680px）では、帯の打ち消しも 24px にする */
+@media (max-width: 680px) {
+  .habitat-floating { margin: 28px -24px 56px; }
+}
+
+/* ======== 8.5 公式サイトの中（/habitatoides）だけの位置 ======== */
+/* 公式サイトのレイアウト（components/Layout.tsx）は main に .site-main を付け、右下にチャットボタン .chat-fab
+   （fixed・right 24px・bottom 28px・高さ 48px なので上端は下から 76px）を出す。
+   ブランドドメイン（.brand-site-habitat-oides の .brand-site-main の中）にはチャットボタンがないので、ここは .site-main の中だけに効かせる。
+   セレクターを2つ重ねて、上の PC・スマホの指定（クラス1つ）より優先させるので、スマホでも同じ位置になる */
+/* スライダーの操作「Prev 01 / 05 Next」: チャットボタンの上端（76px）より上の 96px に上げる */
+.site-main .habitat-hero-controls { bottom: 96px; }
+/* 右下に固定するサイン: 同じくチャットボタンより上の 96px に上げる */
+.site-main .habitat-brand-sign { bottom: 96px; }
+/* 右端の縦書きの小さな文字（index.css）: 上げた操作（96px＋高さ約 34px）と重ならないよう、さらに上の 150px に置く */
+.site-main .habitat-hero-side-label { bottom: 150px; }
+
+/* ======== 9. 管理画面「ページ画像の編集」のプレビュー（編集モード）だけで使う見た目 ======== */
+
+/* サイン: 編集モードではクリックで枠を選べるよう、pointer-events を戻す */
+.habitat-brand-sign--edit { pointer-events: auto; }
+/* サインの画像がないとき（編集モードだけ）: 横長 2:1 の空の枠を出す */
+.habitat-placeholder--sign { width: 100%; aspect-ratio: 2 / 1; color: #172532; background: rgba(255, 255, 255, .5); }
+/* 浮かぶオブジェクト: 中央に貼りつく見出しが、後ろのオブジェクト（01〜03）のクリックを邪魔しないようにする */
+.habitat-floating--edit .habitat-floating-heading { pointer-events: none; }
+/* スライダーの操作: 編集モードではスマホ幅でも前後のボタンを出し、空の枠も含めた5枠を行き来できるようにする */
+@media (max-width: 767px) {
+  .habitat-hero-controls--edit .habitat-hero-arrow { display: inline-block; }
+}
+
+/* ======== 10. 動きを減らす設定 ======== */
+@media (prefers-reduced-motion: reduce) {
+  /* 画像の出方・スライダーのフェードを止める（JS 側でも最初から表示した状態にしている） */
+  .habitat-reveal > img,
+  .habitat-reveal--overlay::after,
+  .habitat-hero-slide { transition: none; }
+  /* パララックスで動かさないので、transform の準備も外す */
+  .habitat-floating-item { will-change: auto; }
+}

@@ -82,6 +82,25 @@ class TestResolveCacheControlHeaders:
             'CDN-Cache-Control': 'no-store',
         }
 
+    def test_サイト画像の一括取得APIは公開GETでもno_storeになる(self):
+        """一括取得 /api/site-assets（?prefix= はクエリなので path に含まれない）も保存しない。"""
+        # 1. クエリ文字列を除いた一括取得のパスに適用するヘッダーを選ぶ。
+        headers = resolve_cache_control_headers('GET', '/api/site-assets', False, 200, '')
+
+        # 2. 両方のキャッシュ層へ no-store を指定することを確認する。
+        assert headers == {
+            'Cache-Control': 'no-store',
+            'CDN-Cache-Control': 'no-store',
+        }
+
+    def test_サイト画像に似た別名のAPIは公開キャッシュのまま(self):
+        """正規表現の対象を広げすぎていないこと（/api/site-assets-x などは対象外）。"""
+        # 1. 一括取得のパスに似ているが別の API パスのヘッダーを選ぶ。
+        headers = resolve_cache_control_headers('GET', '/api/site-assets-x', False, 200, '')
+
+        # 2. 通常の公開 API と同じ公開キャッシュになることを確認する。
+        assert headers == {'Cache-Control': 'public, s-maxage=300, max-age=60'}
+
     @pytest.mark.parametrize(
         ('path',),
         [

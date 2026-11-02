@@ -157,3 +157,64 @@ describe('AdminLayout のサイドメニュー「分析」リンク', () => {
     expect(screen.queryByRole('link', { name: 'ダッシュボード' })).not.toBeInTheDocument()
   })
 })
+
+/**
+ * AdminLayout を、ページ画像の編集・プレビューのルートも含めて描画する
+ * @param path - 最初に開くパス
+ * @returns 描画結果
+ */
+function renderLayoutWithPreview(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<div>ダッシュボードの中身</div>} />
+          <Route path="page-editor/:brand" element={<div>編集画面の中身</div>} />
+          <Route path="page-preview/:brand" element={<div>プレビューの中身</div>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+describe('AdminLayout の「Habitat Oides 画像」「ページ画像の編集」メニューとプレビュー', () => {
+  beforeEach(() => {
+    sessionHolder.session = { user: { email: 'admin@example.com' } }
+  })
+
+  it('サイドメニューの「サイト画像」の直後に「Habitat Oides 画像」「ページ画像の編集」が並ぶ', async () => {
+    renderLayout()
+    const links = await sidebarLinks()
+    const names = links.map((a) => a.textContent ?? '')
+    const index = names.indexOf('サイト画像')
+    expect(index).toBeGreaterThanOrEqual(0)
+    expect(names[index + 1]).toBe('Habitat Oides 画像')
+    expect(names[index + 2]).toBe('ページ画像の編集')
+  })
+
+  it('「Habitat Oides 画像」は /admin/habitat-images、「ページ画像の編集」は /admin/page-editor を指す', async () => {
+    renderLayout()
+    expect(await screen.findByRole('link', { name: 'Habitat Oides 画像' })).toHaveAttribute('href', '/admin/habitat-images')
+    expect(screen.getByRole('link', { name: 'ページ画像の編集' })).toHaveAttribute('href', '/admin/page-editor')
+  })
+
+  it('/admin/page-editor/:brand ではメニューを出したまま中身を出す', async () => {
+    renderLayoutWithPreview('/admin/page-editor/hue')
+    expect(await screen.findByText('編集画面の中身')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'ダッシュボード' })).toBeInTheDocument()
+  })
+
+  it('/admin/page-preview/:brand ではメニューを出さず、ページ本体だけを出す', async () => {
+    renderLayoutWithPreview('/admin/page-preview/habitat-oides')
+    expect(await screen.findByText('プレビューの中身')).toBeInTheDocument()
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'ダッシュボード' })).not.toBeInTheDocument()
+  })
+
+  it('未ログインなら /admin/page-preview/:brand でもログインフォームを出し、プレビューは出さない', async () => {
+    sessionHolder.session = null
+    renderLayoutWithPreview('/admin/page-preview/hue')
+    expect(await screen.findByRole('button', { name: 'ログイン' })).toBeInTheDocument()
+    expect(screen.queryByText('プレビューの中身')).not.toBeInTheDocument()
+  })
+})

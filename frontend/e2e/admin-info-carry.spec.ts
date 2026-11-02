@@ -150,7 +150,7 @@ test('搬入・搬出を保存すると確認画面に日時・金額が表示�
   await expect(row('出店料')).toContainText('12,000円')
 
   // 6. 「編集」で編集画面に入り直す（再読み込みはしない）
-  await page.getByRole('link', { name: '編集' }).first().click()
+  await page.getByRole('link', { name: '編集', exact: true }).first().click()
   await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info/edit$`))
   await expect(page.getByText('搬入日時')).toBeVisible({ timeout: 20000 })
 

@@ -13,6 +13,8 @@ import {
   MOCK_DOC_TREE,
   MOCK_DOC_CONTENTS,
 } from './data'
+import { HABITAT_MOTION_SLOTS } from '../lib/habitatMotionSlots'
+import { EI8HT_PAGE_SLOTS } from '../lib/pageImageSlots'
 import type {
   Article,
   ArticleBody,
@@ -49,6 +51,49 @@ const savedAdminInfo: Record<string, EventAdminInfo> = {}
 
 /** 管理画面から保存した HUE の6画像 URL を並び順で保持する（Storage と同様、ブラウザのメモリだけ） */
 const hueColorStudyImages = Array(6).fill('') as string[]
+
+/**
+ * HUE の6枠のほかに、本物の API（backend/app/routes/site_assets.py の HUE_COLOR_KEYS）が持つ hue-color-study の URL。キー → URL
+ * トップページの枠の一覧（pageImageSlots.ts）にはないが、本物と同じく prefix=hue-color- の一括取得で返すために持つ。初期値は ''（未設定）
+ */
+const hueExtraImages: Record<string, string> = { 'hue-color-study': '' }
+
+/**
+ * Habitat Oides トップページの動く画像（habitat-hero-01〜05・habitat-sign・habitat-object-01〜06）の URL。キー → URL
+ * placeholder（空の枠）の表示を確かめられるよう、初期値は hero-01 と object-01 だけに /img 以下の既存画像を入れ、ほかは ''（未設定）にする。
+ * HUE と同じくブラウザのメモリだけに持つ
+ */
+const habitatMotionImages: Record<string, string> = Object.fromEntries(
+  HABITAT_MOTION_SLOTS.map(({ key }) => [key, ({
+    'habitat-hero-01': '/img/habitatOides/habitat_oides_workshop_main.jpg',
+    'habitat-object-01': '/img/logo-habitatoides.png',
+  } as Record<string, string>)[key] ?? '']),
+)
+
+/**
+ * ei8ht plants トップページの画像（ei8ht-hero・ei8ht-wordmark）の URL。キー → URL
+ * 初期値はどちらも ''（未設定。公開ページはプロジェクト内の画像を出す）。HUE と同じくブラウザのメモリだけに持つ
+ */
+const ei8htPageImages: Record<string, string> = Object.fromEntries(EI8HT_PAGE_SLOTS.map(({ key }) => [key, '']))
+
+/**
+ * モックで読み書きできるサイト画像の URL を、キーから取り出す。
+ * @param key - site_assets のキー
+ * @returns 保存済み URL（未設定なら ''）。モックにないキーなら undefined
+ */
+function mockSiteAssetUrl(key: string): string | undefined {
+  // 1. HUE の6枠（hue-color-01〜06）は並び順の配列から読む
+  const hueIndex = /^hue-color-0([1-6])$/.exec(key)?.[1]
+  if (hueIndex) return hueColorStudyImages[Number(hueIndex) - 1]
+  // 1-2. HUE の hue-color-study はキーの辞書から読む
+  if (key in hueExtraImages) return hueExtraImages[key]
+  // 2. Habitat Oides の12枠はキーの辞書から読む
+  if (key in habitatMotionImages) return habitatMotionImages[key]
+  // 3. ei8ht plants の2枠もキーの辞書から読む
+  if (key in ei8htPageImages) return ei8htPageImages[key]
+  // 4. どれでもなければ、モックにないキー
+  return undefined
+}
 
 /**
  * 保存（PUT）された収支。イベントID → 収支
@@ -781,21 +826,46 @@ export const handlers = [
     return HttpResponse.json({ url: '/img/mock-video.mp4' })
   }),
 
-  // HUE by ei8ht plants の6枚の写真（管理画面から URL を設定）
-  http.get('/api/site-assets/:key', ({ params }) => {
-    // キー名の末尾から画像番号を取り出す
-    const index = /^hue-color-0([1-6])$/.exec(String(params.key))?.[1]
-    if (!index) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
-    return HttpResponse.json({ key: params.key, url: hueColorStudyImages[Number(index) - 1] })
+  // サイト画像の一括取得（?prefix= で始まるキーを、キー名の昇順で返す。未設定の枠も url: '' で含める）
+  // 本物の API と同じく、prefix が空か、当てはまるキーが1つもなければ 404。
+  // prefix=hue-color- のときは、本物と同じく hue-color-01〜06 と hue-color-study の7件を返す（昇順なので study が最後）
+  http.get('/api/site-assets', ({ request }) => {
+    // キーの頭の文字列（例: 'habitat-'）
+    const prefix = new URL(request.url).searchParams.get('prefix') ?? ''
+    // モックで扱う全キー（HUE の6枠と hue-color-study + Habitat Oides の12枠 + ei8ht plants の2枠）
+    const allKeys = [
+      ...Array.from({ length: 6 }, (_, index) => `hue-color-${String(index + 1).padStart(2, '0')}`),
+      ...Object.keys(hueExtraImages),
+      ...Object.keys(habitatMotionImages),
+      ...Object.keys(ei8htPageImages),
+    ]
+    // prefix で始まるキー（昇順）
+    const keys = prefix ? allKeys.filter((key) => key.startsWith(prefix)).sort() : []
+    if (keys.length === 0) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    return HttpResponse.json(keys.map((key) => ({ key, url: mockSiteAssetUrl(key) ?? '' })))
   }),
+
+  // サイト画像の1件取得（HUE の6枚の写真・Habitat Oides の動く画像の12枠・ei8ht plants の2枠）
+  http.get('/api/site-assets/:key', ({ params }) => {
+    // 保存済み URL（モックにないキーなら undefined）
+    const url = mockSiteAssetUrl(String(params.key))
+    if (url === undefined) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    return HttpResponse.json({ key: params.key, url })
+  }),
+  // サイト画像の保存（管理画面から URL を設定。'' なら画像を外す）
   http.put('/api/site-assets/:key', async ({ params, request }) => {
-    // キー名の末尾から画像番号を取り出す
-    const index = /^hue-color-0([1-6])$/.exec(String(params.key))?.[1]
-    if (!index) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
+    // 保存先のキー
+    const key = String(params.key)
+    if (mockSiteAssetUrl(key) === undefined) return HttpResponse.json({ detail: 'Site asset not found' }, { status: 404 })
     // 管理画面から保存された公開画像 URL
     const body = await request.json() as { url: string }
-    hueColorStudyImages[Number(index) - 1] = body.url
-    return HttpResponse.json({ key: params.key, url: hueColorStudyImages[Number(index) - 1] })
+    // 1. HUE の枠は並び順の配列へ、1-2. hue-color-study と 2. ei8ht plants の枠と 3. Habitat Oides の枠はそれぞれのキーの辞書へ保存する
+    const hueIndex = /^hue-color-0([1-6])$/.exec(key)?.[1]
+    if (hueIndex) hueColorStudyImages[Number(hueIndex) - 1] = body.url
+    else if (key in hueExtraImages) hueExtraImages[key] = body.url
+    else if (key in ei8htPageImages) ei8htPageImages[key] = body.url
+    else habitatMotionImages[key] = body.url
+    return HttpResponse.json({ key, url: body.url })
   }),
 
   // 設計書の目次（管理画面「設計書」用）
