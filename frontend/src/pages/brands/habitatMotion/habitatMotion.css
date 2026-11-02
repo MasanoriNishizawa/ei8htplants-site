@@ -205,10 +205,6 @@
 
 /* ======== 9. 管理画面「ページ画像の編集」のプレビュー（編集モード）だけで使う見た目 ======== */
 
-/* サイン: 編集モードではクリックで枠を選べるよう、pointer-events を戻す */
-.habitat-brand-sign--edit { pointer-events: auto; }
-/* サインの画像がないとき（編集モードだけ）: 横長 2:1 の空の枠を出す */
-.habitat-placeholder--sign { width: 100%; aspect-ratio: 2 / 1; color: #172532; background: rgba(255, 255, 255, .5); }
 /* 浮かぶオブジェクト: 中央に貼りつく見出しが、後ろのオブジェクト（01〜03）のクリックを邪魔しないようにする */
 .habitat-floating--edit .habitat-floating-heading { pointer-events: none; }
 /* スライダーの操作: 編集モードではスマホ幅でも前後のボタンを出し、空の枠も含めた5枠を行き来できるようにする */

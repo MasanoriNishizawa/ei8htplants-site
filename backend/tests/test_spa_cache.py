@@ -127,6 +127,61 @@ class TestResolveCacheControlHeaders:
             'Cache-Control': 'public, s-maxage=31536000, max-age=86400, immutable'
         }
 
+    @pytest.mark.parametrize(
+        ('path', 'status_code'),
+        [
+            ('/assets/app-abc123.js', 304),
+            ('/img/plant.jpg', 399),
+        ],
+        ids=['assets-304', 'img-399'],
+    )
+    def test_静的ファイルの304や境界の399は長期キャッシュのまま(self, path, status_code):
+        """再検証の 304 や成功境界の 399 は、エラー扱いにせず長期キャッシュを保つ。
+
+        Args:
+            path: キャッシュ方針を確認する静的ファイルの URL パス。
+            status_code: 下流の応答ステータス（400 未満）。
+
+        Returns:
+            なし。
+        """
+        # 1. 400 未満の静的ファイルの応答に適用するヘッダーを選ぶ。
+        headers = resolve_cache_control_headers('GET', path, False, status_code, '')
+
+        # 2. 成功時と同じ長期キャッシュのヘッダーになることを確認する。
+        assert headers == {
+            'Cache-Control': 'public, s-maxage=31536000, max-age=86400, immutable'
+        }
+
+    @pytest.mark.parametrize(
+        ('path', 'status_code'),
+        [
+            ('/img/habitatOides/motion/sign/sign.svg', 404),
+            ('/assets/missing-abc123.js', 404),
+            ('/favicon/missing.ico', 500),
+            ('/img/plant.jpg', 400),
+        ],
+        ids=['img-404', 'assets-404', 'favicon-500', 'img-400'],
+    )
+    def test_静的ファイルの404やエラーは長期キャッシュせずno_storeになる(self, path, status_code):
+        """置いていない静的ファイルの応答を保存させず、あとで置いたファイルがすぐ出るようにする。
+
+        Args:
+            path: キャッシュ方針を確認する静的ファイルの URL パス。
+            status_code: 下流の応答ステータス（400 以上）。
+
+        Returns:
+            なし。
+        """
+        # 1. 見つからない・失敗した静的ファイルの応答に適用するヘッダーを選ぶ。
+        headers = resolve_cache_control_headers('GET', path, False, status_code, '')
+
+        # 2. ブラウザーにも CDN にも保存させない no-store になることを確認する。
+        assert headers == {
+            'Cache-Control': 'no-store',
+            'CDN-Cache-Control': 'no-store',
+        }
+
     def test_HTMLのGETは再検証付きキャッシュになる(self):
         """API や静的ファイルではない GET は HTML 用の再検証付きキャッシュを使う。"""
         # 1. SPA の公式ページに適用するヘッダーを選ぶ。

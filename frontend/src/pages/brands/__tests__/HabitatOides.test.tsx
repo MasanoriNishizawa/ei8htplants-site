@@ -4,7 +4,7 @@
  * 確かめること:
  * 1. スプラッシュ: sessionStorage `habitat-oides-splash-shown` でタブごとに1回だけ出す
  * 2. 一番上の画像: 2枚以上で番号と前後のボタンを出し、3秒ごとに切り替わる。0〜1枚なら番号を出さず自動で切り替えない
- * 3. 右下のサイン: 画像がなければ出さない
+ * 3. 右下のサイン: 管理画面の保存値は使わず、常にプロジェクト内の HABITAT_SIGN_SRC を出す。読み込みに失敗（onError）したら何も出さない。編集モードでも枠を付けない
  * 4. 画像の出方（overlay・brightness）と縦書き見出し
  * 5. パララックスのオブジェクト: 画像のない枠は habitat-placeholder-<key> を出す
  * 6. prefers-reduced-motion: スプラッシュなし・自動切り替えなし・画像は最初から表示・パララックスなし
@@ -20,6 +20,7 @@ import HabitatOides from '../HabitatOides'
 import HabitatHeroSlider from '../habitatMotion/HabitatHeroSlider'
 import { HABITAT_SPLASH_STORAGE_KEY } from '../habitatMotion/useHabitatSplashPhase'
 import { PageImageEditContext, type PageImageEditValue } from '../../../lib/pageImageEdit'
+import { HABITAT_SIGN_SRC } from '../../../lib/habitatMotionSlots'
 
 // サイト画像の一括取得だけをモックする
 vi.mock('../../../lib/api', async (importActual) => {
@@ -242,7 +243,8 @@ describe('HabitatOides トップページ', () => {
       expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
       expect(screen.getByTestId('habitat-hero-slide-habitat-hero-01')).toHaveAttribute('src', '/img/habitatOides/habitat_oides_hero.jpg')
       expect(screen.getByTestId('habitat-placeholder-habitat-object-01')).toBeInTheDocument()
-      expect(screen.queryByTestId('habitat-brand-sign')).not.toBeInTheDocument()
+      // サインは一括取得に関係なく、プロジェクト内のファイルで出す
+      expect(screen.getByTestId('habitat-brand-sign').querySelector('img')).toHaveAttribute('src', HABITAT_SIGN_SRC)
     })
   })
 
@@ -260,18 +262,26 @@ describe('HabitatOides トップページ', () => {
       window.sessionStorage.setItem(HABITAT_SPLASH_STORAGE_KEY, '1')
     })
 
-    it('サインの画像がなければサインの要素を出さない', async () => {
-      await renderPage()
-      expect(screen.queryByTestId('habitat-brand-sign')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('habitat-placeholder-habitat-sign')).not.toBeInTheDocument()
-    })
-
-    it('サインの画像を保存していると右下にサインの画像を出す（読み上げの対象外）', async () => {
-      listMock().mockResolvedValue([{ key: 'habitat-sign', url: '/sign.png' }])
+    it('サインは常にプロジェクト内の HABITAT_SIGN_SRC を右下に出す（読み上げの対象外・空の枠は出さない）', async () => {
       await renderPage()
       const sign = screen.getByTestId('habitat-brand-sign')
       expect(sign).toHaveAttribute('aria-hidden', 'true')
-      expect(sign.querySelector('img')).toHaveAttribute('src', '/sign.png')
+      expect(sign.querySelector('img')).toHaveAttribute('src', HABITAT_SIGN_SRC)
+      expect(screen.queryByTestId('habitat-placeholder-habitat-sign')).not.toBeInTheDocument()
+    })
+
+    it('一括取得の応答に habitat-sign の URL があっても使わず、HABITAT_SIGN_SRC を出す', async () => {
+      listMock().mockResolvedValue([{ key: 'habitat-sign', url: '/sign.png' }])
+      await renderPage()
+      expect(screen.getByTestId('habitat-brand-sign').querySelector('img')).toHaveAttribute('src', HABITAT_SIGN_SRC)
+    })
+
+    it('サインの画像の読み込みに失敗する（onError）と、サインの要素ごと消える', async () => {
+      await renderPage()
+      const img = screen.getByTestId('habitat-brand-sign').querySelector('img')
+      expect(img).not.toBeNull()
+      await act(async () => { fireEvent.error(img!) })
+      expect(screen.queryByTestId('habitat-brand-sign')).not.toBeInTheDocument()
     })
 
     it('画像のないオブジェクトの枠は habitat-placeholder-<key> を出し、画像のある枠は画像を出す', async () => {
@@ -363,13 +373,21 @@ describe('HabitatOides トップページ', () => {
       expect(screen.getByTestId('editable-slot-habitat-hero-04')).toHaveAttribute('aria-pressed', 'true')
     })
 
-    it('サインの画像がなくても空の枠とサインの枠を出し、草稿の URL があればそれを出す', async () => {
-      const { unmount } = await renderPage(editValue())
-      expect(screen.getByTestId('habitat-placeholder-habitat-sign')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'ブランドのサインを変更' })).toBeInTheDocument()
-      unmount()
+    it('編集モードでもサインには差し替えの枠・空の枠を付けず、草稿に habitat-sign があっても HABITAT_SIGN_SRC を出す', async () => {
       await renderPage(editValue({ draftUrls: { 'habitat-sign': '/draft-sign.png' } }))
-      expect(screen.getByTestId('habitat-brand-sign').querySelector('img')).toHaveAttribute('src', '/draft-sign.png')
+      const sign = screen.getByTestId('habitat-brand-sign')
+      expect(sign.querySelector('img')).toHaveAttribute('src', HABITAT_SIGN_SRC)
+      expect(sign.querySelector('button')).toBeNull()
+      expect(screen.queryByTestId('editable-slot-habitat-sign')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('habitat-placeholder-habitat-sign')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /サイン/ })).not.toBeInTheDocument()
+    })
+
+    it('編集モードでもサインの読み込みに失敗すると、何も出さない', async () => {
+      await renderPage(editValue())
+      await act(async () => { fireEvent.error(screen.getByTestId('habitat-brand-sign').querySelector('img')!) })
+      expect(screen.queryByTestId('habitat-brand-sign')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('habitat-placeholder-habitat-sign')).not.toBeInTheDocument()
     })
 
     it('草稿で保存した URL を外す（空文字）と、localSrc のない枠は空の枠に戻る', async () => {

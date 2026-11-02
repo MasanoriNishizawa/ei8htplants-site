@@ -1421,10 +1421,12 @@ POST と同じ形の全項目で上書きする。初めて公開する（今ま
 | キー | 使う所 |
 |---|---|
 | `hue-color-study`・`hue-color-01`〜`hue-color-06`（7個） | HUE のトップページの写真（01〜06）。`hue-color-study` はトップページの枠の一覧にはない |
-| `habitat-hero-01`〜`habitat-hero-05`・`habitat-sign`・`habitat-object-01`〜`habitat-object-06`（12個。2026-11-02 追加） | Habitat Oides のトップページの一番上の画像・右下のサイン・動くオブジェクト |
+| `habitat-hero-01`〜`habitat-hero-05`・`habitat-object-01`〜`habitat-object-06`（11個。2026-11-02 追加） | Habitat Oides のトップページの一番上の画像・動くオブジェクト |
 | `ei8ht-hero`・`ei8ht-wordmark`（2個。2026-11-02 追加） | ei8ht plants のトップページのメインの写真・ロゴ（文字） |
 
 キーの一覧は `backend/app/routes/site_assets.py` の `EDITABLE_KEYS`（`HUE_COLOR_KEYS`・`HABITAT_MOTION_KEYS`・`EI8HT_HOME_KEYS` を合わせたもの）。画面側の枠の一覧（`frontend/src/lib/habitatMotionSlots.ts`・`pageImageSlots.ts`）と同じキーにする。
+
+Habitat Oides の右下のサインは、管理画面からは差し替えず、プロジェクト内のファイル（`/img/habitatOides/motion/sign/sign.svg`）だけで出す（2026-11-02 変更）。以前のキー `habitat-sign` は使えるキーから外したので、`GET`・`PUT /api/site-assets/habitat-sign` は `404`（`{"detail": "Site asset not found"}`）になる。データベースに以前の行が残っていても、どの API からも返さない。
 
 ### GET /api/site-assets?prefix=
 
@@ -1437,13 +1439,13 @@ POST と同じ形の全項目で上書きする。初めて公開する（今ま
   {"key": "habitat-hero-01", "url": "https://xxxx.supabase.co/storage/v1/object/public/images/abc.jpg"},
   {"key": "habitat-hero-02", "url": ""},
   ...
-  {"key": "habitat-sign", "url": ""}
+  {"key": "habitat-object-06", "url": ""}
 ]
 ```
 
 | prefix の例 | 返る件数 |
 |---|---|
-| `habitat-` | 12件 |
+| `habitat-` | 11件（`habitat-hero-01`〜`05` のあとに `habitat-object-01`〜`06`） |
 | `ei8ht-` | 2件 |
 | `hue-color-` | 7件（`hue-color-01`〜`06` のあとに `hue-color-study`） |
 
@@ -1802,4 +1804,4 @@ api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  �
 
 2026-10-21 から、`getAccessToken()` は Supabase のプログラム（`lib/supabase.ts`）を呼ばれたときに初めて読み込む（`await import('./supabase')`）。公開ページだけを見る人が読み込まないようにして、最初の表示を速くするため。
 
-*最終更新: 2026-11-02（Site Assets（サイト画像）の章を追加: 使えるキー（Habitat Oides の12個・ei8ht plants の2個を追加）、一括取得 GET /api/site-assets?prefix=、PUT の url の確かめ方と 422、キャッシュしないこと。APIクライアントの対応表に api.siteAssets を追加）／2026-10-26（Host別robots.txt・sitemap.xmlの返却を追加）／2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*
+*最終更新: 2026-11-02（Site Assets: 使えるキーから `habitat-sign` を外し Habitat Oides を11個にした。`habitat-sign` の GET・PUT が 404 になること、一括取得 `prefix=habitat-` が11件になることを反映）／2026-11-02（Site Assets（サイト画像）の章を追加: 使えるキー（Habitat Oides の12個・ei8ht plants の2個を追加）、一括取得 GET /api/site-assets?prefix=、PUT の url の確かめ方と 422、キャッシュしないこと。APIクライアントの対応表に api.siteAssets を追加）／2026-10-26（Host別robots.txt・sitemap.xmlの返却を追加）／2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*

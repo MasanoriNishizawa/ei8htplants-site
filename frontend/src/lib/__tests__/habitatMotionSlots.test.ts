@@ -2,7 +2,8 @@
  * habitatMotionSlots（Habitat Oides トップページの動く画像の枠）のテスト
  *
  * 確かめること:
- * 1. 枠は12個（hero 5・sign 1・object 6）で、キーが重ならない
+ * 1. 枠は11個（hero 5・object 6）で、キーが重ならない。サイン（habitat-sign）は枠に含めない
+ * 1-2. サインはプロジェクト内のファイル HABITAT_SIGN_SRC だけで出す
  * 2. habitatSlotsByGroup が種類ごとに定義順で返す
  * 3. findHabitatSlot がキーから枠を探し、ないキーは undefined
  * 4. resolveHabitatSlotSrc の優先順（保存した URL → localSrc → null）
@@ -12,6 +13,7 @@ import {
   HABITAT_MOTION_GROUP_ORDER,
   HABITAT_MOTION_PREFIX,
   HABITAT_MOTION_SLOTS,
+  HABITAT_SIGN_SRC,
   findHabitatSlot,
   habitatSlotsByGroup,
   resolveHabitatSlotSrc,
@@ -24,15 +26,25 @@ const NO_LOCAL: HabitatMotionSlot = { key: 'habitat-object-02', group: 'object',
 const WITH_LOCAL: HabitatMotionSlot = { key: 'habitat-hero-01', group: 'hero', label: 'x', note: '', localSrc: '/img/local.jpg' }
 
 describe('HABITAT_MOTION_SLOTS', () => {
-  it('枠の一覧は12個で、キーはすべて habitat- で始まり重ならない', () => {
+  it('枠の一覧は11個で、キーはすべて habitat- で始まり重ならない', () => {
     const keys = HABITAT_MOTION_SLOTS.map(({ key }) => key)
-    expect(keys).toHaveLength(12)
-    expect(new Set(keys).size).toBe(12)
+    expect(keys).toHaveLength(11)
+    expect(new Set(keys).size).toBe(11)
     expect(keys.every((key) => key.startsWith(HABITAT_MOTION_PREFIX))).toBe(true)
   })
 
-  it('種類の表示順は hero → sign → object になる', () => {
-    expect(HABITAT_MOTION_GROUP_ORDER).toEqual(['hero', 'sign', 'object'])
+  it('サインの habitat-sign は枠の一覧に入らない', () => {
+    expect(HABITAT_MOTION_SLOTS.map(({ key }) => key)).not.toContain('habitat-sign')
+  })
+
+  it('種類の表示順は hero → object の2つになる', () => {
+    expect(HABITAT_MOTION_GROUP_ORDER).toEqual(['hero', 'object'])
+  })
+})
+
+describe('HABITAT_SIGN_SRC', () => {
+  it('サインの画像はプロジェクト内の /img/habitatOides/motion/sign/sign.svg を指す', () => {
+    expect(HABITAT_SIGN_SRC).toBe('/img/habitatOides/motion/sign/sign.svg')
   })
 })
 
@@ -41,10 +53,6 @@ describe('habitatSlotsByGroup', () => {
     expect(habitatSlotsByGroup('hero').map(({ key }) => key)).toEqual([
       'habitat-hero-01', 'habitat-hero-02', 'habitat-hero-03', 'habitat-hero-04', 'habitat-hero-05',
     ])
-  })
-
-  it('sign を指定すると habitat-sign の1件だけが返る', () => {
-    expect(habitatSlotsByGroup('sign').map(({ key }) => key)).toEqual(['habitat-sign'])
   })
 
   it('object を指定すると habitat-object-01〜06 が定義順で返る', () => {
@@ -56,11 +64,12 @@ describe('habitatSlotsByGroup', () => {
 
 describe('findHabitatSlot', () => {
   it('定義にあるキーを渡すとその枠が返る', () => {
-    expect(findHabitatSlot('habitat-sign')?.group).toBe('sign')
+    expect(findHabitatSlot('habitat-object-03')?.group).toBe('object')
   })
 
-  it('定義にないキーを渡すと undefined になる', () => {
+  it('定義にないキー（habitat-object-07）や、枠から外したサインのキー（habitat-sign）を渡すと undefined になる', () => {
     expect(findHabitatSlot('habitat-object-07')).toBeUndefined()
+    expect(findHabitatSlot('habitat-sign')).toBeUndefined()
   })
 })
 

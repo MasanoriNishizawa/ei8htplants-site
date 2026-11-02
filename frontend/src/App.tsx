@@ -221,7 +221,7 @@ export default function App() {
             <Route path="pot-artists" element={<AdminPotArtists />} />
             <Route path="media" element={<AdminMedia />} />
             <Route path="site-images" element={<AdminSiteImages />} />
-            {/* Habitat Oides トップページの動く画像（一番上の画像・サイン・動くオブジェクト） */}
+            {/* Habitat Oides トップページの動く画像（一番上の画像・動くオブジェクト） */}
             <Route path="habitat-images" element={<AdminHabitatImages />} />
             {/* ページ画像の編集（3ブランドのトップページを見ながら画像を差し替える）。ブランドを指定しなければ ei8ht plants を開く */}
             <Route path="page-editor" element={<Navigate to="/admin/page-editor/ei8htplants" replace />} />

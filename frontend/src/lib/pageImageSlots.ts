@@ -3,7 +3,7 @@
  *
  * 管理画面「ページ画像の編集」（/admin/page-editor/:brand）と、公開ページの表示の両方がこの一覧を使う。
  * - ei8ht plants   : ei8ht-hero・ei8ht-wordmark（GET /api/site-assets?prefix=ei8ht- でまとめて取得）
- * - Habitat Oides  : habitat-hero-01〜05・habitat-sign・habitat-object-01〜06（habitatMotionSlots.ts の12枠をそのまま使う）
+ * - Habitat Oides  : habitat-hero-01〜05・habitat-object-01〜06（habitatMotionSlots.ts の11枠をそのまま使う。右下のサインは差し替えの対象外）
  * - HUE            : hue-color-01〜06（prefix=hue-color- で取ると hue-color-study も返るが、この一覧にないので使わない）
  *
  * 表示する画像は、次の優先順で決める（resolvePageImageSrc）。

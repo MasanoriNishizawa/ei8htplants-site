@@ -459,7 +459,7 @@ describe('api.siteAssets', () => {
 
   it('api.siteAssets.list(prefix) が prefix をエンコードして一括取得の GET を送り配列を返す', async () => {
     // 1. 一括取得の応答（キーと URL の配列）を返すモックにする
-    const response = [{ key: 'habitat-hero-01', url: '/a.jpg' }, { key: 'habitat-sign', url: '' }]
+    const response = [{ key: 'habitat-hero-01', url: '/a.jpg' }, { key: 'habitat-object-01', url: '' }]
     mockFetch = makeMockFetch(response)
     vi.stubGlobal('fetch', mockFetch)
 

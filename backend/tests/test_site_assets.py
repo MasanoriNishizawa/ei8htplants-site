@@ -1,8 +1,9 @@
 """
 サイト画像 API（/api/site-assets）のテスト。
 
-Habitat Oides トップページの動きのある画像（habitat-hero-01〜05・habitat-sign・
-habitat-object-01〜06）の1件取得・保存・一括取得と、ei8ht plants トップページの画像
+Habitat Oides トップページの動きのある画像（habitat-hero-01〜05・
+habitat-object-01〜06 の11個）の1件取得・保存・一括取得と、管理画面から変えなくなった
+サイン画像のキー（habitat-sign）が許可されない（404）ことと、ei8ht plants トップページの画像
 （ei8ht-hero・ei8ht-wordmark）と HUE の色見本画像（hue-color-*）の一括取得を確認する。
 Supabase クライアントはモックに差し替え、本番 DB には接続しない。
 """
@@ -15,7 +16,8 @@ from app.routes.site_assets import EDITABLE_KEYS, EI8HT_HOME_KEYS, HABITAT_MOTIO
 
 from tests._helpers import as_admin
 
-# 変数の内容: HABITAT_KEYS_SORTED: 一括取得で返るはずの habitat 系キー12個（キー名の昇順）。
+# 変数の内容: HABITAT_KEYS_SORTED: 一括取得で返るはずの habitat 系キー11個（キー名の昇順）。
+#   サイン画像（habitat-sign）はプロジェクト内のファイルで表示するため含まない。
 HABITAT_KEYS_SORTED = [
     'habitat-hero-01',
     'habitat-hero-02',
@@ -28,7 +30,6 @@ HABITAT_KEYS_SORTED = [
     'habitat-object-04',
     'habitat-object-05',
     'habitat-object-06',
-    'habitat-sign',
 ]
 
 # 変数の内容: EI8HT_KEYS_SORTED: 一括取得で返るはずの ei8ht plants トップページのキー2個（キー名の昇順）。
@@ -97,11 +98,15 @@ def _make_in_mock(rows: list) -> MagicMock:
 class TestHabitatKeys:
     """habitat 系キーの許可一覧を確認する。"""
 
-    def test_habitatの12キーが許可一覧に入りhue系も残る(self):
-        """habitat 系12キーが追加され、既存の hue 系キーも許可されたままであること。"""
-        # 1. habitat 系の定数が仕様どおりの12個であることを確認する。
+    def test_habitatの11キーが許可一覧に入りhue系も残る(self):
+        """habitat 系11キーが許可され、habitat-sign は含まれず、既存の hue 系キーも許可されたままであること。"""
+        # 1. habitat 系の定数が仕様どおりの11個であることを確認する。
         assert sorted(HABITAT_MOTION_KEYS) == HABITAT_KEYS_SORTED
-        # 2. 許可一覧に habitat 系と既存の hue 系の両方が含まれることを確認する。
+        assert len(HABITAT_MOTION_KEYS) == 11
+        # 2. サイン画像のキーは habitat 系にも許可一覧にも入っていないことを確認する。
+        assert 'habitat-sign' not in HABITAT_MOTION_KEYS
+        assert 'habitat-sign' not in EDITABLE_KEYS
+        # 3. 許可一覧に habitat 系と既存の hue 系の両方が含まれることを確認する。
         assert HABITAT_MOTION_KEYS <= EDITABLE_KEYS
         assert 'hue-color-study' in EDITABLE_KEYS
         assert 'hue-color-01' in EDITABLE_KEYS
@@ -126,14 +131,14 @@ class TestGetSiteAsset:
 
     def test_habitatのキーで保存済みの画像URLを取得できる(self):
         """登録済みの habitat キーは DB の行をそのまま返すこと。"""
-        # 1. DB に看板画像の行がある状態にする。
-        mock_sb = _make_single_mock([{'key': 'habitat-sign', 'url': 'https://example.com/sign.png'}])
+        # 1. DB にスライダー画像の行がある状態にする。
+        mock_sb = _make_single_mock([{'key': 'habitat-hero-03', 'url': 'https://example.com/hero3.jpg'}])
         with patch('app.routes.site_assets.supabase', mock_sb):
             # 変数の内容: resp: API から返されたレスポンス。
-            resp = TestClient(app).get('/api/site-assets/habitat-sign')
+            resp = TestClient(app).get('/api/site-assets/habitat-hero-03')
         # 2. 200 で保存済みの URL が返ることを確認する。
         assert resp.status_code == 200
-        assert resp.json() == {'key': 'habitat-sign', 'url': 'https://example.com/sign.png'}
+        assert resp.json() == {'key': 'habitat-hero-03', 'url': 'https://example.com/hero3.jpg'}
 
     def test_habitatのキーで未登録なら空URLを返す(self):
         """DB に行がない habitat キーは url を '' にして返すこと。"""
@@ -151,6 +156,17 @@ class TestGetSiteAsset:
         mock_sb = _make_single_mock([])
         with patch('app.routes.site_assets.supabase', mock_sb):
             resp = TestClient(app).get('/api/site-assets/habitat-hero-06')
+        # 2. 404 になり、DB を読んでいないことを確認する。
+        assert resp.status_code == 404
+        assert resp.json()['detail'] == 'Site asset not found'
+        mock_sb.table.assert_not_called()
+
+    def test_habitat_signの取得は404(self):
+        """サイン画像は管理画面から変えなくなったため、habitat-sign は DB を読まずに 404 を返すこと。"""
+        # 1. DB に古いサイン画像の行が残っている状態でも、許可外キーとして扱われるようにする。
+        mock_sb = _make_single_mock([{'key': 'habitat-sign', 'url': 'https://example.com/sign.png'}])
+        with patch('app.routes.site_assets.supabase', mock_sb):
+            resp = TestClient(app).get('/api/site-assets/habitat-sign')
         # 2. 404 になり、DB を読んでいないことを確認する。
         assert resp.status_code == 404
         assert resp.json()['detail'] == 'Site asset not found'
@@ -183,8 +199,8 @@ class TestSaveSiteAsset:
         mock_admin = _make_upsert_mock([])
         with patch('app.routes.site_assets.admin_supabase', mock_admin):
             resp = TestClient(app).put(
-                '/api/site-assets/habitat-sign',
-                json={'url': 'https://example.com/sign.png'},
+                '/api/site-assets/habitat-object-01',
+                json={'url': 'https://example.com/obj1.png'},
             )
         # 2. 認証エラーになり、upsert を呼んでいないことを確認する。
         assert resp.status_code in (401, 403)
@@ -203,35 +219,50 @@ class TestSaveSiteAsset:
         assert resp.status_code == 404
         mock_admin.table.assert_not_called()
 
+    def test_habitat_signの保存は404(self):
+        """管理者でも habitat-sign は許可外キーとして 404 を返し、DB に書き込まないこと。"""
+        # 1. 管理者としてサイン画像のキーに保存する。
+        mock_admin = _make_upsert_mock([])
+        with patch('app.routes.site_assets.admin_supabase', mock_admin), as_admin():
+            resp = TestClient(app).put(
+                '/api/site-assets/habitat-sign',
+                json={'url': 'https://example.com/sign.png'},
+            )
+        # 2. 404 になり、DB を触っていないことを確認する。
+        assert resp.status_code == 404
+        assert resp.json()['detail'] == 'Site asset not found'
+        mock_admin.table.assert_not_called()
+
 
 class TestListSiteAssets:
     """一括取得 GET /api/site-assets?prefix=... を確認する。"""
 
-    def test_habitatのprefixで12件が昇順に返りDBにない行は空URLになる(self):
-        """登録済みの行は URL を、未登録のキーは '' を入れて12件をキー名の昇順で返すこと。"""
+    def test_habitatのprefixで11件が昇順に返りDBにない行は空URLになる(self):
+        """登録済みの行は URL を、未登録のキーは '' を入れて11件をキー名の昇順で返し、habitat-sign は含めないこと。"""
         # 1. DB には2件だけ行がある状態にする（返る順番は順不同にしておく）。
         mock_sb = _make_in_mock([
-            {'key': 'habitat-sign', 'url': 'https://example.com/sign.png'},
+            {'key': 'habitat-object-04', 'url': 'https://example.com/obj4.png'},
             {'key': 'habitat-hero-02', 'url': 'https://example.com/hero2.jpg'},
         ])
         with patch('app.routes.site_assets.supabase', mock_sb):
             resp = TestClient(app).get('/api/site-assets', params={'prefix': 'habitat-'})
 
-        # 2. 12件がキー名の昇順で返ることを確認する。
+        # 2. 11件がキー名の昇順で返り、habitat-sign が含まれないことを確認する。
         assert resp.status_code == 200
         # 変数の内容: body: 一括取得の応答本文（key と url の辞書の一覧）。
         body = resp.json()
         assert [item['key'] for item in body] == HABITAT_KEYS_SORTED
+        assert 'habitat-sign' not in [item['key'] for item in body]
 
         # 3. 登録済みの行は URL、未登録のキーは '' になることを確認する。
         # 変数の内容: url_by_key: 応答のキーから URL を引く辞書。
         url_by_key = {item['key']: item['url'] for item in body}
-        assert url_by_key['habitat-sign'] == 'https://example.com/sign.png'
+        assert url_by_key['habitat-object-04'] == 'https://example.com/obj4.png'
         assert url_by_key['habitat-hero-02'] == 'https://example.com/hero2.jpg'
         assert url_by_key['habitat-hero-01'] == ''
         assert url_by_key['habitat-object-06'] == ''
 
-        # 4. DB の読み取りは in_ を使った1回のクエリで、対象12キーを渡していることを確認する。
+        # 4. DB の読み取りは in_ を使った1回のクエリで、対象11キーを渡していることを確認する。
         mock_sb.table.assert_called_once_with('site_assets')
         mock_sb.table.return_value.select.return_value.in_.assert_called_once_with(
             'key', HABITAT_KEYS_SORTED

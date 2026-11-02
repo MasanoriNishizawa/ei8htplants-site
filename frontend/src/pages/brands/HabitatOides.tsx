@@ -52,8 +52,8 @@ export default function HabitatOides() {
     <div className="habitat-home" data-splash={splashPhase}>
       {/* 最初の演出（白い全画面にロゴ。終わったら消える） */}
       <HabitatSplash phase={splashPhase} />
-      {/* 右下に固定するブランドのサイン（画像がなければ出さない。編集モードでは空の枠を出す） */}
-      <HabitatBrandSign src={resolve('habitat-sign')} />
+      {/* 右下に固定するブランドのサイン（プロジェクト内の sign.svg だけで出す。ファイルがなければ何も出さない。編集モードでも枠は出さない） */}
+      <HabitatBrandSign />
 
       <PageMeta
         title="Habitat Oides"

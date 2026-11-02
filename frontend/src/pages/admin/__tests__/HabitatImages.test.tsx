@@ -2,7 +2,7 @@
  * 管理画面「Habitat Oides 画像」（/admin/habitat-images、HabitatImages.tsx）のテスト
  *
  * 確かめること:
- * 1. 12枠を3つのグループ（一番上の画像 5・サイン 1・動くオブジェクト 6）に分けて並べる
+ * 1. 11枠を2つのグループ（一番上の画像 5・動くオブジェクト 6）に分けて並べる。サインの枠は出さない
  * 2. 保存済みの画像はプレビューを出し、未設定の枠は「未設定」と、何が表示されるかを出す
  * 3. 画像を選ぶ（アップロード）・保存・外す・取り消すができる
  * 4. 保存していない変更があると、ページを離れるとき（beforeunload）に止める
@@ -74,28 +74,29 @@ describe('HabitatImages（Habitat Oides 画像の管理画面）', () => {
     vi.mocked(api.upload).mockReset()
     vi.mocked(api.siteAssets.list).mockResolvedValue([
       { key: 'habitat-hero-01', url: '/saved-hero1.jpg' },
-      { key: 'habitat-sign', url: '' },
+      { key: 'habitat-object-02', url: '' },
     ])
     vi.mocked(api.upload).mockResolvedValue('/uploaded.png')
     vi.mocked(api.siteAssets.save).mockImplementation(async (key, url) => ({ key, url }))
   })
 
-  it('habitat- の prefix で一括取得し、3つのグループに 5・1・6 枠を並べる', async () => {
+  it('habitat- の prefix で一括取得し、2つのグループに 5・6 枠を並べ、サインの枠は出さない', async () => {
     await renderLoaded()
     expect(api.siteAssets.list).toHaveBeenCalledWith('habitat-')
     expect(screen.getByRole('heading', { level: 2, name: '一番上の画像' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'サイン' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 2, name: 'サイン' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('habitat-image-group-sign')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('habitat-image-card-habitat-sign')).not.toBeInTheDocument()
+    expect(screen.getAllByTestId(/^habitat-image-card-/)).toHaveLength(11)
     expect(screen.getByRole('heading', { level: 2, name: '動くオブジェクト' })).toBeInTheDocument()
     const count = (group: string) => within(screen.getByTestId(`habitat-image-group-${group}`)).getAllByTestId(/^habitat-image-card-/).length
     expect(count('hero')).toBe(5)
-    expect(count('sign')).toBe(1)
     expect(count('object')).toBe(6)
   })
 
   it('保存済みの枠はプレビューを出し、未設定の枠は「未設定」と表示される内容を出す', async () => {
     await renderLoaded()
     expect(within(card('habitat-hero-01')).getByRole('img', { name: '一番上の画像 01 のプレビュー' })).toHaveAttribute('src', '/saved-hero1.jpg')
-    expect(within(card('habitat-sign')).getByTestId('habitat-image-empty-habitat-sign')).toHaveTextContent('サインは表示しません')
     expect(within(card('habitat-object-02')).getByTestId('habitat-image-empty-habitat-object-02')).toHaveTextContent('空の枠を表示中')
   })
 

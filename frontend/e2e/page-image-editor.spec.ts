@@ -45,7 +45,7 @@ test.describe('ページ画像の編集', () => {
   })
 
   test('E2E-AF-02: Habitat Oides のタブで空の枠に画像を入れて保存し、プレビューのリンクを押しても移動しない', /**
-     * Habitat Oides のタブに切り替え、枠の一覧から object-02 を選んで画像をアップロードし、プレビューの空の枠が画像に
+     * Habitat Oides のタブに切り替え、枠の一覧が11枠でサインを含まないことを確かめてから、object-02 を選んで画像をアップロードし、プレビューの空の枠が画像に
      * 変わることと保存できることを確かめる。プレビューのリンクを押しても iframe の中の URL が変わらないことも確かめる。
      * @param page 操作・検証対象の Playwright ページ
      * @returns {Promise<void>} すべての確認が終わったら解決する
@@ -57,6 +57,11 @@ test.describe('ページ画像の編集', () => {
     await expect(page).toHaveURL(/\/admin\/page-editor\/habitat-oides$/)
     const preview = page.frameLocator('[data-testid="page-editor-frame"]')
     await expect(preview.getByTestId('habitat-placeholder-habitat-object-02')).toHaveCount(1)
+    // 1-2. 枠の一覧は11枠（一番上の画像 5・動くオブジェクト 6）で、サインは差し替えの対象に入らない
+    await expect(page.locator('[data-testid^="page-editor-slot-habitat-"]')).toHaveCount(11)
+    await expect(page.getByTestId('page-editor-slot-habitat-sign')).toHaveCount(0)
+    // プレビューのサインにも差し替えの枠（「〜を変更」のボタン）は付かない
+    await expect(preview.getByTestId('editable-slot-habitat-sign')).toHaveCount(0)
 
     // 2. 枠の一覧から選び、画像をアップロードするとプレビューの空の枠が画像になる
     await page.getByTestId('page-editor-slot-habitat-object-02').click()

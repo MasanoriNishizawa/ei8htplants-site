@@ -59,7 +59,7 @@ const hueColorStudyImages = Array(6).fill('') as string[]
 const hueExtraImages: Record<string, string> = { 'hue-color-study': '' }
 
 /**
- * Habitat Oides トップページの動く画像（habitat-hero-01〜05・habitat-sign・habitat-object-01〜06）の URL。キー → URL
+ * Habitat Oides トップページの動く画像（habitat-hero-01〜05・habitat-object-01〜06 の11枠）の URL。キー → URL。右下のサインはプロジェクト内のファイルだけで出すので、ここには持たない
  * placeholder（空の枠）の表示を確かめられるよう、初期値は hero-01 と object-01 だけに /img 以下の既存画像を入れ、ほかは ''（未設定）にする。
  * HUE と同じくブラウザのメモリだけに持つ
  */
@@ -87,7 +87,7 @@ function mockSiteAssetUrl(key: string): string | undefined {
   if (hueIndex) return hueColorStudyImages[Number(hueIndex) - 1]
   // 1-2. HUE の hue-color-study はキーの辞書から読む
   if (key in hueExtraImages) return hueExtraImages[key]
-  // 2. Habitat Oides の12枠はキーの辞書から読む
+  // 2. Habitat Oides の11枠はキーの辞書から読む
   if (key in habitatMotionImages) return habitatMotionImages[key]
   // 3. ei8ht plants の2枠もキーの辞書から読む
   if (key in ei8htPageImages) return ei8htPageImages[key]
@@ -832,7 +832,7 @@ export const handlers = [
   http.get('/api/site-assets', ({ request }) => {
     // キーの頭の文字列（例: 'habitat-'）
     const prefix = new URL(request.url).searchParams.get('prefix') ?? ''
-    // モックで扱う全キー（HUE の6枠と hue-color-study + Habitat Oides の12枠 + ei8ht plants の2枠）
+    // モックで扱う全キー（HUE の6枠と hue-color-study + Habitat Oides の11枠 + ei8ht plants の2枠）
     const allKeys = [
       ...Array.from({ length: 6 }, (_, index) => `hue-color-${String(index + 1).padStart(2, '0')}`),
       ...Object.keys(hueExtraImages),
@@ -845,7 +845,7 @@ export const handlers = [
     return HttpResponse.json(keys.map((key) => ({ key, url: mockSiteAssetUrl(key) ?? '' })))
   }),
 
-  // サイト画像の1件取得（HUE の6枚の写真・Habitat Oides の動く画像の12枠・ei8ht plants の2枠）
+  // サイト画像の1件取得（HUE の6枚の写真・Habitat Oides の動く画像の11枠・ei8ht plants の2枠）
   http.get('/api/site-assets/:key', ({ params }) => {
     // 保存済み URL（モックにないキーなら undefined）
     const url = mockSiteAssetUrl(String(params.key))

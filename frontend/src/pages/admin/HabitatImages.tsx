@@ -39,9 +39,9 @@ const noteStyle: React.CSSProperties = {
 }
 
 /**
- * Habitat Oides のトップページで動く画像（一番上の画像5枚・サイン・動くオブジェクト6つ）を、
+ * Habitat Oides のトップページで動く画像（一番上の画像5枚・動くオブジェクト6つ）を、
  * 枠ごとにアップロード・保存・外す管理ページ（/admin/habitat-images）。
- * 1. GET /api/site-assets?prefix=habitat- で12枠の保存済み URL を読み込む（失敗したら保存できないようにする）
+ * 1. GET /api/site-assets?prefix=habitat- で11枠の保存済み URL を読み込む（失敗したら保存できないようにする）
  * 2. 画像を選ぶと /api/upload に送り、返った URL を編集中の値にする
  * 3. 「画像を保存」で PUT /api/site-assets/{key} に保存する（外すときは url を '' で保存）
  * 4. 保存していない変更があれば、ページを離れるときに確認を出す
@@ -61,7 +61,7 @@ export default function HabitatImages() {
   useEffect(() => {
     // 画面を離れたあとに応答が届いて state を更新しないための有効フラグ
     let active = true
-    // 1. 12枠の保存済み URL をまとめて取得する
+    // 1. 11枠の保存済み URL をまとめて取得する
     api.siteAssets.list(HABITAT_MOTION_PREFIX).then((assets) => {
       if (!active) return
       // 2. 取得した URL を保存済み・編集中の両方へ反映する（応答にない枠は未設定のまま）
@@ -181,9 +181,7 @@ export default function HabitatImages() {
             <span>
               {slot.localSrc
                 ? `プロジェクト内の画像（${slot.localSrc}）を表示中`
-                : slot.group === 'sign'
-                  ? 'プロジェクト内の画像もないため、サインは表示しません'
-                  : 'プロジェクト内の画像もないため、空の枠を表示中'}
+                : 'プロジェクト内の画像もないため、空の枠を表示中'}
             </span>
           </div>
         )}

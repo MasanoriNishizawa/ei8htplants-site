@@ -433,7 +433,6 @@ function PageEditorBrand({ brand, viewport, onViewportChange }: PageEditorBrandP
         {selectedSlot && (
           <SlotPanel
             slot={selectedSlot}
-            brand={brand}
             draftUrl={draftUrls[selectedSlot.key] ?? ''}
             savedUrl={savedUrls[selectedSlot.key] ?? ''}
             error={slotErrors[selectedSlot.key] ?? ''}
@@ -454,8 +453,6 @@ function PageEditorBrand({ brand, viewport, onViewportChange }: PageEditorBrandP
 interface SlotPanelProps {
   /** 選んでいる枠 */
   slot: PageImageSlot
-  /** 編集しているブランド（サインの説明の出し分けに使う） */
-  brand: PageImageBrand
   /** 草稿の URL（'' なら未設定・外した） */
   draftUrl: string
   /** 保存済みの URL（'' なら未設定） */
@@ -484,7 +481,7 @@ interface SlotPanelProps {
  * @param props - パネルの引数（SlotPanelProps）
  * @returns パネルの要素
  */
-function SlotPanel({ slot, brand, draftUrl, savedUrl, error, uploading, locked, onChooseImage, onRemove, onRevert, onClose }: SlotPanelProps) {
+function SlotPanel({ slot, draftUrl, savedUrl, error, uploading, locked, onChooseImage, onRemove, onRevert, onClose }: SlotPanelProps) {
   // 保存していない変更があるか
   const changed = draftUrl !== savedUrl
   // 今プレビューに出ている画像（草稿 → プロジェクト内の画像 → なし）
@@ -496,9 +493,7 @@ function SlotPanel({ slot, brand, draftUrl, savedUrl, error, uploading, locked, 
   // 画像を外したときに何が出るかの説明
   const removeNote = slot.localSrc
     ? `外すと、プロジェクト内の画像（${slot.localSrc}）が表示されます。`
-    : brand === 'habitat-oides' && slot.key === 'habitat-sign'
-      ? '外すと、サインは表示されなくなります。'
-      : '外すと、画像のない状態（空の枠）になります。'
+    : '外すと、画像のない状態（空の枠）になります。'
   // 今の画像の出どころの説明
   const sourceNote = draftUrl
     ? '管理画面で設定した画像'

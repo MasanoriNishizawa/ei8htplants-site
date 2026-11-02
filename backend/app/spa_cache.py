@@ -54,7 +54,14 @@ def resolve_cache_control_headers(
             'CDN-Cache-Control': 'no-store',
         }
 
-    # 3. 配信アセットと画像は長期キャッシュし、それ以外の SPA 応答は HTML 用の値にする。
+    # 3. 配信アセットと画像は、見つかった応答だけ長期キャッシュする。
+    #    置いていないファイルの 404 まで長期キャッシュすると、あとでファイルを置いても
+    #    （例: Habitat Oides のサイン sign.svg）ブラウザや CDN で「無い」状態が続くため、保存させない。
     if path.startswith(('/assets/', '/img/', '/favicon/')):
+        if status_code >= 400:
+            return {
+                'Cache-Control': 'no-store',
+                'CDN-Cache-Control': 'no-store',
+            }
         return {'Cache-Control': _STATIC_CACHE}
     return {'Cache-Control': _HTML_CACHE}

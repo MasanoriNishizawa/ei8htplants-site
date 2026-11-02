@@ -126,7 +126,7 @@ async def cache_control(request: Request, call_next) -> Response:
     """応答の種類に応じた Cache-Control ヘッダーを付ける。
 
     1. API: ログインなしの GET で成功したものだけ公開キャッシュ。空き状況・エラー・書き込み・管理者の GET は no-store
-    2. 静的ファイル（/assets・/img・/favicon）: 長期キャッシュ
+    2. 静的ファイル（/assets・/img・/favicon）: 長期キャッシュ（400 以上の応答は no-store）
     3. それ以外（HTML）: 毎回確認
 
     Args:

@@ -97,11 +97,12 @@ describe('MSW に無い API', () => {
 })
 
 describe('MSW のサイト画像（一括取得・habitat- と ei8ht- のキー）', () => {
-  it('prefix=habitat- は12件をキーの昇順で返し、初期値は hero-01 と object-01 だけ URL がある', async () => {
+  it('prefix=habitat- は11件をキーの昇順で返し、初期値は hero-01 と object-01 だけ URL がある', async () => {
     const { status, body } = await call('/api/site-assets?prefix=habitat-')
     expect(status).toBe(200)
     const list = body as { key: string; url: string }[]
-    expect(list).toHaveLength(12)
+    expect(list).toHaveLength(11)
+    expect(list.map(({ key }) => key)).not.toContain('habitat-sign')
     expect(list.map(({ key }) => key)).toEqual([...list.map(({ key }) => key)].sort())
     expect(list.filter(({ url }) => url).map(({ key }) => key)).toEqual(['habitat-hero-01', 'habitat-object-01'])
   })
@@ -124,8 +125,9 @@ describe('MSW のサイト画像（一括取得・habitat- と ei8ht- のキー�
     expect((await call('/api/site-assets')).status).toBe(404)
   })
 
-  it('habitat- と ei8ht- のキーは1件ずつ取得でき、知らないキーは 404', async () => {
-    expect((await call('/api/site-assets/habitat-sign')).body).toEqual({ key: 'habitat-sign', url: '' })
+  it('habitat- と ei8ht- のキーは1件ずつ取得でき、知らないキーと枠から外したサインの habitat-sign は 404', async () => {
+    expect((await call('/api/site-assets/habitat-object-02')).body).toEqual({ key: 'habitat-object-02', url: '' })
+    expect((await call('/api/site-assets/habitat-sign')).status).toBe(404)
     expect((await call('/api/site-assets/ei8ht-hero')).body).toEqual({ key: 'ei8ht-hero', url: '' })
     expect((await call('/api/site-assets/habitat-object-07')).status).toBe(404)
   })
@@ -140,5 +142,7 @@ describe('MSW のサイト画像（一括取得・habitat- と ei8ht- のキー�
     await call('/api/site-assets/ei8ht-wordmark', { method: 'PUT', body: JSON.stringify({ url: '' }) })
     // 2. 知らないキー
     expect((await call('/api/site-assets/habitat-unknown', { method: 'PUT', body: JSON.stringify({ url: '/x.png' }) })).status).toBe(404)
+    // 3. 枠から外したサインのキーも保存できない
+    expect((await call('/api/site-assets/habitat-sign', { method: 'PUT', body: JSON.stringify({ url: '/x.png' }) })).status).toBe(404)
   })
 })

@@ -2,6 +2,29 @@ import { test, expect, type Page } from '@playwright/test'
 
 // Habitat Oides のトップページ（/habitatoides）の動きの演出と、スマホ幅の横スクロールを確かめる。
 // API は MSW のモック（habitat-hero-01 と habitat-object-01 だけ URL あり）で受ける。
+// 右下のサインは管理画面で差し替えず、プロジェクト内の sign.svg（HABITAT_SIGN_SRC）だけで出すので、
+// サインの画像の応答はテストごとに route で決める（ファイルの有無に左右されないようにする）。
+
+/** サインの画像の公開パス（frontend/src/lib/habitatMotionSlots.ts の HABITAT_SIGN_SRC と同じ） */
+const SIGN_PATH = '/img/habitatOides/motion/sign/sign.svg'
+
+/** サインの画像があるときに返す、テスト用の小さな SVG */
+const SIGN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80" viewBox="0 0 200 80"><rect width="200" height="80" fill="#333"/></svg>'
+
+/**
+ * サインの画像（sign.svg）への応答を決める。
+ * @param page 操作対象の Playwright ページ
+ * @param exists true ならテスト用の SVG を返し、false なら 404 を返す（ファイルがないときと同じ）
+ * @returns {Promise<void>} 設定が終わったら解決する
+ */
+async function routeSign(page: Page, exists: boolean) {
+  // MSW の Service Worker を通る取得も受けられるよう、ブラウザのコンテキスト単位で受ける
+  await page.context().route(`**${SIGN_PATH}`, (route) => (
+    exists
+      ? route.fulfill({ status: 200, contentType: 'image/svg+xml', body: SIGN_SVG })
+      : route.fulfill({ status: 404, contentType: 'text/plain', body: 'not found' })
+  ))
+}
 
 /** スプラッシュを出したことを記録する sessionStorage のキー */
 const SPLASH_KEY = 'habitat-oides-splash-shown'
@@ -16,21 +39,22 @@ async function skipSplash(page: Page) {
 }
 
 test.describe('Habitat Oides のトップページの動き', () => {
-  test('E2E-AE-01: 一番上の画像・空の枠・サインなし・縦書き見出しが出る（MSW の初期値）', /**
+  test('E2E-AE-01: 一番上の画像・空の枠・縦書き見出しが出て、sign.svg の読み込みに失敗するとサインは出ない（MSW の初期値）', /**
      * スプラッシュを止めて /habitatoides を開き、保存した hero-01 が1枚だけ出て番号がないこと、
-     * 画像のないオブジェクトに空の枠、画像のある object-01 に画像が出て、サインは出ないことを確かめる。
+     * 画像のないオブジェクトに空の枠、画像のある object-01 に画像が出て、sign.svg が 404 のときはサインが出ないことを確かめる。
      * @param page 操作・検証対象の Playwright ページ
      * @returns {Promise<void>} すべての確認が終わったら解決する
      */
     async ({ page }) => {
     await skipSplash(page)
+    await routeSign(page, false)
     await page.goto('/habitatoides')
     await expect(page.locator('.habitat-hero h1')).toBeVisible()
     // 1. 一番上の画像は MSW で保存した URL（localSrc より優先）。1枚なので番号と前後のボタンは出ない
     await expect(page.getByTestId('habitat-hero-slide-habitat-hero-01')).toHaveAttribute('src', '/img/habitatOides/habitat_oides_workshop_main.jpg')
     await expect(page.getByTestId('habitat-hero-slides')).toHaveAttribute('data-autoplay', 'false')
     await expect(page.getByTestId('habitat-hero-controls')).toHaveCount(0)
-    // 2. サインは画像がないので出さない
+    // 2. サインの画像（sign.svg）の読み込みに失敗したので、サインの要素ごと出さない
     await expect(page.getByTestId('habitat-brand-sign')).toHaveCount(0)
     // 3. object-01 は画像、02〜05 は空の枠（06 はスマホ幅だけなので数えない）
     await expect(page.getByTestId('habitat-floating-item-habitat-object-01').locator('img')).toHaveAttribute('src', '/img/logo-habitatoides.png')
@@ -102,20 +126,21 @@ test.describe('Habitat Oides のトップページの動き', () => {
     }
   })
   test('E2E-AE-05: 公式ドメインの /habitatoides では、スライダーの操作とサインがチャットボタンより上にあり重ならない', /**
-     * MSW に hero-02 とサインを保存してから画面の中で開き直し、PC 幅とスマホ幅で、操作部分とサインの下端が
+     * sign.svg を返すようにし、MSW に hero-02 を保存してから画面の中で開き直し、PC 幅とスマホ幅で、操作部分とサインの下端が
      * チャットボタン（.chat-fab）の上端より上にあることと、3秒で自動で切り替わることを確かめる。
      * @param page 操作・検証対象の Playwright ページ
      * @returns {Promise<void>} すべての確認が終わったら解決する
      */
     async ({ page }) => {
     await skipSplash(page)
+    await routeSign(page, true)
     await page.goto('/habitatoides')
     await expect(page.locator('.habitat-hero h1')).toBeVisible()
-    // 1. MSW（ブラウザのメモリ）に 2 枚目の画像とサインを保存し、画面の中の移動で開き直して取り直させる
+    // 0. サインはプロジェクト内の sign.svg で出る（管理画面の保存値は使わない）
+    await expect(page.getByTestId('habitat-brand-sign').locator('img')).toHaveAttribute('src', SIGN_PATH)
+    // 1. MSW（ブラウザのメモリ）に 2 枚目の画像を保存し、画面の中の移動で開き直して取り直させる
     await page.evaluate(async () => {
-      for (const [key, url] of [['habitat-hero-02', '/img/habitatOides/habitat_oides_hero.jpg'], ['habitat-sign', '/img/logo-habitatoides.png']]) {
-        await fetch(`/api/site-assets/${key}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
-      }
+      await fetch('/api/site-assets/habitat-hero-02', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: '/img/habitatOides/habitat_oides_hero.jpg' }) })
       window.history.pushState({}, '', '/official')
       window.dispatchEvent(new PopStateEvent('popstate'))
     })
@@ -135,7 +160,9 @@ test.describe('Habitat Oides のトップページの動き', () => {
       await page.setViewportSize(size)
       await page.evaluate(() => window.scrollTo(0, 0))
       const fab = await page.locator('.chat-fab').boundingBox()
-      const sign = await page.getByTestId('habitat-brand-sign').boundingBox()
+      const signBox = page.getByTestId('habitat-brand-sign')
+      await expect(signBox).toBeVisible()
+      const sign = await signBox.boundingBox()
       const box = await controls.boundingBox()
       expect(fab).not.toBeNull()
       expect(sign).not.toBeNull()

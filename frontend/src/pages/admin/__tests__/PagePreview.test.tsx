@@ -139,7 +139,7 @@ describe('PagePreview（ページ画像の編集のプレビュー）', () => {
     postFromParent(stateMessage({ selectedKey: 'ei8ht-hero' }))
     expect(screen.getByRole('button', { name: 'メインの写真を変更' })).toHaveAttribute('aria-pressed', 'true')
     // ほかのブランドの枠のキー・定義にないキーは無視して、選んでいない状態にする
-    postFromParent(stateMessage({ selectedKey: 'habitat-sign' }))
+    postFromParent(stateMessage({ selectedKey: 'habitat-object-01' }))
     expect(screen.getByRole('button', { name: 'メインの写真を変更' })).toHaveAttribute('aria-pressed', 'false')
     postFromParent(stateMessage({ selectedKey: 'ei8ht-hero"], body' }))
     expect(screen.getByRole('button', { name: 'メインの写真を変更' })).toHaveAttribute('aria-pressed', 'false')

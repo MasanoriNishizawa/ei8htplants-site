@@ -20,13 +20,14 @@ router = APIRouter(prefix='/site-assets', tags=['site-assets'])
 #   （'hue-color-study' と 'hue-color-01' 〜 'hue-color-06' の7個）。
 HUE_COLOR_KEYS = {'hue-color-study'} | {f'hue-color-{index:02d}' for index in range(1, 7)}
 
-# 変数の内容: HABITAT_MOTION_KEYS: Habitat Oides トップページの動きのある画像のキー集合（12個）。
-#   - 'habitat-hero-01' 〜 'habitat-hero-05': 一番上のスライダー画像
-#   - 'habitat-sign': 右下に固定するブランドの看板画像
-#   - 'habitat-object-01' 〜 'habitat-object-06': スクロールで動くオブジェクト画像
+# 変数の内容: HABITAT_MOTION_KEYS: Habitat Oides トップページの動きのある画像のキー集合（11個）。
+#   - 'habitat-hero-01' 〜 'habitat-hero-05': 一番上のスライダー画像（5個）
+#   - 'habitat-object-01' 〜 'habitat-object-06': スクロールで動くオブジェクト画像（6個）
+#   右下に固定するブランドの看板（サイン）画像は、管理画面からは変えず
+#   プロジェクト内のファイルだけで表示するため、ここには含めない
+#   （'habitat-sign' は許可しないキーとして 404 になる）。
 HABITAT_MOTION_KEYS = (
     {f'habitat-hero-{index:02d}' for index in range(1, 6)}
-    | {'habitat-sign'}
     | {f'habitat-object-{index:02d}' for index in range(1, 7)}
 )
 
@@ -127,7 +128,7 @@ def _check_key(key: str) -> None:
 def list_site_assets(prefix: str = Query('', max_length=100)) -> list[dict]:
     """公開ページ用に、prefix で始まる許可キーの画像 URL をまとめて返す。
 
-    例: GET /api/site-assets?prefix=habitat- で Habitat Oides の画像12件を返す。
+    例: GET /api/site-assets?prefix=habitat- で Habitat Oides の画像11件を返す。
     認証は不要（公開ページから読む）。
 
     Args:
