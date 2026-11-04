@@ -42,3 +42,6 @@ frontend/node_modules/
 
 # Source / design files
 *.pdf
+
+# Codex のレビュー結果（scripts/codex_review.sh が保存する。コミットしない）
+tmp/codex-review/

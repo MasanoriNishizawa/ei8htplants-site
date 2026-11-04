@@ -1,6 +1,6 @@
 ---
 name: qa
-description: 実装後のレビューとデグレ（既存機能の不具合）確認の担当。frontend・backend の作業が終わったら必ず呼ぶ。コードは直さず、問題点を報告する。
+description: 実装後のレビューとデグレ（既存機能の不具合）確認の代わりの担当。通常のレビューは Codex CLI（scripts/codex_review.sh）が行う。Codex が使えないとき（未インストール・ログイン切れ・利用上限）と、Codex が PM として実装した変更をレビューするときだけ、PM が呼ぶ。コードは直さず、問題点を報告する。
 tools: Bash, Read, TodoWrite
 ---
 
