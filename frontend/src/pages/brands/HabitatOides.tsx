@@ -13,6 +13,7 @@ import HabitatFloatingObjects from './habitatMotion/HabitatFloatingObjects'
 import { useHabitatMotionAssets } from './habitatMotion/useHabitatMotionAssets'
 import { usePrefersReducedMotion } from './habitatMotion/usePrefersReducedMotion'
 import { usePageImageEditMode } from '../../lib/pageImageEdit'
+import PageImageSlotTarget from '../../components/PageImageSlotTarget'
 // トップページの動きの演出（スプラッシュ・スライダー・サイン・画像の出方・縦書き見出し・浮かぶオブジェクト）の CSS。
 // このページだけで使うので index.css には入れず、ページの読み込みと一緒に読み込む
 import './habitatMotion/habitatMotion.css'
@@ -20,11 +21,17 @@ import './habitatMotion/habitatMotion.css'
 /** 一番上のスライダーの枠（habitat-hero-01〜05） */
 const HERO_SLOTS = habitatSlotsByGroup('hero')
 
+/** 「私たちの考え方」の欄の写真の枠のキー（lib/pageImageSlots.ts の HABITAT_HOME_PHOTO_SLOTS） */
+const WORLD_SLOT_KEY = 'habitat-world'
+
+/** ワークショップの案内の欄の写真の枠のキー（lib/pageImageSlots.ts の HABITAT_HOME_PHOTO_SLOTS） */
+const WORKSHOP_PHOTO_SLOT_KEY = 'habitat-workshop-photo'
+
 /**
  *  Habitat Oides の独立サイト。自生地の景色を鉢に表現するブランド体験を紹介する。
  *  参考サイト（garni.co.jp）と同じ種類の動き（スプラッシュ・フェードのスライダー・右下のサイン・
- *  画像の出方・縦書きの見出し・浮かぶオブジェクト）を入れている。画像は管理画面の「Habitat Oides 画像」
- *  または「ページ画像の編集」で差し替える。
+ *  画像の出方・縦書きの見出し・浮かぶオブジェクト）を入れている。画像は管理画面の「ページ画像の編集」で差し替える
+ *  （一番上の画像・動くオブジェクトに加え、「考え方」の写真とワークショップの欄の写真も、保存した URL → localSrc の順で出す）。
  *  「ページ画像の編集」のプレビュー（編集モード）では、動き（スプラッシュ・画像の出方・パララックス・
  *  スライダーの自動切り替え）を止め、一番上の画像は空の枠も含めた5枠を前後のボタンで行き来できるようにする。
  * @returns Habitat Oides のブランドトップページの React 要素。
@@ -42,6 +49,9 @@ export default function HabitatOides() {
   const splashPhase = useHabitatSplashPhase(editMode)
   // 管理画面で保存した画像 URL（編集モードなら草稿）から、枠ごとの表示画像を返す関数
   const { resolve } = useHabitatMotionAssets()
+  // 「考え方」の写真とワークショップの欄の写真の URL（保存した URL → localSrc の順。どちらも localSrc があるので、ふつうは null にならない）
+  const worldSrc = resolve(WORLD_SLOT_KEY)
+  const workshopPhotoSrc = resolve(WORKSHOP_PHOTO_SLOT_KEY)
   // 一番上のスライダーに出す画像（ふつうは画像がある枠だけ。編集モードでは画像のない枠も含めた全枠）
   const heroSlides: HabitatHeroSlide[] = HERO_SLOTS.flatMap(({ key }) => {
     const src = resolve(key)
@@ -88,8 +98,10 @@ export default function HabitatOides() {
           <div className="habitat-world-grid">
             <figure className="habitat-world-image">
               {/* 画面に入ったら白い幕が縮み、画像が拡大した状態から元の大きさへ戻りながら現れる */}
-              <HabitatRevealImage src="/img/habitatOides/habitat_oides_workshop_main.jpg" alt={t('ハビタットスタイルの制作風景', 'A habitat-style arrangement in progress')} reduced={reduced} />
+              <HabitatRevealImage src={worldSrc} alt={t('ハビタットスタイルの制作風景', 'A habitat-style arrangement in progress')} slotKey={WORLD_SLOT_KEY} reduced={reduced} />
               <figcaption><span>{t('仕立ての記録', 'COMPOSITION STUDY')}</span><span>{t('植物 / 素材 / 景色', 'PLANTS / MATERIALS / PLACE')}</span></figcaption>
+              {/* 編集モードのときだけ、写真の上に枠を重ねる（ふつうの公開ページでは何も出さない） */}
+              <PageImageSlotTarget slotKey={WORLD_SLOT_KEY} empty={!worldSrc} />
             </figure>
             <div className="habitat-world-heading">
               <p className="habitat-small-label">{t('ハビタットスタイル', 'HABITAT STYLE')}</p>
@@ -130,8 +142,11 @@ export default function HabitatOides() {
       {/* 自分で景色を仕立てるワークショップへの案内 */}
       <section id="workshop" className="habitat-workshop">
         {/* 画面に入ったら白く飛んだ明るさから元の明るさへ戻りながら現れる */}
-        <div className="habitat-workshop-image">
-          <HabitatRevealImage src="/img/habitatOides/habitat_oides_workshop_main.jpg" alt="" variant="brightness" reduced={reduced} />
+        {/* 編集モードでは page-edit-anchor を付け、重ねる枠の位置の基準にする（components/pageImageSlotTarget.css） */}
+        <div className={`habitat-workshop-image${editMode ? ' page-edit-anchor' : ''}`}>
+          <HabitatRevealImage src={workshopPhotoSrc} alt="" slotKey={WORKSHOP_PHOTO_SLOT_KEY} variant="brightness" reduced={reduced} />
+          {/* 編集モードのときだけ、写真の上に枠を重ねる */}
+          <PageImageSlotTarget slotKey={WORKSHOP_PHOTO_SLOT_KEY} empty={!workshopPhotoSrc} />
         </div>
         <div className="habitat-workshop-copy">
           <p className="habitat-small-label">{t('自分の手で仕立てる', 'MAKE YOUR OWN LANDSCAPE')}</p>

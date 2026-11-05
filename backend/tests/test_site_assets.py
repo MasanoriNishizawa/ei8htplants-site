@@ -2,23 +2,34 @@
 サイト画像 API（/api/site-assets）のテスト。
 
 Habitat Oides トップページの動きのある画像（habitat-hero-01〜05・
-habitat-object-01〜06 の11個）の1件取得・保存・一括取得と、管理画面から変えなくなった
-サイン画像のキー（habitat-sign）が許可されない（404）ことと、ei8ht plants トップページの画像
-（ei8ht-hero・ei8ht-wordmark）と HUE の色見本画像（hue-color-*）の一括取得を確認する。
+habitat-object-01〜06 の11個）とページの写真（habitat-world・habitat-workshop-photo・
+habitat-workshop-main の3個）の1件取得・保存・一括取得と、管理画面から変えなくなった
+サイン画像のキー（habitat-sign）が許可されない（404）ことと、ei8ht plants の各ページの画像
+（ei8ht-hero・ei8ht-wordmark・ei8ht-about-hero）と /official 以下の公式サイトの画像
+（official-hero・official-brand-*）と HUE の色見本画像（hue-color-*）の一括取得を確認する。
 Supabase クライアントはモックに差し替え、本番 DB には接続しない。
 """
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.routes.site_assets import EDITABLE_KEYS, EI8HT_HOME_KEYS, HABITAT_MOTION_KEYS, HUE_COLOR_KEYS
+from app.routes.site_assets import (
+    EDITABLE_KEYS,
+    EI8HT_PAGE_KEYS,
+    HABITAT_MOTION_KEYS,
+    HABITAT_PAGE_KEYS,
+    HUE_COLOR_KEYS,
+    OFFICIAL_PAGE_KEYS,
+)
 
 from tests._helpers import as_admin
 
-# 変数の内容: HABITAT_KEYS_SORTED: 一括取得で返るはずの habitat 系キー11個（キー名の昇順）。
+# 変数の内容: HABITAT_MOTION_KEYS_SORTED: Habitat Oides トップページの動きのある画像のキー11個（キー名の昇順）。
 #   サイン画像（habitat-sign）はプロジェクト内のファイルで表示するため含まない。
-HABITAT_KEYS_SORTED = [
+HABITAT_MOTION_KEYS_SORTED = [
     'habitat-hero-01',
     'habitat-hero-02',
     'habitat-hero-03',
@@ -32,8 +43,23 @@ HABITAT_KEYS_SORTED = [
     'habitat-object-06',
 ]
 
-# 変数の内容: EI8HT_KEYS_SORTED: 一括取得で返るはずの ei8ht plants トップページのキー2個（キー名の昇順）。
-EI8HT_KEYS_SORTED = ['ei8ht-hero', 'ei8ht-wordmark']
+# 変数の内容: HABITAT_PAGE_KEYS_SORTED: Habitat Oides のページの写真のキー3個（キー名の昇順）。
+HABITAT_PAGE_KEYS_SORTED = ['habitat-workshop-main', 'habitat-workshop-photo', 'habitat-world']
+
+# 変数の内容: HABITAT_KEYS_SORTED: prefix 'habitat-' の一括取得で返るはずのキー14個（キー名の昇順）。
+#   動きのある画像11個のあとに、ページの写真3個が続く。
+HABITAT_KEYS_SORTED = HABITAT_MOTION_KEYS_SORTED + HABITAT_PAGE_KEYS_SORTED
+
+# 変数の内容: EI8HT_KEYS_SORTED: 一括取得で返るはずの ei8ht plants の各ページのキー3個（キー名の昇順）。
+EI8HT_KEYS_SORTED = ['ei8ht-about-hero', 'ei8ht-hero', 'ei8ht-wordmark']
+
+# 変数の内容: OFFICIAL_KEYS_SORTED: 一括取得で返るはずの公式サイト（/official 以下）のキー4個（キー名の昇順）。
+OFFICIAL_KEYS_SORTED = [
+    'official-brand-ei8ht',
+    'official-brand-habitat',
+    'official-brand-hue',
+    'official-hero',
+]
 
 # 変数の内容: HUE_KEYS_SORTED: 一括取得で返るはずの HUE の色見本キー7個（キー名の昇順）。
 HUE_KEYS_SORTED = [
@@ -101,7 +127,7 @@ class TestHabitatKeys:
     def test_habitatの11キーが許可一覧に入りhue系も残る(self):
         """habitat 系11キーが許可され、habitat-sign は含まれず、既存の hue 系キーも許可されたままであること。"""
         # 1. habitat 系の定数が仕様どおりの11個であることを確認する。
-        assert sorted(HABITAT_MOTION_KEYS) == HABITAT_KEYS_SORTED
+        assert sorted(HABITAT_MOTION_KEYS) == HABITAT_MOTION_KEYS_SORTED
         assert len(HABITAT_MOTION_KEYS) == 11
         # 2. サイン画像のキーは habitat 系にも許可一覧にも入っていないことを確認する。
         assert 'habitat-sign' not in HABITAT_MOTION_KEYS
@@ -112,18 +138,55 @@ class TestHabitatKeys:
         assert 'hue-color-01' in EDITABLE_KEYS
         assert 'hue-color-06' in EDITABLE_KEYS
 
+    def test_habitatのページ写真3キーが許可一覧に入る(self):
+        """habitat-world・habitat-workshop-photo・habitat-workshop-main が定数と許可一覧に入っていること。"""
+        # 1. ページの写真の定数が仕様どおりの3個で、動きのある画像の定数とは重ならないことを確認する。
+        assert sorted(HABITAT_PAGE_KEYS) == HABITAT_PAGE_KEYS_SORTED
+        assert not (HABITAT_PAGE_KEYS & HABITAT_MOTION_KEYS)
+        # 2. 許可一覧に含まれ、prefix 'habitat-' に当たる許可キーが合わせて14個であることを確認する。
+        assert HABITAT_PAGE_KEYS <= EDITABLE_KEYS
+        assert sorted(key for key in EDITABLE_KEYS if key.startswith('habitat-')) == HABITAT_KEYS_SORTED
+        assert len(HABITAT_KEYS_SORTED) == 14
 
-class TestEi8htHomeKeys:
-    """ei8ht plants トップページのキーの許可一覧を確認する。"""
 
-    def test_ei8htの2キーが許可一覧に入る(self):
-        """ei8ht-hero と ei8ht-wordmark が定数と許可一覧に入っていること。"""
-        # 1. ei8ht 系の定数が仕様どおりの2個であることを確認する。
-        assert sorted(EI8HT_HOME_KEYS) == EI8HT_KEYS_SORTED
+class TestEi8htPageKeys:
+    """ei8ht plants の各ページのキーの許可一覧を確認する。"""
+
+    def test_ei8htの3キーが許可一覧に入る(self):
+        """ei8ht-hero・ei8ht-wordmark・ei8ht-about-hero が定数と許可一覧に入っていること。"""
+        # 1. ei8ht 系の定数が仕様どおりの3個であることを確認する。
+        assert sorted(EI8HT_PAGE_KEYS) == EI8HT_KEYS_SORTED
         # 2. 許可一覧に ei8ht 系が含まれ、既存の habitat 系・hue 系も残っていることを確認する。
-        assert EI8HT_HOME_KEYS <= EDITABLE_KEYS
+        assert EI8HT_PAGE_KEYS <= EDITABLE_KEYS
         assert HABITAT_MOTION_KEYS <= EDITABLE_KEYS
+        assert HABITAT_PAGE_KEYS <= EDITABLE_KEYS
         assert HUE_COLOR_KEYS <= EDITABLE_KEYS
+
+
+class TestOfficialPageKeys:
+    """/official 以下の公式サイトのページのキーの許可一覧を確認する。"""
+
+    def test_officialの4キーが許可一覧に入る(self):
+        """official-hero と official-brand-ei8ht・habitat・hue が定数と許可一覧に入っていること。"""
+        # 1. official 系の定数が仕様どおりの4個であることを確認する。
+        assert sorted(OFFICIAL_PAGE_KEYS) == OFFICIAL_KEYS_SORTED
+        # 2. 許可一覧に含まれ、prefix 'official-' に当たる許可キーがこの4個だけであることを確認する。
+        assert OFFICIAL_PAGE_KEYS <= EDITABLE_KEYS
+        assert sorted(key for key in EDITABLE_KEYS if key.startswith('official-')) == OFFICIAL_KEYS_SORTED
+        # 3. 既存のキーの集合も許可一覧に残っていることを確認する。
+        assert EI8HT_PAGE_KEYS <= EDITABLE_KEYS
+        assert HABITAT_MOTION_KEYS <= EDITABLE_KEYS
+        assert HABITAT_PAGE_KEYS <= EDITABLE_KEYS
+        assert HUE_COLOR_KEYS <= EDITABLE_KEYS
+
+    def test_許可一覧は全部で28キー(self):
+        """許可一覧が hue 7・habitat 14・ei8ht 3・official 4 の合計28キーで、余分なキーがないこと。"""
+        # 1. 各集合の件数と、許可一覧の合計件数を確認する。
+        assert len(HUE_COLOR_KEYS) == 7
+        assert len(HABITAT_MOTION_KEYS) + len(HABITAT_PAGE_KEYS) == 14
+        assert len(EI8HT_PAGE_KEYS) == 3
+        assert len(OFFICIAL_PAGE_KEYS) == 4
+        assert len(EDITABLE_KEYS) == 28
 
 
 class TestGetSiteAsset:
@@ -234,20 +297,105 @@ class TestSaveSiteAsset:
         mock_admin.table.assert_not_called()
 
 
+# 変数の内容: NEW_PAGE_KEYS: ページ画像編集の拡張で追加したキー8個
+#   （ei8ht plants の About ページ1個、Habitat Oides のページの写真3個、公式サイトの写真4個の計8個）。
+NEW_PAGE_KEYS = [
+    'ei8ht-about-hero',
+    'habitat-world',
+    'habitat-workshop-photo',
+    'habitat-workshop-main',
+    'official-hero',
+    'official-brand-ei8ht',
+    'official-brand-habitat',
+    'official-brand-hue',
+]
+
+
+class TestNewPageKeys:
+    """トップ以外のページ画像として追加したキーの1件取得・保存を確認する。"""
+
+    @pytest.mark.parametrize('key', NEW_PAGE_KEYS)
+    def test_追加したページ画像のキーで保存済みの画像URLを取得できる(self, key):
+        """追加したキーは 404 にならず、DB の行をそのまま返すこと。
+
+        Args:
+            key: 確かめる追加キー。
+        """
+        # 1. DB にそのキーの行がある状態にする。
+        # 変数の内容: row: DB に保存されている行。
+        row = {'key': key, 'url': f'https://example.com/{key}.jpg'}
+        mock_sb = _make_single_mock([row])
+        with patch('app.routes.site_assets.supabase', mock_sb):
+            resp = TestClient(app).get(f'/api/site-assets/{key}')
+        # 2. 200 で保存済みの URL が返り、そのキーで DB を読んだことを確認する。
+        assert resp.status_code == 200
+        assert resp.json() == row
+        mock_sb.table.return_value.select.return_value.eq.assert_called_once_with('key', key)
+
+    @pytest.mark.parametrize('key', NEW_PAGE_KEYS)
+    def test_追加したページ画像のキーで未登録なら空URLを返す(self, key):
+        """追加したキーに DB の行がないときは url を '' にして返すこと。
+
+        Args:
+            key: 確かめる追加キー。
+        """
+        # 1. DB に行がない状態にする。
+        mock_sb = _make_single_mock([])
+        with patch('app.routes.site_assets.supabase', mock_sb):
+            resp = TestClient(app).get(f'/api/site-assets/{key}')
+        # 2. 空 URL の初期値が返ることを確認する。
+        assert resp.status_code == 200
+        assert resp.json() == {'key': key, 'url': ''}
+
+    @pytest.mark.parametrize('key', NEW_PAGE_KEYS)
+    def test_管理者は追加したページ画像のキーに画像URLを保存できる(self, key):
+        """認証つきの PUT で追加したキーを upsert し、保存結果を返すこと。
+
+        Args:
+            key: 確かめる追加キー。
+        """
+        # 1. upsert の結果として保存した行が返る状態にする。
+        # 変数の内容: saved: 保存後に DB から返る行。
+        saved = {'key': key, 'url': f'https://example.com/{key}.jpg'}
+        mock_admin = _make_upsert_mock([saved])
+        with patch('app.routes.site_assets.admin_supabase', mock_admin), as_admin():
+            resp = TestClient(app).put(f'/api/site-assets/{key}', json={'url': saved['url']})
+        # 2. 200 で保存結果が返り、正しい値で upsert したことを確認する。
+        assert resp.status_code == 200
+        assert resp.json() == saved
+        mock_admin.table.return_value.upsert.assert_called_once_with(saved)
+
+    @pytest.mark.parametrize('key', NEW_PAGE_KEYS)
+    def test_未ログインでは追加したページ画像のキーを保存できない(self, key):
+        """認証なしの PUT は 401 か 403 になり、DB に書き込まないこと。
+
+        Args:
+            key: 確かめる追加キー。
+        """
+        # 1. 管理者ログインなしで保存する。
+        mock_admin = _make_upsert_mock([])
+        with patch('app.routes.site_assets.admin_supabase', mock_admin):
+            resp = TestClient(app).put(f'/api/site-assets/{key}', json={'url': 'https://example.com/x.jpg'})
+        # 2. 認証エラーになり、upsert を呼んでいないことを確認する。
+        assert resp.status_code in (401, 403)
+        mock_admin.table.return_value.upsert.assert_not_called()
+
+
 class TestListSiteAssets:
     """一括取得 GET /api/site-assets?prefix=... を確認する。"""
 
-    def test_habitatのprefixで11件が昇順に返りDBにない行は空URLになる(self):
-        """登録済みの行は URL を、未登録のキーは '' を入れて11件をキー名の昇順で返し、habitat-sign は含めないこと。"""
-        # 1. DB には2件だけ行がある状態にする（返る順番は順不同にしておく）。
+    def test_habitatのprefixで14件が昇順に返りDBにない行は空URLになる(self):
+        """登録済みの行は URL を、未登録のキーは '' を入れて14件をキー名の昇順で返し、habitat-sign は含めないこと。"""
+        # 1. DB には3件だけ行がある状態にする（返る順番は順不同にしておく）。
         mock_sb = _make_in_mock([
+            {'key': 'habitat-world', 'url': 'https://example.com/world.jpg'},
             {'key': 'habitat-object-04', 'url': 'https://example.com/obj4.png'},
             {'key': 'habitat-hero-02', 'url': 'https://example.com/hero2.jpg'},
         ])
         with patch('app.routes.site_assets.supabase', mock_sb):
             resp = TestClient(app).get('/api/site-assets', params={'prefix': 'habitat-'})
 
-        # 2. 11件がキー名の昇順で返り、habitat-sign が含まれないことを確認する。
+        # 2. 14件がキー名の昇順で返り、habitat-sign が含まれないことを確認する。
         assert resp.status_code == 200
         # 変数の内容: body: 一括取得の応答本文（key と url の辞書の一覧）。
         body = resp.json()
@@ -261,8 +409,11 @@ class TestListSiteAssets:
         assert url_by_key['habitat-hero-02'] == 'https://example.com/hero2.jpg'
         assert url_by_key['habitat-hero-01'] == ''
         assert url_by_key['habitat-object-06'] == ''
+        assert url_by_key['habitat-world'] == 'https://example.com/world.jpg'
+        assert url_by_key['habitat-workshop-photo'] == ''
+        assert url_by_key['habitat-workshop-main'] == ''
 
-        # 4. DB の読み取りは in_ を使った1回のクエリで、対象11キーを渡していることを確認する。
+        # 4. DB の読み取りは in_ を使った1回のクエリで、対象14キーを渡していることを確認する。
         mock_sb.table.assert_called_once_with('site_assets')
         mock_sb.table.return_value.select.return_value.in_.assert_called_once_with(
             'key', HABITAT_KEYS_SORTED
@@ -312,8 +463,8 @@ class TestListSiteAssets:
         assert resp.headers['Cache-Control'] == 'no-store'
         assert resp.headers['CDN-Cache-Control'] == 'no-store'
 
-    def test_ei8htのprefixで2件が昇順に返りDBにない行は空URLになる(self):
-        """prefix=ei8ht- で ei8ht-hero・ei8ht-wordmark の2件だけを昇順で返すこと。"""
+    def test_ei8htのprefixで3件が昇順に返りDBにない行は空URLになる(self):
+        """prefix=ei8ht- で ei8ht-about-hero・ei8ht-hero・ei8ht-wordmark の3件だけを昇順で返すこと。"""
         # 1. DB には ei8ht-wordmark の行だけがある状態にする。
         mock_sb = _make_in_mock([
             {'key': 'ei8ht-wordmark', 'url': 'https://example.com/wordmark.png'},
@@ -321,7 +472,7 @@ class TestListSiteAssets:
         with patch('app.routes.site_assets.supabase', mock_sb):
             resp = TestClient(app).get('/api/site-assets', params={'prefix': 'ei8ht-'})
 
-        # 2. 2件がキー名の昇順で返ることを確認する。
+        # 2. 3件がキー名の昇順で返ることを確認する。
         assert resp.status_code == 200
         # 変数の内容: body: 一括取得の応答本文（key と url の辞書の一覧）。
         body = resp.json()
@@ -332,11 +483,42 @@ class TestListSiteAssets:
         url_by_key = {item['key']: item['url'] for item in body}
         assert url_by_key['ei8ht-wordmark'] == 'https://example.com/wordmark.png'
         assert url_by_key['ei8ht-hero'] == ''
+        assert url_by_key['ei8ht-about-hero'] == ''
 
-        # 4. DB の読み取りは in_ を使った1回のクエリで、対象2キーを渡していることを確認する。
+        # 4. DB の読み取りは in_ を使った1回のクエリで、対象3キーを渡していることを確認する。
         mock_sb.table.assert_called_once_with('site_assets')
         mock_sb.table.return_value.select.return_value.in_.assert_called_once_with(
             'key', EI8HT_KEYS_SORTED
+        )
+
+    def test_officialのprefixで4件が昇順に返りDBにない行は空URLになる(self):
+        """prefix=official- で公式サイトの4キーだけをキー名の昇順で返すこと。"""
+        # 1. DB には official-hero と official-brand-hue の行だけがある状態にする（順不同）。
+        mock_sb = _make_in_mock([
+            {'key': 'official-hero', 'url': 'https://example.com/official-hero.jpg'},
+            {'key': 'official-brand-hue', 'url': '/img/official/hue.jpg'},
+        ])
+        with patch('app.routes.site_assets.supabase', mock_sb):
+            resp = TestClient(app).get('/api/site-assets', params={'prefix': 'official-'})
+
+        # 2. 4件がキー名の昇順で返ることを確認する。
+        assert resp.status_code == 200
+        # 変数の内容: body: 一括取得の応答本文（key と url の辞書の一覧）。
+        body = resp.json()
+        assert [item['key'] for item in body] == OFFICIAL_KEYS_SORTED
+
+        # 3. 登録済みの行は URL、未登録のキーは '' になることを確認する。
+        # 変数の内容: url_by_key: 応答のキーから URL を引く辞書。
+        url_by_key = {item['key']: item['url'] for item in body}
+        assert url_by_key['official-hero'] == 'https://example.com/official-hero.jpg'
+        assert url_by_key['official-brand-hue'] == '/img/official/hue.jpg'
+        assert url_by_key['official-brand-ei8ht'] == ''
+        assert url_by_key['official-brand-habitat'] == ''
+
+        # 4. DB の読み取りは in_ を使った1回のクエリで、対象4キーを渡していることを確認する。
+        mock_sb.table.assert_called_once_with('site_assets')
+        mock_sb.table.return_value.select.return_value.in_.assert_called_once_with(
+            'key', OFFICIAL_KEYS_SORTED
         )
 
     def test_hue_colorのprefixで7件が昇順に返る(self):

@@ -9,7 +9,7 @@
  * プロジェクト内のファイル（下の HABITAT_SIGN_SRC）だけで表示する。
  *
  * 枠に表示する画像は、次の優先順で決める（resolveHabitatSlotSrc）。
- *   1. 管理画面（/admin/habitat-images）で保存した URL（GET /api/site-assets?prefix=habitat- で取得）
+ *   1. 管理画面（/admin/page-editor/habitat-oides）で保存した URL（GET /api/site-assets?prefix=habitat- で取得）
  *   2. この一覧の localSrc（プロジェクト内に置いた画像のパス）
  *   3. どちらもなければ、大きさだけ確保した空の枠（placeholder）
  *
@@ -40,7 +40,7 @@ export type HabitatMotionGroup = 'hero' | 'object'
 export interface HabitatMotionSlot {
   /** site_assets のキー（例: 'habitat-hero-01'）。管理画面の保存と公開ページの取得で共通に使う */
   key: string
-  /** 枠の種類。公開ページの置き場所と、管理画面の見出しの分け方に使う */
+  /** 枠の種類。公開ページの置き場所（一番上のスライダーか、動くオブジェクトか）に使う */
   group: HabitatMotionGroup
   /** 管理画面に出す枠の名前 */
   label: string
@@ -49,15 +49,6 @@ export interface HabitatMotionSlot {
   /** プロジェクト内に置いた画像の公開パス。まだ画像がない枠は null（場所だけ空けておく） */
   localSrc: string | null
 }
-
-/** 管理画面で使う、枠の種類ごとの見出し（表示順もこの順にする） */
-export const HABITAT_MOTION_GROUP_LABELS: Record<HabitatMotionGroup, string> = {
-  hero: '一番上の画像',
-  object: '動くオブジェクト',
-}
-
-/** 枠の種類の表示順（管理画面の見出しの並び） */
-export const HABITAT_MOTION_GROUP_ORDER: readonly HabitatMotionGroup[] = ['hero', 'object']
 
 /** 一番上の画像の推奨サイズ（5枠で共通） */
 const HERO_NOTE = '横長 2400×1500px 程度（JPEG / WebP）。全画面に広げて表示し、端が切れることがあるので、主役は中央付近に置いてください。'

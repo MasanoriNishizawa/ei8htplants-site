@@ -10,7 +10,6 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  HABITAT_MOTION_GROUP_ORDER,
   HABITAT_MOTION_PREFIX,
   HABITAT_MOTION_SLOTS,
   HABITAT_SIGN_SRC,
@@ -38,7 +37,7 @@ describe('HABITAT_MOTION_SLOTS', () => {
   })
 
   it('種類の表示順は hero → object の2つになる', () => {
-    expect(HABITAT_MOTION_GROUP_ORDER).toEqual(['hero', 'object'])
+    expect([...new Set(HABITAT_MOTION_SLOTS.map(({ group }) => group))]).toEqual(['hero', 'object'])
   })
 })
 

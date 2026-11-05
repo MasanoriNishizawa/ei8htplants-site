@@ -23,6 +23,16 @@
   transition: background-color .15s, outline-color .15s;
 }
 
+/* HUE のサブページの写真（.hue-subpage-entry-image）の中の枠: 写真番号用の既存の指定
+   （.hue-subpage-entry-image > span の top:18px・left:22px・文字の装飾）が、span で出す枠にも当たってずれるので、
+   より強い指定で写真全体に重ね直す */
+.hue-subpage-entry-image > .page-edit-target {
+  inset: 0;
+  color: inherit;
+  font: inherit;
+  text-shadow: none;
+}
+
 /* hover・キーボードで選んだとき: 青い枠線と、薄い青の塗りを出す */
 .page-edit-target:hover,
 .page-edit-target:focus-visible {
@@ -63,6 +73,19 @@
   transition: opacity .15s;
 }
 
+/* 枠の名前のラベルの位置と文字の固定: 置き場所の CSS（例: ei8ht plants About の .ep-about-image span の
+   bottom・left・文字の大きさ・影）がラベルにも当たってしまうのを、詳細度を1段上げて打ち消す。
+   中央に出す枠（.page-edit-target--center）はこの後ろの指定で位置を上書きする */
+.page-edit-target > .page-edit-target-label {
+  top: 8px;
+  right: auto;
+  bottom: auto;
+  left: 8px;
+  font: 500 12px/1.4 'Noto Sans JP', sans-serif;
+  letter-spacing: .04em;
+  text-shadow: none;
+}
+
 /* ラベルを見せるとき: hover・キーボードで選んだとき・選んでいる枠・空の枠 */
 .page-edit-target:hover .page-edit-target-label,
 .page-edit-target:focus-visible .page-edit-target-label,
@@ -89,4 +112,26 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+/* 枠を重ねる基準にする要素（Habitat Oides のワークショップの欄の写真など、position が static の置き場所）。
+   編集モードのときだけクラスを付け、position: relative で枠（.page-edit-target）の位置の基準にする */
+.page-edit-anchor {
+  position: relative;
+}
+
+/* ---- 管理画面のプレビュー（PagePreview.tsx の .page-edit-preview の中）でだけ止める動き ---- */
+/* 公式トップのギャラリーのマーキー: 横に流れ続ける動きを止める */
+.page-edit-preview .home-marquee-track {
+  animation: none;
+}
+
+/* 公式トップのブランドの帯: カードの幅が広がる動きの transition を止める（選んだ枠のカードはすぐ広がる） */
+.page-edit-preview .brand-strip-item {
+  transition: none;
+}
+
+/* Our Brands のカード: hover で写真が拡大する動きを止める */
+.page-edit-preview .our-brand-card:hover .our-brand-card-photo {
+  transform: none;
 }

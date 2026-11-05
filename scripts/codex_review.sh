@@ -117,9 +117,14 @@ ${note:-なし}
 - 最後に「確認したこと」と「確認できなかったこと」を書く。
 - 問題がなければ「指摘なし」と書く。"
 
-# 7. 読み取り専用で Codex を動かし、最終報告だけをファイルに書き出す（途中経過の出力は捨てる）
-if ! codex exec -s read-only -o "$out_file" "$prompt" >/dev/null; then
+# 7. 読み取り専用で Codex を動かし、最終報告だけをファイルに書き出す。
+#    途中経過（標準出力・エラー出力）は量が多いので画面に出さず、ログのファイルに残す
+# log_file: Codex の途中経過を残すファイル（結果と同じ名前で .log）
+log_file="${out_file%.md}.log"
+if ! codex exec -s read-only -o "$out_file" "$prompt" >"$log_file" 2>&1; then
   echo "エラー: Codex の実行に失敗しました（ログイン切れ・利用上限などを確かめてください）。" >&2
+  echo "--- 途中経過の末尾（全体は ${log_file#"$root"/}） ---" >&2
+  tail -n 20 "$log_file" >&2 || true
   exit 1
 fi
 

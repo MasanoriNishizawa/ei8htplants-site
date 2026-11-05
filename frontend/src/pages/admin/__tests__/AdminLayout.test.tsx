@@ -177,25 +177,17 @@ function renderLayoutWithPreview(path: string) {
   )
 }
 
-describe('AdminLayout の「Habitat Oides 画像」「ページ画像の編集」メニューとプレビュー', () => {
+describe('AdminLayout の「ページ画像の編集」メニューとプレビュー', () => {
   beforeEach(() => {
     sessionHolder.session = { user: { email: 'admin@example.com' } }
   })
 
-  it('サイドメニューの「サイト画像」の直後に「Habitat Oides 画像」「ページ画像の編集」が並ぶ', async () => {
+  it('画像編集のメニューはページ画像の編集だけになり、旧メニューが出ない', async () => {
     renderLayout()
-    const links = await sidebarLinks()
-    const names = links.map((a) => a.textContent ?? '')
-    const index = names.indexOf('サイト画像')
-    expect(index).toBeGreaterThanOrEqual(0)
-    expect(names[index + 1]).toBe('Habitat Oides 画像')
-    expect(names[index + 2]).toBe('ページ画像の編集')
-  })
-
-  it('「Habitat Oides 画像」は /admin/habitat-images、「ページ画像の編集」は /admin/page-editor を指す', async () => {
-    renderLayout()
-    expect(await screen.findByRole('link', { name: 'Habitat Oides 画像' })).toHaveAttribute('href', '/admin/habitat-images')
+    await sidebarLinks()
     expect(screen.getByRole('link', { name: 'ページ画像の編集' })).toHaveAttribute('href', '/admin/page-editor')
+    expect(screen.queryByRole('link', { name: 'サイト画像' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Habitat Oides 画像' })).not.toBeInTheDocument()
   })
 
   it('/admin/page-editor/:brand ではメニューを出したまま中身を出す', async () => {

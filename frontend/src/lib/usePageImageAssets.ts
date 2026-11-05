@@ -4,7 +4,7 @@ import { usePageImageEdit } from './pageImageEdit'
 import { PAGE_IMAGE_BRANDS, resolvePageImageSrc, type PageImageBrand } from './pageImageSlots'
 
 /**
- * ブランドのトップページで差し替えられる画像の URL を、管理画面で保存した値からまとめて取得する。
+ * 3ブランドと公式サイトの各ページで差し替えられる画像の URL を、管理画面で保存した値からまとめて取得する。
  * 1. GET /api/site-assets?prefix=... でブランドの枠を一度に取得する
  * 2. 取得に失敗しても止めず、localSrc（プロジェクト内の画像）か null で表示を続ける
  * 3. 編集モード（管理画面のプレビュー）のときは、保存した値に草稿の URL を重ねて使う（保存するまで公開ページは変わらない）

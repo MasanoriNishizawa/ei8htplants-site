@@ -1420,11 +1420,15 @@ POST と同じ形の全項目で上書きする。初めて公開する（今ま
 
 | キー | 使う所 |
 |---|---|
-| `hue-color-study`・`hue-color-01`〜`hue-color-06`（7個） | HUE のトップページの写真（01〜06）。`hue-color-study` はトップページの枠の一覧にはない |
-| `habitat-hero-01`〜`habitat-hero-05`・`habitat-object-01`〜`habitat-object-06`（11個。2026-11-02 追加） | Habitat Oides のトップページの一番上の画像・動くオブジェクト |
-| `ei8ht-hero`・`ei8ht-wordmark`（2個。2026-11-02 追加） | ei8ht plants のトップページのメインの写真・ロゴ（文字） |
+| `hue-color-study`・`hue-color-01`〜`hue-color-06`（7個。定数 `HUE_COLOR_KEYS`） | HUE の写真 01〜06（トップは6枚すべて、About は 01・02・03・05、Choose は 01・03・05、Living は 02・04・06）。`hue-color-study` はどのページの枠にもない（管理画面でも使わない）が、許可キーとしては残している |
+| `habitat-hero-01`〜`habitat-hero-05`・`habitat-object-01`〜`habitat-object-06`（11個。定数 `HABITAT_MOTION_KEYS`。2026-11-02 追加） | Habitat Oides のトップページの一番上の画像・動くオブジェクト |
+| `habitat-world`・`habitat-workshop-photo`・`habitat-workshop-main`（3個。定数 `HABITAT_PAGE_KEYS`。2026-11-05 追加） | Habitat Oides のトップページの「私たちの考え方」の写真・ワークショップの欄の写真、Workshop ページのメインの写真 |
+| `ei8ht-hero`・`ei8ht-wordmark`・`ei8ht-about-hero`（3個。定数 `EI8HT_PAGE_KEYS`。`ei8ht-about-hero` は 2026-11-05 追加） | ei8ht plants のトップページのメインの写真、トップページと About で共通の文字ロゴ、About のメインの写真 |
+| `official-hero`・`official-brand-ei8ht`・`official-brand-habitat`・`official-brand-hue`（4個。定数 `OFFICIAL_PAGE_KEYS`。2026-11-05 追加） | 公式サイト Home（`/official`）のメインの写真、Home のブランド紹介と Our Brands（`/official/brands`）で共通のブランドの写真3枚 |
 
-キーの一覧は `backend/app/routes/site_assets.py` の `EDITABLE_KEYS`（`HUE_COLOR_KEYS`・`HABITAT_MOTION_KEYS`・`EI8HT_HOME_KEYS` を合わせたもの）。画面側の枠の一覧（`frontend/src/lib/habitatMotionSlots.ts`・`pageImageSlots.ts`）と同じキーにする。
+使えるキーは合計28個。2026-11-05 は使えるキーを増やしただけで、API のパス・リクエストの形・レスポンスの形・認証・URL の確かめ方は変えていない。ei8ht plants の定数は、トップページ以外のキーも入るようになったため、同日に `EI8HT_HOME_KEYS` から `EI8HT_PAGE_KEYS` に名前を変えた。
+
+キーの一覧は `backend/app/routes/site_assets.py` の `EDITABLE_KEYS`（`HUE_COLOR_KEYS`・`HABITAT_MOTION_KEYS`・`HABITAT_PAGE_KEYS`・`EI8HT_PAGE_KEYS`・`OFFICIAL_PAGE_KEYS` を合わせたもの）。画面側の枠の一覧（`frontend/src/lib/habitatMotionSlots.ts`・`pageImageSlots.ts`）と同じキーにする。
 
 Habitat Oides の右下のサインは、管理画面からは差し替えず、プロジェクト内のファイル（`/img/habitatOides/motion/sign/sign.svg`）だけで出す（2026-11-02 変更）。以前のキー `habitat-sign` は使えるキーから外したので、`GET`・`PUT /api/site-assets/habitat-sign` は `404`（`{"detail": "Site asset not found"}`）になる。データベースに以前の行が残っていても、どの API からも返さない。
 
@@ -1439,14 +1443,18 @@ Habitat Oides の右下のサインは、管理画面からは差し替えず、
   {"key": "habitat-hero-01", "url": "https://xxxx.supabase.co/storage/v1/object/public/images/abc.jpg"},
   {"key": "habitat-hero-02", "url": ""},
   ...
-  {"key": "habitat-object-06", "url": ""}
+  {"key": "habitat-object-06", "url": ""},
+  {"key": "habitat-workshop-main", "url": ""},
+  {"key": "habitat-workshop-photo", "url": ""},
+  {"key": "habitat-world", "url": ""}
 ]
 ```
 
 | prefix の例 | 返る件数 |
 |---|---|
-| `habitat-` | 11件（`habitat-hero-01`〜`05` のあとに `habitat-object-01`〜`06`） |
-| `ei8ht-` | 2件 |
+| `habitat-` | 14件（`habitat-hero-01`〜`05`、`habitat-object-01`〜`06`、`habitat-workshop-main`・`habitat-workshop-photo`・`habitat-world` の順） |
+| `ei8ht-` | 3件（`ei8ht-about-hero`・`ei8ht-hero`・`ei8ht-wordmark` の順） |
+| `official-` | 4件（`official-brand-ei8ht`・`official-brand-habitat`・`official-brand-hue`・`official-hero` の順。2026-11-05 追加） |
 | `hue-color-` | 7件（`hue-color-01`〜`06` のあとに `hue-color-study`） |
 
 - `prefix` を付けない・空のとき、当てはまるキーが1つもないときは `404`（`{"detail": "Site asset not found"}`）。全部のキーを一度に読まれないようにするため
@@ -1469,7 +1477,7 @@ Habitat Oides の右下のサインは、管理画面からは差し替えず、
 
 | 受け付ける形 | 例 | 使い道 |
 |---|---|---|
-| 空の文字 `""` | `""` | 画像を外す（公開ページはプロジェクト内の画像か、空の枠に戻る） |
+| 空の文字 `""` | `""` | 画像を外す（公開ページは枠ごとの代わりの画像か、画像なしに戻る。公式サイトの HUE 紹介はトップがロゴ、Our Brands が `hue-color-01` の写真で、写真01も未設定なら背景写真なし） |
 | `/` で始まるサイト内のパス | `/img/hue/01.jpg` | プロジェクト内の画像を指す |
 | `https://` で始まる URL | Supabase Storage の公開 URL | アップロードした画像 |
 
@@ -1804,4 +1812,4 @@ api.uploadVideo(file)                    → POST   /api/upload/video  (auth)  �
 
 2026-10-21 から、`getAccessToken()` は Supabase のプログラム（`lib/supabase.ts`）を呼ばれたときに初めて読み込む（`await import('./supabase')`）。公開ページだけを見る人が読み込まないようにして、最初の表示を速くするため。
 
-*最終更新: 2026-11-02（Site Assets: 使えるキーから `habitat-sign` を外し Habitat Oides を11個にした。`habitat-sign` の GET・PUT が 404 になること、一括取得 `prefix=habitat-` が11件になることを反映）／2026-11-02（Site Assets（サイト画像）の章を追加: 使えるキー（Habitat Oides の12個・ei8ht plants の2個を追加）、一括取得 GET /api/site-assets?prefix=、PUT の url の確かめ方と 422、キャッシュしないこと。APIクライアントの対応表に api.siteAssets を追加）／2026-10-26（Host別robots.txt・sitemap.xmlの返却を追加）／2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*
+*最終更新: 2026-11-05（Site Assets: 使えるキーを28個にし、キーの表に Habitat Oides のページの写真・公式サイトの行を足した。一括取得の件数と並び、`official-` の行を追加）／2026-11-02（Site Assets: 使えるキーから `habitat-sign` を外し Habitat Oides を11個にした。`habitat-sign` の GET・PUT が 404 になること、一括取得 `prefix=habitat-` が11件になることを反映）／2026-11-02（Site Assets（サイト画像）の章を追加: 使えるキー（Habitat Oides の12個・ei8ht plants の2個を追加）、一括取得 GET /api/site-assets?prefix=、PUT の url の確かめ方と 422、キャッシュしないこと。APIクライアントの対応表に api.siteAssets を追加）／2026-10-26（Host別robots.txt・sitemap.xmlの返却を追加）／2026-10-25（Price Calc Entries に mode（生産・仕入れ）を追加）／2026-10-25（Price Calc Entries の cost に生産の卸価格を追記。生産か仕入れかは保存しない）／2026-10-23（Price Calc Entries に目標原価率を保存しないことを追記）／2026-10-23（Price Calc Entries の brand に hue を追加、例の販売価格を新しい計算に合わせた）／2026-10-23（429・502 の説明、入力の上限の実際の値、注文の決済の失敗ごとの応答、予約の 400 の4種と 429、状態の変更の 404・409、キャンセルの応答とキャンセル ID の形、商品・記事の更新の 404 を追記）／2026-10-23（ID の形が違うとき・存在しないときの応答、回数制限の送り元 IP、サーバーの文言を変えるときの注意を追加。当日参加・注文の ID の扱い）／2026-10-22（アップロードの中身の確認・拡張子・バケットの確認を追記）／2026-10-22（Products・Shipping・Orders・Articles・Pot Artists・Price Calc Entries・Media Appearances・Chat Q&A・Chat Logs・Docs と、POST /api/reserve/walkin・POST /api/reserve/webhook/resend を追加。2026-10-22 からの変更（ログインが必要になる API・キャンセルの応答・入力の上限）を追記。お問い合わせのメール未設定時の動きを直した）*

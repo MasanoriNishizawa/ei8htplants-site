@@ -31,14 +31,44 @@ HABITAT_MOTION_KEYS = (
     | {f'habitat-object-{index:02d}' for index in range(1, 7)}
 )
 
-# 変数の内容: EI8HT_HOME_KEYS: ei8ht plants のトップページの画像のキー集合（2個）。
+# 変数の内容: HABITAT_PAGE_KEYS: Habitat Oides の、上の動きのある画像以外のページ写真のキー集合（3個）。
+#   - 'habitat-world': トップページの「考え方」の欄に出す写真
+#   - 'habitat-workshop-photo': トップページのワークショップの欄に出す写真
+#   - 'habitat-workshop-main': Workshop ページの一番上に出すメインの写真
+#   どれも 'habitat-' で始まるため、prefix 'habitat-' の一括取得で
+#   HABITAT_MOTION_KEYS の11件と合わせて14件がキー名の昇順で返る。
+HABITAT_PAGE_KEYS = {'habitat-world', 'habitat-workshop-photo', 'habitat-workshop-main'}
+
+# 変数の内容: EI8HT_PAGE_KEYS: ei8ht plants の各ページの画像のキー集合（3個）。
 #   - 'ei8ht-hero': トップページの一番上に出す画像
 #   - 'ei8ht-wordmark': トップページに出す文字ロゴの画像
-#   prefix 'ei8ht-' の一括取得で、この2件をまとめて取得できる。
-EI8HT_HOME_KEYS = {'ei8ht-hero', 'ei8ht-wordmark'}
+#   - 'ei8ht-about-hero': About ページの一番上に出すメインの写真
+#   トップページ以外のキーも入るため、以前の名前 EI8HT_HOME_KEYS から付け直した。
+#   prefix 'ei8ht-' の一括取得で、この3件をキー名の昇順でまとめて取得できる。
+EI8HT_PAGE_KEYS = {'ei8ht-hero', 'ei8ht-wordmark', 'ei8ht-about-hero'}
+
+# 変数の内容: OFFICIAL_PAGE_KEYS: /official 以下の公式サイトのページの画像のキー集合（4個）。
+#   - 'official-hero': 公式サイト Home の一番上に出すメインの写真
+#   - 'official-brand-ei8ht': ブランド紹介のカードに出す ei8ht plants の写真
+#   - 'official-brand-habitat': ブランド紹介のカードに出す Habitat Oides の写真
+#   - 'official-brand-hue': ブランド紹介のカードに出す HUE の写真
+#   ブランドの写真3個は、Home と Our Brands の両方のページで同じキーを共通で使う。
+#   prefix 'official-' の一括取得で、この4件をキー名の昇順でまとめて取得できる。
+OFFICIAL_PAGE_KEYS = {
+    'official-hero',
+    'official-brand-ei8ht',
+    'official-brand-habitat',
+    'official-brand-hue',
+}
 
 # 変数の内容: EDITABLE_KEYS: API 経由で読み書きを許可するサイト画像のキー集合（上の各集合の和）。
-EDITABLE_KEYS = HUE_COLOR_KEYS | HABITAT_MOTION_KEYS | EI8HT_HOME_KEYS
+EDITABLE_KEYS = (
+    HUE_COLOR_KEYS
+    | HABITAT_MOTION_KEYS
+    | HABITAT_PAGE_KEYS
+    | EI8HT_PAGE_KEYS
+    | OFFICIAL_PAGE_KEYS
+)
 
 
 # 変数の内容: _URL_FORBIDDEN_CHARS: URL の中に入っていたら拒否する文字のパターン。
@@ -128,7 +158,8 @@ def _check_key(key: str) -> None:
 def list_site_assets(prefix: str = Query('', max_length=100)) -> list[dict]:
     """公開ページ用に、prefix で始まる許可キーの画像 URL をまとめて返す。
 
-    例: GET /api/site-assets?prefix=habitat- で Habitat Oides の画像11件を返す。
+    例: GET /api/site-assets?prefix=habitat- で Habitat Oides の画像14件を返す
+    （動きのある画像11件＋ページの写真3件）。
     認証は不要（公開ページから読む）。
 
     Args:

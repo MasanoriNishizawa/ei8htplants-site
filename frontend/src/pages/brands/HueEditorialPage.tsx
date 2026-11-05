@@ -4,6 +4,9 @@ import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND } from '../../lib/brands'
 import { useHueImages } from '../../sites/hue/useHueImages'
+import { usePageImageEditMode } from '../../lib/pageImageEdit'
+import { HUE_PAGE_SLOTS } from '../../lib/pageImageSlots'
+import PageImageSlotTarget from '../../components/PageImageSlotTarget'
 
 /** HUE の編集ページ種別。ブランド紹介・一鉢の選び方・植物のある部屋を識別する */
 type HueEditorialPageKind = 'about' | 'choose' | 'living'
@@ -64,8 +67,21 @@ const NEXT_PAGE: Record<HueEditorialPageKind, { href: string; ja: string; en: st
   living: { href: '/about', ja: 'HUEについて', en: 'About HUE' },
 }
 
+/** ページの見出しの横に出す写真の番号（0 始まり。about: 02・choose: 03・living: 04 の写真） */
+const HERO_IMAGE_INDEX: Record<HueEditorialPageKind, number> = { about: 1, choose: 2, living: 3 }
+
+/**
+ * 色の写真の番号（0 始まり）から、管理画面の枠のキーを返す（'hue-color-01' など）。
+ * @param index - 0 始まりの写真の番号
+ * @returns 枠のキー
+ */
+const hueSlotKey = (index: number) => HUE_PAGE_SLOTS[index]?.key ?? `hue-color-${String(index + 1).padStart(2, '0')}`
+
 /**
  * 指定された HUE の編集ページを表示する。
+ * 管理画面「ページ画像の編集」のプレビュー（編集モード）では、スクロールで現れる動きを止めて最初から表示し、
+ * 写真の上に枠（PageImageSlotTarget）を重ねる。見出しの写真と同じ写真を記事でも使うとき（choose の 03・living の 04）は、
+ * 記事の枠を2つ目以降の枠にする。
  * @param page - 表示するページの種別
  * @returns `page` で指定された HUE 編集ページの React 要素。
  */
@@ -80,11 +96,19 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
   const content = PAGE_COPY[page]
   // 現在のページから次に読む編集ページ
   const next = NEXT_PAGE[page]
+  // 管理画面のプレビュー（編集モード）か
+  const editMode = usePageImageEditMode()
+  // 見出しの横の写真の番号と URL
+  const heroIndex = HERO_IMAGE_INDEX[page]
+  const heroImage = images[heroIndex]
 
   useEffect(() => {
     // 1. アニメーション対象を取得し、表示準備用クラスを付ける
     const root = pageRef.current
     if (!root) return
+    // 1-2. 管理画面のプレビュー（編集モード）では、表示準備用クラス（最初は透明にして、現れるときにふわっと出す）を付けず、
+    //      最初から表示した状態のまま動かさない
+    if (editMode) return
     // スクロール表示演出の監視対象要素
     const items = Array.from(root.querySelectorAll<HTMLElement>('[data-hue-reveal]'))
     root.classList.add('hue-motion-ready')
@@ -107,7 +131,7 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
       observer.disconnect()
       root.classList.remove('hue-motion-ready')
     }
-  }, [page])
+  }, [page, editMode])
 
   return (
     <div className="hue-editorial-page" ref={pageRef}>
@@ -125,8 +149,10 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
           <Link className="hue-discover-link" to="#hue-subpage-content">{t('ページを読む', 'EXPLORE')} <span>↓</span></Link>
         </div>
         <figure className="hue-subpage-hero-image" data-hue-reveal="art">
-          {images[page === 'living' ? 3 : page === 'choose' ? 2 : 1] && <img src={images[page === 'living' ? 3 : page === 'choose' ? 2 : 1]} alt={t('HUE by ei8ht plants の植物', 'A plant from HUE by ei8ht plants')} />}
+          {heroImage && <img src={heroImage} alt={t('HUE by ei8ht plants の植物', 'A plant from HUE by ei8ht plants')} />}
           <figcaption>{t('色 / かたち / 暮らし', 'COLOR / FORM / LIFE')}</figcaption>
+          {/* 編集モードのときだけ、写真の上に枠を重ねる（ふつうの公開ページでは何も出さない） */}
+          <PageImageSlotTarget slotKey={hueSlotKey(heroIndex)} empty={!heroImage} className="page-edit-target--center" />
         </figure>
         <span className="hue-subpage-index" aria-hidden="true">0{page === 'about' ? '1' : page === 'choose' ? '2' : '3'}</span>
       </header>
@@ -140,6 +166,8 @@ export default function HueEditorialPage({ page }: { page: HueEditorialPageKind 
               <figure className="hue-subpage-entry-image" style={{ '--photo-index': entry.image } as React.CSSProperties}>
                 {images[entry.image] && <img src={images[entry.image]} alt={t(entry.title[0], entry.title[1])} loading="lazy" />}
                 <span>0{entry.image + 1}</span>
+                {/* 編集モードのときだけ、写真の上に枠を重ねる。見出しの写真と同じなら2つ目以降の枠にする */}
+                <PageImageSlotTarget slotKey={hueSlotKey(entry.image)} empty={!images[entry.image]} secondary={entry.image === heroIndex} className="page-edit-target--center" />
               </figure>
               <div className="hue-subpage-entry-copy">
                 <p className="hue-story-kicker">{t(entry.label[0], entry.label[1])}</p>

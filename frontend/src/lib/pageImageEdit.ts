@@ -1,5 +1,5 @@
 /*
- * 管理画面「ページ画像の編集」のプレビュー（/admin/page-preview/:brand）で、公開ページを「編集モード」にする仕組み
+ * 管理画面「ページ画像の編集」のプレビュー（/admin/page-preview/:brand/:page）で、公開ページを「編集モード」にする仕組み
  *
  * - プレビューの画面（pages/admin/PagePreview.tsx）が PageImageEditContext.Provider で公開ページを包む
  * - 公開ページ・部品は usePageImageEdit() で値を受け取り、編集モードのときだけ次のようにする
@@ -9,6 +9,7 @@
  * - Provider の外（ふつうの公開ページ）では null が返り、今までと同じ動きになる
  *
  * 親（編集画面）とプレビュー（iframe の中）は window.postMessage でやり取りする。メッセージの形もここで決める。
+ * メッセージにはブランドとページを入れ、受け取る側は「同じオリジン・決まった送り元・同じブランド・同じページ」のものだけを使う。
  */
 import { createContext, useContext } from 'react'
 import type { PageImageBrand } from './pageImageSlots'
@@ -57,6 +58,8 @@ export interface PageEditorStateMessage {
   type: 'page-editor:state'
   /** 編集しているブランド（プレビューのブランドと違えば無視する） */
   brand: PageImageBrand
+  /** 編集しているページの識別子（プレビューのページと違えば無視する） */
+  page: string
   /** 草稿の URL（キー → URL） */
   draftUrls: Record<string, string>
   /** 選んでいる枠のキー（選んでいなければ null） */
@@ -70,6 +73,8 @@ export interface PageEditorReadyMessage {
   type: 'page-editor:ready'
   /** プレビューしているブランド */
   brand: PageImageBrand
+  /** プレビューしているページの識別子 */
+  page: string
 }
 
 /** プレビュー → 親: 枠をクリックして選んだ */
@@ -77,6 +82,8 @@ export interface PageEditorSelectMessage {
   type: 'page-editor:select'
   /** プレビューしているブランド */
   brand: PageImageBrand
+  /** プレビューしているページの識別子 */
+  page: string
   /** 選んだ枠のキー */
   key: string
 }
@@ -91,10 +98,10 @@ export type PageEditorMessage = PageEditorStateMessage | PageEditorReadyMessage 
  * @returns このやり取りのメッセージなら true
  */
 export function isPageEditorMessage(data: unknown): data is PageEditorMessage {
-  // 1. オブジェクトで、type が文字列でなければ違う
+  // 1. オブジェクトで、type・brand・page が文字列でなければ違う
   if (typeof data !== 'object' || data === null) return false
   const record = data as Record<string, unknown>
-  if (typeof record.type !== 'string' || typeof record.brand !== 'string') return false
+  if (typeof record.type !== 'string' || typeof record.brand !== 'string' || typeof record.page !== 'string') return false
   // 2. 種類ごとに、必要な項目の形を確かめる
   switch (record.type) {
     case 'page-editor:ready':

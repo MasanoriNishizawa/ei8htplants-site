@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-// 管理画面「ページ画像の編集」（/admin/page-editor/:brand）の流れを確かめる。
+// 管理画面「ページ画像の編集」（/admin/page-editor/:brand/:page?）の流れを確かめる（4ブランド × ページ）。
 // プレビューの枠をクリック → パネル → アップロード → プレビューに反映 → 保存 → 件数が 0。
 // API は MSW のモック（アップロードは /img/logo-habitatoides.png を返す）で受ける。
 
@@ -8,6 +8,18 @@ import { test, expect } from '@playwright/test'
 const UPLOAD_FILE = 'public/img/habitatOides/habitat_oides_hero.jpg'
 /** モックのアップロードが返す URL */
 const UPLOADED_URL = '/img/logo-habitatoides.png'
+
+/**
+ * 編集画面を開き、一覧の読み込みが終わる（「変更はありません」が出る）まで待つ。
+ * 初回や負荷が高いときは開発サーバーが画面の部品を変換するので、長めに待つ。
+ * @param page 操作する Playwright ページ
+ * @param path 開くパス（例: '/admin/page-editor/hue/about'）
+ * @returns {Promise<void>} 読み込みが終わったら解決する
+ */
+async function openEditor(page: import('@playwright/test').Page, path: string) {
+  await page.goto(path)
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません', { timeout: 30000 })
+}
 
 test.describe('ページ画像の編集', () => {
   test('E2E-AF-01: ei8ht plants のメインの写真をプレビューから選んで差し替え、保存すると件数が 0 になる', /**
@@ -21,7 +33,7 @@ test.describe('ページ画像の編集', () => {
     await page.goto('/admin/page-editor')
     await expect(page).toHaveURL(/\/admin\/page-editor\/ei8htplants$/)
     // 初回は開発サーバーが画面の部品を変換するので、長めに待つ
-    await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません', { timeout: 20000 })
+    await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません', { timeout: 30000 })
     const preview = page.frameLocator('[data-testid="page-editor-frame"]')
     // プレビューの中ではメニューを出さない
     await expect(preview.getByRole('complementary')).toHaveCount(0)
@@ -45,20 +57,20 @@ test.describe('ページ画像の編集', () => {
   })
 
   test('E2E-AF-02: Habitat Oides のタブで空の枠に画像を入れて保存し、プレビューのリンクを押しても移動しない', /**
-     * Habitat Oides のタブに切り替え、枠の一覧が11枠でサインを含まないことを確かめてから、object-02 を選んで画像をアップロードし、プレビューの空の枠が画像に
+     * Habitat Oides のタブに切り替え、枠の一覧が13枠でサインを含まないことを確かめてから、object-02 を選んで画像をアップロードし、プレビューの空の枠が画像に
      * 変わることと保存できることを確かめる。プレビューのリンクを押しても iframe の中の URL が変わらないことも確かめる。
      * @param page 操作・検証対象の Playwright ページ
      * @returns {Promise<void>} すべての確認が終わったら解決する
      */
     async ({ page }) => {
-    await page.goto('/admin/page-editor/ei8htplants')
+    await openEditor(page, '/admin/page-editor/ei8htplants')
     // 1. 未保存の変更がないので、確認なしでタブを切り替えられる
     await page.getByRole('tab', { name: 'Habitat Oides' }).click()
     await expect(page).toHaveURL(/\/admin\/page-editor\/habitat-oides$/)
     const preview = page.frameLocator('[data-testid="page-editor-frame"]')
     await expect(preview.getByTestId('habitat-placeholder-habitat-object-02')).toHaveCount(1)
-    // 1-2. 枠の一覧は11枠（一番上の画像 5・動くオブジェクト 6）で、サインは差し替えの対象に入らない
-    await expect(page.locator('[data-testid^="page-editor-slot-habitat-"]')).toHaveCount(11)
+    // 1-2. 枠の一覧は13枠（一番上の画像 5・動くオブジェクト 6・ページ写真 2）で、サインは差し替えの対象に入らない
+    await expect(page.locator('[data-testid^="page-editor-slot-habitat-"]')).toHaveCount(13)
     await expect(page.getByTestId('page-editor-slot-habitat-sign')).toHaveCount(0)
     // プレビューのサインにも差し替えの枠（「〜を変更」のボタン）は付かない
     await expect(preview.getByTestId('editable-slot-habitat-sign')).toHaveCount(0)
@@ -90,7 +102,7 @@ test.describe('ページ画像の編集', () => {
      * @returns {Promise<void>} すべての確認が終わったら解決する
      */
     async ({ page }) => {
-    await page.goto('/admin/page-editor/ei8htplants')
+    await openEditor(page, '/admin/page-editor/ei8htplants')
     await page.getByTestId('page-editor-slot-ei8ht-wordmark').click()
     await page.getByTestId('page-editor-panel').getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
     await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
@@ -109,9 +121,228 @@ test.describe('ページ画像の編集', () => {
      * @returns {Promise<void>} すべての確認が終わったら解決する
      */
     async ({ page }) => {
-    await page.goto('/admin/page-editor/hue')
+    await openEditor(page, '/admin/page-editor/hue')
     await page.getByTestId('page-editor-viewport-sp').click()
     await expect(page.getByTestId('page-editor-viewport-sp')).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByTestId('page-editor-frame')).toHaveCSS('width', '390px')
   })
 })
+
+/** ページ切替時もブランド共通の草稿を保持し、まとめて保存できることを確かめる。 */
+test('E2E-AF-05: Aboutへ切り替えても共有ロゴとトップ専用画像の草稿が残る', async ({ page }) => {
+  await openEditor(page, '/admin/page-editor/ei8htplants')
+  await page.getByTestId('page-editor-slot-ei8ht-wordmark').click()
+  await page.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await expect(page.getByTestId('page-editor-panel-shared')).toContainText('About')
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+  await page.getByTestId('page-editor-page-select').selectOption('about')
+  await expect(page).toHaveURL(/\/ei8htplants\/about$/)
+  await expect(page.getByTestId('page-editor-panel')).toBeVisible()
+  const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+  await expect(preview.getByTestId('editable-slot-ei8ht-wordmark').locator('..').locator('img')).toHaveAttribute('src', UPLOADED_URL)
+  await page.getByTestId('page-editor-slot-ei8ht-about-hero').click()
+  await page.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 2 件（未保存）')
+  await page.getByTestId('page-editor-page-select').selectOption('home')
+  await expect(page.getByTestId('page-editor-panel')).toHaveCount(0)
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 2 件（未保存）')
+  await page.getByTestId('page-editor-save').click()
+  await expect(page.getByText('2 件を保存しました。公開ページに反映されます。')).toBeVisible()
+})
+
+/** 各ページの固定画像がプレビュー上でも編集対象になることを確かめる。 */
+for (const [brand, pageId, key] of [
+  ['habitat-oides', 'workshop', 'habitat-workshop-main'],
+  ['hue', 'about', 'hue-color-01'],
+  ['hue', 'choose', 'hue-color-03'],
+  ['hue', 'living', 'hue-color-04'],
+  ['official', 'home', 'official-hero'],
+  ['official', 'brands', 'official-brand-ei8ht'],
+]) {
+  test(`E2E-AF-06: ${brand}/${pageId} の固定画像を選ぶとパネルが開く`, async ({ page }) => {
+    await openEditor(page, `/admin/page-editor/${brand}/${pageId}`)
+    await expect(page.getByTestId('page-editor-page-select')).toHaveValue(pageId)
+    const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+    await expect(preview.getByTestId(`editable-slot-${key}`)).toHaveCount(1, { timeout: 30000 })
+    await page.getByTestId(`page-editor-slot-${key}`).click()
+    await expect(page.getByTestId('page-editor-panel')).toBeVisible()
+  })
+}
+
+/** 過去のページから遅れて届いた選択メッセージを除外することを確かめる。 */
+test('E2E-AF-07: 別ページの選択メッセージを受けても選択状態が変わらない', async ({ page }) => {
+  await openEditor(page, '/admin/page-editor/hue/about')
+  await page.getByTestId('page-editor-slot-hue-color-01').click()
+  await expect(page.getByTestId('page-editor-panel')).toBeVisible()
+  await page.evaluate(() => {
+    const frame = document.querySelector<HTMLIFrameElement>('[data-testid="page-editor-frame"]')!
+    // 正しい送信元の iframe でも、ページ識別子が違うメッセージは無視する。
+    window.dispatchEvent(new MessageEvent('message', {
+      origin: location.origin,
+      source: frame.contentWindow,
+      data: { type: 'page-editor:select', brand: 'hue', page: 'home', key: 'hue-color-03' },
+    }))
+  })
+  await expect(page.getByTestId('page-editor-panel').getByRole('heading')).toHaveText('色の写真 01')
+})
+
+/** 旧URLと不正なページ指定のフォールバックを検証する。 */
+test('E2E-AF-08: 旧Habitat画像URLと不正ページは対応ブランドのトップ編集へ転送される', async ({ page }) => {
+  await page.goto('/admin/habitat-images')
+  await expect(page).toHaveURL(/\/admin\/page-editor\/habitat-oides$/, { timeout: 30000 })
+  await expect(page.getByTestId('page-editor-page-select')).toHaveValue('home', { timeout: 30000 })
+  await page.goto('/admin/page-editor/official/unknown')
+  await expect(page).toHaveURL(/\/admin\/page-editor\/official$/, { timeout: 30000 })
+  await expect(page.getByTestId('page-editor-page-select')).toHaveValue('home', { timeout: 30000 })
+})
+
+/** 選択一覧に出した枠が、プレビュー上にも過不足なくあることを確認する。 */
+for (const pageId of ['home', 'about', 'choose', 'living']) {
+  test(`E2E-AF-09: HUE ${pageId} の枠一覧がプレビューの編集枠と一致する`, async ({ page }) => {
+    await openEditor(page, `/admin/page-editor/hue/${pageId}`)
+    const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+    // 初回は開発サーバーが HUE のページの部品を変換するので、長めに待つ
+    await expect(preview.locator('[data-testid^="editable-slot-"]').first()).toBeAttached({ timeout: 30000 })
+    const listed = await page.locator('[data-testid^="page-editor-slot-"]').evaluateAll((elements) => elements.map((element) => element.getAttribute('data-testid')!.replace('page-editor-slot-', '')).sort())
+    await expect.poll(async () => preview.locator('[data-testid^="editable-slot-"]').evaluateAll((elements) => elements.map((element) => element.getAttribute('data-testid')!.replace('editable-slot-', '')).sort())).toEqual(listed)
+  })
+}
+
+/** 公式 HUE 画像を外した後のページ別の代替表示を、実際の iframe と照合する。 */
+test('E2E-AF-10: 公式HUE画像を外すとトップはロゴ、Our BrandsはHUE写真に戻る', async ({ page }) => {
+  // 1. Our Brands の代替画像となる HUE 写真を管理画面から保存する。
+  await openEditor(page, '/admin/page-editor/hue')
+  await page.getByTestId('page-editor-slot-hue-color-01').click()
+  await page.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await page.getByTestId('page-editor-save').click()
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません')
+  await page.getByRole('tab', { name: '公式サイト' }).click()
+  await page.getByTestId('page-editor-slot-official-brand-hue').click()
+  const panel = page.getByTestId('page-editor-panel')
+  const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+  // 2. アップロード後に外すと、トップではロゴに戻る。
+  await panel.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await panel.getByRole('button', { name: '画像を外す' }).click()
+  await expect(panel).toContainText('HUE のロゴ')
+  const logoSrc = await panel.getByRole('img').getAttribute('src')
+  await expect(preview.getByTestId('editable-slot-official-brand-hue').locator('..').locator('img').first()).toHaveAttribute('src', logoSrc!)
+  // 3. 同じ枠でも Our Brands では HUE 側の写真を表示する。
+  await page.getByTestId('page-editor-page-select').selectOption('brands')
+  await expect(panel).toContainText('HUE の写真（hue-color-01）')
+  await expect(panel.getByRole('img')).toHaveAttribute('src', UPLOADED_URL)
+  // 4. プレビューの Our Brands の HUE のカードには、外した草稿（official-brand-hue の画像）が残らない。
+  // TODO: known issue — MSW のモックは document ごとに保存値を持つため、編集画面で保存した hue-color-01 は
+  //   iframe（別の document）のプレビューからは見えず、Our Brands の HUE のカードは写真なしになる。
+  //   本物の API では DB を通して見えるので、プレビューの「hue-color-01 の写真に戻る」はここでは確かめない（パネル側で確かめる）。
+  const hueCard = preview.locator('a.our-brand-card--3')
+  await expect(hueCard.getByTestId('editable-slot-official-brand-hue')).toHaveCount(1)
+  await expect(hueCard.locator(`img[src="${UPLOADED_URL}"]`)).toHaveCount(0)
+})
+
+/**
+ * 公式サイトとサブページの「プレビューの枠をクリック → パネル → アップロード → プレビューに反映 → 保存」の流れ。
+ * [ID, ブランド, ページ, プレビューの枠の data-testid の key, パネルの見出し, プレビューで反映を確かめる img のセレクター]
+ */
+const SUBPAGE_FLOWS: ReadonlyArray<readonly [string, string, string, string, string, string]> = [
+  ['E2E-AF-11', 'official', 'home', 'official-hero', '公式トップのメインの写真', 'img.home-hero-photo'],
+  ['E2E-AF-12', 'official', 'brands', 'official-brand-habitat', 'ブランド紹介の写真（Habitat Oides）', '.our-brand-card--2 img.our-brand-card-photo'],
+  ['E2E-AF-13', 'ei8htplants', 'about', 'ei8ht-about-hero', 'About のメインの写真', '.ep-about-image img'],
+  ['E2E-AF-14', 'habitat-oides', 'workshop', 'habitat-workshop-main', 'Workshop のメインの写真', 'img[alt="ハビタットスタイルのワークショップ"]'],
+  ['E2E-AF-15', 'hue', 'choose', 'hue-color-03', '色の写真 03', '.hue-subpage-hero-image img'],
+]
+
+for (const [id, brand, pageId, key, heading, imageSelector] of SUBPAGE_FLOWS) {
+  test(`${id}: ${brand}/${pageId} の ${key} をプレビューから選んで差し替え、保存すると件数が 0 になる`, /**
+     * /admin/page-editor/:brand/:page を開き、プレビューの中の枠をクリックしてパネルを出し、画像をアップロードして
+     * プレビューの写真が変わることと件数を確かめ、保存して件数が 0 に戻ることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ
+     * @returns {Promise<void>} すべての確認が終わったら解決する
+     */
+    async ({ page }) => {
+    // 1. ページを指定して開く（初回は開発サーバーが部品を変換するので長めに待つ）
+    await page.goto(`/admin/page-editor/${brand}/${pageId}`)
+    await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません', { timeout: 30000 })
+    await expect(page.getByTestId('page-editor-page-select')).toHaveValue(pageId)
+    const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+
+    // 2. プレビューの中の枠をクリックするとパネルが出る（リンクの中の枠は span なので data-testid で押す）
+    await preview.getByTestId(`editable-slot-${key}`).click()
+    const panel = page.getByTestId('page-editor-panel')
+    await expect(panel.getByRole('heading', { name: heading })).toBeVisible()
+
+    // 3. 画像をアップロードすると、プレビューと件数に反映される（保存はまだ）
+    await panel.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+    await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+    await expect(page.getByTestId(`page-editor-slot-${key}`)).toContainText('変更あり')
+    await expect(preview.locator(imageSelector).first()).toHaveAttribute('src', UPLOADED_URL)
+
+    // 4. 保存すると件数が 0 に戻り、保存ボタンは押せなくなる
+    await page.getByTestId('page-editor-save').click()
+    await expect(page.getByText('1 件を保存しました。公開ページに反映されます。')).toBeVisible()
+    await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません')
+    await expect(page.getByTestId('page-editor-save')).toBeDisabled()
+  })
+}
+
+test('E2E-AF-16: 公式トップでブランド紹介の写真を差し替えると、Our Brands に移っても草稿が残り共通の案内が出て、まとめて保存できる', /**
+   * 公式サイトのトップで official-brand-hue に画像を入れ、Our Brands に切り替えてもプレビューに草稿が出ること、
+   * パネルに共通の案内が出ること、保存で1件になることを確かめる。
+   * @param page 操作・検証対象の Playwright ページ
+   * @returns {Promise<void>} すべての確認が終わったら解決する
+   */
+  async ({ page }) => {
+  await page.goto('/admin/page-editor/official')
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません', { timeout: 30000 })
+  const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+  // 1. トップのブランドの帯の HUE のカードの枠を選び、画像を入れる
+  await preview.getByTestId('editable-slot-official-brand-hue').click()
+  const panel = page.getByTestId('page-editor-panel')
+  await expect(page.getByTestId('page-editor-panel-shared')).toHaveText('この写真は 公式サイト の他のページでも使われます（トップページ・Our Brands）。')
+  await panel.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await expect(preview.getByTestId('editable-slot-official-brand-hue').locator('..').locator('img').first()).toHaveAttribute('src', UPLOADED_URL)
+  // 2. Our Brands に移っても、同じ枠の草稿がプレビューに出て、パネルも開いたまま
+  await page.getByTestId('page-editor-page-select').selectOption('brands')
+  await expect(page).toHaveURL(/\/admin\/page-editor\/official\/brands$/)
+  await expect(preview.locator('.our-brand-card--3 img.our-brand-card-photo')).toHaveAttribute('src', UPLOADED_URL)
+  await expect(panel.getByRole('heading', { name: 'ブランド紹介の写真（HUE）' })).toBeVisible()
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+  // 3. 保存すると1件を保存する
+  await page.getByTestId('page-editor-save').click()
+  await expect(page.getByText('1 件を保存しました。公開ページに反映されます。')).toBeVisible()
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません')
+})
+
+/**
+ * HUE のサブページの記事側の写真（.hue-subpage-entry-image）の中に span で出す2つ目の枠が、写真全体を覆うこと。
+ * 写真番号用の指定（.hue-subpage-entry-image > span の top・left）が枠に当たってずれないことを確かめる（Choose の 03・Living の 04）。
+ */
+for (const [id, pageId, key] of [
+  ['E2E-AF-17', 'choose', 'hue-color-03'],
+  ['E2E-AF-18', 'living', 'hue-color-04'],
+] as const) {
+  test(`${id}: HUE ${pageId} の記事側の ${key} の枠は写真全体に重なる`, /**
+     * プレビューの中で、記事側の写真の figure と、その中の枠（span）の位置・大きさが一致することを確かめる。
+     * @param page 操作・検証対象の Playwright ページ
+     * @returns {Promise<void>} すべての確認が終わったら解決する
+     */
+    async ({ page }) => {
+    await page.goto(`/admin/page-editor/hue/${pageId}`)
+    await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません', { timeout: 30000 })
+    const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+    // 記事側の写真の中の枠（見出しの写真と同じなので2つ目の枠 = span）
+    const target = preview.locator(`.hue-subpage-entry-image > .page-edit-target[data-slot-key="${key}"]`)
+    // 親の一覧より iframe の遅延読み込みが遅れるため、対象枠の描画完了を待つ。
+    await expect(target).toHaveCount(1, { timeout: 30000 })
+    expect(await target.evaluate((el) => el.tagName)).toBe('SPAN')
+    // 1. 枠と写真（親の figure）の位置・大きさを、プレビューの中の座標で測る
+    const boxes = await target.evaluate((el) => {
+      const own = el.getBoundingClientRect()
+      const figure = (el.parentElement as HTMLElement).getBoundingClientRect()
+      return { own: [own.left, own.top, own.width, own.height], figure: [figure.left, figure.top, figure.width, figure.height] }
+    })
+    // 2. 写真に大きさがあり、枠が写真とずれずに重なる（1px までの誤差は許す）
+    expect(boxes.figure[2]).toBeGreaterThan(50)
+    expect(boxes.figure[3]).toBeGreaterThan(50)
+    boxes.own.forEach((value, index) => expect(Math.abs(value - boxes.figure[index])).toBeLessThanOrEqual(1))
+  })
+}

@@ -16,7 +16,7 @@ export function createSiteAssetsApi(request: JsonRequest, authRequest: JsonReque
     /** 公開ページ用の画像 URL を取得する */
     get: (key: string) => request<SiteAsset>(`/site-assets/${encodeURIComponent(key)}`),
     /**
-     * キーの頭が prefix のサイト画像をまとめて取得する（例: list('habitat-') で Habitat Oides の11枠）。
+     * キーの頭が prefix のサイト画像をまとめて取得する（例: list('habitat-') で Habitat Oides の14枠）。
      * 未設定の枠も url: '' で含まれる
      */
     list: (prefix: string) => request<SiteAsset[]>(`/site-assets?prefix=${encodeURIComponent(prefix)}`),

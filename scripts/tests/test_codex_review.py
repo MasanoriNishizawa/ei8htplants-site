@@ -81,7 +81,7 @@ class TestCodexReviewScript(unittest.TestCase):
         # self.tools: 必要なコマンドへのシンボリックリンクだけを置いたフォルダ
         self.tools = self.tmp / "tools"
         self.tools.mkdir()
-        for name in ("bash", "git", "sed", "cat", "date", "mktemp", "mv", "mkdir"):
+        for name in ("bash", "git", "sed", "cat", "date", "mktemp", "mv", "mkdir", "tail"):
             found = shutil.which(name)
             self.assertIsNotNone(found, f"{name} が見つかりません")
             (self.tools / name).symlink_to(found)
@@ -163,6 +163,8 @@ class TestCodexReviewScript(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("Codex の実行に失敗しました", result.stderr)
         self.assertNotIn("指摘なし", result.stdout)
+        # 失敗の原因を追えるよう、途中経過の末尾（スタブのエラー出力）を表示する
+        self.assertIn("stub failure", result.stderr)
 
     def test読み取り専用で動かし補足と観点を指示文に入れる(self):
         """read-only で動かし、空白を含む補足・観点がそのまま指示文に入り、最終報告だけが表示される。"""
@@ -180,6 +182,11 @@ class TestCodexReviewScript(unittest.TestCase):
         # 3. 最終報告だけが表示され、途中経過は出ない
         self.assertIn("指摘なし（スタブ）", result.stdout)
         self.assertNotIn("途中経過", result.stdout)
+        self.assertNotIn("途中経過", result.stderr)
+        # 途中経過は画面に出さず、結果と同じ名前の .log に残す
+        logs = list((self.repo / "tmp" / "codex-review").glob("*.log"))
+        self.assertEqual(len(logs), 1)
+        self.assertIn("途中経過", logs[0].read_text())
         self.assertIn("tmp/codex-review/", result.stdout)
 
     def test短いコミットIDは完全なIDにして渡す(self):

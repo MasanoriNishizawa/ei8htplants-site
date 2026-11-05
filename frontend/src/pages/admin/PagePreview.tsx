@@ -8,14 +8,27 @@ import {
   type PageEditorSelectMessage,
   type PageImageEditValue,
 } from '../../lib/pageImageEdit'
-import { findPageImageSlot, isPageImageBrand, PAGE_IMAGE_BRANDS, type PageImageBrand } from '../../lib/pageImageSlots'
+import {
+  findPageImagePage,
+  isPageImageBrand,
+  PAGE_IMAGE_HOME_PAGE,
+  type PageImageBrand,
+  type PageImagePage,
+} from '../../lib/pageImageSlots'
 import { habitatOidesSite } from '../../sites/habitat-oides/site'
 import { hueSite } from '../../sites/hue/site'
+// プレビューの中でだけ止める動き（.page-edit-preview の中のマーキーなど）の CSS。枠の CSS と同じファイルに書いている
+import '../../components/pageImageSlotTarget.css'
 
-// 公開ページ（トップページ）の部品。公開サイトと同じものを、開いたときに別ファイルとして読み込む
+// 公開ページの部品。公開サイトと同じものを、開いたときに別ファイルとして読み込む
 const Ei8htPlants = lazy(() => import('../brands/Ei8htPlants'))
+const Ei8htPlantsAbout = lazy(() => import('../brands/Ei8htPlantsAbout'))
 const HabitatOides = lazy(() => import('../brands/HabitatOides'))
+const HabitatOidesWorkshop = lazy(() => import('../brands/HabitatOidesWorkshop'))
 const Hue = lazy(() => import('../brands/Hue'))
+const HueEditorialPage = lazy(() => import('../brands/HueEditorialPage'))
+const OfficialHome = lazy(() => import('../Home'))
+const OurBrands = lazy(() => import('../OurBrands'))
 
 /**
  * 親（編集画面）へメッセージを送る。iframe の中で開いたときだけ送り、送り先は同じオリジンに限る。
@@ -37,25 +50,50 @@ function toStringRecord(value: Record<string, unknown>): Record<string, string> 
 }
 
 /**
- * キーが、そのブランドのトップページの枠のキーかを確かめる（親から届いたキーをそのまま使わないため）。
- * 1. findPageImageSlot で、定義にある枠のキーかを確かめる
- * 2. その枠が、プレビューしているブランドの枠の一覧に入っているかを確かめる
- * @param brand - プレビューしているブランド
+ * キーが、プレビューしているページの枠のキーかを確かめる（親から届いたキーをそのまま使わないため）。
+ * ほかのブランド・同じブランドのほかのページだけにある枠のキーは使わない。
+ * @param page - プレビューしているページの定義
  * @param key - 確かめるキー
- * @returns このブランドの枠のキーなら true
+ * @returns このページの枠のキーなら true
  */
-function isSlotKeyOfBrand(brand: PageImageBrand, key: string): boolean {
-  // 1. 3ブランドのどこかの枠の定義にあるか
-  const slot = findPageImageSlot(key)
-  if (!slot) return false
-  // 2. そのブランドの枠か（ほかのブランドの枠のキーは使わない）
-  return PAGE_IMAGE_BRANDS[brand].slots.some((item) => item.key === slot.key)
+function isSlotKeyOfPage(page: PageImagePage, key: string): boolean {
+  return page.slots.some((item) => item.key === key)
+}
+
+/**
+ * ブランドとページから、プレビューに出す公開ページの部品を選ぶ。
+ * @param brand - プレビューするブランド
+ * @param pageId - プレビューするページの識別子（lib/pageImageSlots.ts の定義にあるもの）
+ * @returns 公開ページの React 要素。定義にない組み合わせなら null
+ */
+function renderPage(brand: PageImageBrand, pageId: string): ReactNode {
+  // 1. ei8ht plants: トップ・About
+  if (brand === 'ei8htplants') {
+    if (pageId === 'home') return <Ei8htPlants />
+    if (pageId === 'about') return <Ei8htPlantsAbout />
+  }
+  // 2. Habitat Oides: トップ・Workshop
+  if (brand === 'habitat-oides') {
+    if (pageId === 'home') return <HabitatOides />
+    if (pageId === 'workshop') return <HabitatOidesWorkshop />
+  }
+  // 3. HUE: トップと、読みものの3ページ（About・Choose・Living。部品は1つで、page で出し分ける）
+  if (brand === 'hue') {
+    if (pageId === 'home') return <Hue />
+    if (pageId === 'about' || pageId === 'choose' || pageId === 'living') return <HueEditorialPage page={pageId} />
+  }
+  // 4. 公式サイト: トップ（/official）・Our Brands（/official/brands）
+  if (brand === 'official') {
+    if (pageId === 'home') return <OfficialHome />
+    if (pageId === 'brands') return <OurBrands />
+  }
+  return null
 }
 
 /**
  * 属性セレクターに入れる文字列をエスケープする。
  * CSS.escape があればそれを使い、ない環境（テストの jsdom など）ではそのまま返す。
- * 呼び出す前に isSlotKeyOfBrand で枠のキー（英数字とハイフンだけ）だと確かめているので、そのままでも壊れない。
+ * 呼び出す前に isSlotKeyOfPage で枠のキー（英数字とハイフンだけ）だと確かめているので、そのままでも壊れない。
  * @param value - エスケープする文字列
  * @returns セレクターに入れてよい文字列
  */
@@ -80,10 +118,11 @@ interface BrandFrameProps {
  * @returns ブランドの外枠で包んだページ
  */
 function BrandFrame({ brand, children }: BrandFrameProps) {
-  // 1. ei8ht plants: 公開サイトのレイアウト（components/Layout.tsx）の main と同じクラス。ヘッダー分の上の余白はなくす
-  if (brand === 'ei8htplants') {
+  // 1. ei8ht plants・公式サイト: 公開サイトのレイアウト（components/Layout.tsx）の main と同じクラス。ヘッダー分の上の余白はなくす
+  //    page-edit-preview はプレビューの中でだけ動きを止める CSS（components/pageImageSlotTarget.css）の目印
+  if (brand === 'ei8htplants' || brand === 'official') {
     return (
-      <main className="site-main" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className="site-main page-edit-preview" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {children}
       </main>
     )
@@ -93,7 +132,7 @@ function BrandFrame({ brand, children }: BrandFrameProps) {
   // ブランドの外枠に渡す CSS 変数（テーマ色と、ヘッダーの高さ 0）
   const frameStyle = { '--brand-accent': site.accent, '--brand-site-header-height': '0px' } as CSSProperties
   return (
-    <div className={`brand-site brand-site-${site.key}`} style={frameStyle}>
+    <div className={`brand-site brand-site-${site.key} page-edit-preview`} style={frameStyle}>
       {/* ヘッダーがないので、上の余白（padding-top）をなくす */}
       <main className="brand-site-main" style={{ paddingTop: 0 }}>
         {children}
@@ -103,19 +142,24 @@ function BrandFrame({ brand, children }: BrandFrameProps) {
 }
 
 /**
- * 管理画面「ページ画像の編集」の iframe の中に出す、ブランドのトップページのプレビュー（/admin/page-preview/:brand）。
+ * 管理画面「ページ画像の編集」の iframe の中に出す、ブランドのページのプレビュー（/admin/page-preview/:brand/:page）。
+ * :page を省いたときはトップページ（home）を出す。定義にないブランド・ページなら案内だけを出す。
  * 管理画面のログインが必要なルートの下に置くが、AdminLayout のメニューは出さず、ページ本体だけを出す。
  * 1. 公開ページの部品をそのまま使い、PageImageEditContext で「編集モード」にする
- * 2. 親（編集画面）から postMessage で草稿の URL と選んでいる枠を受け取る（同じオリジン・親の window からだけ）
+ * 2. 親（編集画面）から postMessage で草稿の URL と選んでいる枠を受け取る（同じオリジン・親の window から・同じブランドとページのものだけ）
  * 3. 準備ができたら親に知らせ、枠をクリックしたら親に「この枠を選んだ」と知らせる
  * 4. 枠と、許可した操作（Habitat のスライダーの前後のボタン）以外のクリックを止め、リンクで移動しないようにする
  * @returns プレビューの React 要素
  */
 export default function PagePreview() {
-  // URL の :brand
-  const { brand: brandParam } = useParams()
+  // URL の :brand と :page
+  const { brand: brandParam, page: pageParam } = useParams()
   // プレビューするブランド（URL が違えば null）
   const brand = isPageImageBrand(brandParam) ? brandParam : null
+  // プレビューするページの定義（:page を省いたら home。ブランドが違う・定義にないページなら null）
+  const pageConfig = brand ? findPageImagePage(brand, pageParam ?? PAGE_IMAGE_HOME_PAGE) ?? null : null
+  // プレビューするページの識別子（メッセージの確かめに使う。ページが違えば null）
+  const pageId = pageConfig?.id ?? null
   // 親から受け取った草稿の URL（キー → URL）。受け取るまでは空（保存した値のまま表示する）
   const [draftUrls, setDraftUrls] = useState<Record<string, string>>({})
   // 選んでいる枠のキー
@@ -125,29 +169,30 @@ export default function PagePreview() {
 
   // 1. 親からのメッセージを受け取り、準備ができたことを知らせる
   useEffect(() => {
-    if (!brand) return
+    if (!brand || !pageConfig) return
     /**
-     * 親からのメッセージを受け取る。同じオリジン・親の window から来た、このブランドの state のメッセージだけを使う。
-     * 1. 送り元・形・ブランドを確かめる
+     * 親からのメッセージを受け取る。同じオリジン・親の window から来た、このブランド・このページの state のメッセージだけを使う。
+     * 1. 送り元・形・ブランド・ページを確かめる
      * 2. 草稿の URL を受け取る（文字列の値だけ）
-     * 3. 選んでいる枠のキーは、このブランドの枠のキーのときだけ使う（合わなければ選んでいない扱いにし、スクロールもしない）
+     * 3. 選んでいる枠のキーは、このページの枠のキーのときだけ使う（合わなければ選んでいない扱いにし、スクロールもしない）
      * @param event - 受け取ったメッセージのイベント
      * @returns なし
      */
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== window.parent) return
-      if (!isPageEditorMessage(event.data) || event.data.type !== 'page-editor:state' || event.data.brand !== brand) return
+      if (!isPageEditorMessage(event.data) || event.data.type !== 'page-editor:state') return
+      if (event.data.brand !== brand || event.data.page !== pageConfig.id) return
       setDraftUrls(toStringRecord(event.data.draftUrls))
-      // このブランドの枠のキーだと確かめた、選んでいる枠のキー（合わないキー・null は null）
-      const key = event.data.selectedKey !== null && isSlotKeyOfBrand(brand, event.data.selectedKey) ? event.data.selectedKey : null
+      // このページの枠のキーだと確かめた、選んでいる枠のキー（合わないキー・null は null）
+      const key = event.data.selectedKey !== null && isSlotKeyOfPage(pageConfig, event.data.selectedKey) ? event.data.selectedKey : null
       setSelectedKey(key)
       if (event.data.reveal && key) setRevealKey(key)
     }
     window.addEventListener('message', onMessage)
     // 受け取れるようになったので、親に「準備ができた」と知らせる（親はこれを受けて草稿を送る）
-    postToParent({ type: 'page-editor:ready', brand })
+    postToParent({ type: 'page-editor:ready', brand, page: pageConfig.id })
     return () => window.removeEventListener('message', onMessage)
-  }, [brand])
+  }, [brand, pageConfig])
 
   // 2. 枠と許可した操作以外のクリック・送信を止める（ページのリンク・ボタンで移動しないように）
   useEffect(() => {
@@ -172,16 +217,16 @@ export default function PagePreview() {
   }, [])
 
   // 3. 親の枠の一覧から選んだときは、その枠が見えるところまでスクロールする（描画が終わってから）。
-  //    キーがこのブランドの枠のキーでなければ何もしない。セレクターに入れるキーは CSS.escape でエスケープする
+  //    キーがこのページの枠のキーでなければ何もしない。セレクターに入れるキーは CSS.escape でエスケープする
   useEffect(() => {
-    if (!revealKey || !brand || !isSlotKeyOfBrand(brand, revealKey)) return
+    if (!revealKey || !pageConfig || !isSlotKeyOfPage(pageConfig, revealKey)) return
     const frame = window.requestAnimationFrame(() => {
       const element = document.querySelector(`[data-page-edit-target][data-slot-key="${escapeSelectorValue(revealKey)}"]`)
       element?.scrollIntoView({ block: 'center', behavior: 'auto' })
       setRevealKey(null)
     })
     return () => window.cancelAnimationFrame(frame)
-  }, [revealKey, brand])
+  }, [revealKey, pageConfig])
 
   /**
    * プレビューの中で枠をクリックしたとき、選んだ枠にして親に知らせる。
@@ -190,8 +235,8 @@ export default function PagePreview() {
    */
   const onSelectSlot = useCallback((key: string) => {
     setSelectedKey(key)
-    if (brand) postToParent({ type: 'page-editor:select', brand, key })
-  }, [brand])
+    if (brand && pageId) postToParent({ type: 'page-editor:select', brand, page: pageId, key })
+  }, [brand, pageId])
 
   // 公開ページに配る編集モードの値（中身が変わったときだけ作り直す）
   const editValue = useMemo<PageImageEditValue>(() => ({
@@ -201,7 +246,7 @@ export default function PagePreview() {
     onSelectSlot,
   }), [draftUrls, selectedKey, onSelectSlot])
 
-  if (!brand) {
+  if (!brand || !pageConfig) {
     return <p style={{ padding: 24, fontSize: 15 }}>プレビューできないページです。</p>
   }
 
@@ -209,9 +254,7 @@ export default function PagePreview() {
     <PageImageEditContext.Provider value={editValue}>
       <BrandFrame brand={brand}>
         <Suspense fallback={<PageLoading />}>
-          {brand === 'ei8htplants' && <Ei8htPlants />}
-          {brand === 'habitat-oides' && <HabitatOides />}
-          {brand === 'hue' && <Hue />}
+          {renderPage(brand, pageConfig.id)}
         </Suspense>
       </BrandFrame>
     </PageImageEditContext.Provider>

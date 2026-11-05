@@ -9,6 +9,7 @@
  * 5. パララックスのオブジェクト: 画像のない枠は habitat-placeholder-<key> を出す
  * 6. prefers-reduced-motion: スプラッシュなし・自動切り替えなし・画像は最初から表示・パララックスなし
  * 7. 画像の優先順（保存した URL → localSrc → placeholder）と、一括取得に失敗しても表示を続けること
+ * 8. ページの写真（考え方の写真 habitat-world・ワークショップの欄の写真 habitat-workshop-photo）の優先順と、編集モードの枠
  *
  * api はモックにして本番には接続しない。React Router と useT はモックしない。
  */
@@ -401,6 +402,72 @@ describe('HabitatOides トップページ', () => {
       await renderPage(editValue({ onSelectSlot }))
       fireEvent.click(screen.getByTestId('editable-slot-habitat-object-05'))
       expect(onSelectSlot).toHaveBeenCalledWith('habitat-object-05')
+    })
+  })
+
+  describe('ページの写真（habitat-world・habitat-workshop-photo）', () => {
+    /** 考え方の写真の代替テキスト */
+    const WORLD_ALT = 'ハビタットスタイルの制作風景'
+    /** 2枠の localSrc */
+    const PHOTO_LOCAL = '/img/habitatOides/habitat_oides_workshop_main.jpg'
+    /** ワークショップの欄の写真（飾りなので alt は空） */
+    const workshopPhoto = () => document.querySelector('.habitat-workshop-image img')
+
+    beforeEach(() => {
+      // スプラッシュを出さない（ページの本文だけを確かめる）
+      window.sessionStorage.setItem(HABITAT_SPLASH_STORAGE_KEY, '1')
+    })
+
+    it('未保存なら2枠とも localSrc（ワークショップの写真）を出す', async () => {
+      await renderPage()
+      expect(screen.getByRole('img', { name: WORLD_ALT })).toHaveAttribute('src', PHOTO_LOCAL)
+      expect(workshopPhoto()).toHaveAttribute('src', PHOTO_LOCAL)
+    })
+
+    it('保存した URL があれば、それぞれの枠でそちらを優先する（片方だけ保存なら、もう片方は localSrc のまま）', async () => {
+      listMock().mockResolvedValue([{ key: 'habitat-world', url: '/saved-world.jpg' }, { key: 'habitat-workshop-photo', url: '' }])
+      await renderPage()
+      expect(screen.getByRole('img', { name: WORLD_ALT })).toHaveAttribute('src', '/saved-world.jpg')
+      expect(workshopPhoto()).toHaveAttribute('src', PHOTO_LOCAL)
+    })
+
+    it('Workshop ページの枠（habitat-workshop-main）の URL はトップページの写真に使わない', async () => {
+      listMock().mockResolvedValue([{ key: 'habitat-workshop-main', url: '/saved-main.jpg' }])
+      await renderPage()
+      expect(screen.getByRole('img', { name: WORLD_ALT })).toHaveAttribute('src', PHOTO_LOCAL)
+      expect(workshopPhoto()).toHaveAttribute('src', PHOTO_LOCAL)
+    })
+
+    it('ふつうの公開ページでは2枠とも編集の枠を出さない', async () => {
+      await renderPage()
+      expect(screen.queryByTestId('editable-slot-habitat-world')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('editable-slot-habitat-workshop-photo')).not.toBeInTheDocument()
+      expect(document.querySelector('.habitat-workshop-image')).not.toHaveClass('page-edit-anchor')
+    })
+
+    it('編集モードでは2枠にボタンが出て、草稿の URL を出し、クリックで枠を選べる', async () => {
+      const onSelectSlot = vi.fn()
+      await renderPage({
+        editMode: true, selectedKey: null, onSelectSlot,
+        draftUrls: { 'habitat-world': '/draft-world.jpg', 'habitat-workshop-photo': '/draft-photo.jpg' },
+      })
+      // 1. 草稿の URL が出る
+      expect(screen.getByRole('img', { name: WORLD_ALT })).toHaveAttribute('src', '/draft-world.jpg')
+      expect(workshopPhoto()).toHaveAttribute('src', '/draft-photo.jpg')
+      // 2. ワークショップの欄は枠を重ねる基準（page-edit-anchor）になる
+      expect(document.querySelector('.habitat-workshop-image')).toHaveClass('page-edit-anchor')
+      // 3. 2枠のボタンを押すと、それぞれのキーが渡る
+      fireEvent.click(screen.getByRole('button', { name: '考え方の写真を変更' }))
+      fireEvent.click(screen.getByRole('button', { name: 'ワークショップの欄の写真を変更' }))
+      expect(onSelectSlot).toHaveBeenNthCalledWith(1, 'habitat-world')
+      expect(onSelectSlot).toHaveBeenNthCalledWith(2, 'habitat-workshop-photo')
+    })
+
+    it('編集モードで草稿を空文字にすると localSrc に戻る（空の枠にはならない）', async () => {
+      listMock().mockResolvedValue([{ key: 'habitat-world', url: '/saved-world.jpg' }])
+      await renderPage({ editMode: true, selectedKey: null, onSelectSlot: vi.fn(), draftUrls: { 'habitat-world': '' } })
+      expect(screen.getByRole('img', { name: WORLD_ALT })).toHaveAttribute('src', PHOTO_LOCAL)
+      expect(screen.queryByTestId('habitat-placeholder-habitat-world')).not.toBeInTheDocument()
     })
   })
 })

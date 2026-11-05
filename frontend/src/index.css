@@ -1426,22 +1426,6 @@ textarea,
 /* 管理画面「ページ画像の編集」のプレビュー（編集モード）だけ: 重ねる枠（.page-edit-target・position:absolute）が
    写真の切り抜きの中に収まるよう、切り抜きを位置の基準にする。公開ページではこのクラスを付けないので見た目は変わらない */
 .hue-photo-shape--edit { position: relative; }
-/* 管理画面「サイトの写真」: 画像設定カードを幅に応じた列数で並べ、プレビューを丸みのある切り抜きで表示する */
-.admin-site-image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; }
-.admin-site-image-card { padding: 20px; background: #fff; border: 1px solid #dddde8; border-radius: 6px; }
-.admin-site-image-preview { width: min(100%, 250px); aspect-ratio: 1 / .76; display: grid; place-items: center; margin: 0 auto 16px; overflow: hidden; border-radius: 48% 52% 44% 56% / 48% 42% 58% 52%; transform: rotate(calc(var(--photo-index) * 4deg)); }
-.admin-site-image-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.admin-site-image-preview--empty { color: #777; background: #f5f3ef; font-size: var(--brand-type-navigation); }
-/* 管理画面「Habitat Oides 画像」のプレビュー枠: 画像の縦横比を保ってカードの幅に収め、透過画像が見えるよう薄い格子の背景を敷く */
-.admin-habitat-image-preview { width: 100%; aspect-ratio: 4 / 3; display: grid; place-items: center; margin: 0 0 16px; overflow: hidden; border: 1px solid #e4e2dc; border-radius: 4px; background: #f5f3ef repeating-conic-gradient(#ebe8e1 0 25%, transparent 0 50%) 0 0 / 20px 20px; }
-/* 一番上の画像のプレビュー: 横長の写真なので 16:10 にし、枠いっぱいに切り抜いて出す */
-.admin-habitat-image-preview--hero { aspect-ratio: 16 / 10; }
-.admin-habitat-image-preview--hero img { width: 100%; height: 100%; object-fit: cover; }
-/* オブジェクトのプレビュー: 透過画像の全体が見えるよう、切り抜かずに収める */
-.admin-habitat-image-preview img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
-/* 画像がない枠: 「未設定」と、プロジェクト内の画像の有無を中央に縦に並べる */
-.admin-habitat-image-preview--empty { align-content: center; gap: 6px; padding: 12px; color: #666; background: #f5f3ef; text-align: center; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
-.admin-habitat-image-preview--empty strong { color: #444; font-size: 15px; font-weight: 500; }
 /* ---- 管理画面「ページ画像の編集」（pages/admin/PageEditor.tsx） ---- */
 /* ブランドのタブの並び: 下に線を引き、タブを横に並べる（狭い幅では折り返す） */
 .page-editor-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 16px; border-bottom: 1px solid #dddde8; }
@@ -1449,6 +1433,11 @@ textarea,
 .page-editor-tab { padding: 10px 16px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: #555; font-size: 15px; text-decoration: none; }
 .page-editor-tab:hover { color: #1c2417; }
 .page-editor-tab.is-active { border-bottom-color: #1c2417; color: #1c2417; font-weight: 600; }
+/* 編集するページの選択欄: 長い URL でも画面幅に収め、公開 URL は折り返して表示する */
+.page-editor-pages { display: grid; gap: 8px; margin: 0 0 18px; min-width: 0; }
+.page-editor-pages-label { color: #444; font-size: 14px; font-weight: 500; }
+.page-editor-page-select { width: 100%; min-width: 0; max-width: 100%; padding: 10px 12px; border: 1px solid #c9c9d6; border-radius: 4px; background: #fff; color: #333; font-size: 15px; }
+.page-editor-page-url { color: #777; font-size: 13px; overflow-wrap: anywhere; }
 /* 上の操作の帯: 左に表示幅の切り替え、右に変更の件数と保存ボタン（狭い幅では折り返す） */
 .page-editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
 /* 表示幅の切り替え: 2つのボタンをつなげた形にする */
@@ -1492,6 +1481,8 @@ textarea,
 .page-editor-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .page-editor-panel-head h2 { margin: 0 0 6px; font-size: 18px; font-weight: 500; }
 .page-editor-panel-note { margin: 0 0 12px; color: #666; font-size: 13px; line-height: 1.7; }
+/* パネルの「他のページでも使われます」の案内: 同じ枠を使うページがあると分かるよう、薄い青の帯で出す */
+.page-editor-panel-shared { margin: 0 0 12px; padding: 8px 10px; border-radius: 4px; background: #eaf1fc; color: #1f4f9c; font-size: 13px; line-height: 1.7; }
 /* 今の画像のプレビュー: 縦横比を保って収め、透過画像が見えるよう薄い格子の背景を敷く */
 .page-editor-panel-preview { display: grid; place-items: center; aspect-ratio: 4 / 3; margin: 0 0 8px; overflow: hidden; border: 1px solid #e4e2dc; border-radius: 4px; background: #f5f3ef repeating-conic-gradient(#ebe8e1 0 25%, transparent 0 50%) 0 0 / 20px 20px; }
 .page-editor-panel-preview img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }

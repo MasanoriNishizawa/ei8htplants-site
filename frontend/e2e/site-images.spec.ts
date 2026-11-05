@@ -1,20 +1,25 @@
 import { test, expect } from '@playwright/test'
 
-test('HUEの6つの色見本を管理画面から同じ形の写真に差し替えられる', /**
-   * 「/admin/site-images」を開く、390×844px幅で表示する、「写真を保存」をクリックする、「サイト画像管理」が画面に表示されること、「写真 1 の切り抜きプレビュー」が画面に表示されることを確認する。
+// 古い「サイト画像」の URL（/admin/site-images）は「ページ画像の編集」の HUE に転送される。
+// 転送先で HUE の写真を差し替えて保存し、同じタブで開いた HUE のトップページに反映されることを確かめる。
+// API は MSW のモックで受ける（保存値はこのタブのメモリにだけ持つので、ページは再読み込みせずに移る）。
+
+test('E2E-V-01: 古いサイト画像の URL はページ画像の編集（HUE）へ転送され、保存した写真が HUE のトップの6つの色見本に出る', /**
+   * /admin/site-images を開くと /admin/page-editor/hue に転送されることを確かめ、hue-color-01 に画像を入れて保存する。
+   * そのあと同じタブで /hue に移り、6つの切り抜き枠と保存した写真1枚が出ること、PC は6列・スマホは3列で形が保たれることを確かめる。
    * @param page 操作・検証対象の Playwright ページ。
    * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
    */
   async ({ page }) => {
-  // 1. 管理画面で写真をアップロードして保存する
+  // 1. 古い URL を開くと HUE の編集画面へ転送され、写真をアップロードして保存できる
   await page.goto('/admin/site-images')
-  await expect(page.getByRole('heading', { name: 'サイト画像管理' })).toBeVisible()
-  await expect(page.locator('.admin-site-image-card')).toHaveCount(6)
-
-  await page.locator('#hue-color-01-image').setInputFiles('public/img/habitatOides/habitat_oides_hero.jpg')
-  await expect(page.getByRole('img', { name: '写真 1 の切り抜きプレビュー' })).toBeVisible()
-  await page.locator('.admin-site-image-card').first().getByRole('button', { name: '写真を保存' }).click()
-  await expect(page.getByRole('status')).toHaveText('写真を保存しました。')
+  await expect(page).toHaveURL(/\/admin\/page-editor\/hue$/)
+  await expect(page.getByRole('heading', { name: 'ページ画像の編集' })).toBeVisible()
+  await page.getByTestId('page-editor-slot-hue-color-01').click()
+  await page.getByLabel('画像を選ぶ').setInputFiles('public/img/habitatOides/habitat_oides_hero.jpg')
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+  await page.getByTestId('page-editor-save').click()
+  await expect(page.getByText('1 件を保存しました。公開ページに反映されます。')).toBeVisible()
 
   // 2. デスクトップでは6つの切り抜き枠と、保存した写真が1枚だけ表示されることを確かめる。
   await page.evaluate(() => {

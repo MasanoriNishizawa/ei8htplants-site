@@ -30,9 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: ANALYTICS_URL, label: '分析' },
   { to: '/admin/events', label: 'イベント' },
   { to: '/admin/gallery', label: 'ギャラリー' },
-  { to: '/admin/site-images', label: 'サイト画像' },
-  { to: '/admin/habitat-images', label: 'Habitat Oides 画像' },
-  // 3ブランドのトップページを見ながら、画像をクリックして差し替える編集画面（開くとブランドのタブで選べる）
+  // 3ブランドと公式サイトの固定画像を、ページを見ながら差し替える統合編集画面
   { to: '/admin/page-editor', label: 'ページ画像の編集' },
   { to: '/admin/stockists', label: '取扱店' },
   { to: '/admin/reservations', label: 'WS予約' },
@@ -76,7 +74,7 @@ const BARE_PATH_PREFIX = '/admin/page-preview/'
 
 /**
  * 管理画面全体のレイアウト。Supabase 認証を担い、未認証時はログインフォームを表示する
- * 「ページ画像の編集」のプレビュー（/admin/page-preview/:brand）は、ログインを確かめたうえで、メニューを出さずにページ本体だけを出す
+ * 「ページ画像の編集」のプレビュー（/admin/page-preview/:brand/:page?）は、ログインを確かめたうえで、メニューを出さずにページ本体だけを出す
  * @returns 確認中は何も出さず、未ログインならログインフォーム、ログイン済みなら管理画面の枠（プレビューならページ本体だけ）
  */
 export default function AdminLayout() {

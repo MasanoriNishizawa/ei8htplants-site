@@ -15,6 +15,11 @@ interface PageImageSlotTargetProps {
    * クリックで同じ枠を選べるのは同じ
    */
   secondary?: boolean
+  /**
+   * true なら、リンク（a 要素）の中に置く枠。リンクの中にボタンを入れないよう span で出し、Tab でも選ばない。
+   * secondary と違い、本体の枠なので data-testid は付ける（キーボードでは編集画面の「枠の一覧」から選べる）
+   */
+  insideLink?: boolean
   /** 置き場所に合わせた追加のクラス（重なりの順などを変えるとき） */
   className?: string
 }
@@ -28,10 +33,11 @@ interface PageImageSlotTargetProps {
  * @param props.slotKey - 枠のキー
  * @param props.empty - 画像のない枠か
  * @param props.secondary - 同じ画像の2つ目以降の枠か
+ * @param props.insideLink - リンクの中に置く本体の枠か
  * @param props.className - 追加のクラス
  * @returns 編集モードなら枠のボタン、そうでなければ null
  */
-export default function PageImageSlotTarget({ slotKey, empty = false, secondary = false, className }: PageImageSlotTargetProps) {
+export default function PageImageSlotTarget({ slotKey, empty = false, secondary = false, insideLink = false, className }: PageImageSlotTargetProps) {
   // 編集モードの値（ふつうの公開ページでは null）
   const edit = usePageImageEdit()
   if (!edit?.editMode) return null
@@ -58,10 +64,18 @@ export default function PageImageSlotTarget({ slotKey, empty = false, secondary 
     edit.onSelectSlot(slotKey)
   }
 
-  // 2つ目以降の枠: 読み上げ・Tab の対象から外した span（リンクの中にボタンを入れないためでもある）
-  if (secondary) {
+  // 2つ目以降の枠・リンクの中の枠: 読み上げ・Tab の対象から外した span（リンクの中にボタンを入れないためでもある）。
+  // リンクの中の本体の枠だけは、テストで探せるよう data-testid を付ける
+  if (secondary || insideLink) {
     return (
-      <span className={classes} data-page-edit-target="" data-slot-key={slotKey} aria-hidden="true" onClick={select}>
+      <span
+        className={classes}
+        data-page-edit-target=""
+        data-slot-key={slotKey}
+        data-testid={secondary ? undefined : `editable-slot-${slotKey}`}
+        aria-hidden="true"
+        onClick={select}
+      >
         <span className="page-edit-target-label">{label}</span>
       </span>
     )

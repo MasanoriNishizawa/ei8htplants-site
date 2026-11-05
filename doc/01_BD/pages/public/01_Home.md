@@ -83,3 +83,23 @@
 | EventPreview の予約ボタン | `/official/reserve?event_id={id}` |
 
 ei8ht plants ブランド用ヘッダーの `Official Site` から `/official` に移動できる。公式サイト側のブランドリンクからはブランド固有ページへ移動する。
+
+## 写真の差し替え（2026-11-05 追加）
+
+このページと Our Brands（`/official/brands`）の次の写真は、管理画面の [PG-A24 ページ画像の編集](../admin/24_PageEditor.md)（「公式サイト」のタブ。「編集するページ」でトップページか Our Brands を選ぶ）で差し替えられる。
+
+| 枠の名前 | キー | 出る場所 | プロジェクト内の画像 |
+|---|---|---|---|
+| 公式トップのメインの写真 | `official-hero` | このページの一番上に、画面いっぱいに広げて出す写真（端が切れることがある） | `/img/ei8htPlants/ei8htplants_hero.jpg`（今までの写真） |
+| ブランド紹介の写真（ei8ht plants） | `official-brand-ei8ht` | このページの OUR BRANDS の帯のカードと、Our Brands のカード | `/img/ei8htPlants/ei8htplants_hero.jpg`（今までの写真） |
+| ブランド紹介の写真（Habitat Oides） | `official-brand-habitat` | 同上 | `/img/habitatOides/habitat_oides_workshop_main.jpg`（今までの写真） |
+| ブランド紹介の写真（HUE） | `official-brand-hue` | 同上 | なし |
+
+- 出る写真は、管理画面で保存した写真 → プロジェクト内の画像の順で決まる。何も保存していなければ、今までと同じ見た目になる
+- ブランド紹介の写真3枚は、このページと Our Brands で同じ枠を使う。変えると両方のページで変わる
+- HUE の写真を保存していないとき: このページの帯では今までどおり HUE のロゴを大きく出す。Our Brands では今までどおり HUE の色の写真 01（`hue-color-01`）を出す（Our Brands の HUE のカードは「ブランド紹介の写真（HUE）→ 色の写真 01」の順）
+- ページを開くと、4枠の保存済みの画像を1回でまとめて読む（`GET /api/site-assets?prefix=official-`）。読み込めなかったときは、プロジェクト内の画像を出す
+- 商品・記事・イベント・ギャラリーの写真は、それぞれの管理画面で登録した写真なので、この方法では変えない
+- 管理画面のプレビューの中では、ヒーローの出方の動き・ギャラリーの横に流れる動き・帯のカードが広がる動きを止める。帯は、選んでいるブランドの写真のカードを広げる（選んでいないときは先頭のカード）
+
+*最終更新: 2026-11-05（メインの写真とブランド紹介の写真を、管理画面「ページ画像の編集」で差し替えられるようにした）*

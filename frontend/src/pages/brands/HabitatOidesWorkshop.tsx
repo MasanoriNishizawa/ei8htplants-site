@@ -5,17 +5,29 @@ import { useSectionSpy } from '../../hooks/useSectionSpy'
 import { formatYen } from '../../lib/format'
 import { WS_FEE_YEN } from '../../lib/constants'
 import { siteForHost } from '../../lib/siteHost'
+import { usePageImageAssets } from '../../lib/usePageImageAssets'
+import { usePageImageEditMode } from '../../lib/pageImageEdit'
+import { HABITAT_WORKSHOP_MAIN_SLOT } from '../../lib/pageImageSlots'
+import PageImageSlotTarget from '../../components/PageImageSlotTarget'
 
 /** サブナビに並べるセクションの id（ページ内の section の id と同じ） */
 const SECTIONS = ['about', 'contents', 'flow', 'fee'] as const
 
 /**
- * Habitat Style Workshop 詳細ページ。内容・フロー・参加費のセクション別サブナビを提供する
+ * Habitat Style Workshop 詳細ページ。内容・フロー・参加費のセクション別サブナビを提供する。
+ * 「ワークショップについて」の写真（habitat-workshop-main）は、管理画面「ページ画像の編集」で保存した URL →
+ * プロジェクト内の画像（localSrc）の順で出す。管理画面のプレビュー（編集モード）では写真の上に枠を重ねる。
  * @returns ワークショップ詳細の画面
  */
 export default function HabitatOidesWorkshop() {
   // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
+  // 管理画面で保存した画像 URL（編集モードなら草稿）から、枠ごとの表示画像を返す関数（prefix=habitat- の一括取得）
+  const { resolve } = usePageImageAssets('habitat-oides')
+  // 管理画面のプレビュー（編集モード）か
+  const editMode = usePageImageEditMode()
+  // 「ワークショップについて」の写真の URL（保存した URL → localSrc の順）
+  const mainPhotoSrc = resolve(HABITAT_WORKSHOP_MAIN_SLOT.key) ?? HABITAT_WORKSHOP_MAIN_SLOT.localSrc ?? ''
   // サブナビで選択中のセクション・セクションに付ける ref・サブナビのスクロール処理（共通フック）
   const { active, sectionRef, scrollTo } = useSectionSpy(SECTIONS)
 
@@ -73,12 +85,17 @@ export default function HabitatOidesWorkshop() {
         <div style={{ padding: '72px 20px', maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 'var(--brand-type-label)', letterSpacing: 4, textTransform: 'uppercase', color: 'var(--c-muted)', fontWeight: 400, margin: '0 0 48px', paddingBottom: 16, borderBottom: '1px solid #dddde8' }}>{t('ワークショップについて', 'About Workshop')}</h2>
           <div className="wspage-about-grid">
-            <div style={{ aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: '#e8e0d4' }}>
-              <img
-                src="/img/habitatOides/habitat_oides_workshop_main.jpg"
-                alt={t('ハビタットスタイルのワークショップ', 'Habitat Style Workshop')}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
+            {/* 写真の枠（正方形に切り抜く）。編集モードのときだけ position: relative にして、重ねる枠の位置の基準にする */}
+            <div style={{ aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: '#e8e0d4', position: editMode ? 'relative' : undefined }}>
+              {mainPhotoSrc && (
+                <img
+                  src={mainPhotoSrc}
+                  alt={t('ハビタットスタイルのワークショップ', 'Habitat Style Workshop')}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              )}
+              {/* 編集モードのときだけ、写真の上に枠を重ねる（ふつうの公開ページでは何も出さない） */}
+              <PageImageSlotTarget slotKey={HABITAT_WORKSHOP_MAIN_SLOT.key} empty={!mainPhotoSrc} />
             </div>
             <div>
               <h2 style={{ fontSize: 'var(--brand-type-subheading)', fontWeight: 300, letterSpacing: '0.08em', color: 'var(--c-ink)', margin: '0 0 20px', lineHeight: 1.4 }}>

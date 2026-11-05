@@ -96,20 +96,45 @@ describe('MSW に無い API', () => {
   })
 })
 
-describe('MSW のサイト画像（一括取得・habitat- と ei8ht- のキー）', () => {
-  it('prefix=habitat- は11件をキーの昇順で返し、初期値は hero-01 と object-01 だけ URL がある', async () => {
+describe('MSW のサイト画像（一括取得・habitat-・ei8ht-・official- のキー）', () => {
+  it('prefix=habitat- は14件（動く画像11枠＋ページ写真3枠）をキーの昇順で返し、初期値は hero-01 と object-01 だけ URL がある', async () => {
     const { status, body } = await call('/api/site-assets?prefix=habitat-')
     expect(status).toBe(200)
     const list = body as { key: string; url: string }[]
-    expect(list).toHaveLength(11)
+    expect(list).toHaveLength(14)
+    expect(list.map(({ key }) => key)).toEqual(expect.arrayContaining(['habitat-world', 'habitat-workshop-photo', 'habitat-workshop-main']))
     expect(list.map(({ key }) => key)).not.toContain('habitat-sign')
     expect(list.map(({ key }) => key)).toEqual([...list.map(({ key }) => key)].sort())
     expect(list.filter(({ url }) => url).map(({ key }) => key)).toEqual(['habitat-hero-01', 'habitat-object-01'])
   })
 
-  it('prefix=ei8ht- は2件をどちらも空の URL で返す', async () => {
+  it('prefix=ei8ht- は3件（ei8ht-about-hero を含む）をキーの昇順ですべて空の URL で返す', async () => {
     const { body } = await call('/api/site-assets?prefix=ei8ht-')
-    expect(body).toEqual([{ key: 'ei8ht-hero', url: '' }, { key: 'ei8ht-wordmark', url: '' }])
+    expect(body).toEqual([
+      { key: 'ei8ht-about-hero', url: '' },
+      { key: 'ei8ht-hero', url: '' },
+      { key: 'ei8ht-wordmark', url: '' },
+    ])
+  })
+
+  it('prefix=official- は公式サイトの4件をキーの昇順ですべて空の URL で返し、1件ずつも取得・保存できる', async () => {
+    // 1. 一括取得は4件（ヒーロー1枠＋ブランド紹介3枠）
+    const { status, body } = await call('/api/site-assets?prefix=official-')
+    expect(status).toBe(200)
+    expect(body).toEqual([
+      { key: 'official-brand-ei8ht', url: '' },
+      { key: 'official-brand-habitat', url: '' },
+      { key: 'official-brand-hue', url: '' },
+      { key: 'official-hero', url: '' },
+    ])
+    // 2. 1件の取得と保存（ほかのテストに影響しないよう、最後に空へ戻す）
+    expect((await call('/api/site-assets/official-hero')).body).toEqual({ key: 'official-hero', url: '' })
+    const saved = await call('/api/site-assets/official-hero', { method: 'PUT', body: JSON.stringify({ url: '/hero.jpg' }) })
+    expect(saved).toEqual({ status: 200, body: { key: 'official-hero', url: '/hero.jpg' } })
+    expect((await call('/api/site-assets?prefix=official-')).body).toContainEqual({ key: 'official-hero', url: '/hero.jpg' })
+    await call('/api/site-assets/official-hero', { method: 'PUT', body: JSON.stringify({ url: '' }) })
+    // 3. 定義にない official- のキーは 404
+    expect((await call('/api/site-assets/official-unknown')).status).toBe(404)
   })
 
   it('prefix=hue-color- は hue-color-study を含めた7件を返す', async () => {

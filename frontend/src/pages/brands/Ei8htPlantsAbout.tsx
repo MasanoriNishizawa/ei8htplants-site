@@ -2,14 +2,30 @@ import { Link } from 'react-router-dom'
 import PageMeta from '../../components/PageMeta'
 import { useT } from '../../lib/lang'
 import { BRAND, TEXT_LOGO } from '../../lib/brands'
+import { usePageImageAssets } from '../../lib/usePageImageAssets'
+import { usePageImageEditMode } from '../../lib/pageImageEdit'
+import { EI8HT_ABOUT_HERO_SLOT } from '../../lib/pageImageSlots'
+import PageImageSlotTarget from '../../components/PageImageSlotTarget'
 
 /**
  *  ei8ht plantsのブランド背景を紹介するページ。
+ *  メインの写真（ei8ht-about-hero）と文字ロゴ（トップページと共通の ei8ht-wordmark）は、
+ *  管理画面「ページ画像の編集」で保存した URL → プロジェクト内の画像（localSrc）の順で出す。
+ *  管理画面のプレビュー（編集モード）では、2つの画像に枠（PageImageSlotTarget）を重ね、草稿の URL を出す。
  * @returns ei8ht plants のブランド紹介ページの React 要素。
  */
 export default function Ei8htPlantsAbout() {
   // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
+  // 管理画面で保存した画像 URL（編集モードなら草稿）から、枠ごとの表示画像を返す関数（prefix=ei8ht- の一括取得）
+  const { resolve } = usePageImageAssets('ei8htplants')
+  // 管理画面のプレビュー（編集モード）か
+  const editMode = usePageImageEditMode()
+  // メインの写真と文字ロゴの URL（保存した URL → localSrc の順）
+  const heroSrc = resolve(EI8HT_ABOUT_HERO_SLOT.key) ?? EI8HT_ABOUT_HERO_SLOT.localSrc ?? ''
+  const wordmarkSrc = resolve('ei8ht-wordmark') ?? TEXT_LOGO
+  // 文字ロゴの画像（編集モードでは、枠を重ねられるよう包む要素の中に入れる）
+  const wordmark = <img src={wordmarkSrc} alt={BRAND.ei8htPlants.name} />
 
   return (
     <div className="ep-editorial-page ep-about-page">
@@ -26,8 +42,10 @@ export default function Ei8htPlantsAbout() {
           <Link className="ep-editorial-link" to="/plants">{t('植物のラインを見る', 'Explore our plants')} <span>↗</span></Link>
         </div>
         <div className="ep-about-image">
-          <img src="/img/ei8htPlants/ei8htplants_hero.jpg" alt={t('手の形をしたオブジェに載る植物', 'A plant resting on a hand-shaped object')} />
+          <img src={heroSrc} alt={t('手の形をしたオブジェに載る植物', 'A plant resting on a hand-shaped object')} />
           <span>GROW / STYLE / LIVE</span>
+          {/* 編集モードのときだけ、写真の上に枠を重ねる（ふつうの公開ページでは何も出さない） */}
+          <PageImageSlotTarget slotKey={EI8HT_ABOUT_HERO_SLOT.key} />
         </div>
       </section>
 
@@ -39,7 +57,13 @@ export default function Ei8htPlantsAbout() {
           <div>
             <p>{t('植物の姿は、一株ごとに違います。葉の重なり、幹の曲線、そこに宿る時間。その個性を見つけ、育てる人へつなぐことを大切にしています。', 'Every plant has its own character: the way leaves overlap, the curve of a trunk, the time held in its form. We find those qualities and connect each plant with the person who will grow with it.')}</p>
             <p>{t('育て方に迷ったときも、植物との日々を楽しめるように。選ぶところから、その後のケアまでサポートします。', 'When questions come up, we are here to help make everyday plant care rewarding, from choosing a plant to caring for it over time.')}</p>
-            <img src={TEXT_LOGO} alt={BRAND.ei8htPlants.name} />
+            {/* 文字ロゴ。編集モードでは包む要素に枠を重ねる（トップページと同じ枠） */}
+            {editMode ? (
+              <span className="page-edit-frame">
+                {wordmark}
+                <PageImageSlotTarget slotKey="ei8ht-wordmark" />
+              </span>
+            ) : wordmark}
           </div>
         </div>
       </section>

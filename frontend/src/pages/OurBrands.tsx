@@ -3,16 +3,24 @@ import PageMeta from '../components/PageMeta'
 import { useT } from '../lib/lang'
 import { BRAND_SHOWCASES } from '../lib/brandShowcase'
 import { api } from '../lib/api'
+import { usePageImageAssets } from '../lib/usePageImageAssets'
+import { OFFICIAL_BRAND_SLOT_KEYS } from '../lib/pageImageSlots'
+import PageImageSlotTarget from '../components/PageImageSlotTarget'
 
 /**
  *  ei8ht plantsが展開する3ブランドを紹介する一覧ページ。
+ *  カードの写真は、管理画面「ページ画像の編集」で保存した URL（official-brand-*）→ lib/brandShowcase.ts の img の順で出す。
+ *  HUE は img がないので、未保存なら今までどおり HUE の写真（hue-color-01）を出す。
+ *  管理画面のプレビュー（編集モード）では、カードの上に枠を重ねる（hover で写真が拡大する動きはプレビューの CSS で止める）。
  * @returns ei8ht plants グループのブランド一覧ページの React 要素。
  */
 export default function OurBrands() {
   // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
-  // HUE のブランドカードに表示する画像 URL。サイト設定から取得する
+  // HUE のブランドカードに表示する画像 URL。サイト設定から取得する（official-brand-hue を保存していないときに使う）
   const [hueImage, setHueImage] = useState('')
+  // 管理画面で保存した画像 URL（編集モードなら草稿）から、枠ごとの表示画像を返す関数（prefix=official- の一括取得）
+  const { resolve } = usePageImageAssets('official')
 
   useEffect(() => {
     // 1. 画面を離れた後に取得結果を反映しないための有効フラグを立てる
@@ -54,8 +62,11 @@ export default function OurBrands() {
         </header>
         <div className="our-brands-grid">
           {BRAND_SHOWCASES.map((brand, index) => {
-            // HUE は管理画面の画像、それ以外はブランド情報に登録された画像
-            const image = index === 2 ? hueImage : brand.img
+            // このカードの写真の枠のキー
+            const slotKey = OFFICIAL_BRAND_SLOT_KEYS[index]
+            // 1. 保存した URL（official-brand-*）→ ブランド情報に登録された画像（localSrc）の順
+            // 2. どちらもない（HUE で未保存）ときは、今までどおり HUE の写真（hue-color-01）
+            const image = (slotKey ? resolve(slotKey) : brand.img) ?? (index === 2 ? hueImage : brand.img)
             return (
               <a
                 className={`our-brand-card our-brand-card--${index + 1}`}
@@ -76,6 +87,8 @@ export default function OurBrands() {
                   <span className="our-brand-description">{t(brand.descJa, brand.descEn)}</span>
                   <span className="our-brand-visit">{t('ブランドサイトへ', 'VISIT BRAND')} <b>↗</b></span>
                 </div>
+                {/* 編集モードのときだけ、カードの上に枠を重ねる（リンクの中なので span の枠） */}
+                {slotKey && <PageImageSlotTarget slotKey={slotKey} empty={!image} insideLink />}
               </a>
             )
           })}

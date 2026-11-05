@@ -70,8 +70,6 @@ const AdminFinances = lazy(adminPageLoaders.Finances)
 const PriceCalc = lazy(adminPageLoaders.PriceCalc)
 const AdminPotArtists = lazy(adminPageLoaders.AdminPotArtists)
 const AdminMedia = lazy(adminPageLoaders.AdminMedia)
-const AdminSiteImages = lazy(adminPageLoaders.SiteImages)
-const AdminHabitatImages = lazy(adminPageLoaders.HabitatImages)
 const AdminPageEditor = lazy(adminPageLoaders.PageEditor)
 const AdminPagePreview = lazy(adminPageLoaders.PagePreview)
 const AdminDocs = lazy(adminPageLoaders.AdminDocs)
@@ -220,14 +218,14 @@ export default function App() {
             <Route path="price-calc" element={<PriceCalc />} />
             <Route path="pot-artists" element={<AdminPotArtists />} />
             <Route path="media" element={<AdminMedia />} />
-            <Route path="site-images" element={<AdminSiteImages />} />
-            {/* Habitat Oides トップページの動く画像（一番上の画像・動くオブジェクト） */}
-            <Route path="habitat-images" element={<AdminHabitatImages />} />
-            {/* ページ画像の編集（3ブランドのトップページを見ながら画像を差し替える）。ブランドを指定しなければ ei8ht plants を開く */}
+            <Route path="site-images" element={<Navigate to="/admin/page-editor/hue" replace />} />
+            {/* 旧画像編集 URL は対応するブランドの統合編集画面へ転送する */}
+            <Route path="habitat-images" element={<Navigate to="/admin/page-editor/habitat-oides" replace />} />
+            {/* ページ画像の編集（3ブランドと公式サイトのページを見ながら画像を差し替える）。ブランドを指定しなければ ei8ht plants を開く */}
             <Route path="page-editor" element={<Navigate to="/admin/page-editor/ei8htplants" replace />} />
-            <Route path="page-editor/:brand" element={<AdminPageEditor />} />
+            <Route path="page-editor/:brand/:page?" element={<AdminPageEditor />} />
             {/* ページ画像の編集の iframe の中に出すプレビュー（AdminLayout はメニューを出さず、ページ本体だけを出す） */}
-            <Route path="page-preview/:brand" element={<AdminPagePreview />} />
+            <Route path="page-preview/:brand/:page?" element={<AdminPagePreview />} />
             <Route path="docs" element={<AdminDocs />} />
             <Route path="chat-qa" element={<AdminChatQA />} />
             <Route path="chat-logs" element={<AdminChatLogs />} />

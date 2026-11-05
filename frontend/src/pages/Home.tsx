@@ -13,6 +13,10 @@ import HomeBrandShowcase from './HomeBrandShowcase'
 import HomeSocialSection from './HomeSocialSection'
 import HomeShopSection from './HomeShopSection'
 import { SERIF, SANS } from './homeTypography'
+import { usePageImageAssets } from '../lib/usePageImageAssets'
+import { usePageImageEditMode } from '../lib/pageImageEdit'
+import { OFFICIAL_HERO_SLOT } from '../lib/pageImageSlots'
+import PageImageSlotTarget from '../components/PageImageSlotTarget'
 
 /**
  * 記事コンテンツからテキストブロックを抽出し、指定文字数で切り詰めた抜粋を返す
@@ -48,7 +52,9 @@ const divider: React.CSSProperties = {
 }
 
 /**
- * ホームページ。ヒーロー・ブランドストリップ・次回イベント・ショップ・ジャーナル・ギャラリーマーキーを表示する
+ * ホームページ。ヒーロー・ブランドストリップ・次回イベント・ショップ・ジャーナル・ギャラリーマーキーを表示する。
+ * ヒーローの写真（official-hero）は、管理画面「ページ画像の編集」で保存した URL → プロジェクト内の画像（localSrc）の順で出す。
+ * 管理画面のプレビュー（編集モード）では、ヒーローのフェードインを最初から終わった状態にし、写真の上に枠を重ねる。
  * @returns トップページの画面
  */
 export default function Home() {
@@ -60,10 +66,16 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   // ジャーナルの新着 3 件
   const [articles, setArticles] = useState<Article[]>([])
-  // ヒーローのフェードインを始めたら true
-  const [loaded, setLoaded] = useState(false)
+  // 管理画面のプレビュー（編集モード）か
+  const editMode = usePageImageEditMode()
+  // ヒーローのフェードインを始めたら true（編集モードでは動かさないよう、最初から true）
+  const [loaded, setLoaded] = useState(editMode)
   // 現在の表示言語に合わせて文言を選ぶ翻訳関数
   const t = useT()
+  // 管理画面で保存した画像 URL（編集モードなら草稿）から、枠ごとの表示画像を返す関数（prefix=official- の一括取得）
+  const { resolve } = usePageImageAssets('official')
+  // ヒーローの写真の URL（保存した URL → localSrc の順）
+  const heroSrc = resolve(OFFICIAL_HERO_SLOT.key) ?? OFFICIAL_HERO_SLOT.localSrc ?? ''
 
   // 1. 次回イベント・ギャラリー・商品・記事を並列で取得する。
   // トップページは失敗したセクションを出さないだけにする（「まだありません」のような誤った案内は出さない）
@@ -85,10 +97,12 @@ export default function Home() {
 
   // マウント直後に loaded フラグを立てて、ヒーローのフェードインアニメーションを開始する
   useEffect(() => {
+    // 編集モードでは最初から表示済みなので、タイマーを使わない
+    if (editMode) return
     /** 初回描画の直後にヒーロー表示状態を切り替える短い遅延 */
     const timer = setTimeout(() => setLoaded(true), 60)
     return () => clearTimeout(timer)
-  }, [])
+  }, [editMode])
 
   return (
     <>
@@ -96,7 +110,9 @@ export default function Home() {
 
       {/* ─── HERO ─── */}
       <section className={`home-hero${loaded ? ' is-loaded' : ''}`}>
-        <img className="home-hero-photo" src="/img/ei8htPlants/ei8htplants_hero.jpg" alt="手のひらに載った小さな植物" fetchPriority="high" />
+        {heroSrc && <img className="home-hero-photo" src={heroSrc} alt="手のひらに載った小さな植物" fetchPriority="high" />}
+        {/* 編集モードのときだけ、ヒーロー全体（背景の写真）の上に枠を重ねる（ふつうの公開ページでは何も出さない） */}
+        <PageImageSlotTarget slotKey={OFFICIAL_HERO_SLOT.key} empty={!heroSrc} />
         <div className="home-hero-wash" aria-hidden="true" />
         <div className="home-hero-topline">
           <span>BOTANICAL OBJECTS / JAPAN</span>
