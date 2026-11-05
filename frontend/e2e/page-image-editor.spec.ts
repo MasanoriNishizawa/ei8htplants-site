@@ -208,35 +208,72 @@ for (const pageId of ['home', 'about', 'choose', 'living']) {
   })
 }
 
-/** 公式 HUE 画像を外した後のページ別の代替表示を、実際の iframe と照合する。 */
-test('E2E-AF-10: 公式HUE画像を外すとトップはロゴ、Our BrandsはHUE写真に戻る', async ({ page }) => {
-  // 1. Our Brands の代替画像となる HUE 写真を管理画面から保存する。
-  await openEditor(page, '/admin/page-editor/hue')
-  await page.getByTestId('page-editor-slot-hue-color-01').click()
-  await page.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
-  await page.getByTestId('page-editor-save').click()
-  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません')
-  await page.getByRole('tab', { name: '公式サイト' }).click()
+/** 保存済みの HUE の写真（hue-color-01）として返す URL（外す公式の画像 UPLOADED_URL とは別の画像にして、どちらが出ているかを区別する） */
+const HUE_PHOTO_URL = '/img/habitatOides/habitat_oides_workshop_main.jpg'
+
+test('E2E-AF-10: 公式サイトの HUE の写真を外すと、トップは HUE のロゴ、Our Brands は保存済みの HUE の写真（hue-color-01）に戻る', /**
+   * 編集画面と iframe のプレビューの両方で「hue-color-01 は保存済み（HUE_PHOTO_URL）」の状態にしてから、
+   * 公式サイトの official-brand-hue に画像（UPLOADED_URL）を入れ、Our Brands のプレビューに出ることを確かめる。
+   * そのあと画像を外し、Our Brands のプレビューに代わりの HUE の写真が出て、外した画像が出ないこと、
+   * トップに戻るとパネルとプレビューが HUE のロゴになることを確かめる。
+   * MSW のモックは document ごとに保存値を持ち、編集画面で保存した値は iframe（別の document）から見えないため、
+   * hue-color-01 の取得だけはすべての frame で fetch を包んで同じ応答を返す（本物の API の DB の代わり）。
+   * @param page 操作・検証対象の Playwright ページ
+   * @returns {Promise<void>} すべての確認が終わったら解決する
+   */
+  async ({ page }) => {
+  // 0. すべての frame（編集画面と iframe）で、hue-color-01 の取得に同じ保存済みの URL を返す
+  await page.addInitScript((hueUrl) => {
+    // 元の fetch（ほかの通信はそのまま MSW へ流す）
+    const original = window.fetch.bind(window)
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      // 通信先の URL とメソッド
+      const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, window.location.href)
+      const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase()
+      const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      // 1件の取得（OurBrands・編集画面の Our Brands の代わりの写真）
+      if (method === 'GET' && url.pathname === '/api/site-assets/hue-color-01') return json({ key: 'hue-color-01', url: hueUrl })
+      // 一括取得（HUE の編集画面・公開ページ）。hue-color-01 だけ保存済みにする
+      if (method === 'GET' && url.pathname === '/api/site-assets' && url.searchParams.get('prefix') === 'hue-color-') {
+        const keys = [...Array.from({ length: 6 }, (_, index) => `hue-color-0${index + 1}`), 'hue-color-study']
+        return json(keys.map((key) => ({ key, url: key === 'hue-color-01' ? hueUrl : '' })))
+      }
+      return original(input, init)
+    }
+  }, HUE_PHOTO_URL)
+
+  // 1. 公式サイトのトップで HUE のカードの枠を選び、画像を入れる
+  await openEditor(page, '/admin/page-editor/official')
+  const preview = page.frameLocator('[data-testid="page-editor-frame"]')
   await page.getByTestId('page-editor-slot-official-brand-hue').click()
   const panel = page.getByTestId('page-editor-panel')
-  const preview = page.frameLocator('[data-testid="page-editor-frame"]')
-  // 2. アップロード後に外すと、トップではロゴに戻る。
   await panel.getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+
+  // 2. Our Brands に移ると、プレビューの HUE のカードには入れた画像（草稿）が出る
+  await page.getByTestId('page-editor-page-select').selectOption('brands')
+  await expect(page).toHaveURL(/\/admin\/page-editor\/official\/brands$/)
+  const hueCard = preview.locator('a.our-brand-card--3')
+  await expect(hueCard.locator('img.our-brand-card-photo')).toHaveAttribute('src', UPLOADED_URL, { timeout: 30000 })
+
+  // 3. 画像を外すと、パネルとプレビューは代わりの HUE の写真（hue-color-01）になり、外した画像は出ない
   await panel.getByRole('button', { name: '画像を外す' }).click()
+  await expect(panel).toContainText('HUE の写真（hue-color-01）')
+  await expect(panel.getByRole('img')).toHaveAttribute('src', HUE_PHOTO_URL)
+  await expect(hueCard.locator('img.our-brand-card-photo')).toHaveAttribute('src', HUE_PHOTO_URL)
+  await expect(hueCard.locator(`img[src="${UPLOADED_URL}"]`)).toHaveCount(0)
+  await expect(hueCard.getByTestId('editable-slot-official-brand-hue')).toHaveCount(1)
+
+  // 4. トップに戻ると、同じ枠はパネル・プレビューとも HUE のロゴになり、写真は出ない
+  await page.getByTestId('page-editor-page-select').selectOption('home')
   await expect(panel).toContainText('HUE のロゴ')
   const logoSrc = await panel.getByRole('img').getAttribute('src')
-  await expect(preview.getByTestId('editable-slot-official-brand-hue').locator('..').locator('img').first()).toHaveAttribute('src', logoSrc!)
-  // 3. 同じ枠でも Our Brands では HUE 側の写真を表示する。
-  await page.getByTestId('page-editor-page-select').selectOption('brands')
-  await expect(panel).toContainText('HUE の写真（hue-color-01）')
-  await expect(panel.getByRole('img')).toHaveAttribute('src', UPLOADED_URL)
-  // 4. プレビューの Our Brands の HUE のカードには、外した草稿（official-brand-hue の画像）が残らない。
-  // TODO: known issue — MSW のモックは document ごとに保存値を持つため、編集画面で保存した hue-color-01 は
-  //   iframe（別の document）のプレビューからは見えず、Our Brands の HUE のカードは写真なしになる。
-  //   本物の API では DB を通して見えるので、プレビューの「hue-color-01 の写真に戻る」はここでは確かめない（パネル側で確かめる）。
-  const hueCard = preview.locator('a.our-brand-card--3')
-  await expect(hueCard.getByTestId('editable-slot-official-brand-hue')).toHaveCount(1)
-  await expect(hueCard.locator(`img[src="${UPLOADED_URL}"]`)).toHaveCount(0)
+  const stripCard = preview.getByTestId('editable-slot-official-brand-hue').locator('..')
+  await expect(stripCard.locator('img').first()).toHaveAttribute('src', logoSrc!, { timeout: 30000 })
+  await expect(stripCard.locator(`img[src="${UPLOADED_URL}"]`)).toHaveCount(0)
+  await expect(stripCard.locator(`img[src="${HUE_PHOTO_URL}"]`)).toHaveCount(0)
+  // 外したので、保存されている値（未設定）との違いはなく「変更はありません」
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更はありません')
 })
 
 /**
