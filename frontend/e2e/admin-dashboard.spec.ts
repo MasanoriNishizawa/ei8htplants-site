@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // 管理画面ダッシュボードの「出店料の支払い」「今後の搬入予定」と、サイドメニューでの「未保存の変更」の確認の画面テスト。
 // VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true（npm run mock:e2e）で実行する。本番には接続しない。

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 // 管理画面ページのスモークテスト
 // VITE_SKIP_ADMIN_AUTH=true で認証スキップ済みの環境で実行（npm run mock:e2e）

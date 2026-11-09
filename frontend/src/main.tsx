@@ -3,6 +3,15 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { installHistoryGuard } from './pages/admin/historyGuard'
+
+/*
+ * 管理画面の「未保存の変更があるときの、ブラウザの戻る・進むの確認」のリスナーを、描画の前に登録する。
+ * React Router（BrowserRouter）が popstate を聞き始めるより先に登録し、ルーターより先に呼ばれるようにするため
+ * （キャンセルのときにルーターへ渡さず、画面と入力をそのまま残す。詳細は pages/admin/historyGuard.ts）。
+ * 未保存の変更がある管理画面が無いあいだは何もしないので、公開ページには影響しない
+ */
+installHistoryGuard()
 
 /**
  * 描画の前の準備。開発中に VITE_MSW=true（`npm run mock`）のときだけ、API を MSW のモックで受けるようにする。

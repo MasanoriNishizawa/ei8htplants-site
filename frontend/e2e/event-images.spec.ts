@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from '@playwright/test'
+import { test, expect, type Page, type Locator } from './fixtures'
 
 // イベント画像DLページと、管理情報の編集画面（/admin-info/edit）の「出店要項」セクションの画面テスト
 // VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true（npm run mock:e2e）で実行する。本番には接続しない

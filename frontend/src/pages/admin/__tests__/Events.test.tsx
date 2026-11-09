@@ -9,7 +9,7 @@
  * 4. イベントがないときの表示
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AdminEvents from '../Events'
 import { api } from '../../../lib/api'
@@ -200,7 +200,9 @@ describe('AdminEvents ページ — 予約管理（印刷・CSV）ボタン', ()
       </MemoryRouter>
     )
     const link = await screen.findByRole('link', { name: '予約管理（印刷・CSV）' })
-    link.click()
+    // link.click() は React の act の外で画面の更新を予約するだけなので、負荷が高いと findBy の既定の 1 秒に
+    // 間に合わないことがあった。fireEvent.click は act の中で押すため、移動先の描画まで終えてから次へ進む
+    fireEvent.click(link)
     expect(await screen.findByText('イベント別の予約画面')).toBeInTheDocument()
   })
 

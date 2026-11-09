@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // イベントの写真の左右矢印（前へ・次へ）が、写真の上下の真ん中に置かれていることを確かめる画面テスト
 // VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true（npm run mock:e2e）で実行する。本番には接続しない

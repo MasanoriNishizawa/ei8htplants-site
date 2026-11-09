@@ -172,7 +172,10 @@ class TestCodexReviewScript(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         # 1. 読み取り専用と、最終報告の書き出し先の指定がある
         args = self.args_file.read_text()
-        self.assertIn("exec -s read-only -o", args)
+        self.assertIn("exec -s read-only", args)
+        self.assertIn(" -o ", args)
+        # 考える深さは、指定しなければ high で渡す
+        self.assertIn('model_reasoning_effort="high"', args)
         # 2. 補足と観点が、空白を含んだまま指示文に入る
         prompt = self.prompt_file.read_text()
         self.assertIn("変えた範囲: A と B", prompt)
@@ -188,6 +191,19 @@ class TestCodexReviewScript(unittest.TestCase):
         self.assertEqual(len(logs), 1)
         self.assertIn("途中経過", logs[0].read_text())
         self.assertIn("tmp/codex-review/", result.stdout)
+
+    def test考える深さを指定するとその値で渡す(self):
+        """--effort で指定した深さを、そのまま model_reasoning_effort として Codex に渡す。"""
+        result = self.run_script("--effort", "medium")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('model_reasoning_effort="medium"', self.args_file.read_text())
+
+    def test受け付けない深さは終了コード2(self):
+        """minimal・low・medium・high 以外の深さは、Codex を呼ばずに終了コード 2 で止まる。"""
+        result = self.run_script("--effort", "extreme")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--effort には", result.stderr)
+        self.assertFalse(self.prompt_file.exists())
 
     def test短いコミットIDは完全なIDにして渡す(self):
         """--commit に短い ID を渡しても、確定した完全な ID を指示文に入れる。"""

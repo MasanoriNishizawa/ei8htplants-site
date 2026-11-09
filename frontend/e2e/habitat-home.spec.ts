@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // Habitat Oides のトップページ（/habitatoides）の動きの演出と、スマホ幅の横スクロールを確かめる。
 // API は MSW のモック（habitat-hero-01 と habitat-object-01 だけ URL あり）で受ける。

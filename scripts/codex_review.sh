@@ -10,7 +10,8 @@
 #   scripts/codex_review.sh --commit <SHA>         # 指定したコミットの変更をレビュー
 #   scripts/codex_review.sh --note "補足"           # 変更の内容・範囲・変えていないこと・失敗時の動き・テストしたことを伝える
 #   scripts/codex_review.sh --focus "見てほしい点"   # 特に見てほしい観点を足す（データの競合・認証など）
-#   （--commit・--note・--focus は組み合わせられる）
+#   scripts/codex_review.sh --effort medium        # 考える深さを変える（minimal / low / medium / high。省略時は high）
+#   （--commit・--note・--focus・--effort は組み合わせられる）
 #
 # 結果:
 #   Codex の最終報告を標準出力に出し、同じ内容を tmp/codex-review/ に日時付きのファイルで残す。
@@ -24,7 +25,7 @@ set -euo pipefail
 
 # 使い方を表示する関数。引数の誤りのときに使う
 usage() {
-  sed -n '8,13p' "$0" | sed 's/^# \{0,1\}//' >&2
+  sed -n '8,14p' "$0" | sed 's/^# \{0,1\}//' >&2
 }
 
 # 1. 引数を読み取る（値が必要なオプションは、値の有無を確かめてから読む）
@@ -34,9 +35,11 @@ target="uncommitted"
 note=""
 # focus: 特に見てほしい観点
 focus=""
+# effort: Codex の考える深さ（model_reasoning_effort）。レビューは前提を疑う作業なので、既定は high にする
+effort="high"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --commit|--note|--focus)
+    --commit|--note|--focus|--effort)
       # 値がない、または次のオプションを値として読んでしまう場合は、使い方を出して止める
       if [[ $# -lt 2 || "$2" == --* ]]; then
         echo "エラー: $1 には値が必要です。" >&2
@@ -47,6 +50,7 @@ while [[ $# -gt 0 ]]; do
         --commit) target="$2" ;;
         --note) note="$2" ;;
         --focus) focus="$2" ;;
+        --effort) effort="$2" ;;
       esac
       shift 2
       ;;
@@ -54,6 +58,12 @@ while [[ $# -gt 0 ]]; do
     *) echo "エラー: 不明な引数です: $1" >&2; usage; exit 2 ;;
   esac
 done
+
+# 考える深さは、Codex が受け付ける値だけを通す（打ち間違いで既定に戻るのを防ぐ）
+case "$effort" in
+  minimal|low|medium|high) ;;
+  *) echo "エラー: --effort には minimal・low・medium・high のどれかを指定してください: $effort" >&2; usage; exit 2 ;;
+esac
 
 # 2. codex コマンドがあるかを確かめる
 if ! command -v codex >/dev/null 2>&1; then
@@ -121,7 +131,7 @@ ${note:-なし}
 #    途中経過（標準出力・エラー出力）は量が多いので画面に出さず、ログのファイルに残す
 # log_file: Codex の途中経過を残すファイル（結果と同じ名前で .log）
 log_file="${out_file%.md}.log"
-if ! codex exec -s read-only -o "$out_file" "$prompt" >"$log_file" 2>&1; then
+if ! codex exec -s read-only -c "model_reasoning_effort=\"${effort}\"" -o "$out_file" "$prompt" >"$log_file" 2>&1; then
   echo "エラー: Codex の実行に失敗しました（ログイン切れ・利用上限などを確かめてください）。" >&2
   echo "--- 途中経過の末尾（全体は ${log_file#"$root"/}） ---" >&2
   tail -n 20 "$log_file" >&2 || true

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 test.describe('Contact フォーム', () => {
   test('初期状態: 送信ボタンが表示される', /**

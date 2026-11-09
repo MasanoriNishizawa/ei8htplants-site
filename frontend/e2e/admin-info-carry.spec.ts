@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // 管理情報の編集画面（/admin/events/:id/admin-info/edit）の「搬入・搬出」（日付・時・分）を入力して保存したとき、
 // 保存 API（PUT /api/events/:id/admin-info）に日時が送られ、確認画面（/admin-info）に戻って表示されることを確かめる画面テスト。

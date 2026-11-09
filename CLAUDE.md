@@ -33,6 +33,11 @@ ei8ht plants / Habitat Oides / HUE by ei8ht plants の公式サイト・管理�
 
 **プッシュしてよい条件**：設計書が更新済み・`docs-reviewer` の確認で問題なし・最後の変更のあとに流した `scripts/run_tests.py`（関連するテスト。全体に関わる変更なら全部）が ✅。どれかが欠けていたらプッシュしない。
 
+**Claude Code と Codex を同時に PM として動かさない**。同じ作業フォルダで両方が PM として動くと、片方のまだ終わっていない変更（確認前のもの）を、もう片方がまとめてコミット・プッシュしてしまう（2026-11-05 に実際に起きた）。
+- PM は作業を始める前に `git status` を見る。自分が頼んでいない未コミットの変更があれば、手を付けずにユーザーに確かめる
+- コミットに含めるのは、自分（とその担当）が作り、テスト・レビュー・設計書の確認が済んだ変更だけ。出どころの分からない変更をまとめてコミットしない
+- Codex を使うのは、PM（Claude）が `scripts/codex_review.sh` で頼む読み取り専用のレビューだけにする。Codex を PM として使う日は、Claude Code の PM を動かさない
+
 担当は同時に同じ作業フォルダで作業することがある。**`git stash`・`git reset`・`git checkout -- ファイル`・`git clean` など、コミットしていない変更を退避・取り消す操作は担当は行わない**。変更前と比べたいときは `git diff` や `git show HEAD:ファイル` を使う。コミット・プッシュは PM だけが行う。
 
 小さな修正（1〜2ファイル・数行）は担当に振らず PM が直接行ってよい。その場合もテスト・記録・レビューの手順は省かない。
@@ -46,6 +51,7 @@ ei8ht plants / Habitat Oides / HUE by ei8ht plants の公式サイト・管理�
    - コミット済みの変更: `scripts/codex_review.sh --commit <SHA>`
    - `--note` には、実装担当の報告をもとに「何を変えたか・なぜこの方式か・変えた範囲・変えていないこと（見なくてよいこと）・失敗したときの動き・何をテストしたか」を書く。範囲を絞るほど、指摘の質が上がり利用量も減る
    - データの整合性・同時更新・認証・決済・セキュリティに関わる変更は、`--focus` でその観点を指定する
+   - Codex の考える深さは既定で `high`。軽い確認だけでよいときは `--effort medium` にする（`minimal`・`low`・`medium`・`high` から選ぶ。ほかの値はエラーで止まる）
 2. **確かめる**: 指摘をそのまま直させない。重要度が高・中の指摘は、実装担当に「実際のコードと今の仕様で、この指摘が成り立つかを確かめて。まだ直さないで」と頼む
 3. **分ける**: PM が指摘を次の5つに分け、ユーザーへの報告に書く
    - すぐ直す ／ 追加で調べる ／ 将来の改善候補（今回は直さない） ／ 意図した仕様なので直さない ／ 誤解による指摘なので見送る
@@ -83,7 +89,7 @@ ei8ht plants / Habitat Oides / HUE by ei8ht plants の公式サイト・管理�
 
 ### テストと確認
 - 自動テストは本番につながらない（Supabase は MSW/モックで代替、外部接続は禁止）
-  - TypeScript チェック: `cd frontend && npx tsc --noEmit`
+  - TypeScript チェック: `cd frontend && npx tsc --noEmit -p tsconfig.app.json`（`-p` を付けないと、ルートの `tsconfig.json` は `"files": []` なので何も確かめない。テストのファイルも含めて確かめるのは本番ビルドの `npx tsc -b`）
   - フロントのロジック（Vitest）: `cd frontend && npx vitest run`
   - 画面テスト（Playwright）: `cd frontend && npx playwright test`
   - バックエンド（pytest）: `cd backend && python -m pytest`

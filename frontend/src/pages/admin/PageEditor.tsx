@@ -64,6 +64,51 @@ export default function PageEditor() {
   return <PageEditorBrand key={brand} brand={brand} page={pageConfig} viewport={viewport} onViewportChange={setViewport} />
 }
 
+/** 「ページ画像の編集」のパスの頭（この後ろにブランド・ページが続く） */
+const PAGE_EDITOR_PATH_PREFIX = '/admin/page-editor/'
+
+/**
+ * パスが「ページ画像の編集」として正しく開けるかを調べ、開けるならブランドを返す。
+ * 正しく開けるのは、「ブランド」または「ブランド/ページ」の形（区切りは2つまで。末尾の / は無視）で、
+ * ブランドが正しく、ページ（省いたら home）が定義にあるときだけ。
+ * ルートに合わないパス（404）や定義にないページへの移動では編集画面が外れて草稿が消えるため、ここで外す
+ * 1. パスの頭を確かめ、頭を除いて末尾の / を取り除く
+ * 2. / で区切り、1〜2個でなければ開けない
+ * 3. ブランドとページの定義を確かめる
+ * @param pathname - パス（例: /admin/page-editor/hue/about）
+ * @returns 正しく開けるならブランド（例: hue）、開けなければ null
+ */
+function openablePageEditorBrand(pathname: string): PageImageBrand | null {
+  // 1. パスの頭を確かめ、残りの部分を取り出す（末尾の / は無視する）
+  if (!pathname.startsWith(PAGE_EDITOR_PATH_PREFIX)) return null
+  /** 頭の後ろの部分（例: hue/about） */
+  const rest = pathname.slice(PAGE_EDITOR_PATH_PREFIX.length).replace(/\/+$/, '')
+  // 2. 区切りは1〜2個（ブランド、またはブランド/ページ）
+  /** / で区切った部分 */
+  const parts = rest.split('/')
+  if (parts.length < 1 || parts.length > 2) return null
+  /** ブランドとページの部分 */
+  const [brand, page] = parts
+  // 3. ブランドが正しく、ページ（省いたら home）が定義にあるか
+  if (!isPageImageBrand(brand)) return null
+  if (!findPageImagePage(brand, page ?? PAGE_IMAGE_HOME_PAGE)) return null
+  return brand
+}
+
+/**
+ * ブラウザの「戻る」「進む」の移動が、「ページ画像の編集」の同じブランドの中のページの切り替えかどうか
+ * （草稿はブランドごとに残るので、このときは未保存の確認を出さない）。
+ * 移る前と移った先の両方が編集画面として正しく開けるパスで、ブランドが同じときだけ true にする
+ * @param from - 移動する前のパス
+ * @param to - 移動した先のパス
+ * @returns 同じブランドの中の移動なら true
+ */
+function isSamePageEditorBrand(from: string, to: string): boolean {
+  /** 移動する前のブランド（正しく開けるパスでなければ null） */
+  const fromBrand = openablePageEditorBrand(from)
+  return fromBrand !== null && fromBrand === openablePageEditorBrand(to)
+}
+
 /** PageEditorBrand の引数 */
 interface PageEditorBrandProps {
   /** 編集するブランド */
@@ -87,7 +132,8 @@ interface PageEditorBrandProps {
  * 4. パネルで画像を選ぶ（api.upload）・外す・変更を取り消す。変えたものはプレビューにすぐ反映する
  * 5. 「保存する」で、ブランドの中で変更した枠を（どのページで変えたものも）まとめて PUT する。失敗した枠はエラーを出して草稿に残す
  * 6. ページの選択欄でページを切り替えても、同じブランドの草稿は残す（確認は出さない）
- * 7. 未保存の変更があれば、管理画面のほかの画面へ移るとき・ブランドのタブを切り替えるときに確認する
+ * 7. 未保存の変更があれば、管理画面のほかの画面へ移るとき・ブランドのタブを切り替えるとき・
+ *    ブラウザの「戻る」「進む」でほかのブランドや画面へ移るときに確認する（同じブランドの中のページへの「戻る」「進む」は確認しない）
  * @param props.brand - 編集するブランド
  * @param props.page - 今プレビューしているページの定義
  * @param props.viewport - プレビューの表示幅
@@ -141,7 +187,8 @@ function PageEditorBrand({ brand, page, viewport, onViewportChange }: PageEditor
     .filter((key) => (draftUrls[key] ?? '') !== (savedUrls[key] ?? ''))
   // 保存していない変更があるか（ページを離れるときの確認に使う）
   const dirty = changedKeys.length > 0
-  useUnsavedChanges(dirty)
+  // 未保存の変更を登録する。ブラウザの「戻る」「進む」で同じブランドの中のページへ移るときは、草稿が残るので確認を出さない
+  useUnsavedChanges(dirty, { allowNavigation: isSamePageEditorBrand })
   // 画像を選ぶ・外す・保存をできない状態か（読み込み中・読み込み失敗・アップロード中・保存中）
   const locked = loadState !== 'ready' || uploadingKey !== null || saving
   // 選んでいる枠の定義（今のページの枠のときだけ。ほかのページの枠を選んだままページを切り替えたら、パネルは閉じる）
@@ -502,13 +549,17 @@ function PageEditorBrand({ brand, page, viewport, onViewportChange }: PageEditor
       </div>
 
       <div className={`page-editor-layout${selectedSlot ? ' has-panel' : ''}`}>
-        {/* プレビュー。iframe を表示幅の大きさで置き、枠に収まらないときは縮小して全体を見せる */}
+        {/* プレビュー。iframe を表示幅の大きさで置き、枠に収まらないときは縮小して全体を見せる。
+            iframe はページごとに作り直す（key）。src だけを変えると iframe の中の移動がブラウザの履歴に1つ増え、
+            「戻る」を押してもプレビューだけが戻って画面の URL が変わらなかったり、未保存の確認でキャンセルしたときに
+            元の項目へ戻す量がずれたりするため（新しく作った iframe の最初の読み込みは履歴に増えない） */}
         <div className="page-editor-stage" ref={stageRef}>
           <div
             className="page-editor-frame-box"
             style={{ width: Math.round(size.width * scale), height: Math.round(size.height * scale) }}
           >
             <iframe
+              key={page.id}
               ref={iframeRef}
               src={`/admin/page-preview/${brand}/${page.id}`}
               title={`${config.label} の${page.label}のプレビュー`}

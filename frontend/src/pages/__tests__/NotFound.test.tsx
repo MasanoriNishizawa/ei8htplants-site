@@ -6,7 +6,7 @@
  * ルートの組み方は App.tsx（Layout の中の path="*"）と同じにする
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import NotFound from '../NotFound'
@@ -50,7 +50,9 @@ describe('公開サイトの NotFound', () => {
     renderAt('/events/aaa/bbb')
     const link = screen.getByRole('link', { name: 'トップページへ' })
     expect(link).toHaveAttribute('href', '/')
-    link.click()
+    // link.click() は React の act の外で画面の更新を予約するだけなので、負荷が高いと findBy の既定の 1 秒に
+    // 間に合わないことがあった。fireEvent.click は act の中で押すため、移動先の描画まで終えてから次へ進む
+    fireEvent.click(link)
     expect(await screen.findByText('ei8ht plants ブランドホーム')).toBeInTheDocument()
   })
 
@@ -58,7 +60,9 @@ describe('公開サイトの NotFound', () => {
     renderAt('/official/no-such-page')
     const link = screen.getByRole('link', { name: 'トップページへ' })
     expect(link).toHaveAttribute('href', '/official')
-    link.click()
+    // link.click() は React の act の外で画面の更新を予約するだけなので、負荷が高いと findBy の既定の 1 秒に
+    // 間に合わないことがあった。fireEvent.click は act の中で押すため、移動先の描画まで終えてから次へ進む
+    fireEvent.click(link)
     expect(await screen.findByText('公式サイトHOME')).toBeInTheDocument()
   })
 

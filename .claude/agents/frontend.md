@@ -26,7 +26,7 @@ tools: Bash, Read, Write, Edit, TodoWrite
 ## 守ること
 
 - `git stash`・`git reset`・`git checkout -- ファイル`・`git clean` など、コミットしていない変更を退避・取り消す操作はしない（ほかの担当が同時に作業している）。比べたいときは `git diff`・`git show HEAD:ファイル` を使う。**コミット・プッシュは PM が行う**
-- `npm run build` は PM が仕上げのステップで実行する。自分では実行しない。作業後は `cd frontend && npx tsc --noEmit` で型エラーがないことを確認するだけでよい
+- `npm run build` は PM が仕上げのステップで実行する。自分では実行しない。作業後は `cd frontend && npx tsc --noEmit -p tsconfig.app.json` で型エラーがないことを確認するだけでよい
 - 絵文字を使わない
 - `any` は使わない。型が足りなければインターフェースにフィールドを追加する
 - 本番 DB・外部サービスへの接続はしない
@@ -53,6 +53,6 @@ tools: Bash, Read, Write, Edit, TodoWrite
 ## 報告の形
 
 - 変更したファイルと、それぞれ何を変えたか（1 ファイル 1 行）
-- TypeScript チェック（`npx tsc --noEmit`）の結果
+- TypeScript チェック（`npx tsc --noEmit -p tsconfig.app.json`）の結果
 - 確認したこと／確認できなかったこと（正直に書く）
 - バックエンドや設計書で更新が必要な点

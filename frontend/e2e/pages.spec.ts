@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 // 各ページがエラーなくロードされることを確認するスモークテスト
 // 本番DBには接続しない（MSW モックモードで起動）

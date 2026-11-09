@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // 公開ページを画面ごとに分けて読み込む（React.lazy）ようにしたあとも、
 // ヘッダーのリンクで順にページを移ったときに各ページがきちんと表示されることを確かめる画面テスト。
@@ -141,8 +141,12 @@ test.describe('画面ごとの読み込みにしたあとの公開ページの�
     await expect(page.getByRole('navigation').first()).toBeVisible({ timeout: 20000 })
     await page.waitForLoadState('networkidle')
     // 開発サーバーではファイルごとに読み込まれるので、パスで確かめる
-    // adminPages.ts はページを読み込む関数の一覧だけ（App.tsx が直接読む）なので除く
-    expect(requested.filter((p) => p.startsWith('/src/pages/admin/') && p !== '/src/pages/admin/adminPages.ts')).toEqual([])
+    // adminPages.ts はページを読み込む関数の一覧だけ（App.tsx が直接読む）なので除く。
+    // historyGuard.ts は「戻る」「進む」の確認のリスナー（React に依存しない小さなファイル）で、React Router より先に
+    // popstate を受けるため main.tsx が描画の前に読み込む（2026-11-06 変更。未保存の画面が無いあいだは何もしない）ので除く
+    // allowedAdminFiles: 公開ページでも読み込んでよい pages/admin/ のファイル
+    const allowedAdminFiles = ['/src/pages/admin/adminPages.ts', '/src/pages/admin/historyGuard.ts']
+    expect(requested.filter((p) => p.startsWith('/src/pages/admin/') && !allowedAdminFiles.includes(p))).toEqual([])
     expect(requested.filter((p) => p === '/src/lib/supabase.ts')).toEqual([])
   })
 

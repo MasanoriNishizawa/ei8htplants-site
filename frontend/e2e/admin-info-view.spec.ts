@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from '@playwright/test'
+import { test, expect, type Page, type Locator } from './fixtures'
 
 // 管理情報の確認画面（/admin/events/:id/admin-info）と編集画面（/admin-info/edit）の行き来の画面テスト
 // 流れ: イベント一覧 →「管理情報」→ 確認画面 →「編集」→ 編集画面 → 保存 → 確認画面（「保存しました」）→「← 戻る」→ イベント一覧
@@ -239,6 +239,10 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
     // 確認画面に移ってから「編集」を押す（一覧の各行にも「編集」があるので、移る前に押すと別の画面へ行く）
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
+    // URL が変わっても、確認画面のファイルを読み込み終わるまでは一覧が表示されたまま（React Router の startTransition）。
+    // 負荷が高いとその間に一覧の行の「編集」を押してしまうので、確認画面の「編集」（上下2か所）が出るまで待つ
+    await expect(page.getByRole('heading', { name: '管理情報' })).toBeVisible()
+    await expect(page.getByRole('link', { name: '編集', exact: true })).toHaveCount(2)
     await page.getByRole('link', { name: '編集', exact: true }).last().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 
@@ -313,6 +317,10 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await page.goto('/admin/events')
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
+    // URL が変わっても、確認画面のファイルを読み込み終わるまでは一覧が表示されたまま（React Router の startTransition）。
+    // 負荷が高いとその間に一覧の行の「編集」を押してしまうので、確認画面の「編集」（上下2か所）が出るまで待つ
+    await expect(page.getByRole('heading', { name: '管理情報' })).toBeVisible()
+    await expect(page.getByRole('link', { name: '編集', exact: true })).toHaveCount(2)
     await page.getByRole('link', { name: '編集', exact: true }).first().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 
@@ -345,6 +353,10 @@ test.describe('管理情報 — 確認画面と編集画面の行き来', () => 
     await page.getByText(EVENT_NAME, { exact: true }).locator('../..').getByRole('link', { name: '管理情報' }).click()
     // 確認画面に移ってから「編集」を押す（一覧の各行にも「編集」があるので、移る前に押すと別の画面へ行く）
     await expect(page).toHaveURL(new RegExp(`/admin/events/${EVENT_ID}/admin-info$`))
+    // URL が変わっても、確認画面のファイルを読み込み終わるまでは一覧が表示されたまま（React Router の startTransition）。
+    // 負荷が高いとその間に一覧の行の「編集」を押してしまうので、確認画面の「編集」（上下2か所）が出るまで待つ
+    await expect(page.getByRole('heading', { name: '管理情報' })).toBeVisible()
+    await expect(page.getByRole('link', { name: '編集', exact: true })).toHaveCount(2)
     await page.getByRole('link', { name: '編集', exact: true }).first().click()
     await expect(page).toHaveURL(new RegExp(`/admin-info/edit$`))
 

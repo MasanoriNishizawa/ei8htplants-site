@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 /**
  * 管理画面から時間枠が未設定のイベントへ当日参加を追加できることを確認する。

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 // 古い「サイト画像」の URL（/admin/site-images）は「ページ画像の編集」の HUE に転送される。
 // 転送先で HUE の写真を差し替えて保存し、同じタブで開いた HUE のトップページに反映されることを確かめる。

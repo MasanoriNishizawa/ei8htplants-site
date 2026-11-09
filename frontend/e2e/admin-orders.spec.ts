@@ -2,7 +2,7 @@
  * 管理画面の注文一覧が、注文0件の状態でも正常に表示されることを確認する。
  * MSW の GET /api/orders は空配列を返し、本番データベースには接続しない。
  */
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 test.describe('管理画面の注文管理', () => {
   test('/admin/orders — 注文0件でも見出し・一覧表・空状態を表示する', /**

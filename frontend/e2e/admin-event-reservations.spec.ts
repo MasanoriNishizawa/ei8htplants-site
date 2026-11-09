@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 /**
  * イベント別予約画面のスマートフォン用カードから詳細を開けることを確認する。

@@ -1,4 +1,4 @@
-import { test, expect, type Locator } from '@playwright/test'
+import { test, expect, type Locator } from './fixtures'
 
 // 入力カーソル（| の点滅）の表示制御のテスト
 // index.css で body に caret-color: transparent、input / textarea / contenteditable に caret-color: auto を指定している。

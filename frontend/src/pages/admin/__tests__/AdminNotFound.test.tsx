@@ -5,7 +5,7 @@
  * ルートの組み方は App.tsx（/admin の中の path="*"）と同じにする。Supabase はモックにして本番に接続しない
  */
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AdminLayout from '../AdminLayout'
 import AdminNotFound from '../AdminNotFound'
@@ -58,7 +58,9 @@ describe('管理画面の AdminNotFound', () => {
     renderAt('/admin/xxx')
     const link = await screen.findByRole('link', { name: 'ダッシュボードへ' })
     expect(link).toHaveAttribute('href', '/admin')
-    link.click()
+    // link.click() は React の act の外で画面の更新を予約するだけなので、負荷が高いと findBy の既定の 1 秒に
+    // 間に合わないことがあった。fireEvent.click は act の中で押すため、移動先の描画まで終えてから次へ進む
+    fireEvent.click(link)
     expect(await screen.findByText('ダッシュボードの中身')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'ページが見つかりません' })).toBeNull()
   })

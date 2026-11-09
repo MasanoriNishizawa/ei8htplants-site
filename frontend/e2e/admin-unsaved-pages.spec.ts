@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // 管理画面の「書きかけ保護」（保存していない変更があるまま別の画面へ移るときの確認）の画面テスト。
 // VITE_MSW=true VITE_SKIP_ADMIN_AUTH=true（npm run mock:e2e）で実行する。本番には接続しない（保存は MSW のモック）。
@@ -683,5 +683,229 @@ test.describe('販売価格計算（PriceCalc）', () => {
     await page.getByRole('button', { name: '仕入れ' }).click()
     await expect(page.getByPlaceholder('例: 3000')).toBeVisible()
     expect(dialogs).toBe(0)
+  })
+})
+
+/**
+ * ブラウザの確認ダイアログに答える係を付ける。答え方（キャンセル・OK）はテストの途中で切り替えられる
+ * @param page - 対象ページ
+ * @returns messages（出た確認の文言の一覧）と answer（次から出る確認への答え方。'dismiss' ならキャンセル、'accept' なら OK）
+ */
+function answerDialogs(page: Page): { messages: string[]; answer: 'dismiss' | 'accept' } {
+  // state: 出た文言と、今の答え方
+  const state = { messages: [] as string[], answer: 'dismiss' as 'dismiss' | 'accept' }
+  page.on('dialog', async (d) => {
+    state.messages.push(d.message())
+    if (state.answer === 'accept') await d.accept()
+    else await d.dismiss()
+  })
+  return state
+}
+
+// ブラウザの「戻る」「進む」（popstate）でも、未保存の変更があれば確認を出す（historyGuard.ts）。
+// 前の画面は page.goto ではなくアプリの中のリンク（サイドメニュー）で作る。page.goto で開いた別の文書の項目へ戻ると、
+// popstate ではなく再読み込み扱い（beforeunload の確認）になり、ここで確かめたい仕組みを通らないため
+test.describe('ブラウザの戻る・進む（historyGuard）', () => {
+  test('鉢作家: サイドメニューで移って入力し「戻る」と確認が出て、キャンセルすると URL と入力が残り、OK で前の画面へ移る', /**
+     * ダッシュボードからサイドメニューで鉢作家管理へ移り、名前を入れてブラウザの戻るを押す。
+     * キャンセルでは URL と入力が残り、OK ではダッシュボードへ戻ることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. ダッシュボード → サイドメニューで鉢作家管理へ移り、名前を入れる
+    const dialogs = answerDialogs(page)
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    await page.getByRole('complementary').getByRole('link', { name: '鉢作家管理' }).click()
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    const input = page.getByPlaceholder('鉢作家名を入力')
+    await input.fill('書きかけの作家')
+
+    // 2. 戻る → 確認をキャンセルすると、鉢作家管理に残り、入力もそのまま
+    await page.goBack({ waitUntil: 'commit' })
+    await expect.poll(() => dialogs.messages).toEqual([LEAVE_MESSAGE])
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    await expect(input).toHaveValue('書きかけの作家')
+    // キャンセルで元へ戻したときの popstate では、確認がもう一度出ない
+    expect(dialogs.messages).toHaveLength(1)
+
+    // 3. もう一度戻る → 確認で OK を押すと、ダッシュボードへ移る
+    dialogs.answer = 'accept'
+    await page.goBack({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/admin$/)
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    expect(dialogs.messages).toEqual([LEAVE_MESSAGE, LEAVE_MESSAGE])
+  })
+
+  test('鉢作家: 入力してから「進む」でも確認が出て、キャンセルすると残り、OK で次の画面へ移る', /**
+     * 鉢作家管理 → ダッシュボード と移ってから戻るで鉢作家管理へ戻り、名前を入れてブラウザの進むを押す。
+     * キャンセルでは URL と入力が残り、OK ではダッシュボードへ進むことを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. ダッシュボード → 鉢作家管理 → ダッシュボード と移り、戻るで鉢作家管理へ戻る（まだ入力していないので確認なし）
+    const dialogs = answerDialogs(page)
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    const sidebar = page.getByRole('complementary')
+    await sidebar.getByRole('link', { name: '鉢作家管理' }).click()
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    await sidebar.getByRole('link', { name: 'ダッシュボード' }).click()
+    await expect(page).toHaveURL(/\/admin$/)
+    await page.goBack({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    expect(dialogs.messages).toEqual([])
+
+    // 2. 名前を入れて進む → キャンセルすると鉢作家管理に残り、入力もそのまま
+    const input = page.getByPlaceholder('鉢作家名を入力')
+    await input.fill('進む前の作家')
+    await page.goForward({ waitUntil: 'commit' })
+    await expect.poll(() => dialogs.messages).toEqual([LEAVE_MESSAGE])
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    await expect(input).toHaveValue('進む前の作家')
+
+    // 3. もう一度進む → OK でダッシュボードへ移る
+    dialogs.answer = 'accept'
+    await page.goForward({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/admin$/)
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    expect(dialogs.messages).toEqual([LEAVE_MESSAGE, LEAVE_MESSAGE])
+  })
+
+  test('鉢作家: 未保存の変更がなければ、戻る・進むで確認は出ない', /**
+     * ダッシュボード → 鉢作家管理 と移り、何も入れずに戻る・進むを押して、確認が出ずに移れることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    const dialogs = answerDialogs(page)
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    await page.getByRole('complementary').getByRole('link', { name: '鉢作家管理' }).click()
+    await expect(page.getByPlaceholder('鉢作家名を入力')).toBeVisible()
+    // 1. 戻る → ダッシュボード
+    await page.goBack({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/admin$/)
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    // 2. 進む → 鉢作家管理
+    await page.goForward({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    await expect(page.getByPlaceholder('鉢作家名を入力')).toBeVisible()
+    expect(dialogs.messages).toEqual([])
+  })
+
+  test('鉢作家: 入力して追加に成功したあとは、戻るで確認は出ない', /**
+     * サイドメニューで鉢作家管理へ移り、名前を入れて追加したあと、ブラウザの戻るで確認なしにダッシュボードへ戻れることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    const dialogs = answerDialogs(page)
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    await page.getByRole('complementary').getByRole('link', { name: '鉢作家管理' }).click()
+    const input = page.getByPlaceholder('鉢作家名を入力')
+    await input.fill('追加する作家')
+    await page.locator('form button[type="submit"]').click()
+    await expect(input).toHaveValue('')
+    await page.goBack({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/admin$/)
+    expect(dialogs.messages).toEqual([])
+  })
+
+  test('鉢作家: 戻るの確認でキャンセルした直後（setTimeout(0)）に入力が変わって再描画されても、確認は1回だけで URL と画面は元のまま', /**
+     * window.confirm を包み、キャンセルした直後の setTimeout(0) で鉢作家名の入力欄を書き換えて再描画を起こす。
+     * そのあと元の項目へ戻したときの popstate で確認がもう一度出ないこと、URL・履歴の番号・画面・入力が元のままであることを確かめる。
+     * （再描画で「移る前の場所」が戻る途中の項目に書き換わると、元へ戻したときに2回目の確認が出る不具合の確認）
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    // 1. キャンセルした直後に、React に伝わる形で入力欄を書き換える（再描画を起こす）仕掛けを入れる
+    await page.addInitScript(() => {
+      // originalConfirm: ブラウザ本来の確認ダイアログ
+      const originalConfirm = window.confirm.bind(window)
+      window.confirm = (message?: string) => {
+        // answer: 確認への答え（Playwright がキャンセル・OK を返す）
+        const answer = originalConfirm(message)
+        if (!answer) {
+          setTimeout(() => {
+            // input: 鉢作家名の入力欄
+            const input = document.querySelector('input[placeholder="鉢作家名を入力"]') as HTMLInputElement | null
+            if (!input) return
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '再描画後の作家')
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+          }, 0)
+        }
+        return answer
+      }
+    })
+    const dialogs = answerDialogs(page)
+    // 2. ダッシュボード → サイドメニューで鉢作家管理へ移り、名前を入れる
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible()
+    await page.getByRole('complementary').getByRole('link', { name: '鉢作家管理' }).click()
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    const input = page.getByPlaceholder('鉢作家名を入力')
+    await input.fill('書きかけの作家')
+    // idxBefore: 鉢作家管理の履歴の項目の番号（React Router が history.state.idx に書いたもの）
+    const idxBefore = await page.evaluate(() => (window.history.state as { idx?: number } | null)?.idx)
+
+    // 3. 戻る → キャンセル。直後の再描画で入力が書き換わり、履歴は元の項目（同じ番号）へ戻る
+    await page.goBack({ waitUntil: 'commit' })
+    await expect(input).toHaveValue('再描画後の作家')
+    await expect.poll(() => page.evaluate(() => (window.history.state as { idx?: number } | null)?.idx)).toBe(idxBefore)
+    // 4. 確認は1回だけで、URL・画面も鉢作家管理のまま
+    await expect(page).toHaveURL(/\/admin\/pot-artists$/)
+    expect(dialogs.messages).toEqual([LEAVE_MESSAGE])
+    await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toHaveCount(0)
+  })
+
+  test('イベントの新規作成: 番号の無い履歴の項目（location.hash で作ったもの）へ戻るときも確認が出て、キャンセルすると入力と URL が残る', /**
+     * イベント一覧で location.hash = 'abc' として React Router の番号（idx）の無い履歴の項目を作り、画面の中のリンクで新規作成へ移って入力する。
+     * ブラウザの戻るで確認が出ること、キャンセルすると新規作成の URL・入力がそのまま残ることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    const dialogs = answerDialogs(page)
+    // 1. イベント一覧で、番号の無い履歴の項目（#abc）を作る
+    await page.goto('/admin/events')
+    await page.evaluate(() => { window.location.hash = 'abc' })
+    await expect(page).toHaveURL(/\/admin\/events#abc$/)
+    // 2. 画面の中のリンクで新規作成へ移り、イベント名を入れる
+    await page.locator('a[href="/admin/events/new"]').first().click()
+    await expect(page).toHaveURL(/\/admin\/events\/new$/)
+    const name = page.locator('#event-name')
+    await name.fill('書きかけのイベント')
+    // 3. 戻る → 確認が出て、キャンセルすると新規作成に残り、入力もそのまま
+    await page.goBack({ waitUntil: 'commit' })
+    await expect.poll(() => dialogs.messages).toEqual([LEAVE_MESSAGE])
+    await expect(page).toHaveURL(/\/admin\/events\/new$/)
+    await expect(name).toHaveValue('書きかけのイベント')
+    expect(dialogs.messages).toEqual([LEAVE_MESSAGE])
+  })
+
+  test('公開ページ: ヘッダーのリンクで移ってから戻る・進むを押しても確認は出ない', /**
+     * 公式サイトのトップからヘッダーの Event へ移り、ブラウザの戻る・進むで確認が出ずに移れることを確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
+     */
+    async ({ page }) => {
+    const dialogs = answerDialogs(page)
+    await page.goto('/official')
+    await page.getByRole('navigation').first().getByRole('link', { name: 'Event', exact: true }).click()
+    await expect(page).toHaveURL(/\/official\/events$/)
+    // 1. 戻る → 公式トップ
+    await page.goBack({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/official$/)
+    await expect(page).toHaveTitle('ei8ht plants')
+    // 2. 進む → イベント一覧
+    await page.goForward({ waitUntil: 'commit' })
+    await expect(page).toHaveURL(/\/official\/events$/)
+    await expect(page).toHaveTitle('Events | ei8ht plants')
+    expect(dialogs.messages).toEqual([])
   })
 })

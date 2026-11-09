@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 // 管理画面「ページ画像の編集」（/admin/page-editor/:brand/:page?）の流れを確かめる（4ブランド × ページ）。
 // プレビューの枠をクリック → パネル → アップロード → プレビューに反映 → 保存 → 件数が 0。
@@ -383,3 +383,116 @@ for (const [id, pageId, key] of [
     boxes.own.forEach((value, index) => expect(Math.abs(value - boxes.figure[index])).toBeLessThanOrEqual(1))
   })
 }
+
+/** 移るときの確認の文言（UnsavedChanges.ts の UNSAVED_LEAVE_MESSAGE） */
+const LEAVE_MESSAGE = '保存していない変更があります。破棄して移動しますか？'
+
+/**
+ * ブラウザの確認ダイアログに答える係を付ける。答え方（キャンセル・OK）はテストの途中で切り替えられる
+ * @param page 対象ページ
+ * @returns messages（出た確認の文言の一覧）と answer（次から出る確認への答え方。'dismiss' ならキャンセル、'accept' なら OK）
+ */
+function answerDialogs(page: import('@playwright/test').Page): { messages: string[]; answer: 'dismiss' | 'accept' } {
+  // state: 出た文言と、今の答え方
+  const state = { messages: [] as string[], answer: 'dismiss' as 'dismiss' | 'accept' }
+  page.on('dialog', async (d) => {
+    state.messages.push(d.message())
+    if (state.answer === 'accept') await d.accept()
+    else await d.dismiss()
+  })
+  return state
+}
+
+// ブラウザの「戻る」「進む」（historyGuard.ts）。同じブランドの中のページの移動は確認を出さず、草稿も残す。
+// ブランドをまたぐ移動は、未保存の変更があれば確認を出す。前の画面は page.goto ではなく画面の中の操作で作る
+test('E2E-AF-19: 同じブランドの中のページを戻る・進むで移ると、確認が出ず、草稿の件数が残り、プレビューもそのページを出す', /**
+   * ei8ht plants のトップで共有ロゴに画像を入れて About へ移り、ブラウザの戻る・進むで行き来する。
+   * 確認が出ないこと、件数が「変更 1 件（未保存）」のままであること、ページの選択とプレビュー（iframe の src と中身）がそのページになることを確かめる。
+   * @param page 操作・検証対象の Playwright ページ
+   * @returns {Promise<void>} すべての確認が終わったら解決する
+   */
+  async ({ page }) => {
+  const dialogs = answerDialogs(page)
+  const frame = page.getByTestId('page-editor-frame')
+  const preview = page.frameLocator('[data-testid="page-editor-frame"]')
+  // 1. トップで共有ロゴ（トップと About で使う）に画像を入れ、ページの選択で About へ移る
+  await openEditor(page, '/admin/page-editor/ei8htplants')
+  await page.getByTestId('page-editor-slot-ei8ht-wordmark').click()
+  await page.getByTestId('page-editor-panel').getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+  await page.getByTestId('page-editor-page-select').selectOption('about')
+  await expect(page).toHaveURL(/\/admin\/page-editor\/ei8htplants\/about$/)
+
+  // 2. 戻る → トップ。確認は出ず、件数が残り、プレビューもトップになる
+  await page.goBack({ waitUntil: 'commit' })
+  await expect(page).toHaveURL(/\/admin\/page-editor\/ei8htplants$/)
+  await expect(page.getByTestId('page-editor-page-select')).toHaveValue('home')
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+  await expect(frame).toHaveAttribute('src', '/admin/page-preview/ei8htplants/home')
+  // トップだけにあるメインの写真の枠が出て、草稿のロゴもプレビューに出ている
+  await expect(preview.getByTestId('editable-slot-ei8ht-hero')).toHaveCount(1, { timeout: 30000 })
+  await expect(preview.getByTestId('editable-slot-ei8ht-wordmark').locator('..').locator('img')).toHaveAttribute('src', UPLOADED_URL)
+
+  // 3. 進む → About。確認は出ず、件数が残り、プレビューも About になる
+  await page.goForward({ waitUntil: 'commit' })
+  await expect(page).toHaveURL(/\/admin\/page-editor\/ei8htplants\/about$/)
+  await expect(page.getByTestId('page-editor-page-select')).toHaveValue('about')
+  await expect(page.getByTestId('page-editor-changed-count')).toHaveText('変更 1 件（未保存）')
+  await expect(frame).toHaveAttribute('src', '/admin/page-preview/ei8htplants/about')
+  await expect(preview.getByTestId('editable-slot-ei8ht-about-hero')).toHaveCount(1, { timeout: 30000 })
+  expect(dialogs.messages).toEqual([])
+})
+
+test('E2E-AF-20: ブランドをまたいで戻る（history.go(-2) も）と確認が出て、キャンセルすると留まって草稿が残り、OK で移る', /**
+   * ei8ht plants → HUE（タブ）→ HUE の About（ページの選択）と移り、About で画像を入れる。
+   * history.go(-2)（ei8ht plants へ一気に戻る）でキャンセルすると About に留まり草稿が残ること、
+   * 1つ戻る（HUE のトップ。同じブランド）は確認なしで移ること、そこからさらに戻る（ei8ht plants）はキャンセルで留まり、OK で移ることを確かめる。
+   * @param page 操作・検証対象の Playwright ページ
+   * @returns {Promise<void>} すべての確認が終わったら解決する
+   */
+  async ({ page }) => {
+  const dialogs = answerDialogs(page)
+  const count = page.getByTestId('page-editor-changed-count')
+  // 1. ei8ht plants → HUE → HUE の About と画面の中の操作で移る（未保存の変更が無いので確認なし）
+  await openEditor(page, '/admin/page-editor/ei8htplants')
+  await page.getByRole('tab', { name: 'HUE' }).click()
+  await expect(page).toHaveURL(/\/admin\/page-editor\/hue$/)
+  await expect(count).toHaveText('変更はありません', { timeout: 30000 })
+  await page.getByTestId('page-editor-page-select').selectOption('about')
+  await expect(page).toHaveURL(/\/admin\/page-editor\/hue\/about$/)
+  expect(dialogs.messages).toEqual([])
+
+  // 2. About で画像を入れる
+  await page.getByTestId('page-editor-slot-hue-color-01').click()
+  await page.getByTestId('page-editor-panel').getByLabel('画像を選ぶ').setInputFiles(UPLOAD_FILE)
+  await expect(count).toHaveText('変更 1 件（未保存）')
+
+  // 3. history.go(-2) で ei8ht plants へ一気に戻る → 確認をキャンセルすると About に留まり、草稿が残る
+  await page.evaluate(() => window.history.go(-2))
+  await expect.poll(() => dialogs.messages).toEqual([LEAVE_MESSAGE])
+  await expect(page).toHaveURL(/\/admin\/page-editor\/hue\/about$/)
+  await expect(page.getByTestId('page-editor-page-select')).toHaveValue('about')
+  await expect(count).toHaveText('変更 1 件（未保存）')
+
+  // 4. 1つ戻る（HUE のトップ。同じブランド）は確認なしで移り、草稿も残る
+  await page.goBack({ waitUntil: 'commit' })
+  await expect(page).toHaveURL(/\/admin\/page-editor\/hue$/)
+  await expect(page.getByTestId('page-editor-page-select')).toHaveValue('home')
+  await expect(count).toHaveText('変更 1 件（未保存）')
+  expect(dialogs.messages).toEqual([LEAVE_MESSAGE])
+
+  // 5. さらに戻る（ei8ht plants）→ キャンセルすると HUE のトップに留まり、草稿が残る
+  await page.goBack({ waitUntil: 'commit' })
+  await expect.poll(() => dialogs.messages).toEqual([LEAVE_MESSAGE, LEAVE_MESSAGE])
+  await expect(page).toHaveURL(/\/admin\/page-editor\/hue$/)
+  await expect(page.getByRole('tab', { name: 'HUE' })).toHaveAttribute('aria-selected', 'true')
+  await expect(count).toHaveText('変更 1 件（未保存）')
+
+  // 6. もう一度戻る → OK で ei8ht plants へ移り、HUE の草稿は破棄される
+  dialogs.answer = 'accept'
+  await page.goBack({ waitUntil: 'commit' })
+  await expect(page).toHaveURL(/\/admin\/page-editor\/ei8htplants$/)
+  await expect(page.getByRole('tab', { name: 'ei8ht plants' })).toHaveAttribute('aria-selected', 'true')
+  await expect(count).toHaveText('変更はありません', { timeout: 30000 })
+  expect(dialogs.messages).toEqual([LEAVE_MESSAGE, LEAVE_MESSAGE, LEAVE_MESSAGE])
+})

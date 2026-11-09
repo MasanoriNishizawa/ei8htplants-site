@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { MOCK_GALLERY, MOCK_PRODUCTS } from '../src/mocks/data'
 
 // ei8ht plants のブランドサイトと公式サイトを別 URL・別ヘッダーで公開する導線を確認する
@@ -70,9 +70,14 @@ test.describe('ブランドサイトと公式サイトのルーティング', ()
 
     // 2. 2枚目へhoverすると幅が先頭カードより広がることを確認する。
     await cards.nth(1).hover()
-    await expect.poll(async () => cards.nth(1).evaluate((card) => card.getBoundingClientRect().width)).toBeGreaterThan(
-      await cards.nth(0).evaluate((card) => card.getBoundingClientRect().width),
-    )
+    // 先頭カードの幅も毎回測り直して「2枚目 − 先頭」を比べる。
+    // 先頭カードの幅を hover の直後に1回だけ測ると、負荷が高いときは幅の切り替え（CSS の transition）の途中の値になり、
+    // 2枚目が広がり切っても「先頭と同じ幅」となって待ち時間切れになっていた
+    await expect.poll(async () => {
+      // widths: [先頭カードの幅, 2枚目のカードの幅]
+      const widths = await Promise.all([0, 1].map((i) => cards.nth(i).evaluate((card) => card.getBoundingClientRect().width)))
+      return widths[1] - widths[0]
+    }).toBeGreaterThan(0)
 
     // 3. 390pxへ変更し、全カードのロゴと遷移表示が見え、説明文が非表示で縦に並ぶことを確認する。
     await page.setViewportSize({ width: 390, height: 844 })

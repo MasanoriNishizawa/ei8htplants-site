@@ -25,7 +25,7 @@ python scripts/run_tests.py --no-log --vitest <関連するファイル> --e2e <
 
 ### 3. フロントエンドの確認
 
-- `cd frontend && npx tsc --noEmit` が通るか
+- `cd frontend && npx tsc --noEmit -p tsconfig.app.json` が通るか
 - 変更した画面の表示・操作が仕様どおりか（コードを読んで確認）
 
 ### 4. バックエンドの確認（バックエンドを変えたとき）

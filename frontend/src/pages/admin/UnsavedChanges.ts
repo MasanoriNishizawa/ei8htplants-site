@@ -7,14 +7,20 @@
  * - 編集画面は useUnsavedChanges(isDirty) を呼ぶだけで「未保存の変更がある」ことを登録できる
  *   （同時に、再読み込み・タブを閉じるときのブラウザの確認（beforeunload）も出す）
  * - サイドメニューのリンクは useConfirmLeave() で受け取った関数を押したときに呼び、未保存なら確認ダイアログを出す
+ * - ブラウザの「戻る」「進む」（popstate）は historyGuard.ts が React Router より先に受け取り、未保存なら確認ダイアログを出す
+ *   （キャンセルならルーターに渡さず URL だけ元に戻すので、画面も入力もそのまま残る。仕組みの詳細は historyGuard.ts）
+ *   確認を出さない移動（ページ画像の編集で同じブランドの中のページの切り替えなど）は、allowNavigation で画面ごとに指定できる
  *
- * Provider の外（単体テストなどで編集画面だけを描画したとき）でも、登録は何もせずに動く（beforeunload だけ効く）
+ * Provider の外（単体テストなどで編集画面だけを描画したとき）でも、登録は何もせずに動く（beforeunload だけ効く。
+ * 「戻る」「進む」の確認も管理画面の Provider の中だけで出し、公開ページには影響させない）
  *
  * 開発中の画面の自動更新（Fast Refresh）が効くよう、部品（UnsavedChangesProvider.tsx）とフック・定数（このファイル）を分けている。
  * これまでどおり `import { UnsavedChangesProvider, useUnsavedChanges } from './UnsavedChanges'` で使える
  */
-import { useCallback, useContext, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { UNSAFE_LocationContext } from 'react-router-dom'
 import { UnsavedChangesContext } from './unsavedChangesContext'
+import { recordCommittedEntry, registerHistoryGuard } from './historyGuard'
 
 export { UnsavedChangesProvider } from './UnsavedChangesProvider'
 
@@ -80,19 +86,47 @@ export function useDirtyTracker<T>(current: T, initial: T | null = null): {
   return { isDirty: baseline !== null && currentJson !== baseline, resetBaseline }
 }
 
+/** useUnsavedChanges の追加の指定 */
+export interface UnsavedChangesOptions {
+  /**
+   * ブラウザの「戻る」「進む」で、未保存の変更があっても確認を出さずに通す移動を決める（省略したらすべて確認する）
+   * @param from - 移動する前のパス（pathname）
+   * @param to - 移動した先のパス（pathname）
+   * @returns 確認を出さずに通すなら true
+   */
+  allowNavigation?: (from: string, to: string) => boolean
+}
+
 /**
  * 編集画面から「未保存の変更があるかどうか」を登録するフック。ほかの編集画面でも同じように使える
  * 1. Provider（AdminLayout）があれば、isDirty をサイドメニューの確認に使えるよう登録する
  * 2. 画面を閉じたら登録を外す
  * 3. 未保存の変更があるあいだは、再読み込み・タブを閉じるときにブラウザの確認（beforeunload）を出す
+ * 4. Provider の中で未保存の変更があるあいだは、ブラウザの「戻る」「進む」でも確認を出す（historyGuard.ts に登録する）。
+ *    変更がなくなったとき・画面を離れたときに登録を外す
+ * 5. 4 のあいだは、描画のたびに今の場所を「移る前の場所」として記録する（同じ画面の中でページを移ったときのため）
  * @param isDirty - 未保存の変更があるかどうか
+ * @param options - 追加の指定（allowNavigation: 「戻る」「進む」で確認を出さない移動）
  * @returns なし
  */
-export function useUnsavedChanges(isDirty: boolean): void {
+export function useUnsavedChanges(isDirty: boolean, options?: UnsavedChangesOptions): void {
   /** Provider が配る操作一式（Provider の外では null で、登録は何もしない） */
   const ctx = useContext(UnsavedChangesContext)
+  /**
+   * URL・state・key の更新でも描画し直して履歴を記録する。
+   * useLocation は Router の外で例外になるため、公開されている LocationContext を直接購読する。
+   * Router の外（画面単体のテストなど）は null のまま、従来の beforeunload の処理を続ける。
+   */
+  useContext(UNSAFE_LocationContext)
   /** この画面を見分けるキー（同じ画面を2つ開いても重ならない） */
   const key = useId()
+  /** 最新の allowNavigation（毎回作り直される関数でも、登録し直さずに最新のものを使うため） */
+  const allowNavigationRef = useRef(options?.allowNavigation)
+  useEffect(() => {
+    allowNavigationRef.current = options?.allowNavigation
+  })
+  /** 「戻る」「進む」の確認を出すか（管理画面の Provider の中で、未保存の変更があるときだけ） */
+  const guardHistory = ctx !== null && isDirty
 
   // 1. isDirty が変わるたびに登録内容を更新する
   useEffect(() => {
@@ -120,6 +154,20 @@ export function useUnsavedChanges(isDirty: boolean): void {
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [isDirty])
+
+  // 4. 「戻る」「進む」の確認。未保存の変更があるあいだだけ登録し、なくなったとき・画面を離れたときに外す
+  useEffect(() => {
+    if (!guardHistory) return
+    return registerHistoryGuard({
+      shouldBlock: (from, to) => !(allowNavigationRef.current?.(from, to) ?? false),
+      message: UNSAVED_LEAVE_MESSAGE,
+    })
+  }, [guardHistory])
+
+  // 5. 描画のたびに今の場所を記録する（依存配列なし = 毎回。ルーターが画面を移したあとの描画で、移った先が「移る前の場所」になる）
+  useLayoutEffect(() => {
+    if (guardHistory) recordCommittedEntry()
+  })
 }
 
 /**

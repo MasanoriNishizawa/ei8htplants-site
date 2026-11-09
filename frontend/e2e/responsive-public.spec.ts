@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // 公開サイトの画面幅ごとの見た目の確認（MSW モックで実行。本番には接続しない）
 // 1. ヘッダーの言語切り替えボタン

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 // 管理画面「設計書」の URL（?path=）と、スマホ幅の目次の開閉の画面テスト（MSW の設計書のモックを使う。本番には接続しない）
 // モック（src/mocks/data.ts の MOCK_DOC_TREE）: 03_PM/05_エージェント設計書.md、04_TEST/01_マスターテスト計画書.md、04_TEST/07_テストケース一覧.md

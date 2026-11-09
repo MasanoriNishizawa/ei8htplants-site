@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 test.describe('Gallery', () => {
   test('ギャラリー画像が表示される', /**

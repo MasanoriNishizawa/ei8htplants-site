@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 /**
  * 「開催時間」ラベルの2階層上にある div から開始・終了の select 要素を取得する

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 // 予約フォームページ（/official/reserve）の E2E テスト
 // MSW モックモードで実行（本番 DB には接続しない）

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 // 画面の幅・高さに収まるかの画面テスト（MSW のモックで実行。本番には接続しない）
 // 1. PC の管理画面で、高さ 700px でもサイドメニューの一番下の「ログアウト」までスクロールして届く
