@@ -5,7 +5,7 @@
 ## 担当と運用
 
 - メインの Codex セッションは PM として依頼を整理し、作業を担当へ割り当て、結果を確認してユーザーへ報告します。
-- 役割ごとの指示は `.claude/agents/` にある各担当ファイルを読み、そのまま適用します。実装は `frontend` または `backend`、テストは `test-engineer`、レビューは Codex CLI（PM が `scripts/codex_review.sh` で呼ぶ。使えないときだけ `qa`）、設計書更新は `docs`、設計書確認は `docs-reviewer` に割り当てます。
+- 役割ごとの指示は `.claude/agents/` にある各担当ファイルを読み、そのまま適用します。実装は `frontend` または `backend`、テストは `test-engineer`、レビューは Codex CLI（Claude Code の PM が `scripts/codex_review.sh` で呼ぶ。使えないときと、Codex がこのファイルを読んで PM として実装したときは `qa`。実装とレビューを同じ AI にしないため）、設計書更新は `docs`、設計書確認は `docs-reviewer` に割り当てます。
 - 利用可能なエージェント機能で担当を起動し、独立した作業は並行して進めます。担当には目的・変更範囲・制約・依存関係・報告事項を具体的に伝えます。
 - 担当はコミット・プッシュを行わず、PM が結果と必要な確認をそろえて実施します。
 - すべての会話、担当への指示、報告は日本語にします。
