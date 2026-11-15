@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type Event, type Reservation, type WsSession } from '../../lib/api'
 import { failMessage } from './errorMessage'
+import { RESERVE_MAX_PARTICIPANTS } from '../../lib/constants'
 import { formatJaMonthDayDow } from '../../lib/localDate'
 import { defaultWalkinDate, isWorkshopDay, workshopDates } from '../../lib/wsDates'
 import type { ReservationWithTime } from './reservationPrint'
@@ -193,8 +194,8 @@ export default function WalkinReservationModal({
   const walkinDates = selectedEvent ? workshopDates(selectedEvent) : []
   /** 現在選択中の時間枠 */
   const selectedSession = sessions.find((session) => session.id === sessionId) ?? null
-  /** 選択枠の残り人数 */
-  const remaining = selectedSession ? selectedSession.max_participants - selectedSession.reserved_count : 0
+  /** 選んでいる枠が満席か（当日参加は会場で調整するので登録は止めず、案内だけ出す） */
+  const selectedFull = !!selectedSession && selectedSession.max_participants - selectedSession.reserved_count <= 0
   /**
    * 参加日がワークショップの実施日でないか（開催期間外・実施する日に選んでいない日）。
    * サーバーも 400 で受け付けないので、登録できなくして理由を出す
@@ -265,11 +266,11 @@ export default function WalkinReservationModal({
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
               <option value="">-- 選択 --</option>
               {sessions.map((session) => {
-                /** この時間枠の残り人数（0 以下は選べない） */
-                const available = session.max_participants - session.reserved_count
+                /** この時間枠の残り人数（定員を超えていても 0 と出す。当日参加は会場で調整するので、満席でも選べる） */
+                const available = Math.max(0, session.max_participants - session.reserved_count)
                 return (
-                  <option key={session.id} value={session.id} disabled={available <= 0}>
-                    {session.time_label}{'\u3000'}残{available}枠
+                  <option key={session.id} value={session.id}>
+                    {session.time_label}{'\u3000'}残{available}名{available === 0 ? '（満席）' : ''}
                   </option>
                 )
               })}
@@ -281,16 +282,21 @@ export default function WalkinReservationModal({
           ) : (
             <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>この日の枠はありません（時間指定なしで登録します）</p>
           )}
+          {/* 選んだ枠が満席のときの案内（登録は止めない。当日参加は会場で調整して記録するため） */}
+          {selectedFull && (
+            <p role="status" style={{ /* 注意の文字: 小さめの橙色 */ margin: '6px 0 0', fontSize: 12, color: '#b9770e', lineHeight: 1.6 }}>
+              満席です。会場で調整したうえで登録してください。
+            </p>
+          )}
         </div>
 
-        {/* 参加人数は時間枠を選び、残り人数があるときだけ表示する */}
-        {/* 選択枠の空き人数を上限にして参加人数を選ばせる */}
-        {selectedSession && remaining > 0 && (
+        {/* 参加人数は時間枠を選んだときに表示する。残りの人数では限らず、1〜RESERVE_MAX_PARTICIPANTS 名から選ぶ（満席でも会場で調整して記録する） */}
+        {selectedSession && (
           <div style={{ marginBottom: 24 }}>
             <label htmlFor="walkin-participants" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加人数</label>
             <select id="walkin-participants" value={participants} onChange={(e) => setParticipants(Number(e.target.value))}
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
-              {Array.from({ length: remaining }, (_, index) => index + 1).map((count) => (
+              {Array.from({ length: RESERVE_MAX_PARTICIPANTS }, (_, index) => index + 1).map((count) => (
                 <option key={count} value={count}>{count}名</option>
               ))}
             </select>
@@ -301,13 +307,13 @@ export default function WalkinReservationModal({
         {error && <p role="alert" style={{ color: '#c0392b', fontSize: 13, margin: '8px 0 16px', padding: '8px 14px', background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0' }}>{error}</p>}
 
         {/* 下部の操作列は右寄せにし、登録中以外はキャンセルを常に使える */}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: selectedSession && remaining > 0 ? 0 : 24 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: selectedSession ? 0 : 24 }}>
           <button onClick={onClose}
             style={{ padding: '8px 18px', border: '1px solid #dddde8', borderRadius: 4, background: '#fff', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
             キャンセル
           </button>
-          <button onClick={submit} disabled={saving || !canSubmit || (!!selectedSession && remaining <= 0)}
-            style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', opacity: (!canSubmit || (!!selectedSession && remaining <= 0)) ? 0.5 : 1 }}>
+          <button onClick={submit} disabled={saving || !canSubmit}
+            style={{ padding: '8px 18px', background: '#2d3a24', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', opacity: !canSubmit ? 0.5 : 1 }}>
             {saving ? '登録中...' : '登録'}
           </button>
         </div>

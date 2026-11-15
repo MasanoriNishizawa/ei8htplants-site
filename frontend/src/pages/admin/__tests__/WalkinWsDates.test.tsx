@@ -2,7 +2,8 @@
  * 当日参加の「参加日」をワークショップの実施日から選ぶ動きのテスト（2026-11-13 追加）
  * - Reservations（全イベントの予約一覧）の当日参加モーダル（WalkinReservationModal）
  *   参加日の選択肢は実施日だけ・初めの値は defaultWalkinDate・参加日を変えると枠を取り直して選んでいた枠を外す・
- *   preferred_date で送る・実施日が無いイベントは登録できない・過去の開催のタブでもボタンが出る
+ *   preferred_date で送る・実施日が無いイベントは登録できない・過去の開催のタブでもボタンが出る・
+ *   満席の枠も選べて案内が出て登録できる・参加人数は 1〜10 名（2026-11-16 変更）
  * - EventReservations（イベント別の予約画面）の当日参加（EventWalkinReservationModal）
  *   同じく参加日の選択・枠の取り直し・送る内容。実施日が 0 日のときだけボタンを押せない。一部の日だけなら「WS実施日」を出す
  * - EventWalkinReservationModal 単体: 選べる日が 2 日以上なら選択欄、1 日なら文字。読み込み中は登録できない。
@@ -117,7 +118,7 @@ describe('Reservations の当日参加（参加日を実施日から選ぶ）', 
     return dialog
   }
 
-  it('FE-ES-01 参加日の選択肢は実施日（7/2・7/4）だけで、初めの値は最初の実施日。その日の枠を日付つきで取る', async () => {
+  it('FE-ES-01 参加日の選択肢は実施日（7/2・7/4）だけで、初めの値は最初の実施日。その日の枠を日付つきで取り、残りを「残N名」（満席は「残0名（満席）」）で出す', async () => {
     renderPage()
     const dialog = await openAndSelect(WS_EVENT.id)
     /** 参加日の選択欄 */
@@ -125,9 +126,9 @@ describe('Reservations の当日参加（参加日を実施日から選ぶ）', 
     expect(optionTexts(dateSelect)).toEqual(['7月2日（金）', '7月4日（日）'])
     expect(dateSelect).toHaveValue('2027-07-02')
     await waitFor(() => expect(api.events.getSessions).toHaveBeenCalledWith(WS_EVENT.id, '2027-07-02'))
-    // 満席の枠は選べず、残りの人数が出る
-    expect(await within(dialog).findByRole('option', { name: /11:00〜12:00　残4枠/ })).not.toBeDisabled()
-    expect(within(dialog).getByRole('option', { name: /13:00〜14:00　残0枠/ })).toBeDisabled()
+    // 残りの人数が「残N名」で出る。2026-11-16 変更: 管理者の当日参加は満席でも登録できるので、満席の枠も選べて「残0名（満席）」と出る
+    expect(await within(dialog).findByRole('option', { name: '11:00〜12:00　残4名' })).not.toBeDisabled()
+    expect(within(dialog).getByRole('option', { name: '13:00〜14:00　残0名（満席）' })).not.toBeDisabled()
   })
 
   it('FE-ES-02 参加日を変えると、その日の枠を取り直して選んでいた枠を外し、選んだ参加日（枠なし）で送る', async () => {
@@ -176,6 +177,48 @@ describe('Reservations の当日参加（参加日を実施日から選ぶ）', 
     expect(within(dialog).getByRole('button', { name: '登録' })).toBeDisabled()
     fireEvent.click(within(dialog).getByRole('button', { name: '登録' }))
     expect(api.reserve.addWalkin).not.toHaveBeenCalled()
+  })
+
+  it('FE-ES-22 満席の枠も選べて「満席です。会場で調整したうえで登録してください。」が出て、登録を押すとその枠で送る（2026-11-16 追加）', async () => {
+    renderPage()
+    const dialog = await openAndSelect(WS_EVENT.id)
+    const sessionSelect = await within(dialog).findByRole('combobox', { name: '時間枠' })
+    // 満席の 13:00 を選ぶ
+    fireEvent.change(sessionSelect, { target: { value: 's-13' } })
+    expect(sessionSelect).toHaveValue('s-13')
+    expect(within(dialog).getByRole('status')).toHaveTextContent('満席です。会場で調整したうえで登録してください。')
+    // 人数を 2 名にして登録できる
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '参加人数' }), { target: { value: '2' } })
+    const submit = within(dialog).getByRole('button', { name: '登録' })
+    expect(submit).toBeEnabled()
+    fireEvent.click(submit)
+    await waitFor(() => expect(api.reserve.addWalkin).toHaveBeenCalledWith({
+      event_id: WS_EVENT.id, participants: 2, session_id: 's-13', preferred_date: '2027-07-02',
+    }))
+  })
+
+  it('FE-ES-23 空きのある枠では満席の案内は出ない。枠を選ぶまで参加人数の欄は出ない（2026-11-16 追加）', async () => {
+    renderPage()
+    const dialog = await openAndSelect(WS_EVENT.id)
+    const sessionSelect = await within(dialog).findByRole('combobox', { name: '時間枠' })
+    expect(within(dialog).queryByRole('combobox', { name: '参加人数' })).toBeNull()
+    fireEvent.change(sessionSelect, { target: { value: 's-11' } })
+    expect(within(dialog).queryByText(/満席です。/)).toBeNull()
+    expect(within(dialog).getByRole('combobox', { name: '参加人数' })).toBeInTheDocument()
+  })
+
+  it('FE-ES-24 参加人数の選択肢は、残りの人数（4 名・0 名）に限らず 1〜10 名になる（2026-11-16 追加）', async () => {
+    renderPage()
+    const dialog = await openAndSelect(WS_EVENT.id)
+    const sessionSelect = await within(dialog).findByRole('combobox', { name: '時間枠' })
+    /** 1〜10 名の選択肢 */
+    const expected = Array.from({ length: 10 }, (_, i) => `${i + 1}名`)
+    // 残り 4 名の枠
+    fireEvent.change(sessionSelect, { target: { value: 's-11' } })
+    expect(optionTexts(within(dialog).getByRole('combobox', { name: '参加人数' }))).toEqual(expected)
+    // 満席（残り 0 名）の枠
+    fireEvent.change(sessionSelect, { target: { value: 's-13' } })
+    expect(optionTexts(within(dialog).getByRole('combobox', { name: '参加人数' }))).toEqual(expected)
   })
 
   it('FE-ES-05 過去の開催のタブでも当日参加のボタンが出て、絞り込んだイベントの今日より前で一番近い実施日（10/3）が初めの参加日になる', async () => {
