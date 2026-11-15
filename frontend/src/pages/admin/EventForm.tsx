@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { api, type EventBody } from '../../lib/api'
+import { api, type EventBody, type SessionConflictBody } from '../../lib/api'
 import { failMessage } from './errorMessage'
 import { confirmLeaveIfDirty, useDirtyTracker, useUnsavedChanges } from './UnsavedChanges'
 import EventBrandSelector from './EventBrandSelector'
@@ -8,9 +8,24 @@ import EventIdentityFields from './eventForm/EventIdentityFields'
 import EventImagesField from './eventForm/EventImagesField'
 import EventDailyTimesField from './eventForm/EventDailyTimesField'
 import EventWorkshopField from './eventForm/EventWorkshopField'
-import { listDates } from '../../lib/localDate'
+import EventWorkshopDatesField from './eventForm/EventWorkshopDatesField'
+import { formatJaMonthDayDow, listDates } from '../../lib/localDate'
+import { hasWsDateSelection } from '../../lib/wsDates'
 import { WS_DEFAULT_SESSION_CAPACITY } from '../../lib/constants'
 import { buildAutoSessions, hasTimeRange, type SessionInput } from './eventTime'
+import { formatSessionConflict, parseSessionConflicts } from './eventForm/sessionConflicts'
+import {
+  buildSessionsPayload,
+  collapseToCommon,
+  copySessionsWithoutId,
+  effectiveWsDates,
+  reconcileLoadedSessions,
+  splitLoadedSessions,
+  startDateSelection,
+  wsScheduleSnapshot,
+  type DailySessions,
+  type WsDateMode,
+} from './eventForm/wsSchedule'
 
 /** エラーの帯の見た目（読み込み・保存の失敗で共通の赤い帯） */
 const errorBoxStyle: React.CSSProperties = {
@@ -60,8 +75,14 @@ export default function AdminEventForm() {
   const [form, setForm] = useState<FormState>(empty)
   /** 画像の URL（アップロード中は blob: のプレビュー URL が入る） */
   const [imageUrls, setImageUrls] = useState<string[]>([])
-  /** WS セッションの入力 */
+  /** WS セッションの入力（全日程で共通の枠） */
   const [sessions, setSessions] = useState<SessionInput[]>([])
+  /** ワークショップの実施のしかた（'all': 全日程で共通の枠 / 'select': 実施する日を選ぶ。複数日・WS ありのときだけ効く） */
+  const [wsDateMode, setWsDateMode] = useState<WsDateMode>('all')
+  /** 「実施する日を選ぶ」で選んだ日（YYYY-MM-DD・昇順） */
+  const [wsDates, setWsDates] = useState<string[]>([])
+  /** 「実施する日を選ぶ」の日ごとの時間枠（日付 → 枠の入力） */
+  const [dailySessions, setDailySessions] = useState<DailySessions>({})
   /** 保存中か */
   const [saving, setSaving] = useState(false)
   /** アップロード中の最初の画像の位置（null ならアップロード中でない。画面では「アップロード中かどうか」の判定にだけ使っている） */
@@ -74,11 +95,10 @@ export default function AdminEventForm() {
   const [loadError, setLoadError] = useState('')
   /** 保存の失敗の文言 */
   const [saveError, setSaveError] = useState('')
-  /**
-   * 新規作成で、イベントの作成までは成功したがセッションの保存で失敗したときの、作成済みのイベントの id。
-   * もう一度「保存する」を押したときに作成をやり直さず更新にして、同じイベントが2つできるのを防ぐ
-   */
-  const createdIdRef = useRef<string | null>(null)
+  /** 予約が入っている日時を消そうとして保存が止まったとき（409）の案内と、移し先の無い予約の一覧（無ければ null） */
+  const [saveConflicts, setSaveConflicts] = useState<SessionConflictBody | null>(null)
+  /** 編集で開いたときに、実施日と枠の食い違いを補正した案内（無ければ空。あれば「保存し直してください」と出す） */
+  const [loadNotices, setLoadNotices] = useState<string[]>([])
   /**
    * スラッグをイベント名に合わせて自動で作り直すかどうか
    * 新規作成では最初は true（名前を打つたびに作り直す）。スラッグ欄を手で編集したら false にし、以後は自動で変えない。
@@ -86,18 +106,33 @@ export default function AdminEventForm() {
    */
   const [slugAuto, setSlugAuto] = useState(!id)
 
+  /** 複数日のイベントか（開催時間を日ごとに分ける・WS の実施日を選ぶのは複数日のときだけ） */
+  const isMultiDay = Boolean(form.start_date && form.end_date && form.end_date > form.start_date)
+  /** 複数日のイベントの開催日の一覧（1 日のイベントでは空） */
+  const eventDates = isMultiDay ? listDates(form.start_date, form.end_date) : []
+  /** 「実施する日を選ぶ」が効いているか（WS あり・複数日・'select' のときだけ） */
+  const wsSelectActive = form.has_workshop && isMultiDay && wsDateMode === 'select'
+  /** 選んだ実施日のうち、今の開催期間に入っている日（開催期間を変えて外れた日は除く） */
+  const activeWsDates = effectiveWsDates(wsDates, eventDates)
+
   /**
-   * 未保存の変更の判定に使う入力欄の値一式（フォーム・画像・WS セッション・日ごとの開催時間）。
+   * 未保存の変更の判定に使う入力欄の値一式（フォーム・画像・WS セッション・日ごとの開催時間・WS の実施日と日ごとの枠）。
    * 販売ブランドは選んだ順に意味が無いので、外して付け直しても「変更あり」にならないよう並べ替えて比べる
    */
-  const editSnapshot = { form: { ...form, brands: [...form.brands].sort() }, imageUrls, sessions, dailyTimesMode, dailyTimes }
+  const editSnapshot = {
+    form: { ...form, brands: [...form.brands].sort() }, imageUrls, sessions, dailyTimesMode, dailyTimes,
+    ws: wsScheduleSnapshot(wsSelectActive, activeWsDates, dailySessions),
+  }
   /**
    * 未保存の変更があるか。新規作成は空のフォームを基準にし、編集は読み込みが終わったところで基準を置く
    * （読み込み前・読み込み失敗のときは変更なしとして扱う）
    */
   const { isDirty, resetBaseline } = useDirtyTracker(
     editSnapshot,
-    id ? null : { form: { ...empty, brands: [] as string[] }, imageUrls: [] as string[], sessions: [] as SessionInput[], dailyTimesMode: false, dailyTimes: {} as Record<string, string> },
+    id ? null : {
+      form: { ...empty, brands: [] as string[] }, imageUrls: [] as string[], sessions: [] as SessionInput[], dailyTimesMode: false, dailyTimes: {} as Record<string, string>,
+      ws: wsScheduleSnapshot(false, [], {}),
+    },
   )
   // 未保存の変更をサイドメニューの確認・再読み込みの確認（beforeunload）に使えるよう登録する。
   // 保存に成功したら一覧へ移り、この画面が閉じて登録も外れるので確認は出ない
@@ -118,21 +153,48 @@ export default function AdminEventForm() {
       }
       /** 読み込んだ画像の URL */
       const loadedImages = ev.images.map((i) => i.url)
-      /** 読み込んだ WS セッション */
-      const loadedSessions: SessionInput[] = sess.map((s) => ({ id: s.id, time_label: s.time_label, max_participants: s.max_participants }))
+      /** 実施する日を選んでいるイベントか（WS あり・複数日・ws_dates あり） */
+      const loadedSelect = hasWsDateSelection(ev)
+      /** 時間枠を共通の枠（session_date なし）と日ごとの枠に分けたもの */
+      const split = splitLoadedSessions(sess)
+      /** 読み込んだ実施日（開催期間に入っている日だけ。全日程なら空） */
+      const loadedWsDates = loadedSelect ? effectiveWsDates(ev.ws_dates ?? [], listDates(ev.start_date, ev.end_date)) : []
+      /** 実施日の設定との食い違いを補正して、画面の形に振り分けた枠 */
+      const reconciled = reconcileLoadedSessions(sess, loadedSelect, loadedWsDates)
+      /** 読み込んだ日ごとの枠（全日程なら空） */
+      const loadedDaily: DailySessions = reconciled.daily
+      /** 読み込んだ WS セッション（全日程なら全部の枠、日を選ぶなら共通の枠だけ） */
+      const loadedSessions: SessionInput[] = reconciled.common
+      /**
+       * 未保存の判定の基準にする、補正する前の値（補正があれば「変更あり」になり、保存し直すまで離れるときに確認が出る）
+       * 日を選ぶ: 日ごとの枠はその日の枠だけ / 全日程: 読み込んだ全部の枠
+       */
+      const rawDaily: DailySessions = Object.fromEntries(loadedWsDates.map((d) => [d, split.daily[d] ?? []]))
+      /** 補正する前の共通の枠 */
+      const rawSessions: SessionInput[] = loadedSelect
+        ? split.common
+        : sess.map((s) => ({ id: s.id, time_label: s.time_label, max_participants: s.max_participants }))
       /** 日ごとの開催時間が保存されているか（あれば「日ごとに異なる」をオンにして開く） */
       const hasDailyTimes = !!ev.daily_times && Object.keys(ev.daily_times).length > 0
       /** 読み込んだ日ごとの開催時間 */
-      const loadedDaily = ev.daily_times ?? {}
+      const loadedDailyTimes = ev.daily_times ?? {}
       setForm(loadedForm)
       // 既存のスラッグがあるイベントは、名前を変えてもスラッグを変えない
       setSlugAuto(!ev.slug)
       setImageUrls(loadedImages)
       setSessions(loadedSessions)
       setDailyTimesMode(hasDailyTimes)
-      setDailyTimes(loadedDaily)
-      // 未保存の変更の判定の基準を、読み込んだ値にする
-      resetBaseline({ form: { ...loadedForm, brands: [...loadedForm.brands].sort() }, imageUrls: loadedImages, sessions: loadedSessions, dailyTimesMode: hasDailyTimes, dailyTimes: loadedDaily })
+      setDailyTimes(loadedDailyTimes)
+      // ws_dates があれば「実施する日を選ぶ」で開き、枠を日ごとに分けて出す
+      setWsDateMode(loadedSelect ? 'select' : 'all')
+      setWsDates(loadedWsDates)
+      setDailySessions(loadedDaily)
+      setLoadNotices(reconciled.notices)
+      // 未保存の変更の判定の基準を、読み込んだ値（補正する前）にする
+      resetBaseline({
+        form: { ...loadedForm, brands: [...loadedForm.brands].sort() }, imageUrls: loadedImages, sessions: rawSessions, dailyTimesMode: hasDailyTimes, dailyTimes: loadedDailyTimes,
+        ws: wsScheduleSnapshot(loadedSelect, loadedWsDates, rawDaily),
+      })
     }).catch((e: unknown) => {
       setLoadError(failMessage('イベントの読み込みに失敗しました。ページを開き直してください', e))
     })
@@ -238,51 +300,165 @@ export default function AdminEventForm() {
   }
 
   /**
+   * 開始日・終了日を変えたときに、WS の実施日を新しい開催期間に合わせる
+   * 1. 新しい期間が複数日なら、期間から外れた日を選択と日ごとの枠から外す
+   * 2. 新しい期間が 1 日になったら「全日程」に戻し、最初に選んでいた日（その日を選んでいればその日）の枠を共通の枠にする
+   * 3. 期間が正しくない途中の値（終了日が開始日より前）では何もしない
+   * @param nextStart - 新しい開始日
+   * @param nextEnd - 新しい終了日
+   * @returns 戻り値なし。
+   */
+  const syncWsDatesToRange = (nextStart: string, nextEnd: string) => {
+    if (wsDateMode !== 'select' || !nextStart) return
+    /** 新しい開催期間の日付 */
+    const nextDates = listDates(nextStart, nextEnd)
+    if (nextDates.length > 1) {
+      // 1. 外れた日を外す
+      setWsDates((prev) => prev.filter((d) => nextDates.includes(d)))
+      setDailySessions((prev) => Object.fromEntries(Object.entries(prev).filter(([d]) => nextDates.includes(d))))
+    } else if (nextDates.length === 1) {
+      // 2. 1 日のイベントになった
+      /** 共通の枠の元にする日（残る 1 日を選んでいればその日、無ければ最初に選んでいた日） */
+      const baseDates = activeWsDates.includes(nextDates[0]) ? [nextDates[0]] : activeWsDates
+      setSessions(collapseToCommon(baseDates, dailySessions).sessions)
+      setWsDateMode('all')
+      setWsDates([])
+      setDailySessions({})
+    }
+  }
+
+  /**
+   * ワークショップの実施のしかたを切り替える
+   * - 全日程 → 日を選ぶ: 開催期間の全部の日を選んだ状態にし、各日に今の共通の枠をコピーする
+   * - 日を選ぶ → 全日程: 最初に選んでいた日の枠を共通の枠にする。ほかの日の枠が消えるときは確認を出す
+   * @param mode - 新しい実施のしかた
+   * @returns 戻り値なし。
+   */
+  const changeWsDateMode = (mode: WsDateMode) => {
+    if (mode === wsDateMode) return
+    if (mode === 'select') {
+      /** 全部の日を選び、共通の枠をコピーした初期値 */
+      const init = startDateSelection(eventDates, sessions)
+      setWsDates(init.wsDates)
+      setDailySessions(init.dailySessions)
+      setWsDateMode('select')
+      return
+    }
+    /** 共通の枠にする枠と、消える枠の数 */
+    const { sessions: nextCommon, lostCount } = collapseToCommon(activeWsDates, dailySessions)
+    /** 共通の枠の元にする日（確認の文に出す） */
+    const baseDate = activeWsDates[0]
+    if (lostCount > 0 && !window.confirm(
+      `全日程で実施に切り替えると、${baseDate ? formatJaMonthDayDow(baseDate) : '最初の日'}の枠を共通の枠にし、ほかの日の枠（${lostCount}件）は消えます。よろしいですか？`,
+    )) return
+    setSessions(nextCommon)
+    setWsDateMode('all')
+  }
+
+  /**
+   * 1 日分の時間枠を書き換える
+   * @param date - 日付（YYYY-MM-DD）
+   * @param update - 今の枠を受け取って新しい枠を返す関数
+   * @returns 戻り値なし。
+   */
+  const updateDaySessions = (date: string, update: (list: SessionInput[]) => SessionInput[]) =>
+    setDailySessions((prev) => ({ ...prev, [date]: update(prev[date] ?? []) }))
+
+  /**
+   * 実施日のチェックを切り替える（選んだ日は昇順に並べる。新しく選んだ日の枠は空から始める）
+   * @param date - 日付（YYYY-MM-DD）
+   * @param checked - 選ぶなら true
+   * @returns 戻り値なし。
+   */
+  const toggleWsDate = (date: string, checked: boolean) => {
+    setWsDates((prev) => checked ? [...new Set([...prev, date])].sort() : prev.filter((d) => d !== date))
+    if (checked) updateDaySessions(date, (list) => list)
+  }
+
+  /**
+   * その日の「自動設定」に使う開催時間（日ごとの開催時間があればその日の時間、無ければ共通の開催時間）
+   * @param date - 日付（YYYY-MM-DD）
+   * @returns 開催時間の文字列
+   */
+  const timeForDate = (date: string) => (dailyTimesMode && isMultiDay && dailyTimes[date]) ? dailyTimes[date] : form.time
+
+  /**
+   * その日の枠を開催時間から 1 時間刻みで作る（作れなければ今の枠のまま）
+   * @param date - 日付（YYYY-MM-DD）
+   * @returns 戻り値なし。
+   */
+  const autoSetDaySessions = (date: string) => {
+    /** その日の開催時間から作った時間枠 */
+    const generated = buildAutoSessions(timeForDate(date))
+    if (generated.length > 0) updateDaySessions(date, () => generated)
+  }
+
+  /**
+   * ほかの日の枠をその日にコピーする（id は外す）。その日に時間の入った枠があるときは置き換えてよいか確かめる
+   * @param to - コピー先の日付
+   * @param from - コピー元の日付
+   * @returns 戻り値なし。
+   */
+  const copyDaySessions = (to: string, from: string) => {
+    /** コピー先にすでにある、時間の入った枠の数 */
+    const existing = (dailySessions[to] ?? []).filter((s) => s.time_label.trim()).length
+    if (existing > 0 && !window.confirm(`${formatJaMonthDayDow(to)}の枠（${existing}件）を、${formatJaMonthDayDow(from)}の枠で置き換えます。よろしいですか？`)) return
+    updateDaySessions(to, () => copySessionsWithoutId(dailySessions[from] ?? []))
+  }
+
+  /**
    * イベントを保存する
    * 1. 送る内容を作る（アップロード中の blob URL は除く）
-   * 2. 編集なら更新、新規なら作成。新規で前回作成まで済んでいれば（createdIdRef）作成せず更新にする
-   * 3. WS セッションを保存する
-   * 4. 一覧へ戻る。どこかで失敗したら画面に残ってエラーを出す（入力は残るので、もう一度押して再送できる）
+   * 2. イベント本体と WS の時間枠を 1 回で送る（編集なら更新、新規なら作成）。
+   *    サーバーは 1 つのトランザクションで保存し、既存の予約を新しい枠へ付け替える
+   * 3. 一覧へ戻る。失敗したら画面に残ってエラーを出す（入力は残るので、もう一度押して再送できる）。
+   *    予約が入っている日時を消そうとした 409 は、移し先の無い予約の一覧と予約の画面へのリンクを出す
    * @param e - フォームの submit イベント
    * @returns 戻り値なし。
    */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loadError) return
+    // 0. 「実施する日を選ぶ」で 1 日も選んでいなければ保存しない
+    if (wsSelectActive && activeWsDates.length === 0) {
+      setSaveError('ワークショップを実施する日を1日以上選んでください')
+      return
+    }
     setSaving(true)
     setSaveError('')
-    // 1. 送る内容
-    /** 複数日のイベントか（日ごとの開催時間は複数日のときだけ送る） */
-    const isMultiDay = form.start_date && form.end_date && form.end_date > form.start_date
-    /** 送る内容 */
+    setSaveConflicts(null)
+    // 1. 送る内容（日ごとの開催時間・WS の実施日は複数日のときだけ送る。
+    //    時間枠は WS なしなら空にして全部消す。時間が空の行は送らない。日を選ぶなら日ごとの枠に session_date を付ける）
+    /** 送る内容（イベント本体と時間枠） */
     const body: EventBody = {
       ...form,
       slug: form.slug || null,
       daily_times: (dailyTimesMode && isMultiDay) ? dailyTimes : null,
+      ws_dates: wsSelectActive ? activeWsDates : null,
+      sessions: buildSessionsPayload({
+        hasWorkshop: form.has_workshop,
+        selectActive: wsSelectActive,
+        wsDates: activeWsDates,
+        common: sessions,
+        daily: dailySessions,
+      }),
       image_urls: imageUrls.filter((u) => u && !u.startsWith('blob:')),
     }
     try {
-      // 2. イベント本体
-      /** 更新するイベントの id（新規で未作成なら undefined） */
-      let eventId = id ?? createdIdRef.current ?? undefined
-      if (eventId) {
-        await api.events.update(eventId, body)
+      // 2. イベント本体と時間枠を 1 回で保存する
+      if (id) {
+        await api.events.update(id, body)
       } else {
-        // 新規イベントを登録し、後続処理と「未保存変更」管理で使う ID を保持する。
-        const created = await api.events.create(body)
-        eventId = created.id
-        createdIdRef.current = created.id
+        await api.events.create(body)
       }
-      // 3. セッション
-      /** 保存するセッション（WS なしなら空にして全部消す。時間が空の行は送らない） */
-      const validSessions = form.has_workshop ? sessions.filter((s) => s.time_label.trim()) : []
-      await api.events.saveSessions(eventId, validSessions)
-      // 4. 一覧へ
+      // 3. 一覧へ
       navigate('/admin/events')
     } catch (err) {
-      setSaveError(createdIdRef.current && !id
-        ? failMessage('イベントは作成しましたが、WSセッションの保存に失敗しました。もう一度「保存する」を押してください', err)
-        : failMessage('保存に失敗しました', err))
+      // 予約が入っている日時を消そうとした（409）ときは、移し先の無い予約を一覧で出す（入力はそのまま残す）
+      /** 409 の内容（それ以外のエラーは null） */
+      const conflicts = parseSessionConflicts(err)
+      if (conflicts) setSaveConflicts(conflicts)
+      else setSaveError(failMessage('保存に失敗しました', err))
     } finally {
       setSaving(false)
     }
@@ -292,10 +468,6 @@ export default function AdminEventForm() {
   const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 14px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 15, fontFamily: 'inherit', background: '#ffffff', boxSizing: 'border-box' }
   /** 項目名（label）の共通の見た目 */
   const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 13, letterSpacing: 1, color: 'var(--c-body)' }
-  /** 開催時間欄に表示する複数日判定と日付一覧 */
-  const isMultiDay = Boolean(form.start_date && form.end_date && form.end_date > form.start_date)
-  /** 複数日のイベントで開催時間を日ごとに設定するための日付 */
-  const eventDates = isMultiDay ? listDates(form.start_date, form.end_date) : []
 
   return (
     <div style={{ maxWidth: 700 }}>
@@ -330,13 +502,13 @@ export default function AdminEventForm() {
           <div>
             <label htmlFor="event-start-date" style={labelStyle}>開始日</label>
             <input id="event-start-date" required type="date" style={inputStyle} value={form.start_date}
-              onChange={(e) => set('start_date', e.target.value)} />
+              onChange={(e) => { set('start_date', e.target.value); syncWsDatesToRange(e.target.value, form.end_date) }} />
             {form.start_date && <span style={{ fontSize: 11, color: parseInt(form.start_date.slice(0, 4)) < 2020 ? '#c0392b' : '#8a9a7e', marginTop: 4, display: 'block' }}>確認: {form.start_date}</span>}
           </div>
           <div>
             <label htmlFor="event-end-date" style={labelStyle}>終了日</label>
             <input id="event-end-date" type="date" style={inputStyle} value={form.end_date}
-              onChange={(e) => set('end_date', e.target.value)} />
+              onChange={(e) => { set('end_date', e.target.value); syncWsDatesToRange(form.start_date, e.target.value) }} />
             {form.end_date && <span style={{ fontSize: 11, color: parseInt(form.end_date.slice(0, 4)) < 2020 ? '#c0392b' : '#8a9a7e', marginTop: 4, display: 'block' }}>確認: {form.end_date}</span>}
           </div>
         </div>
@@ -392,10 +564,63 @@ export default function AdminEventForm() {
           onAutoSetSessions={autoSetSessions}
           onRemoveSession={removeSession}
           onSessionChange={setSession}
+          canSelectDates={isMultiDay}
+          wsDateMode={wsDateMode}
+          onWsDateModeChange={changeWsDateMode}
+          dateSessionsEditor={
+            <EventWorkshopDatesField
+              eventDates={eventDates}
+              selectedDates={activeWsDates}
+              dailySessions={dailySessions}
+              canAutoSet={(date) => hasTimeRange(timeForDate(date))}
+              labelStyle={labelStyle}
+              inputStyle={inputStyle}
+              onToggleDate={toggleWsDate}
+              onAddSession={(date) => updateDaySessions(date, (list) => [...list, { time_label: '', max_participants: WS_DEFAULT_SESSION_CAPACITY }])}
+              onAutoSetSessions={autoSetDaySessions}
+              onCopySessions={copyDaySessions}
+              onRemoveSession={(date, index) => updateDaySessions(date, (list) => list.filter((_, j) => j !== index))}
+              onSessionChange={(date, index, key, value) => updateDaySessions(date, (list) => list.map((s, j) => j === index ? { ...s, [key]: value } : s))}
+            />
+          }
         />
+
+        {/* 編集で開いたときに、実施日と枠の食い違いを補正した案内（保存し直してもらう） */}
+        {loadNotices.length > 0 && (
+          <div role="status" style={{ /* 注意の黄色い帯 */ fontSize: 13, padding: '10px 14px', background: '#fff8e6', border: '1px solid #f0d58c', borderRadius: 4, color: 'var(--c-body)', lineHeight: 1.7 }}>
+            {loadNotices.map((n) => <p key={n} style={{ margin: '0 0 4px' }}>{n}</p>)}
+            <p style={{ margin: 0, fontWeight: 500 }}>内容を確かめて、保存し直してください。</p>
+          </div>
+        )}
 
         {/* 保存の失敗 */}
         {saveError && <p role="alert" style={errorBoxStyle}>{saveError}</p>}
+
+        {/* 予約が入っている日時を消そうとして保存が止まったとき: 案内・移し先の無い予約の一覧・予約の画面へのリンク */}
+        {saveConflicts && (
+          <div role="alert" style={{ ...errorBoxStyle, lineHeight: 1.7 }}>
+            <p style={{ margin: '0 0 6px' }}>{saveConflicts.detail}</p>
+            {saveConflicts.conflicts.length > 0 && (
+              <ul style={{ margin: '0 0 6px', paddingLeft: 20 }}>
+                {saveConflicts.conflicts.map((c) => (
+                  <li key={`${c.date ?? ''}-${c.time_label ?? ''}`}>{formatSessionConflict(c)}</li>
+                ))}
+              </ul>
+            )}
+            {id && (
+              // 入力を残したまま確かめられるよう、予約の画面は別のタブで開く
+              <Link
+                to={`/admin/events/${id}/reservations`}
+                state={{ from: `/admin/events/${id}/edit` }}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#c0392b', textDecoration: 'underline' }}
+              >
+                このイベントの予約を見る（別のタブ）
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* 保存（保存中・アップロード中・読み込み失敗のときは押せない）とキャンセル */}
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>

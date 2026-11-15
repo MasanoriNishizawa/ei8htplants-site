@@ -21,12 +21,17 @@ from pydantic import BaseModel, EmailStr, Field
 from ..auth import require_auth
 from ..config import HABITAT_ADMIN_EMAIL, HABITAT_RESEND_API_KEY, HABITAT_SENDER, SITE_ORIGIN
 from ..db import admin_supabase, supabase
-from ..db_utils import execute_or_400, execute_or_404, fetch_one_or_404, fetch_one_or_none, first_or_404
+from ..db_utils import execute_or_404, fetch_one_or_404, fetch_one_or_none, first_or_404
 from ..mail import esc, send_mail
 from ..rate_limit import cancel_limiter, client_ip, reserve_limiter
 from ..services.reservation_mail_content import _html_wrap, _row, _rows_table
 from ..services.reservation_capacity import count_session_reservations
-from ..services.reservation_policy import reservation_date_error
+from ..services.reservation_policy import (
+    is_multi_day_event,
+    is_session_available_on,
+    is_workshop_day,
+    reservation_date_error,
+)
 from ..utils.dates import today_jst
 from ..utils.errors import error_summary
 
@@ -251,15 +256,16 @@ def _load_session_for_event(session_id: str, event_id: str) -> dict:
         event_id: 予約するイベントの ID
 
     Returns:
-        ws_sessions の行（id・event_id・max_participants・time_label）
+        ws_sessions の行（id・event_id・max_participants・time_label・session_date）
 
     Raises:
         HTTPException(400): 時間枠が無い、または別のイベントの時間枠の場合
     """
     # 変数の内容: session: 処理対象の予約時間枠。
+    # 列の名前を並べず '*' で読む（session_date を含める。migrations/023 の前でも列が無いことで失敗しないため）
     session = fetch_one_or_none(
         admin_supabase.table('ws_sessions')
-        .select('id, event_id, max_participants, time_label')
+        .select('*')
         .eq('id', session_id)
     )
     # 1. 取得した時間枠が指定イベントに属するかを検証する。
@@ -269,6 +275,86 @@ def _load_session_for_event(session_id: str, event_id: str) -> dict:
     # 古いデータで id が返らない場合に備え、検索に使った ID を入れておく
     session.setdefault('id', session_id)
     return session
+
+
+# 予約の保存のトリガー（migrations/023 の check_reservation_session）が出す例外の SQLSTATE
+# P0410: 時間枠が予約日に使えない（別の日の枠）、P0411: 時間枠が無い・別のイベントの枠
+_SQLSTATE_SESSION_NOT_ON_DAY = 'P0410'
+_SQLSTATE_SESSION_INVALID = 'P0411'
+# P0412: 予約日がワークショップを実施しない日（トリガーと reinstate_reservation が出す）
+_SQLSTATE_NOT_WORKSHOP_DAY = 'P0412'
+# P0413: キャンセルから戻すときに時間枠が満席、P0404: 予約が無い（reinstate_reservation が出す）
+_SQLSTATE_SESSION_FULL = 'P0413'
+_SQLSTATE_NOT_FOUND = 'P0404'
+# P0414: キャンセルからの戻しを reinstate_reservation を通さずに行おうとした（トリガーが出す。アプリはふつう出さない）
+_SQLSTATE_REINSTATE_REQUIRES_FUNCTION = 'P0414'
+# P0411 のうち、「その日に使える枠があるのに枠なし」で止めたときの例外の文言（トリガーが出す）
+_TRIGGER_SESSION_REQUIRED = 'reservation_session_required'
+# キャンセルから戻すときに時間枠が満席だったときの文言
+_REINSTATE_FULL = 'この時間枠は満席のため、キャンセルを取り消せません'
+
+
+def _insert_reservation(data: dict, invalid_detail: str) -> dict:
+    """予約の行を保存し、保存した行を返す。DB での確認（トリガー）や id の誤りは 400 にする。
+
+    DB のトリガーは、イベントの行・時間枠の行に共有ロックを取ってから「予約日がワークショップを実施する日か」
+    「同じイベントの枠か」「予約日に使える枠か」を確かめる（アプリの確認のあとに管理者が実施日や枠の日付を変えても、
+    実施しない日・別の日の枠で保存されないようにするため）。
+
+    Args:
+        data: 保存する予約の列
+        invalid_detail: 時間枠・イベントの id が正しくないときの 400 の文言
+
+    Returns:
+        保存した予約の行
+
+    Raises:
+        HTTPException(400): 時間枠が予約日に使えない（P0410）・時間枠が無い／別のイベントの枠（P0411）・
+            予約日が実施しない日（P0412）・その日に枠があるのに枠なし（P0411 の reservation_session_required。
+            「時間枠を選んでください」）・id の形が違う（22P02）・参照先が無い（23503）場合
+        Exception: そのほかの DB の失敗（そのまま投げ直す）
+    """
+    # 1. 保存し、DB が出した例外の SQLSTATE を見て 400 に変える。
+    try:
+        return admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
+    # 変数の内容: e: except で捕捉した処理例外、code: 例外の SQLSTATE。
+    except Exception as e:
+        code = getattr(e, 'code', None)
+        if code == _SQLSTATE_SESSION_NOT_ON_DAY:
+            raise HTTPException(400, _SESSION_NOT_ON_DAY)
+        if code == _SQLSTATE_NOT_WORKSHOP_DAY:
+            raise HTTPException(400, _NOT_WORKSHOP_DAY)
+        if code == _SQLSTATE_SESSION_INVALID and getattr(e, 'message', None) == _TRIGGER_SESSION_REQUIRED:
+            # 確かめたあとで管理者がその日の枠を足した（枠なしでは受け付けない）
+            raise HTTPException(400, '時間枠を選んでください')
+        if code in (_SQLSTATE_SESSION_INVALID, '22P02', '23503'):
+            raise HTTPException(400, invalid_detail)
+        raise
+
+
+def _fetch_one_or_none_for_input(query) -> Optional[dict]:
+    """入力で送られた id で 1 件読む。見つからない・id の形が違うときは None を返す。
+
+    fetch_one_or_none と同じだが、入力の id の誤りとして扱うエラー（23503）も None にする
+    （当日参加の登録で、送られた event_id・session_id の誤りを 500 ではなく 400 にするため）。
+
+    Args:
+        query: `.single()` を付ける前の Supabase のクエリ
+
+    Returns:
+        行の dict。見つからないときは None
+
+    Raises:
+        Exception: 接続の失敗など、id の誤り以外のエラー（そのまま投げ直す）
+    """
+    # 1. 1 件読み、id の誤りを表すエラーだけ None にする。
+    try:
+        return fetch_one_or_none(query)
+    # 変数の内容: e: except で捕捉した処理例外。
+    except Exception as e:
+        if getattr(e, 'code', None) in ('22P02', '23503'):
+            return None
+        raise
 
 
 def _check_reservable(event: dict, preferred_date: Optional[str]) -> None:
@@ -293,6 +379,84 @@ def _check_reservable(event: dict, preferred_date: Optional[str]) -> None:
         raise HTTPException(400, detail)
 
 
+# ワークショップを実施しない日を選んだときの文言
+_NOT_WORKSHOP_DAY = 'この日はワークショップを実施していません'
+# その日に使えない時間枠（別の日の枠）を選んだときの文言
+_SESSION_NOT_ON_DAY = 'この時間枠は選んだ日には使えません'
+
+
+def _load_event_sessions(event_id: str) -> list[dict]:
+    """イベントの時間枠を全部読む（その日に使える枠を選ぶために使う）。
+
+    列の名前を並べず '*' で読む（migrations/023 を実行する前でも session_date が無いことで失敗しないため）。
+
+    Args:
+        event_id: イベントの ID
+
+    Returns:
+        ws_sessions の行のリスト（無ければ空のリスト）
+    """
+    # 1. 対象イベントの時間枠を読む。
+    return admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).execute().data or []
+
+
+def _check_workshop_reservation(event: dict, body: ReserveBody) -> Optional[str]:
+    """ワークショップのあるイベントへの予約で、日付と時間枠の決まりを確かめる。
+
+    has_workshop が false のイベントは何も確かめない（今までどおり、日付の確認だけで受け付ける）。
+    has_workshop が true のイベントでは、次の順に確かめる。
+    1. 予約不要のワークショップ（ws_requires_reservation が false）は受け付けない
+    2. 複数日のイベントは予約日（preferred_date）が必須。1 日のイベントで省いたら開始日とみなす
+    3. 予約日がワークショップを実施する日か（ws_dates・開催期間）
+    4. その日に使える枠（session_date が NULL か、その日のもの）が 1 つ以上あれば、時間枠の指定が必須で、
+       指定された枠はその日に使えるものであること。使える枠が 0 件なら、時間枠なしで受け付ける
+       （人数の上限は確かめない）
+
+    Args:
+        event: events の行（has_workshop・ws_requires_reservation・start_date・end_date・ws_dates）
+        body: 予約の入力
+
+    Raises:
+        HTTPException(400): 上の決まりに合わない場合
+
+    Returns:
+        確かめに使った予約日（YYYY-MM-DD。呼び出し元はこれを preferred_date として保存する）。
+        ワークショップの無いイベントでは None（何も確かめないので、予約日は送られたまま保存する）
+    """
+    # 1. ワークショップの無いイベントは、今までどおり何もしない。
+    if not event.get('has_workshop'):
+        return None
+    # 2. 予約不要のワークショップは予約を受け付けない（列が無い古い行は予約が要る扱い）。
+    if event.get('ws_requires_reservation') is False:
+        raise HTTPException(400, 'このワークショップは予約不要です。当日会場へお越しください。')
+    # 3. 予約日を決める。複数日では必須、1 日のイベントでは開始日とみなす。
+    # 変数の内容: day: 確かめに使う予約日（YYYY-MM-DD）。
+    day = body.preferred_date
+    if not day:
+        if is_multi_day_event(event):
+            raise HTTPException(400, '予約日を選んでください')
+        day = event.get('start_date') or ''
+    # 4. その日がワークショップを実施する日か確かめる。
+    if not is_workshop_day(event, day):
+        raise HTTPException(400, _NOT_WORKSHOP_DAY)
+    # 5. その日に使える時間枠を求め、時間枠の指定を確かめる。
+    # 変数の内容: sessions: イベントの全部の時間枠、usable_ids: その日に使える時間枠の ID の集合。
+    sessions = _load_event_sessions(body.event_id)
+    usable_ids = {s.get('id') for s in sessions if is_session_available_on(s, day)}
+    if body.session_id:
+        if body.session_id in usable_ids:
+            return day
+        # 変数の内容: all_ids: イベントの全部の時間枠の ID の集合。
+        all_ids = {s.get('id') for s in sessions}
+        # このイベントの枠だが別の日の枠なら、そのことを伝える（ほかのイベントの枠・無い枠は今までの文言）
+        if body.session_id in all_ids:
+            raise HTTPException(400, _SESSION_NOT_ON_DAY)
+        raise HTTPException(400, 'ワークショップの時間枠が正しくありません')
+    if usable_ids:
+        raise HTTPException(400, '時間枠を選んでください')
+    return day
+
+
 @router.post('')
 def create_reservation(body: ReserveBody, request: Request) -> dict:
     """ワークショップ予約を作成し、受付確認メールと管理者通知を送信する。
@@ -308,7 +472,9 @@ def create_reservation(body: ReserveBody, request: Request) -> dict:
         作成した予約レコード（cancel_token・resend_email_id などを含む）
 
     Raises:
-        HTTPException(400): 受付終了・予約日が開催期間外・時間枠が別のイベントのものの場合
+        HTTPException(400): 受付終了・予約日が開催期間外・時間枠が別のイベントのものの場合。
+            ワークショップのあるイベントでは、予約不要・予約日なし（複数日）・実施しない日・
+            時間枠の指定なし（その日に枠があるとき）・別の日の時間枠の場合も（_check_workshop_reservation）
         HTTPException(404): イベントが見つからない場合
         HTTPException(409): セッションが満席の場合
         HTTPException(429): 同じ IP から短時間に送りすぎた場合
@@ -316,29 +482,45 @@ def create_reservation(body: ReserveBody, request: Request) -> dict:
     # 1. 回数制限
     reserve_limiter.check(client_ip(request))
     # 2. イベントがあり、予約を受け付けている期間か確かめる
+    #    （列の名前を並べず '*' で読む。migrations/023 の前でも ws_dates が無いことで失敗しないため）
     # 変数の内容: event_row: 予約期間の検証に使うイベント行、data: DB に保存する予約項目とキャンセルトークン。
     event_row = fetch_one_or_404(
-        supabase.table('events').select('start_date, end_date').eq('id', body.event_id),
+        supabase.table('events').select('*').eq('id', body.event_id),
         'イベントが見つかりません',
     )
     _check_reservable(event_row, body.preferred_date)
+    # 2-2. ワークショップのあるイベントなら、予約不要でないか・実施する日か・時間枠の指定が合うかを確かめる
+    # 変数の内容: day: 確かめに使った予約日（ワークショップの無いイベントは None）。
+    day = _check_workshop_reservation(event_row, body)
     data = body.model_dump()
     data['cancel_token'] = _generate_cancel_token()
+    # 2-3. 確かめに使った予約日を必ず保存する（1 日のイベントで省いたら開始日）。
+    #      日付の無い予約は、日付で絞って数える満席の確認に入らず、定員を超えてしまうため
+    if day:
+        data['preferred_date'] = day
     # 3. 時間枠があれば、先に時間枠があることを確かめてから（無い id でロックを作らないため）、
-    #    ロックの中で満席を確かめて保存する
+    #    ロックの中で枠を読み直し、満席を確かめて保存する
     if body.session_id:
-        # 変数の内容: session: 処理対象の予約時間枠。
-        session = _load_session_for_event(body.session_id, body.event_id)
+        _load_session_for_event(body.session_id, body.event_id)
         with _session_lock(body.session_id):
+            # 3-1. 保存の直前に枠を session_date 込みで読み直し、まだこのイベントの枠で、予約日に使えるか確かめる
+            #      （確かめたあとに管理者が枠の日付を変えた場合に備える。DB のトリガーでも確かめる）
+            # 変数の内容: session: 読み直した予約時間枠。
+            session = _load_session_for_event(body.session_id, body.event_id)
+            if not is_session_available_on(session, data.get('preferred_date') or ''):
+                raise HTTPException(400, _SESSION_NOT_ON_DAY)
+            # 3-2. 予約日と枠の組で満席を確かめる
             # 変数の内容: used: 予約済みの参加人数。
-            used = _session_used_count(body.event_id, session, body.preferred_date)
+            used = _session_used_count(body.event_id, session, data.get('preferred_date'))
             if used + body.participants > session['max_participants']:
                 raise HTTPException(409, 'このセッションは満席です')
+            # 3-3. 枠の表示名を preferred_time に入れて保存する（枠を作り直したときの付け替えの手がかり）
+            data['preferred_time'] = session.get('time_label') or data.get('preferred_time')
             # 変数の内容: row: DB から取得した単一レコード。
-            row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
+            row = _insert_reservation(data, 'ワークショップの時間枠が正しくありません')
     else:
         # 変数の内容: row: DB から取得した単一レコード。
-        row = admin_supabase.table('workshop_reservations').insert(data).execute().data[0]
+        row = _insert_reservation(data, 'ワークショップの時間枠が正しくありません')
     _sync_reserved_count_safely(body.session_id)
     # 4. 予約者への受付メール。失敗したら email_failed を立てて管理画面で気づけるようにする
     # 変数の内容: mail_event: メール本文用のイベント情報、time_label: 表示する時間、update: 送信結果として予約行へ保存する変更。
@@ -739,6 +921,10 @@ def add_walkin(body: WalkInBody) -> dict:
 
     当日の受付で人数を記録するためのもので、満席の確認はしない（会場で調整するため）。
 
+    参加日の決め方: 送られた preferred_date があればその日。無ければ、1 日のイベントは開始日
+    （終わったイベントにあとから記録しても通るように）、複数日のイベントは日本時間の今日。
+    決めた参加日は preferred_date として保存し、時間枠があれば枠の表示名を preferred_time に入れる。
+
     Args:
         body: イベント・人数・時間枠・日付
 
@@ -746,8 +932,30 @@ def add_walkin(body: WalkInBody) -> dict:
         作成した予約レコード
 
     Raises:
-        HTTPException(400): event_id・session_id が UUID の形でない、または存在しない場合
+        HTTPException(400): event_id・session_id が UUID の形でない、または存在しない場合。
+            参加日がワークショップを実施しない日（ワークショップなし・開催期間外・ws_dates に無い）の場合。
+            session_id がその日に使えない枠（別の日の枠）の場合
     """
+    # 0. イベントを読み、参加日がワークショップを実施する日か確かめる
+    # 変数の内容: event: 参加するイベントの行（無ければ None）。
+    event = _fetch_one_or_none_for_input(admin_supabase.table('events').select('*').eq('id', body.event_id))
+    if event is None:
+        raise HTTPException(400, 'イベントまたは時間枠が正しくありません')
+    # 変数の内容: day: 参加日（YYYY-MM-DD）。
+    day = body.preferred_date or (today_jst() if is_multi_day_event(event) else (event.get('start_date') or ''))
+    if not is_workshop_day(event, day):
+        raise HTTPException(400, _NOT_WORKSHOP_DAY)
+    # 0-2. 時間枠があれば、そのイベントの枠で、その日に使える枠か確かめる
+    # 変数の内容: session_label: 時間枠の表示名（preferred_time に入れる。枠が無ければ送られた値）。
+    session_label = body.preferred_time
+    if body.session_id:
+        # 変数の内容: session: 参加する時間枠の行（無ければ None）。
+        session = _fetch_one_or_none_for_input(admin_supabase.table('ws_sessions').select('*').eq('id', body.session_id))
+        if session is None or session.get('event_id') != body.event_id:
+            raise HTTPException(400, 'イベントまたは時間枠が正しくありません')
+        if not is_session_available_on(session, day):
+            raise HTTPException(400, _SESSION_NOT_ON_DAY)
+        session_label = session.get('time_label') or session_label
     # 1. 必須のメール欄には配信されないダミー値を設定する（.invalid は実在しないドメイン）。
     # 変数の内容: dummy_email: 当日参加レコードに必要な配信用途の無いメール値、data: DB に登録する予約情報。
     dummy_email = f'walkin-{uuid.uuid4().hex[:12]}@nomail.invalid'
@@ -757,16 +965,18 @@ def add_walkin(body: WalkInBody) -> dict:
         'email': dummy_email,
         'participants': body.participants,
         'session_id': body.session_id,
-        'preferred_time': body.preferred_time,
-        'preferred_date': body.preferred_date,
+        # 枠の表示名（枠を作り直したときの付け替えの手がかり）
+        'preferred_time': session_label,
+        # 確かめに使った参加日を必ず保存する（日付で絞って数える満席の確認に入るように）
+        'preferred_date': day,
         'status': 'confirmed',
         'cancel_token': _generate_cancel_token(),
+        # 当日参加の目印。DB のトリガーは、当日参加だけ「その日に枠があっても枠なし（時間の自由入力）」を認める
+        'is_walkin': True,
     }
     # 2. 予約を確定状態で登録し、3. 時間枠の予約人数を同期して登録行を返す。
     # 変数の内容: row: 新規登録された当日参加予約行。
-    row = execute_or_400(
-        admin_supabase.table('workshop_reservations').insert(data), 'イベントまたは時間枠が正しくありません'
-    ).data[0]
+    row = _insert_reservation(data, 'イベントまたは時間枠が正しくありません')
     _sync_reserved_count_safely(body.session_id)
     return row
 
@@ -795,12 +1005,68 @@ def list_reservations(event_id: Optional[str] = None, _=Depends(require_auth)) -
     return execute_or_404(q, 'イベントが見つかりません').data
 
 
+def _reinstate_reservation(reservation_id: str, status: str) -> dict:
+    """DB 関数 reinstate_reservation で、予約の状態をキャンセル以外（pending・confirmed）に変える。
+
+    関数はイベント → 時間枠 → 予約 の順にロックを取り、ロックを取ったあとの状態で判断する
+    （予約の行を先にロックすると、枠を消す日程の保存と互いに待って行き詰まるため。migrations/023 を参照）。
+    - ロックを取ったあとの状態がキャンセルでなければ、確かめずに状態だけを変える
+    - キャンセルなら（前に読んだときは受付済でも、そのあとでキャンセルされた場合を含む）、
+      実施日・枠の日付・満席を確かめてから戻す
+
+    Args:
+        reservation_id: 予約の ID
+        status: 戻したあとの状態（'pending' か 'confirmed'）
+
+    Returns:
+        更新後の予約の行
+
+    Raises:
+        HTTPException(404): 予約が無い場合（P0404・id の形が違う 22P02）
+        HTTPException(400): 予約日が実施しない日（P0412）・枠が予約日に使えない（P0410）・
+            枠が無い／別のイベントの枠／その日に枠があるのに枠が無い（P0411）場合
+        HTTPException(409): 時間枠が満席の場合（P0413）
+        Exception: そのほかの DB の失敗（そのまま投げ直して 500 にする）
+    """
+    # 1. 関数を呼び、出した例外の SQLSTATE を HTTP の応答に変える。
+    try:
+        # 変数の内容: data: 関数の戻り値（更新後の予約の行）。
+        data = admin_supabase.rpc('reinstate_reservation', {
+            'p_reservation_id': reservation_id, 'p_status': status,
+        }).execute().data
+    # 変数の内容: e: except で捕捉した処理例外、code: 例外の SQLSTATE。
+    except Exception as e:
+        code = getattr(e, 'code', None)
+        if code in (_SQLSTATE_NOT_FOUND, '22P02'):
+            raise HTTPException(404, 'Not found')
+        if code == _SQLSTATE_NOT_WORKSHOP_DAY:
+            raise HTTPException(400, _NOT_WORKSHOP_DAY)
+        if code == _SQLSTATE_SESSION_NOT_ON_DAY:
+            raise HTTPException(400, _SESSION_NOT_ON_DAY)
+        if code == _SQLSTATE_SESSION_INVALID:
+            raise HTTPException(400, 'ワークショップの時間枠が正しくありません')
+        if code == _SQLSTATE_SESSION_FULL:
+            raise HTTPException(409, _REINSTATE_FULL)
+        raise
+    # 2. 戻り値（JSON の 1 行）を辞書にして返す（PostgREST の形の違いに備えて、リストなら 1 件目）。
+    if isinstance(data, list):
+        # 変数の内容: data: 1 件目の行。
+        data = data[0] if data else None
+    if not isinstance(data, dict):
+        raise RuntimeError('reinstate_reservation が予約の行を返しませんでした')
+    return data
+
+
 @router.patch('s/{reservation_id}')
 def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=Depends(require_auth)) -> dict:
     """予約ステータスを更新し、キャンセルに変更した場合はキャンセル確認メールを送信する（管理者のみ）。
 
     1. ステータスが変わらないときは何もせず今の行を返す（メールも送らない）
-    2. キャンセルから受付に戻すときは、時間枠が満席でないかロックの中で確かめる
+    2. キャンセル以外（pending・confirmed）への変更は、前に読んだ状態にかかわらず DB 関数 reinstate_reservation で行う。
+       関数はイベント → 枠 → 予約 の順にロックを取り、ロックを取ったあとの状態がキャンセルなら、
+       実施日・枠の日付・満席（アプリの満席の確認と同じ数え方）を確かめてから戻す。
+       時間枠があれば、新規予約と同じアプリのロックの中で呼ぶ（同じプロセスの中の予約と 1 つずつ通す）。
+       キャンセルへの変更は、状態だけを変える
     3. キャンセルに変えたときだけ予約者にメールを送る
     session_id が存在する場合は reserved_count も同期する。
 
@@ -815,6 +1081,8 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
     Raises:
         HTTPException(404): 予約が存在しない場合
         HTTPException(409): キャンセルから戻すときに時間枠が満席の場合
+        HTTPException(400): キャンセルから戻すときに、予約日が実施しない日・枠が予約日に使えない・
+            枠が無い（その日に枠があるのに枠の無い予約も）場合
     """
     # 変数の内容: row: DB から取得した単一レコード。
     row = fetch_one_or_404(admin_supabase.table('workshop_reservations').select('*').eq('id', reservation_id))
@@ -825,33 +1093,46 @@ def update_reservation_status(reservation_id: str, body: ReserveStatusPatch, _=D
     session_id = row.get('session_id')
 
     def _update() -> dict:
-        """ステータスを書き換えて更新後の行を返す。
+        """ステータスを書き換えて更新後の行を返す（キャンセルへの変更）。
+
+        DB のトリガーの例外が出たら変換する（キャンセルにする変更では、ふつうトリガーは確かめない）。
+        P0410・P0411・P0412 は今の文言の 400、P0414（戻しを関数を通さずに行おうとした）は 409。
 
         Returns:
             注釈に示した形式の応答（dict）。
+
+        Raises:
+            HTTPException(400): トリガーが止めた場合
         """
         # 1. ステータスを書き換えて更新後の行を返す。
-        return first_or_404(
-            admin_supabase.table('workshop_reservations').update({'status': body.status}).eq('id', reservation_id).execute()
-        )
+        try:
+            # 変数の内容: result: 更新の結果。
+            result = admin_supabase.table('workshop_reservations').update({'status': body.status}).eq('id', reservation_id).execute()
+        # 変数の内容: e: except で捕捉した処理例外、code: 例外の SQLSTATE。
+        except Exception as e:
+            code = getattr(e, 'code', None)
+            if code == _SQLSTATE_SESSION_NOT_ON_DAY:
+                raise HTTPException(400, _SESSION_NOT_ON_DAY)
+            if code == _SQLSTATE_NOT_WORKSHOP_DAY:
+                raise HTTPException(400, _NOT_WORKSHOP_DAY)
+            if code == _SQLSTATE_SESSION_INVALID:
+                raise HTTPException(400, 'ワークショップの時間枠が正しくありません')
+            if code == _SQLSTATE_REINSTATE_REQUIRES_FUNCTION:
+                raise HTTPException(409, '予約の状態が変わりました。画面を読み込み直してください')
+            raise
+        return first_or_404(result)
 
-    # 2. キャンセルから戻すときは満席を確かめる（新規予約と同じロックを使う）
-    # 変数の内容: reinstating: 既存のキャンセル済み予約を復帰させるかどうか。
-    reinstating = row.get('status') == 'cancelled'
-    if reinstating and session_id:
+    # 2. キャンセル以外への変更は、前に読んだ状態にかかわらず DB 関数で行う
+    #    （読んだあとで別のリクエストがキャンセルしていても、関数がロックを取ったあとの状態で判断し、
+    #      キャンセルからの戻しなら実施日・枠・満席を確かめる。時間枠があれば新規予約と同じアプリのロックの中で）。
+    #    キャンセルへの変更は、確かめることが無いので状態だけを変える
+    if body.status != 'cancelled' and session_id:
         with _session_lock(session_id):
-            # 変数の内容: session: 処理対象の予約時間枠。
-            session = fetch_one_or_none(
-                admin_supabase.table('ws_sessions').select('id, max_participants, time_label').eq('id', session_id)
-            )
-            if session:
-                session.setdefault('id', session_id)
-                # 変数の内容: used: 予約済みの参加人数。
-                used = _session_used_count(row['event_id'], session, row.get('preferred_date'))
-                if used + (row.get('participants') or 1) > session['max_participants']:
-                    raise HTTPException(409, 'この時間枠は満席のため、キャンセルを取り消せません')
             # 変数の内容: updated: 更新後の DB レコード。
-            updated = _update()
+            updated = _reinstate_reservation(reservation_id, body.status)
+    elif body.status != 'cancelled':
+        # 変数の内容: updated: 更新後の DB レコード。
+        updated = _reinstate_reservation(reservation_id, body.status)
     else:
         # 変数の内容: updated: 更新後の DB レコード。
         updated = _update()

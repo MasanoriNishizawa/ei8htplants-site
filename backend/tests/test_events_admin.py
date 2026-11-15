@@ -106,6 +106,8 @@ def _make_sessions_admin_mocks(existing_sessions: list) -> tuple[MagicMock, Magi
     mock_admin_sb.attach_mock(sessions_table, 'ws_sessions_table')
     mock_admin_sb.attach_mock(reservations_table, 'workshop_reservations_table')
     mock_admin_sb.table.side_effect = table_side_effect
+    # 3. 時間枠の保存の DB 関数（save_event_schedule）はイベントの ID を返す。
+    mock_admin_sb.rpc.return_value.execute.return_value.data = event_id
     return mock_admin_sb, events_table, sessions_table, reservations_table
 
 
@@ -128,6 +130,7 @@ def _session_query_execution_names(mock_admin_sb: MagicMock) -> list[str]:
         'ws_sessions_table.delete().eq().execute',
         'ws_sessions_table.select().eq().order().execute',
         'workshop_reservations_table.select().eq().neq().execute',
+        'rpc().execute',
     }
     # 変数の内容: item: モックの呼び出し履歴に含まれる各呼び出し。
     return [item[0] for item in mock_admin_sb.mock_calls if item[0] in operation_names]
@@ -551,15 +554,17 @@ class TestEventCRUD:
         """
         # 変数の内容: event: 処理対象のイベント、mock_admin_sb: 管理用 Supabase クライアントのモック、mock_sb: 公開用 Supabase クライアントのモック。
         # 1. 更新後のイベントデータを組み立て、PUT /api/events/:id へ送信する。
-        event = _event_data('evt-1', '更新後イベント')
+        #    （更新は DB 関数 save_event_schedule で行うので、id は UUID の形にする）
+        event = _event_data('11111111-1111-1111-1111-111111111111', '更新後イベント')
         mock_admin_sb = MagicMock()
+        mock_admin_sb.rpc.return_value.execute.return_value.data = event['id']
         mock_sb = _make_public_sb_mock([event])
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb), \
              patch('app.routes.events.supabase', mock_sb):
             # 変数の内容: client: テスト対象の API クライアント、resp: API から返されたレスポンス。
             client = TestClient(app)
-            resp = client.put('/api/events/evt-1', json={
+            resp = client.put(f"/api/events/{event['id']}", json={
                 'name': '更新後イベント',
                 'start_date': '2099-01-01',
                 'location': '大阪',
@@ -569,28 +574,27 @@ class TestEventCRUD:
         assert resp.json()['name'] == '更新後イベント'
 
     def test_イベント更新_画像をdisplay_order付きで入れ直す(self):
-        """イベント更新後に全画像を削除し、指定順でURLを保存してイベントを返す。
+        """イベント本体を DB 関数で更新したあとに全画像を削除し、指定順でURLを保存してイベントを返す。
 
         Returns:
             なし。
         """
-        # 変数の内容: event: 読み直し行、event_table: 存在確認・更新用、images_table: 画像操作用、mock_admin_sb/mock_sb: 管理・公開DBモック、image_urls: 保存順の画像URL。
-        event = _event_data('evt-1', '更新後イベント')
-        event_table = MagicMock()
+        # 変数の内容: event: 読み直し行、images_table: 画像操作用、mock_admin_sb/mock_sb: 管理・公開DBモック、image_urls: 保存順の画像URL。
+        event = _event_data('11111111-1111-1111-1111-111111111111', '更新後イベント')
         images_table = MagicMock()
         mock_admin_sb = MagicMock()
         mock_sb = _make_public_sb_mock([event])
-        # 1. テーブルごとのモックを関連付け、同一イベント表の存在確認と更新を順番に受け取る。
-        mock_admin_sb.attach_mock(event_table, 'events_table')
+        # 1. 画像の表のモックを関連付け、イベント本体の更新は DB 関数（rpc）で受ける。
         mock_admin_sb.attach_mock(images_table, 'event_images_table')
-        mock_admin_sb.table.side_effect = [event_table, event_table, images_table, images_table]
+        mock_admin_sb.table.side_effect = [images_table, images_table]
+        mock_admin_sb.rpc.return_value.execute.return_value.data = event['id']
         image_urls = ['https://example.com/first.jpg', 'https://example.com/second.jpg']
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb), \
              patch('app.routes.events.supabase', mock_sb):
             # 変数の内容: client: テスト対象の API クライアント、resp: 更新後のAPI応答。
             client = TestClient(app)
-            resp = client.put('/api/events/evt-1', json={
+            resp = client.put(f"/api/events/{event['id']}", json={
                 'name': '更新後イベント',
                 'start_date': '2099-01-01',
                 'location': '大阪',
@@ -606,22 +610,23 @@ class TestEventCRUD:
             # 変数の内容: item: モックの呼び出し履歴に含まれる各呼び出し。
             for item in mock_admin_sb.mock_calls
             if item[0] in {
-                'events_table.update().eq().execute',
+                'rpc().execute',
                 'event_images_table.delete().eq().execute',
                 'event_images_table.insert().execute',
             }
         ]
         assert execution_names == [
-            'events_table.update().eq().execute',
+            'rpc().execute',
             'event_images_table.delete().eq().execute',
             'event_images_table.insert().execute',
         ]
-        event_table.update.return_value.eq.return_value.execute.assert_called_once()
+        # 時間枠を送らない更新は、DB 関数に p_sessions なし（今の枠のまま確かめる）で頼む
+        assert mock_admin_sb.rpc.call_args.args[1]['p_sessions'] is None
         images_table.delete.return_value.eq.return_value.execute.assert_called_once()
         images_table.insert.return_value.execute.assert_called_once()
         images_table.insert.assert_called_once_with([
-            {'event_id': 'evt-1', 'url': image_urls[0], 'display_order': 0},
-            {'event_id': 'evt-1', 'url': image_urls[1], 'display_order': 1},
+            {'event_id': event['id'], 'url': image_urls[0], 'display_order': 0},
+            {'event_id': event['id'], 'url': image_urls[1], 'display_order': 1},
         ])
 
     def test_イベント更新_認証なし_401でDB書き込みしない(self):
@@ -1065,27 +1070,27 @@ class TestEventSessions:
 
         assert resp.status_code == 200
 
-    def test_既存セッションを更新し不要枠を削除して一覧を返す(self):
-        """入力に残る既存枠を更新し、外れた枠を削除して更新後一覧を返す。
+    def test_時間枠をDB関数でまとめて保存して一覧を返す(self):
+        """時間枠の保存は DB 関数 save_event_schedule（イベント本体なし）で行い、保存後の一覧を返す。
+
+        既存の枠との突き合わせ・更新・作成・削除・予約の付け替えは DB 関数の中で行うので、
+        ws_sessions を直接 update・insert・delete しないことも確かめる。
 
         Returns:
             なし。
         """
-        # 変数の内容: event_id: 対象UUID、kept_id/removed_id: 残す/削除する枠ID、saved_session: 読み直し行、mock_admin_sb/sessions_table: DBモック。
+        # 変数の内容: event_id: 対象UUID、kept_id: 残す枠ID、saved_session: 読み直し行、mock_admin_sb/sessions_table: DBモック。
         event_id = '11111111-1111-1111-1111-111111111111'
-        kept_id = 'session-kept'
-        removed_id = 'session-removed'
+        kept_id = '22222222-2222-2222-2222-222222222222'
         saved_session = {
             'id': kept_id,
             'event_id': event_id,
             'time_label': '10:00',
             'max_participants': 8,
             'display_order': 0,
+            'session_date': None,
         }
-        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([
-            {'id': kept_id, 'time_label': '10:00'},
-            {'id': removed_id, 'time_label': '11:00'},
-        ])
+        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([])
         # 1. 保存後の一覧取得が返す更新済み時間枠を設定する。
         sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [saved_session]
 
@@ -1093,192 +1098,107 @@ class TestEventSessions:
             # 変数の内容: client: テスト対象の API クライアント、resp: 保存後のAPI応答。
             client = TestClient(app)
             resp = client.put(f'/api/events/{event_id}/sessions', json={
-                'sessions': [{'id': kept_id, 'time_label': '10:00', 'max_participants': 8}],
-            })
-
-        # 2. 既存枠の更新から不要枠の削除へ進み、更新後一覧を返したことを確認する。
-        assert resp.status_code == 200
-        assert resp.json() == [{**saved_session, 'reserved_count': 0}]
-        # 変数の内容: sessions_table.mock_calls: セッション表へのDB呼び出し順。
-        assert sessions_table.mock_calls.index(call.update().eq().execute()) < sessions_table.mock_calls.index(
-            call.delete().eq().execute()
-        )
-        sessions_table.update.assert_called_once_with({
-            'time_label': '10:00',
-            'max_participants': 8,
-            'display_order': 0,
-        })
-        sessions_table.delete.return_value.eq.assert_called_once_with('id', removed_id)
-        sessions_table.insert.assert_not_called()
-
-    def test_既存セッション更新失敗時は500で後続操作をしない(self):
-        """既存セッションの UPDATE 失敗は500となり、後続の削除へ進まない。
-
-        Returns:
-            なし。
-        """
-        # 変数の内容: session_id: 更新対象ID、mock_admin_sb: DBクライアント、sessions_table: セッションテーブル。
-        session_id = 'session-existing'
-        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([
-            {'id': session_id, 'time_label': '10:00'},
-            {'id': 'session-omitted', 'time_label': '11:00'},
-        ])
-        # 1. 最初の既存セッション更新で例外を発生させ、以降の処理を止める。
-        sessions_table.update.return_value.eq.return_value.execute.side_effect = RuntimeError('session update failed')
-
-        with patch('app.routes.events.admin_supabase', mock_admin_sb):
-            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: PUT応答。
-            client = TestClient(app, raise_server_exceptions=False)
-            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
-                'sessions': [{'id': session_id, 'time_label': '10:00', 'max_participants': 8}],
-            })
-
-        # 2. イベント存在確認と更新を行い、insert・deleteには進まないことを確かめる。
-        assert resp.status_code == 500
-        sessions_table.update.assert_called_once()
-        sessions_table.update.return_value.eq.return_value.execute.assert_called_once()
-        sessions_table.insert.assert_not_called()
-        sessions_table.delete.assert_not_called()
-
-    def test_新規セッションinsert失敗時は500(self):
-        """新しいセッションの INSERT 失敗は500となる。
-
-        Returns:
-            なし。
-        """
-        # 変数の内容: mock_admin_sb: テーブル別モックを返すDBクライアント、sessions_table: セッションテーブルモック。
-        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([])
-        # 1. 新規セッションの INSERT 実行で例外を発生させる。
-        sessions_table.insert.return_value.execute.side_effect = RuntimeError('session insert failed')
-
-        with patch('app.routes.events.admin_supabase', mock_admin_sb):
-            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: PUT応答。
-            client = TestClient(app, raise_server_exceptions=False)
-            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
-                'sessions': [{'time_label': '10:00', 'max_participants': 8}],
-            })
-
-        # 2. 新規INSERTだけが呼ばれ、HTTP 500になることを確認する。
-        assert resp.status_code == 500
-        sessions_table.insert.assert_called_once()
-        sessions_table.insert.return_value.execute.assert_called_once()
-        sessions_table.update.assert_not_called()
-        sessions_table.delete.assert_not_called()
-
-    def test_不要セッションdelete失敗時は先行更新後に500(self):
-        """不要セッションの DELETE 失敗は、先行する既存枠 UPDATE 後に500となる。
-
-        Returns:
-            なし。
-        """
-        # 変数の内容: kept_id: 入力に残す既存枠、removed_id: 入力に含めず削除対象にする既存枠。
-        kept_id = 'session-kept'
-        removed_id = 'session-removed'
-        # 変数の内容: mock_admin_sb: 管理者用 Supabase クライアントのテストモック、sessions_table: 時間枠テーブルの Supabase モック。
-        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([
-            {'id': kept_id, 'time_label': '10:00'},
-            {'id': removed_id, 'time_label': '11:00'},
-        ])
-        # 1. 既存枠の更新を成功させたあと、不要枠の削除実行で例外を発生させる。
-        sessions_table.delete.return_value.eq.return_value.execute.side_effect = RuntimeError('session delete failed')
-
-        # 変数の内容: readback_spy: 削除失敗後にセッション一覧の読み直しへ進んだかを記録するspy。
-        with patch('app.routes.events.admin_supabase', mock_admin_sb), \
-             patch('app.routes.events._sessions_with_counts') as readback_spy:
-            # 変数の内容: client: 例外をHTTP 500応答として受け取るAPIクライアント、resp: PUT応答。
-            client = TestClient(app, raise_server_exceptions=False)
-            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
-                'sessions': [{'id': kept_id, 'time_label': '10:00', 'max_participants': 8}],
-            })
-
-        # 2. 更新・削除の順で実行されてから500になることを確認する。
-        assert resp.status_code == 500
-        assert sessions_table.mock_calls.index(call.update().eq().execute()) < sessions_table.mock_calls.index(
-            call.delete().eq().execute()
-        )
-        sessions_table.update.assert_called_once()
-        sessions_table.delete.assert_called_once()
-        sessions_table.delete.return_value.eq.assert_called_once_with('id', removed_id)
-        # 3. 削除実行の失敗でAPIが終了し、最新一覧を読み直さないことを確認する。
-        readback_spy.assert_not_called()
-
-    def test_既存セッション一覧取得失敗時は500で書き込みしない(self):
-        """保存前の既存セッション一覧取得が失敗すると、書き込みをせず500になる。
-
-        Returns:
-            なし。
-        """
-        # 変数の内容: mock_admin_sb: 順序記録付きDBモック、sessions_table: 保存前一覧取得を失敗させるセッション表。
-        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([])
-        # 1. 保存前の一覧取得だけを一般例外で失敗させる。
-        sessions_table.select.return_value.eq.return_value.execute.side_effect = RuntimeError('existing sessions read failed')
-
-        with patch('app.routes.events.admin_supabase', mock_admin_sb):
-            # 変数の内容: client: 例外をHTTP 500として受け取るAPIクライアント、resp: PUT応答。
-            client = TestClient(app, raise_server_exceptions=False)
-            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
-                'sessions': [{'time_label': '10:00', 'max_participants': 8}],
-            })
-
-        # 2. 存在確認と保存前一覧取得だけが実行され、書き込みへ進まないことを確認する。
-        assert resp.status_code == 500
-        assert _session_query_execution_names(mock_admin_sb) == [
-            'events_table.select().eq().single().execute',
-            'ws_sessions_table.select().eq().execute',
-        ]
-        sessions_table.update.assert_not_called()
-        sessions_table.insert.assert_not_called()
-        sessions_table.delete.assert_not_called()
-
-    def test_書き込み後のセッション一覧取得失敗時は予約読取へ進まず500(self):
-        """各セッション書き込み後の一覧取得が失敗すると予約読取前に500になる。
-
-        Returns:
-            なし。
-        """
-        # 変数の内容: kept_id/removed_id/new_id: 更新・削除・新規枠の識別子、sessions_table: 各段階の応答と失敗注入先、mock_admin_sb: 実行順記録用。
-        kept_id = 'session-kept'
-        removed_id = 'session-removed'
-        new_id = 'session-new'
-        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([
-            {'id': kept_id, 'time_label': '10:00'},
-            {'id': removed_id, 'time_label': '11:00'},
-        ])
-        sessions_table.insert.return_value.execute.return_value.data = [{'id': new_id}]
-        # 1. 最終一覧取得だけを失敗させ、先行する update・insert・delete は実行可能にする。
-        sessions_table.select.return_value.eq.return_value.order.return_value.execute.side_effect = RuntimeError('sessions readback failed')
-
-        with patch('app.routes.events.admin_supabase', mock_admin_sb):
-            # 変数の内容: client: 例外をHTTP 500として受け取るAPIクライアント、resp: PUT応答。
-            client = TestClient(app, raise_server_exceptions=False)
-            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
                 'sessions': [
                     {'id': kept_id, 'time_label': '10:00', 'max_participants': 8},
-                    {'time_label': '12:00', 'max_participants': 6},
+                    {'id': 'not-a-uuid', 'time_label': '11:00', 'max_participants': 4},
                 ],
             })
 
-        # 2. モック上の実行順を記録し、一覧取得失敗後に予約数取得へ進まないことを確認する。
-        assert resp.status_code == 500
-        assert _session_query_execution_names(mock_admin_sb) == [
-            'events_table.select().eq().single().execute',
-            'ws_sessions_table.select().eq().execute',
-            'ws_sessions_table.update().eq().execute',
-            'ws_sessions_table.insert().execute',
-            'ws_sessions_table.delete().eq().execute',
-            'ws_sessions_table.select().eq().order().execute',
-        ]
-        sessions_table.update.return_value.eq.return_value.execute.assert_called_once()
-        sessions_table.insert.return_value.execute.assert_called_once()
-        sessions_table.delete.return_value.eq.return_value.execute.assert_called_once()
+        # 2. DB 関数に、イベント本体なし・並び順どおりの時間枠（UUID でない id は渡さない）で頼んだことを確かめる。
+        assert resp.status_code == 200
+        assert resp.json() == [{**saved_session, 'reserved_count': 0}]
+        mock_admin_sb.rpc.assert_called_once_with('save_event_schedule', {
+            'p_event_id': event_id,
+            'p_event': None,
+            'p_sessions': [
+                {'id': kept_id, 'time_label': '10:00', 'max_participants': 8, 'session_date': None},
+                {'time_label': '11:00', 'max_participants': 4, 'session_date': None},
+            ],
+        })
+        sessions_table.update.assert_not_called()
+        sessions_table.insert.assert_not_called()
+        sessions_table.delete.assert_not_called()
 
-    def test_予約数読取失敗時は一覧読取後に500(self):
-        """セッション一覧読取後の予約数取得が失敗すると、その順で500になる。
+    def test_DB関数の失敗は500で一覧を読み直さない(self):
+        """DB 関数が予期しない例外を出したら 500 となり、保存後の一覧を読まない（DB 側で全部取り消される）。
 
         Returns:
             なし。
         """
-        # 変数の内容: saved_session: 最終一覧読取で返すモック行、mock_admin_sb: 順序記録用DBモック、sessions_table/reservations_table: 失敗注入先の各表。
+        # 変数の内容: mock_admin_sb: 順序記録付きDBモック、sessions_table: セッションテーブル。
+        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([])
+        # 1. DB 関数の実行を失敗させる。
+        mock_admin_sb.rpc.return_value.execute.side_effect = RuntimeError('save_event_schedule failed')
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 未処理例外を応答へ変換する API クライアント、resp: 時間枠保存のAPI応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
+                'sessions': [{'time_label': '10:00', 'max_participants': 8}],
+            })
+
+        # 2. イベント確認 → DB 関数 で止まり、一覧の読み直しへ進まないことを確かめる。
+        assert resp.status_code == 500
+        assert _session_query_execution_names(mock_admin_sb) == [
+            'events_table.select().eq().single().execute',
+            'rpc().execute',
+        ]
+
+    def test_イベントの読み取り失敗は500でDB関数を呼ばない(self):
+        """保存前のイベントの読み取りが失敗したら 500 となり、DB 関数を呼ばない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_admin_sb: 順序記録付きDBモック、events_table: イベント表のモック。
+        mock_admin_sb, events_table, _, _ = _make_sessions_admin_mocks([])
+        # 1. イベントの読み取りを失敗させる。
+        events_table.select.return_value.eq.return_value.single.return_value.execute.side_effect = RuntimeError('event read failed')
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 未処理例外を応答へ変換する API クライアント、resp: 時間枠保存のAPI応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
+                'sessions': [{'time_label': '10:00', 'max_participants': 8}],
+            })
+
+        # 2. DB 関数を呼ばずに 500 になることを確かめる。
+        assert resp.status_code == 500
+        mock_admin_sb.rpc.assert_not_called()
+
+    def test_書き込み後のセッション一覧取得失敗時は予約読取へ進まず500(self):
+        """保存後の時間枠の読み直しが失敗したら 500 となり、予約数の読み取りへ進まない。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: mock_admin_sb: 実行順記録用DBモック、sessions_table: 読み直しを失敗させるセッション表。
+        mock_admin_sb, _, sessions_table, _ = _make_sessions_admin_mocks([])
+        # 1. 保存後の一覧取得を失敗させる。
+        sessions_table.select.return_value.eq.return_value.order.return_value.execute.side_effect = RuntimeError('sessions readback failed')
+
+        with patch('app.routes.events.admin_supabase', mock_admin_sb):
+            # 変数の内容: client: 未処理例外を応答へ変換する API クライアント、resp: 時間枠保存のAPI応答。
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
+                'sessions': [{'time_label': '10:00', 'max_participants': 8}],
+            })
+
+        # 2. イベント確認 → DB 関数 → 一覧の読み直し の順で止まることを確かめる。
+        assert resp.status_code == 500
+        assert _session_query_execution_names(mock_admin_sb) == [
+            'events_table.select().eq().single().execute',
+            'rpc().execute',
+            'ws_sessions_table.select().eq().order().execute',
+        ]
+
+    def test_予約数読取失敗時は一覧読取後に500(self):
+        """保存後の予約数の読み取りが失敗したら、一覧を読んだあとに 500 になる。
+
+        Returns:
+            なし。
+        """
+        # 変数の内容: saved_session: 最終一覧読取で返すモック行、mock_admin_sb: 順序記録用DBモック、sessions_table/reservations_table: 各表。
         saved_session = {
             'id': 'session-new',
             'event_id': '11111111-1111-1111-1111-111111111111',
@@ -1287,24 +1207,22 @@ class TestEventSessions:
             'display_order': 0,
         }
         mock_admin_sb, _, sessions_table, reservations_table = _make_sessions_admin_mocks([])
-        # 1. 新規枠の書き込みと最終一覧取得は成功させ、予約数クエリだけを失敗させる。
-        sessions_table.insert.return_value.execute.return_value.data = [{'id': saved_session['id']}]
+        # 1. 一覧は返し、予約数の読み取りを失敗させる。
         sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [saved_session]
         reservations_table.select.return_value.eq.return_value.neq.return_value.execute.side_effect = RuntimeError('reservation count read failed')
 
         with patch('app.routes.events.admin_supabase', mock_admin_sb):
-            # 変数の内容: client: 例外をHTTP 500として受け取るAPIクライアント、resp: PUT応答。
+            # 変数の内容: client: 未処理例外を応答へ変換する API クライアント、resp: 時間枠保存のAPI応答。
             client = TestClient(app, raise_server_exceptions=False)
             resp = client.put('/api/events/11111111-1111-1111-1111-111111111111/sessions', json={
                 'sessions': [{'time_label': '10:00', 'max_participants': 8}],
             })
 
-        # 2. セッション保存・一覧取得の後に予約数取得を試みて失敗した順序を確かめる。
+        # 2. イベント確認 → DB 関数 → 一覧 → 予約数 の順で止まることを確かめる。
         assert resp.status_code == 500
         assert _session_query_execution_names(mock_admin_sb) == [
             'events_table.select().eq().single().execute',
-            'ws_sessions_table.select().eq().execute',
-            'ws_sessions_table.insert().execute',
+            'rpc().execute',
             'ws_sessions_table.select().eq().order().execute',
             'workshop_reservations_table.select().eq().neq().execute',
         ]
@@ -2521,6 +2439,12 @@ class TestEventReadFailures:
         preferred_date = '2099-01-01'
         sessions_table = MagicMock()
         reservations_table = MagicMock()
+        # 変数の内容: events_table: 日付がワークショップの実施日かを確かめるためのイベント表のモック。
+        events_table = MagicMock()
+        # 0. その日にワークショップを実施するイベント（1 日・ワークショップあり）を返す。
+        events_table.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {
+            'id': event_id, 'start_date': preferred_date, 'end_date': None, 'has_workshop': True,
+        }
         # 1. ws_sessionsは1件を返し、日付条件を付けた予約検索の実行で一般例外を発生させる。
         sessions_table.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
             {'id': 'session-date', 'time_label': '10:00'},
@@ -2531,6 +2455,7 @@ class TestEventReadFailures:
         # 変数の内容: mock_admin_sb: 管理用 Supabase クライアントのモック。
         mock_admin_sb = MagicMock()
         mock_admin_sb.table.side_effect = lambda name: {
+            'events': events_table,
             'ws_sessions': sessions_table,
             'workshop_reservations': reservations_table,
         }[name]

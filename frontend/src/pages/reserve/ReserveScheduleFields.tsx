@@ -20,7 +20,7 @@ type ReserveScheduleFieldsProps = {
   uid: string
   /** 開催日を表示するか（複数日イベントの場合だけ true） */
   isMultiDay: boolean
-  /** 選択可能な開催日 */
+  /** 選択可能な日（ワークショップの実施日のうち、今日以降の日） */
   dates: string[]
   /** 予約日として選択中の日 */
   preferredDate: string
@@ -30,6 +30,8 @@ type ReserveScheduleFieldsProps = {
   onSelectDate: (date: string) => void
   /** イベントにワークショップ時間枠があるか */
   hasWorkshop: boolean
+  /** 選んだ日の枠が 0 件か（時間の指定なしで予約できる。省略時は false） */
+  noSessionsForDate?: boolean
   /** 親で計算した時間枠選択の無効状態 */
   sessionsDisabled: boolean
   /** 予約枠の取得状態 */
@@ -62,6 +64,7 @@ export default function ReserveScheduleFields({
   formatDate,
   onSelectDate,
   hasWorkshop,
+  noSessionsForDate = false,
   sessionsDisabled,
   sessionsStatus,
   sessions,
@@ -87,7 +90,7 @@ export default function ReserveScheduleFields({
 
   return (
     <>
-      {/* 予約日（複数日のイベントだけ。選び直すと時間枠と人数を戻す） */}
+      {/* 予約日（複数日のイベントだけ。選択肢はワークショップの実施日のうち今日以降の日。選び直すと時間枠と人数を戻す） */}
       {isMultiDay && (
         <div style={{ marginBottom: 20 }}>
           <p id={`${uid}-date`} style={{ ...labelStyle, margin: '0 0 6px' }}>{t('予約日', 'Date')} <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span></p>
@@ -113,7 +116,9 @@ export default function ReserveScheduleFields({
       {hasWorkshop && (
         <div style={{ marginBottom: 20, opacity: sessionsDisabled ? 0.4 : 1, pointerEvents: sessionsDisabled ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
           <p id={`${uid}-time`} style={{ ...labelStyle, margin: '0 0 6px' }}>
-            {t('予約時間', 'Time')} <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span>
+            {t('予約時間', 'Time')}
+            {/* 枠が 0 件の日は時間を選ばないので、必須の印を出さない */}
+            {!noSessionsForDate && <> <span aria-hidden="true" style={{ color: '#c0392b' }}>*</span></>}
             {sessionsDisabled && (
               <span style={{ textTransform: 'none', letterSpacing: 0, fontSize: 11, color: '#aaa', marginLeft: 8 }}>
                 {t('（日付を先に選択してください）', '(Please select a date first)')}
@@ -131,7 +136,9 @@ export default function ReserveScheduleFields({
               </button>
             </div>
           ) : sessionsStatus === 'ok' && sessions.length === 0 ? (
-            <p style={{ fontSize: 14, color: 'var(--c-muted)', margin: 0 }}>{t('この日の予約枠はありません。', 'No time slots are available on this date.')}</p>
+            <p style={{ fontSize: 14, color: 'var(--c-muted)', margin: 0, lineHeight: 1.8 }}>
+              {t('この日は時間の指定はありません。参加人数とお客様情報を入力してご予約ください。', 'There are no set times on this date. Please enter the number of participants and your details to reserve.')}
+            </p>
           ) : sessionsStatus !== 'ok' ? null : (
             <div role="radiogroup" aria-labelledby={`${uid}-time`} aria-required="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {sessions.map(({ session, remaining, full }) => (

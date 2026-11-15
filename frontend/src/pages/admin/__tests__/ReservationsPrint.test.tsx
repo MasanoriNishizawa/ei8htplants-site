@@ -9,7 +9,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { api, ApiError, type Event, type Reservation, type WsSession } from '../../../lib/api'
-import { todayJst } from '../../../lib/localDate'
 import AdminReservations from '../Reservations'
 import AdminEventReservations from '../EventReservations'
 import { saveBlob } from '../saveBlob'
@@ -262,11 +261,12 @@ describe('Reservations（全イベントの予約一覧）', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '登録' }))
 
     // 2. API に正しい入力が送られ、作成行が表示されてダイアログが閉じたことを確認する。
+    //    参加日は defaultWalkinDate（今日が実施日でなく、今日より前の実施日も無いので最初の実施日＝開催日 2099-06-01）
     await waitFor(() => expect(api.reserve.addWalkin).toHaveBeenCalledWith({
       event_id: EVENT.id,
       participants: 3,
       session_id: SESSION.id,
-      preferred_date: todayJst(),
+      preferred_date: '2099-06-01',
     }))
     expect((await screen.findAllByText('当日参加')).length).toBeGreaterThan(0)
     expect(screen.queryByRole('dialog', { name: '当日参加を追加' })).not.toBeInTheDocument()
@@ -466,11 +466,11 @@ describe('EventReservations（イベント別の予約画面）', () => {
     expect(await screen.findByText(/リンクをコピーできませんでした/)).toBeInTheDocument()
   })
 
-  it('イベント別の当日参加は選んだ時間枠・人数・今日の日付を送信し、成功後に一覧へ加えて閉じる', async () => {
+  it('イベント別の当日参加は選んだ時間枠・人数・参加日の初めの値（defaultWalkinDate）を送信し、成功後に一覧へ加えて閉じる', async () => {
     /** API 成功後に画面へ追加する予約 */
     const created = makeReservation({
       id: 'event-walkin-1', event_id: EVENT.id, name: '当日参加', email: '', participants: 2,
-      status: 'confirmed', session_id: SESSION.id, preferred_date: todayJst(), preferred_time: SESSION.time_label,
+      status: 'confirmed', session_id: SESSION.id, preferred_date: '2099-06-01', preferred_time: SESSION.time_label,
     })
     vi.mocked(api.reserve.list).mockResolvedValue([])
     vi.mocked(api.reserve.addWalkin).mockResolvedValue(created)
@@ -484,12 +484,14 @@ describe('EventReservations（イベント別の予約画面）', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '登録' }))
 
     // 2. 送信内容、一覧反映、ダイアログ終了を確認する。
+    //    参加日は今日ではなく、最初の実施日（1 日のイベントなので開催日 2099-06-01）。時間枠はその日で取り直す
     await waitFor(() => expect(api.reserve.addWalkin).toHaveBeenCalledWith({
       event_id: EVENT.id,
       participants: 2,
       session_id: SESSION.id,
-      preferred_date: todayJst(),
+      preferred_date: '2099-06-01',
     }))
+    expect(api.events.getSessions).toHaveBeenCalledWith(EVENT.id, '2099-06-01')
     expect(await screen.findAllByText('当日参加')).not.toHaveLength(0)
     expect(screen.queryByRole('dialog', { name: '当日参加を追加' })).not.toBeInTheDocument()
   })

@@ -105,6 +105,11 @@ export interface Event {
   page_content: PageContent | null
   /** 日付（YYYY-MM-DD）ごとの開催時間（使わないときは null） */
   daily_times: Record<string, string> | null
+  /**
+   * ワークショップを実施する日（YYYY-MM-DD の配列）。null・未設定なら開催期間の全日程で実施する。
+   * 有効なのは has_workshop かつ複数日のイベントのときだけ（判定は lib/wsDates.ts）
+   */
+  ws_dates?: string[] | null
 }
 
 /** イベントの作成・更新で送る内容 */
@@ -135,6 +140,13 @@ export interface EventBody {
   ws_requires_reservation: boolean
   /** 日付ごとの開催時間 */
   daily_times?: Record<string, string> | null
+  /** ワークショップを実施する日（YYYY-MM-DD。null なら全日程で実施） */
+  ws_dates?: string[] | null
+  /**
+   * ワークショップの時間枠（送るとイベント本体と枠を 1 回のトランザクションで保存し、既存の予約を新しい枠へ付け替える）。
+   * 省略・null なら枠は変えない。移し先の無い予約があると 409（SessionConflictBody）
+   */
+  sessions?: WsSessionInput[] | null
   /** イベントの写真の URL（この順で並ぶ） */
   image_urls: string[]
 }
@@ -153,6 +165,40 @@ export interface WsSession {
   reserved_count: number
   /** 並び順（小さい順） */
   display_order: number
+  /** この枠を使う日（YYYY-MM-DD）。null・未設定なら全日程で共通の枠 */
+  session_date?: string | null
+}
+
+/** ワークショップの時間枠をまとめて保存するときに送る 1 件分（id の無い行は新しく作る） */
+export interface WsSessionInput {
+  /** 既存の時間枠の ID（新しい枠では無い） */
+  id?: string
+  /** 時間の表示（例: 11:00〜12:00） */
+  time_label: string
+  /** 定員（人） */
+  max_participants: number
+  /** この枠を使う日（YYYY-MM-DD）。送らない・null なら全日程で共通の枠 */
+  session_date?: string | null
+}
+
+/** 時間枠を保存すると移し先の無くなる予約（409 の conflicts の 1 件） */
+export interface SessionConflict {
+  /** 予約日（YYYY-MM-DD。予約日の無い予約は null） */
+  date: string | null
+  /** 予約していた時間枠の表示名（時間枠なしの予約は null。枠 0 件の日の予約・実施しない日になった枠なしの予約など） */
+  time_label: string | null
+  /** その日時の予約の件数 */
+  count: number
+  /** その日時の予約の参加人数の合計（返らないこともある） */
+  participants?: number | null
+}
+
+/** 時間枠の保存で移し先の無い予約があったときの 409 の本文 */
+export interface SessionConflictBody {
+  /** 案内の文言 */
+  detail: string
+  /** 移し先の無い予約（日時ごと） */
+  conflicts: SessionConflict[]
 }
 
 /** イベントの収支データ（計算は lib/finance.ts の computeFinances） */

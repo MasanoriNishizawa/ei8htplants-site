@@ -158,10 +158,12 @@ export default function AdminEvents() {
 
   /**
    * イベントを複製する（名前に「(コピー)」を付けて新規作成）
+   * WS の実施日（ws_dates）・日ごとの開催時間（daily_times）・時間枠も引き継ぎ、イベントと枠を 1 回の作成で保存する
    * 1. 処理中にして、ほかの複製・削除を押せなくする（連打で同じイベントが2つできるのを防ぐ）
-   * 2. 作成して一覧を読み直す
-   * 3. 失敗したらエラーを出す
-   * 4. 処理中を戻す
+   * 2. WS ありなら複製元の時間枠を読む（読めなければ、枠の無い複製を作らないよう中止してエラーを出す）
+   * 3. 時間枠（id を外し、session_date つき）を含めて作成し、一覧を読み直す
+   * 4. 失敗したらエラーを出す
+   * 5. 処理中を戻す
    * @param ev - 複製元のイベント
    * @returns 戻り値なし。
    */
@@ -170,8 +172,24 @@ export default function AdminEvents() {
     if (busy) return
     setBusy(true)
     setError('')
+    /** 複製元の時間枠（id を外し、session_date つき。WS なしなら空） */
+    let sessions: { time_label: string; max_participants: number; session_date: string | null }[] = []
+    if (ev.has_workshop) {
+      try {
+        // 2. 複製元の時間枠
+        /** 複製元の全部の時間枠 */
+        const source = await api.events.getSessions(ev.id)
+        sessions = [...source]
+          .sort((a, b) => a.display_order - b.display_order)
+          .map((s) => ({ time_label: s.time_label, max_participants: s.max_participants, session_date: s.session_date ?? null }))
+      } catch (e) {
+        setError(failMessage('複製元の時間枠を読み込めなかったため、複製を中止しました', e))
+        setBusy(false)
+        return
+      }
+    }
     try {
-      // 2. 作成
+      // 3. 作成（イベント本体と時間枠を 1 回で）
       await api.events.create({
         name: `${ev.name} (コピー)`,
         start_date: ev.start_date,
@@ -184,14 +202,17 @@ export default function AdminEvents() {
         brands: ev.brands,
         has_workshop: ev.has_workshop,
         ws_requires_reservation: ev.ws_requires_reservation,
+        daily_times: ev.daily_times ?? null,
+        ws_dates: ev.ws_dates ?? null,
+        sessions,
         image_urls: ev.images.map((i) => i.url),
       })
       load()
     } catch (e) {
-      // 3. 失敗
+      // 4. 失敗
       setError(failMessage('複製に失敗しました', e))
     } finally {
-      // 4. 処理中を戻す
+      // 5. 処理中を戻す
       setBusy(false)
     }
   }

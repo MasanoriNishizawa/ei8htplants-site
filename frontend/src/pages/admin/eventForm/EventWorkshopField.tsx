@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react'
 import type { SessionInput } from '../eventTime'
+import type { WsDateMode } from './wsSchedule'
+import WsSessionRows from './WsSessionRows'
 
 /** ワークショップ設定とセッション一覧の表示に必要な値・操作通知 */
 interface EventWorkshopFieldProps {
@@ -26,10 +29,20 @@ interface EventWorkshopFieldProps {
   onRemoveSession: (index: number) => void
   /** 指定位置のセッション入力変更を親へ通知する */
   onSessionChange: (index: number, key: keyof SessionInput, value: string | number) => void
+  /** 「全日程で実施」「実施する日を選ぶ」の切り替えを出すか（ワークショップあり・複数日のときだけ true） */
+  canSelectDates?: boolean
+  /** 今の実施のしかた（canSelectDates が true のときだけ使う） */
+  wsDateMode?: WsDateMode
+  /** 実施のしかたの切り替えを親へ通知する */
+  onWsDateModeChange?: (mode: WsDateMode) => void
+  /** 「実施する日を選ぶ」のときに、共通の枠の代わりに出す日ごとの枠の編集欄 */
+  dateSessionsEditor?: ReactNode
 }
 
 /**
  * ワークショップの有無・予約要否と各セッションの入力欄を表示し、編集内容を親へ通知する。
+ * 複数日のイベントでは「全日程で実施（共通の枠）」「実施する日を選ぶ」の切り替えも出し、
+ * 「実施する日を選ぶ」のときは親から受け取った日ごとの枠の編集欄（dateSessionsEditor）を共通の枠の代わりに出す。
  * 入力値の保持、自動生成、保存、未保存判定は親フォームが担当する。
  * @param props - 表示値、入力スタイル、自動設定可否、親へ通知する操作関数
  * @returns ワークショップ設定とセッション入力欄
@@ -47,11 +60,13 @@ export default function EventWorkshopField({
   onAutoSetSessions,
   onRemoveSession,
   onSessionChange,
+  canSelectDates = false,
+  wsDateMode = 'all',
+  onWsDateModeChange,
+  dateSessionsEditor,
 }: EventWorkshopFieldProps) {
-  /** セッション時間入力のスタイル。親から受け取った共通入力設定に横方向の伸縮を足す */
-  const sessionTimeInputStyle: React.CSSProperties = { ...inputStyle, flex: 1 }
-  /** セッション定員入力のスタイル。時間入力と区別できる固定幅・右寄せにする */
-  const sessionCapacityInputStyle: React.CSSProperties = { ...inputStyle, width: 70, textAlign: 'right' }
+  /** 日ごとの枠の編集欄を出すか（切り替えを出していて、「実施する日を選ぶ」を選んでいるとき） */
+  const showDateEditor = canSelectDates && wsDateMode === 'select'
   /** 自動設定ボタンのスタイル。従来の色・余白を保ち、利用可否を透過度で示す */
   const autoSetButtonStyle: React.CSSProperties = {
     padding: '6px 14px', background: 'none', color: '#4a6741', border: '1px solid #4a6741',
@@ -62,11 +77,8 @@ export default function EventWorkshopField({
     padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none',
     borderRadius: 2, fontSize: 13, cursor: 'pointer',
   }
-  /** セッション行を削除するボタンのスタイル。行の高さと赤い文字色を保つ */
-  const removeButtonStyle: React.CSSProperties = {
-    padding: '0 10px', height: 40, border: '1px solid #dddde8', borderRadius: 4,
-    background: 'none', cursor: 'pointer', color: '#c0392b', flexShrink: 0,
-  }
+  /** 実施のしかたのラジオ 1 つ分のラベル: 横にラジオと文字を並べ、狭い画面でも文字が折り返せるようにする */
+  const modeLabelStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer', color: 'var(--c-body)' }
 
   return (
     <>
@@ -84,8 +96,25 @@ export default function EventWorkshopField({
         )}
       </div>
 
-      {/* 2. WS がある場合だけ、セッションの自動設定・追加・編集・削除を表示する */}
-      {hasWorkshop && (
+      {/* 2. ワークショップあり・複数日のときだけ、実施のしかた（全日程 / 日を選ぶ）を切り替えるラジオを出す */}
+      {hasWorkshop && canSelectDates && (
+        <div role="radiogroup" aria-label="ワークショップの実施のしかた" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
+          <label style={modeLabelStyle}>
+            <input type="radio" name="ws-date-mode" checked={wsDateMode === 'all'} onChange={() => onWsDateModeChange?.('all')} />
+            全日程で実施（共通の枠）
+          </label>
+          <label style={modeLabelStyle}>
+            <input type="radio" name="ws-date-mode" checked={wsDateMode === 'select'} onChange={() => onWsDateModeChange?.('select')} />
+            実施する日を選ぶ
+          </label>
+        </div>
+      )}
+
+      {/* 3. 「実施する日を選ぶ」のときは、親から受け取った日ごとの枠の編集欄を出す */}
+      {hasWorkshop && showDateEditor && dateSessionsEditor}
+
+      {/* 4. それ以外で WS がある場合は、共通の枠の自動設定・追加・編集・削除を表示する */}
+      {hasWorkshop && !showDateEditor && (
         <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 4 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 8 }}>
             <p style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</p>
@@ -98,38 +127,14 @@ export default function EventWorkshopField({
               </button>
             </div>
           </div>
-          {/* 3. セッションが空の場合は時間指定なしで予約受付する従来の案内を表示する */}
-          {sessions.length === 0 && (
-            <p style={{ fontSize: 13, color: 'var(--c-muted)', margin: 0 }}>セッションなし（時間指定なしで予約受付）</p>
-          )}
-          {/* 4. 行の順番を保ち、時間・定員の編集と削除を親の state 更新へ渡す */}
-          {sessions.map((session, index) => (
-            <div key={index} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-              <input
-                type="text"
-                aria-label={`${index + 1}回目の時間`}
-                placeholder="例: 10:00〜11:30"
-                value={session.time_label}
-                onChange={(event) => onSessionChange(index, 'time_label', event.target.value)}
-                style={sessionTimeInputStyle}
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <span style={{ fontSize: 13, color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>定員</span>
-                <input
-                  type="number"
-                  min={1}
-                  aria-label={`${index + 1}回目の定員`}
-                  value={session.max_participants}
-                  onChange={(event) => onSessionChange(index, 'max_participants', Number(event.target.value))}
-                  style={sessionCapacityInputStyle}
-                />
-                <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>名</span>
-              </div>
-              <button type="button" onClick={() => onRemoveSession(index)} aria-label={`${index + 1}回目のセッションを消す`} style={removeButtonStyle}>
-                ×
-              </button>
-            </div>
-          ))}
+          {/* 枠が空なら時間指定なしで予約受付の案内、あれば時間・定員の行を並べる */}
+          <WsSessionRows
+            sessions={sessions}
+            inputStyle={inputStyle}
+            emptyText="セッションなし（時間指定なしで予約受付）"
+            onRemove={onRemoveSession}
+            onChange={onSessionChange}
+          />
         </div>
       )}
     </>

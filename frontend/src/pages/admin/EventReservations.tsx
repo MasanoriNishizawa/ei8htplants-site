@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api, type Event, type WsSession } from '../../lib/api'
-import { todayJst } from '../../lib/localDate'
+import { formatJaMonthDayDow, todayJst } from '../../lib/localDate'
+import { defaultWalkinDate, formatShortDateDow, formatWorkshopDates, isPartialWorkshopSchedule, workshopDates } from '../../lib/wsDates'
 import { failMessage, statusOf } from './errorMessage'
 import { saveBlob } from './saveBlob'
 import { backPathFrom } from '../../lib/navigation'
@@ -14,6 +15,40 @@ import EventWalkinReservationModal from './EventWalkinReservationModal'
 const errorBoxStyle: React.CSSProperties = {
   color: '#c0392b', fontSize: 13, margin: '0 0 16px', padding: '8px 14px',
   background: '#fdf0ee', borderRadius: 4, border: '1px solid #f5c6c0',
+}
+
+/**
+ * 予約がその時間枠のものか（古い session_id は時間ラベルで照合する）
+ * 日ごとの枠（session_date あり）は、時間ラベルで照合するときに予約日も同じ日であることを確かめる
+ * @param r - 予約
+ * @param s - 時間枠
+ * @param validSessionIds - いまある時間枠の id（再保存で消えた古い session_id を見分ける）
+ * @returns その時間枠の予約なら true
+ */
+function reservationMatchesSession(r: ReservationWithTime, s: WsSession, validSessionIds: Set<string>): boolean {
+  if (r.session_id === s.id) return true
+  // 1. 有効な別の枠の予約は対象外
+  if (r.session_id && validSessionIds.has(r.session_id)) return false
+  // 2. 時間ラベルが同じで、日ごとの枠なら予約日も同じ
+  return r.preferred_time === s.time_label && (!s.session_date || r.preferred_date === s.session_date)
+}
+
+/**
+ * 時間枠を日付ごとにまとめる（共通の枠は date が null の組。共通の枠を先、日ごとの枠は日付の昇順）
+ * @param sessions - 時間枠
+ * @returns 日付と、その日の時間枠（表示順）の組の一覧
+ */
+function groupSessionsByDate(sessions: WsSession[]): { date: string | null; sessions: WsSession[] }[] {
+  /** 日付（共通の枠は ''）→ 時間枠 */
+  const map = new Map<string, WsSession[]>()
+  ;[...sessions].sort((a, b) => a.display_order - b.display_order).forEach((s) => {
+    /** まとめるときの鍵 */
+    const key = s.session_date ?? ''
+    map.set(key, [...(map.get(key) ?? []), s])
+  })
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, list]) => ({ date: key || null, sessions: list }))
 }
 
 /**
@@ -62,6 +97,14 @@ export default function AdminEventReservations() {
   const [pageError, setPageError] = useState('')
   /** 当日参加の追加の失敗の文言（モーダルの中に出す） */
   const [walkinError, setWalkinError] = useState('')
+  /** 当日参加のモーダルに出す、参加日に使える時間枠（共通の枠＋その日の枠。その日の残り人数つき） */
+  const [walkinSessions, setWalkinSessions] = useState<WsSession[]>([])
+  /** 今日使える時間枠を読み込み中か */
+  const [walkinSessionsLoading, setWalkinSessionsLoading] = useState(false)
+  /** 今日使える時間枠の読み込みに失敗したか（失敗したまま登録させない） */
+  const [walkinSessionsFailed, setWalkinSessionsFailed] = useState(false)
+  /** 参加日の枠の取得の通し番号（参加日を続けて変えたとき、古い応答を捨てる） */
+  const walkinSessionsSeq = useRef(0)
 
   /**
    * イベント・時間枠・予約を取得し、予約にセッション時間を加えて画面状態へ反映する。
@@ -132,16 +175,15 @@ export default function AdminEventReservations() {
 
   /**
    * 絞り込んだあとの予約（印刷・CSV もこの内容を使う）
-   * セッション再保存で UUID が変わった場合は preferred_time でフォールバック照合する
+   * セッション再保存で UUID が変わった場合は preferred_time でフォールバック照合する（日ごとの枠は予約日も見る）
    */
   const filtered = activeSession === 'all'
     ? rows
     : rows.filter((r) => {
-        if (r.session_id === activeSession) return true
         /** 絞り込み中のセッション */
         const session = sessions.find((s) => s.id === activeSession)
-        if (!session) return false
-        return (!r.session_id || !validSessionIds.has(r.session_id)) && r.preferred_time === session.time_label
+        if (!session) return r.session_id === activeSession
+        return reservationMatchesSession(r, session, validSessionIds)
       })
 
   /**
@@ -187,8 +229,8 @@ export default function AdminEventReservations() {
       // 2. 登録と画面への反映
       /** 登録された予約 */
       const created = await api.reserve.addWalkin(body)
-      /** セッションの id → 時間ラベル */
-      const sessionMap = new Map(sessions.map((s) => [s.id, s.time_label]))
+      /** セッションの id → 時間ラベル（今日の枠と、イベントの全部の枠） */
+      const sessionMap = new Map([...sessions, ...walkinSessions].map((s) => [s.id, s.time_label]))
       setRows((prev) => [...prev, { ...created, session_time: created.session_id ? sessionMap.get(created.session_id) : undefined }])
       setShowWalkin(false)
       setWalkinSession('')
@@ -235,6 +277,72 @@ export default function AdminEventReservations() {
     saveBlob(blob, `reservations_${currentEvent.name}_${todayJst()}.csv`)
   }
 
+  /** 時間枠を日付ごとにまとめたもの（絞り込みボタンの並びに使う） */
+  const sessionGroups = groupSessionsByDate(sessions)
+  /** 日ごとの枠（session_date あり）があるか（あれば日付の小見出しを付ける） */
+  const hasDatedSessions = sessions.some((s) => !!s.session_date)
+  /** 当日参加の参加日に選べる日（ワークショップの実施日。過去・未来の日も含む） */
+  const walkinDates = event?.has_workshop ? workshopDates(event) : []
+  /** 当日参加を追加できない理由（追加できるなら空）。実施日が 1 日も無いときだけ */
+  const walkinBlockedReason = event?.has_workshop && walkinDates.length === 0
+    ? 'ワークショップの実施日が無いため、当日参加を追加できません'
+    : ''
+
+  /**
+   * 参加日に使える時間枠（共通の枠＋その日の枠）を取り直す
+   * 1. 前の枠・エラーを消して読み込み中にする
+   * 2. GET sessions?date=参加日 で取り、いちばん新しい要求の応答だけをモーダルに渡す（失敗したら登録させずにエラーを出す）
+   * @param date - 参加日（YYYY-MM-DD）
+   * @returns 戻り値なし。
+   */
+  const loadWalkinSessions = (date: string) => {
+    if (!id) return
+    /** この要求の通し番号 */
+    const seq = ++walkinSessionsSeq.current
+    // 1. 初期化
+    setWalkinSessions([])
+    setWalkinSessionsFailed(false)
+    setWalkinError('')
+    setWalkinSessionsLoading(true)
+    // 2. 取得
+    api.events.getSessions(id, date)
+      .then((list) => { if (seq === walkinSessionsSeq.current) setWalkinSessions(list) })
+      .catch((e: unknown) => {
+        if (seq !== walkinSessionsSeq.current) return
+        setWalkinSessionsFailed(true)
+        setWalkinError(failMessage('この日の時間枠を読み込めませんでした。参加日を選び直すか、閉じてもう一度開いてください', e))
+      })
+      .finally(() => { if (seq === walkinSessionsSeq.current) setWalkinSessionsLoading(false) })
+  }
+
+  /**
+   * 当日参加のモーダルを開く
+   * 1. 参加日の初めの値を決める（今日が実施日なら今日、無ければ今日より前で一番近い実施日、それも無ければ最初の実施日）
+   * 2. モーダルを開き、その日の枠を読み込む（人数などの入力は前回のまま残す）
+   * @returns 戻り値なし。
+   */
+  const openWalkin = () => {
+    if (!id || !event || walkinBlockedReason) return
+    // 1. 参加日の初めの値
+    /** 初めの参加日 */
+    const date = defaultWalkinDate(event, todayJst())
+    setWalkinDate(date)
+    // 2. 開いて枠を読み込む
+    setShowWalkin(true)
+    loadWalkinSessions(date)
+  }
+
+  /**
+   * 参加日を変える。選んでいた枠を外し、その日の枠を取り直す
+   * @param date - 新しい参加日（YYYY-MM-DD）
+   * @returns 戻り値なし。
+   */
+  const changeWalkinDate = (date: string) => {
+    setWalkinDate(date)
+    setWalkinSession('')
+    loadWalkinSessions(date)
+  }
+
   /** キャンセル以外の予約 */
   const nonCancelled = rows.filter((r) => r.status !== 'cancelled')
   /** キャンセル以外の参加人数の合計 */
@@ -267,6 +375,12 @@ export default function AdminEventReservations() {
               {event.time ? ` ${event.time}` : ''} / {event.location}
             </p>
           )}
+          {/* 一部の日だけ実施するときは、WS の実施日も出す */}
+          {event && isPartialWorkshopSchedule(event) && (
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--c-body)' }}>
+              WS実施日: {formatWorkshopDates(workshopDates(event), 'ja')}
+            </p>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
@@ -277,14 +391,10 @@ export default function AdminEventReservations() {
           </button>
           {event?.has_workshop && (
             <button
-              onClick={() => {
-              /** 今日の日付（日本時間。当日参加の参加日にする） */
-              const today = todayJst()
-              setWalkinDate(today)
-              setWalkinError('')
-              setShowWalkin(true)
-            }}
-              style={{ ...btnStyle, background: '#2d3a24', color: '#fff', border: 'none' }}
+              onClick={openWalkin}
+              disabled={!!walkinBlockedReason}
+              aria-describedby={walkinBlockedReason ? 'walkin-blocked-reason' : undefined}
+              style={{ ...btnStyle, background: '#2d3a24', color: '#fff', border: 'none', opacity: walkinBlockedReason ? 0.4 : 1, cursor: walkinBlockedReason ? 'not-allowed' : 'pointer' }}
             >
               当日参加を追加
             </button>
@@ -298,6 +408,11 @@ export default function AdminEventReservations() {
           )}
         </div>
       </div>
+
+      {/* 当日参加を追加できない理由（ワークショップの実施日が 1 日も無いとき） */}
+      {walkinBlockedReason && (
+        <p id="walkin-blocked-reason" style={{ fontSize: 12, color: 'var(--c-muted)', margin: '-8px 0 16px', textAlign: 'right' }}>{walkinBlockedReason}</p>
+      )}
 
       {/* 読み込み・ステータス変更の失敗 */}
       {pageError && <p role="alert" style={errorBoxStyle}>{pageError}</p>}
@@ -323,24 +438,31 @@ export default function AdminEventReservations() {
               >
                 全て
               </button>
-              {sessions.map((s) => {
-                /** このセッションのキャンセル以外の参加人数の合計（古い session_id は時間ラベルで照合する） */
-                const count = rows.filter((r) => {
-                  // 現在のセッション ID、または無効な ID を持つ古い予約の時間ラベルで照合する。
-                  const matches = r.session_id === s.id ||
-                    ((!r.session_id || !validSessionIds.has(r.session_id)) && r.preferred_time === s.time_label)
-                  return matches && r.status !== 'cancelled'
-                }).reduce((sum, r) => sum + r.participants, 0)
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setActiveSession(s.id)}
-                    style={{ ...btnStyle, background: activeSession === s.id ? '#1c2417' : '#ffffff', color: activeSession === s.id ? '#fff' : '#3a4535', border: `1px solid ${activeSession === s.id ? '#1c2417' : '#dddde8'}` }}
-                  >
-                    {s.time_label}{count > 0 ? ` (${count}人)` : ''}
-                  </button>
-                )
-              })}
+              {/* 時間枠を日付ごとにまとめて出す（共通の枠だけなら今までどおり 1 列に並べる） */}
+              {sessionGroups.map((group) => (
+                <div key={group.date ?? 'common'} role="group" aria-label={group.date ? `${formatJaMonthDayDow(group.date)}の時間枠` : '共通の時間枠'} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', ...(hasDatedSessions ? { flexBasis: '100%' } : {}) }}>
+                  {/* 日ごとの枠があるときだけ、日付（共通の枠は「全日程」）の小見出しを付ける */}
+                  {hasDatedSessions && (
+                    <span style={{ fontSize: 12, color: 'var(--c-muted)', minWidth: 72 }}>{group.date ? formatShortDateDow(group.date, 'ja') : '全日程'}</span>
+                  )}
+                  {group.sessions.map((s) => {
+                    /** このセッションのキャンセル以外の参加人数の合計（古い session_id は時間ラベルで照合する） */
+                    const count = rows
+                      .filter((r) => reservationMatchesSession(r, s, validSessionIds) && r.status !== 'cancelled')
+                      .reduce((sum, r) => sum + r.participants, 0)
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setActiveSession(s.id)}
+                        aria-label={group.date ? `${formatJaMonthDayDow(group.date)} ${s.time_label}${count > 0 ? ` (${count}人)` : ''}` : undefined}
+                        style={{ ...btnStyle, background: activeSession === s.id ? '#1c2417' : '#ffffff', color: activeSession === s.id ? '#fff' : '#3a4535', border: `1px solid ${activeSession === s.id ? '#1c2417' : '#dddde8'}` }}
+                      >
+                        {s.time_label}{count > 0 ? ` (${count}人)` : ''}
+                      </button>
+                    )
+                  })}
+                </div>
+              ))}
             </>
           )}
         </div>
@@ -374,11 +496,15 @@ export default function AdminEventReservations() {
       {showWalkin && (
         <EventWalkinReservationModal
           event={event}
-          sessions={sessions}
+          sessions={walkinSessions}
+          sessionsLoading={walkinSessionsLoading}
+          sessionsFailed={walkinSessionsFailed}
           walkinSession={walkinSession}
           walkinTime={walkinTime}
           walkinParticipants={walkinParticipants}
           walkinDate={walkinDate}
+          walkinDates={walkinDates}
+          onDateChange={changeWalkinDate}
           walkinSaving={walkinSaving}
           walkinError={walkinError}
           errorBoxStyle={errorBoxStyle}

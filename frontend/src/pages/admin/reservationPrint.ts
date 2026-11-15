@@ -1,7 +1,8 @@
 import type { Event, Reservation, WsSession } from '../../lib/api'
 import { STATUS_LABELS } from '../../lib/reservationConstants'
 import { escapeHtml } from '../../lib/escapeHtml'
-import { formatJaYmd, formatJstDate, listDates } from '../../lib/localDate'
+import { formatJaYmd, formatJstDate } from '../../lib/localDate'
+import { workshopDates } from '../../lib/wsDates'
 
 /** 印刷時刻を補った予約。 */
 export type ReservationWithTime = Reservation & { session_time?: string }
@@ -42,7 +43,7 @@ function renderEmptyRow(index: number): string {
 
 /**
  * 予約とイベント情報から、ブラウザー副作用を伴わない印刷HTMLを生成する。
- * 1. イベントの開催日と時間枠に予約を振り分ける
+ * 1. ワークショップの実施日（実施する日を選んでいればその日だけ）ごとに、その日に使える時間枠（共通の枠＋その日の枠）へ予約を振り分ける
  * 2. 未割当予約またはフラット表示の行を追加する
  * 3. 印刷用のHTML文書として返す
  * @param rows - 印刷対象の予約一覧
@@ -71,8 +72,8 @@ export function buildReservationPrintHtml(
   let tableBody = ''
 
   if (eventSessions.length > 0 && event) {
-    /** 開催日の一覧 */
-    const dates = listDates(event.start_date, event.end_date)
+    /** 印刷する日の一覧（ワークショップの実施日だけ） */
+    const dates = workshopDates(event)
     /** 現在有効なセッションID（古い予約の時間照合に使う） */
     const validSessionIds = new Set(eventSessions.map((session) => session.id))
     /** すでにセッションへ割り当てた予約ID */
@@ -82,8 +83,20 @@ export function buildReservationPrintHtml(
       /** 現在の開催日 */
       const date = dates[dateIndex]
       tableBody += `<tr class="date-header${dateIndex > 0 ? ' date-break' : ''}"><td colspan="9">${formatJaYmd(date)}</td></tr>`
+      /** この日に使える時間枠（共通の枠と、この日だけの枠） */
+      const daySessions = eventSessions.filter((session) => !session.session_date || session.session_date === date)
 
-      for (const session of eventSessions) {
+      // この日に枠が無いときは「時間指定なし」の見出しで、この日の予約をまとめて出す
+      if (daySessions.length === 0) {
+        /** この日の予約（まだ割り当てていないもの） */
+        const dayRows = rows.filter((reservation) => !assignedRowIds.has(reservation.id) && reservation.preferred_date === date)
+        dayRows.forEach((reservation) => assignedRowIds.add(reservation.id))
+        tableBody += '<tr class="session-header"><td colspan="9">時間指定なし</td></tr>'
+        dayRows.forEach((reservation) => { tableBody += renderPrintRow(reservation) })
+        continue
+      }
+
+      for (const session of daySessions) {
         /** この日・時間枠に該当する予約 */
         const sessionRows = rows.filter((reservation) => {
           if (assignedRowIds.has(reservation.id)) return false

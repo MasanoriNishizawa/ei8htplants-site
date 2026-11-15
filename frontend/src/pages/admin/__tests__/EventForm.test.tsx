@@ -111,7 +111,7 @@ describe('イベントフォーム 新規作成', () => {
       ...MOCK_EVENT,
       id: 'new-event-id',
     })
-    // saveSessions もモックしておく（create 後に呼ばれる）
+    // saveSessions もモックしておく（2026-11-13 から保存では呼ばない。呼ばれたときに落ちないよう残す）
     vi.mocked(api.events.saveSessions).mockResolvedValue([])
   })
 
@@ -359,7 +359,7 @@ describe('イベントフォーム 編集', () => {
     })
   })
 
-  it('WSありのイベントを保存すると、時間が入力されたセッションだけを保存する', async () => {
+  it('WSありのイベントを保存すると、時間が入力されたセッションだけを update の sessions に入れて 1 回で保存する', async () => {
     // 1. WSあり・予約不要のイベントと、時間入力済み/未入力のセッションを読み込む。
     vi.mocked(api.events.get).mockResolvedValue({
       ...MOCK_EVENT,
@@ -387,19 +387,20 @@ describe('イベントフォーム 編集', () => {
       fireEvent.submit(document.querySelector('form')!)
     })
 
-    // 3. イベント body に WS 設定を保ち、変更した値で時間空白行以外を保存する。
+    // 3. イベント body に WS 設定を保ち、変更した値で時間空白行以外を、同じ 1 回の update の sessions に入れて保存する
+    //    （2026-11-13 変更: イベントと時間枠を 1 回で保存する形になり、saveSessions は呼ばない）
     await waitFor(() => {
-      expect(vi.mocked(api.events.saveSessions)).toHaveBeenCalledWith('mock-event-1', [
-        { id: 'session-valid', time_label: '11:30〜12:30', max_participants: 10 },
-      ])
+      expect(vi.mocked(api.events.update)).toHaveBeenCalledTimes(1)
     })
     expect(vi.mocked(api.events.update).mock.calls[0][1]).toMatchObject({
       has_workshop: true,
       ws_requires_reservation: false,
+      sessions: [{ id: 'session-valid', time_label: '11:30〜12:30', max_participants: 10 }],
     })
+    expect(vi.mocked(api.events.saveSessions)).not.toHaveBeenCalled()
   })
 
-  it('WSなしのイベントを保存すると既存セッションを空配列で置き換える', async () => {
+  it('WSなしのイベントを保存すると、update の sessions を空配列にして既存セッションを置き換える', async () => {
     // 1. WSありのイベントと既存セッションを読み込み、画面でWSを外す状態を用意する。
     vi.mocked(api.events.get).mockResolvedValue({ ...MOCK_EVENT, has_workshop: true })
     vi.mocked(api.events.getSessions).mockResolvedValue([
@@ -420,11 +421,14 @@ describe('イベントフォーム 編集', () => {
       fireEvent.submit(document.querySelector('form')!)
     })
 
-    // 3. WSを外して保存した場合、イベント body とセッション payload が共に空状態になる。
+    // 3. WSを外して保存した場合、イベント body の has_workshop が false、sessions が空配列（全部消す）になる
+    //    （2026-11-13 変更: 時間枠は update の本文の sessions で送り、saveSessions は呼ばない）
     await waitFor(() => {
-      expect(vi.mocked(api.events.saveSessions)).toHaveBeenCalledWith('mock-event-1', [])
+      expect(vi.mocked(api.events.update)).toHaveBeenCalledTimes(1)
     })
     expect(vi.mocked(api.events.update).mock.calls[0][1].has_workshop).toBe(false)
+    expect(vi.mocked(api.events.update).mock.calls[0][1].sessions).toEqual([])
+    expect(vi.mocked(api.events.saveSessions)).not.toHaveBeenCalled()
   })
 
   it('編集画面には削除ボタンが無く、表示しても api.events.delete は呼ばれない', async () => {

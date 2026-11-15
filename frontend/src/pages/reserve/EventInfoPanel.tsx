@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import type { Event } from '../../lib/apiTypes'
 import { formatYen } from '../../lib/format'
 import { WS_FEE_YEN } from '../../lib/constants'
+import { useLang } from '../../lib/lang'
+import { formatWorkshopDates, isPartialWorkshopSchedule, workshopDates } from '../../lib/wsDates'
 
 /** 予約ページから受け取る翻訳関数の型 */
 type Translate = <T>(ja: T, en: T) => T
@@ -14,7 +16,11 @@ type Translate = <T>(ja: T, en: T) => T
  * @returns 予約ページ左カラムのイベント案内
  */
 export default function EventInfoPanel({ event, t }: { event: Event; t: Translate }) {
-  // 1. イベントの日程・会場とワークショップの案内を表示する
+  /** 今の表示言語（実施日の曜日の表記に使う） */
+  const { lang } = useLang()
+  /** 一部の日だけワークショップを実施するときの実施日の表示（全日程なら null） */
+  const wsDatesLabel = isPartialWorkshopSchedule(event) ? formatWorkshopDates(workshopDates(event), lang) : null
+  // 1. イベントの日程・会場とワークショップの案内（一部の日だけ実施なら実施日も）を表示する
   // 2. 予約ページ内の詳細・問い合わせリンクは既存の遷移先を維持する
   return (
     <div style={{ color: 'var(--c-body)' }}>
@@ -27,6 +33,12 @@ export default function EventInfoPanel({ event, t }: { event: Event; t: Translat
       </div>
       <div style={{ marginTop: 24, padding: '20px 24px', background: '#f0f5ee', borderRadius: 4, border: '1px solid #c8dcc4' }}>
         <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#6a8a64', margin: '0 0 12px' }}>Workshop</p>
+        {/* 一部の日だけ実施するときは、実施日を説明の上に出す */}
+        {wsDatesLabel && (
+          <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--c-ink)', margin: '0 0 12px', lineHeight: 1.7 }}>
+            {t('ワークショップ実施日: ', 'Workshop dates: ')}{wsDatesLabel}
+          </p>
+        )}
         <p style={{ fontSize: 15, color: 'var(--c-ink)', lineHeight: 1.8, margin: '0 0 16px' }}>
           {t(
             <>植物の自生地を鉢の中で再現するハビタットスタイルのワークショップです。<br />石・砂と植物を組み合わせて、はじめての方でも楽しめます。<br />植物・鉢はご持参いただいたものでもご参加いただけます。</>,

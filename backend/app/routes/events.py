@@ -5,12 +5,14 @@
 
 過去のイベントかどうかは日本時間（JST）の今日で判定する（app/utils/dates.py）。
 """
+import json
 import logging
 import re
 from datetime import date, datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from ..auth import require_auth
@@ -18,6 +20,12 @@ from ..db import admin_supabase, supabase
 from ..db_utils import execute_or_404, fetch_one_or_none
 from ..utils.dates import is_past_event, today_jst
 from ..utils.errors import error_summary
+from ..services.reservation_policy import (
+    effective_ws_dates,
+    is_multi_day_event,
+    is_session_available_on,
+    is_workshop_day,
+)
 from ..utils.ids import is_uuid
 
 # 変数の内容: logger: モジュール名を使って記録するロガー、router: この API 群のルーター。
@@ -25,6 +33,45 @@ logger = logging.getLogger(__name__)
 
 # main.py から登録する、このモジュールの FastAPI エンドポイントをまとめるルーター。
 router = APIRouter(prefix='/events', tags=['events'])
+
+
+# 時間枠の定員の既定値
+DEFAULT_MAX_PARTICIPANTS = 10
+
+
+class WsSessionInput(BaseModel):
+    """ワークショップの時間枠 1 つ分の入力。"""
+
+    # 既存の時間枠の ID（新しく作る枠は None）
+    id: Optional[str] = None
+    # 時間枠の表示名（例 '10:00〜11:00'）
+    time_label: str = Field(min_length=1)
+    # 定員（1 以上）
+    max_participants: int = Field(default=DEFAULT_MAX_PARTICIPANTS, ge=1)
+    # その枠を使う日（YYYY-MM-DD）。None なら全日程で共通の枠。
+    # イベントに実施日（ws_dates）があるときは必ず実施日のどれか、無いときは必ず None（_check_session_dates と DB 関数で確かめる）
+    session_date: Optional[str] = None
+
+    @field_validator('session_date', mode='before')
+    @classmethod
+    def empty_session_date_to_none(cls, v: object) -> object:
+        """画面から空文字で送られた session_date を None（全日程で共通）にする。
+
+        Args:
+            v: 送られてきた値
+
+        Returns:
+            空文字なら None、それ以外はそのまま
+        """
+        # 1. 空文字は「日付の指定なし」とみなす。
+        return None if v == '' else v
+
+
+class WsSessionsBody(BaseModel):
+    """イベントの時間枠の一覧（この並びが表示順になる）。"""
+
+    # 時間枠のリスト
+    sessions: list[WsSessionInput]
 
 
 class EventBody(BaseModel):
@@ -56,6 +103,13 @@ class EventBody(BaseModel):
     ws_requires_reservation: bool = True
     # 日ごとの開催時間（キーは 'YYYY-MM-DD'、値は時間の文字列）
     daily_times: Optional[dict] = None
+    # ワークショップを実施する日の一覧（'YYYY-MM-DD' のリスト）。None なら開催期間の全日程で実施する。
+    # has_workshop が true で複数日のイベントのときだけ効く。それ以外は保存の前に None にそろえる（_normalize_ws_dates）
+    ws_dates: Optional[list[str]] = None
+    # 時間枠の一覧（省略できる）。送られたら、イベント本体と時間枠を 1 つのトランザクションで保存し、
+    # 既存の予約を新しい枠へ付け替える（DB 関数 save_event_schedule。移し先の無い予約があれば 409）。
+    # None なら時間枠は変えない（今までどおりイベント本体だけを保存する）
+    sessions: Optional[list[WsSessionInput]] = None
     # 画像の URL の一覧（並び順がそのまま表示順になる。event_images に保存する）
     image_urls: list[str] = Field(default_factory=list)
 
@@ -98,6 +152,70 @@ def _calc_is_past(start_date: str, end_date: Optional[str] = None) -> bool:
 _DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 # イベントが見つからないときの文言
 _EVENT_NOT_FOUND = 'イベントが見つかりません'
+
+
+def _is_valid_date_str(value: object) -> bool:
+    """値が実在する日付の 'YYYY-MM-DD' 文字列かどうかを返す。
+
+    Args:
+        value: 確かめる値
+
+    Returns:
+        YYYY-MM-DD の形で、暦の上で実在する日（2026-02-30 などは不可）なら True
+    """
+    # 1. 文字列で YYYY-MM-DD の形かを確かめる。
+    if not isinstance(value, str) or not _DATE_RE.match(value):
+        return False
+    # 2. 暦の上で実在する日かを確かめる。
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _normalize_ws_dates(body: 'EventBody') -> Optional[list[str]]:
+    """イベントの保存の前に、ワークショップの実施日の一覧（ws_dates）を確かめて保存する形にそろえる。
+
+    決めたこと:
+    - ws_dates が効くのは has_workshop が true で、複数日（end_date > start_date）のイベントだけ。
+      それ以外は送られた値に関係なく None（全日程）にそろえる。
+    - None は「全日程で実施」。空の配列は 422（実施日が 1 日も無いワークショップは作れない）。
+    - 各日付は実在する YYYY-MM-DD で、開催期間（start_date〜end_date）の中、重なりなし。違反は 422。
+    - 開催期間を縮めて期間の外になった実施日は、黙って外さず 422 にする
+      （管理画面が先に外してから送る。サーバーで勝手に消すと、管理者が気づかないまま実施日が変わるため）。
+    - 全日程を選んだ配列も None にはまとめない（時間枠を日ごとに設定する仕様のまま保存する）。
+    - 日付の順に並べ替えて返す。
+
+    Args:
+        body: イベントの作成・更新の入力
+
+    Returns:
+        保存する ws_dates（並べ替えた日付のリスト）。全日程なら None
+
+    Raises:
+        HTTPException(422): 空の配列・日付の形が違う・開催期間の外・同じ日が重なっている場合
+    """
+    # 1. ワークショップが無い・1 日のイベントでは使わないので None にそろえる。
+    if not body.has_workshop or not is_multi_day_event({'start_date': body.start_date, 'end_date': body.end_date}):
+        return None
+    # 2. 指定が無ければ全日程（None）。
+    if body.ws_dates is None:
+        return None
+    # 3. 空の配列は受け付けない。
+    if len(body.ws_dates) == 0:
+        raise HTTPException(422, '実施日を1日以上選んでください')
+    # 4. 各日付の形・開催期間の中か・重なりを確かめる。
+    # 変数の内容: d: 送られた実施日の 1 つ。
+    for d in body.ws_dates:
+        if not _is_valid_date_str(d):
+            raise HTTPException(422, 'ワークショップの実施日の形が正しくありません（YYYY-MM-DD）')
+        if not (body.start_date <= d <= body.end_date):
+            raise HTTPException(422, 'ワークショップの実施日が開催期間の外です')
+    if len(set(body.ws_dates)) != len(body.ws_dates):
+        raise HTTPException(422, 'ワークショップの実施日が重なっています')
+    # 5. 日付の順に並べて返す。
+    return sorted(body.ws_dates)
 
 
 def _ensure_event_exists(event_id: str) -> None:
@@ -309,31 +427,31 @@ def get_admin_info_dashboard(_=Depends(require_auth)) -> dict:
         raise HTTPException(status_code=500, detail='ダッシュボードの管理情報の取得に失敗しました')
 
 
-# 時間枠の定員の既定値
-DEFAULT_MAX_PARTICIPANTS = 10
+def _load_event_for_sessions(event_id: str) -> Optional[dict]:
+    """時間枠の判定に使うイベントの行（has_workshop・開催期間・ws_dates）を読む。
 
+    列の名前を並べず '*' で読む（migrations/023 を実行する前でも、列が無いことで失敗しないため）。
 
-class WsSessionInput(BaseModel):
-    """ワークショップの時間枠 1 つ分の入力。"""
+    Args:
+        event_id: イベントの ID（UUID の形であることを呼び出し元で確かめておく）
 
-    # 既存の時間枠の ID（新しく作る枠は None）
-    id: Optional[str] = None
-    # 時間枠の表示名（例 '10:00〜11:00'）
-    time_label: str = Field(min_length=1)
-    # 定員（1 以上）
-    max_participants: int = Field(default=DEFAULT_MAX_PARTICIPANTS, ge=1)
-
-
-class WsSessionsBody(BaseModel):
-    """イベントの時間枠の一覧（この並びが表示順になる）。"""
-
-    # 時間枠のリスト
-    sessions: list[WsSessionInput]
+    Returns:
+        events の行。見つからなければ None
+    """
+    # 1. 管理用 DB で 1 件読み、無ければ None を返す。
+    return fetch_one_or_none(admin_supabase.table('events').select('*').eq('id', event_id))
 
 
 @router.get('/{event_id}/sessions')
 def get_sessions(event_id: str, date: Optional[str] = None) -> list[dict]:
     """ワークショップの時間枠の一覧を、各枠の予約済みの人数を付けて返す（公開）。
+
+    - date が無いとき: 全部の枠を返す（session_date も含む。管理画面が使う）
+    - date があるとき:
+      - その日がワークショップを実施しない日（has_workshop が false・ws_dates に無い・開催期間の外・
+        イベントが無い）なら空の一覧
+      - それ以外は、session_date が NULL（全日程で共通）の枠と、その日の枠だけを返す。
+        予約済みの人数はその日の予約だけで数える
 
     Args:
         event_id: 対象イベントの ID（UUID）
@@ -346,11 +464,18 @@ def get_sessions(event_id: str, date: Optional[str] = None) -> list[dict]:
         HTTPException(404): event_id が UUID の形でない場合（DB に渡すと 22P02 で 500 になるため）
         HTTPException(400): date が YYYY-MM-DD の形でない場合
     """
-    # 1. event_id と任意の日付を検証してから、予約人数付きの時間枠を返す。
+    # 1. event_id と任意の日付を検証する。
     if not is_uuid(event_id):
         raise HTTPException(404, _EVENT_NOT_FOUND)
     if date and not _DATE_RE.match(date):
         raise HTTPException(400, '日付の形が正しくありません')
+    # 2. 日付があれば、その日がワークショップを実施する日かを確かめる（実施しない日は枠を出さない）。
+    if date:
+        # 変数の内容: event: 対象イベントの行（無ければ None）。
+        event = _load_event_for_sessions(event_id)
+        if event is None or not is_workshop_day(event, date):
+            return []
+    # 3. 予約人数付きの時間枠を返す（日付があれば、その日に使える枠だけ）。
     return _sessions_with_counts(event_id, date)
 
 
@@ -358,32 +483,42 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
     """時間枠の一覧を読み、各枠の予約済みの人数（reserved_count）を付けて返す。
 
     session_id が古くなった予約も preferred_time による照合で漏れなく集計する。
+    照合は「表示名と日付の組」で行い、日ごとの枠で同じ表示名があっても別の日の予約を数えないようにする
+    （その日の枠が無ければ、全日程で共通の枠（session_date が NULL）と照合する）。
     id の形は呼び出し元で確かめておく。
 
     Args:
         event_id: 対象イベントの ID
-        date: 絞り込む日付（YYYY-MM-DD）。None なら全日程
+        date: 絞り込む日付（YYYY-MM-DD）。None なら全日程（全部の枠を返す）。
+              指定すると、session_date が NULL の枠とその日の枠だけを返し、その日の予約だけを数える
 
     Returns:
-        reserved_count が付加されたセッションレコードのリスト
+        reserved_count が付加されたセッションレコードのリスト（session_date を含む）
     """
-    # 1. 対象イベントの時間枠を取得し、枠が無ければ空一覧を返す。
+    # 1. 対象イベントの時間枠を取得し、日付があればその日に使える枠だけに絞る。
     # 変数の内容: sessions: 表示順で取得した対象イベントの時間枠。
     sessions = admin_supabase.table('ws_sessions').select('*').eq('event_id', event_id).order('display_order').execute().data
     if not sessions:
         return []
+    # 変数の内容: s: 各時間枠の行（migrations/023 より前の行でも session_date のキーを持たせる）。
+    for s in sessions:
+        s.setdefault('session_date', None)
+    if date:
+        # 変数の内容: sessions: その日に使える時間枠だけの一覧。
+        sessions = [s for s in sessions if is_session_available_on(s, date)]
+        if not sessions:
+            return []
 
-    # 変数の内容: session_id_set: 有効な時間枠 ID の集合、time_to_sid: 表示時刻から時間枠 ID への対応表。
-    # 変数の内容: s: 予約照合に使う時間枠レコード。
+    # 変数の内容: session_id_set: 有効な時間枠 ID の集合。
     session_id_set = {s['id'] for s in sessions}
-    # time_label → session_id のマップ（session_id が無効な予約をフォールバックで照合するため）
-    # 変数の内容: s: 表示時刻と ID の対応を作る時間枠レコード。
-    time_to_sid = {s['time_label']: s['id'] for s in sessions}
+    # (time_label, session_date) → session_id のマップ（session_id が無効な予約をフォールバックで照合するため）
+    # 変数の内容: key_to_sid: 表示名と枠の日付の組から時間枠 ID を引く辞書。
+    key_to_sid = {(s['time_label'], s.get('session_date')): s['id'] for s in sessions}
 
     # 2. event_id 単位で予約を取得し、必要なら日付で絞る。
     # 変数の内容: query: 取消済みを除いた対象イベントの予約検索。
     query = admin_supabase.table('workshop_reservations') \
-        .select('session_id, participants, preferred_time') \
+        .select('session_id, participants, preferred_time, preferred_date') \
         .eq('event_id', event_id) \
         .neq('status', 'cancelled')
     if date:
@@ -392,17 +527,19 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
     # 変数の内容: reservations: 取得した予約の一覧。
     reservations = query.execute().data or []
 
-    # 3. session_id または旧予約の preferred_time で照合して人数を集計する。
+    # 3. session_id または旧予約の (preferred_time, preferred_date) で照合して人数を集計する。
     # 変数の内容: count_map: 時間枠 ID ごとの予約済み参加人数。
     count_map: dict[str, int] = {}
     # 変数の内容: r: 参加人数を集計するワークショップ予約レコード。
     for r in reservations:
         # 変数の内容: sid: 照合対象の時間枠 ID。
         sid = r.get('session_id')
-        # session_id が存在しないか、セッション再作成で無効化された場合は preferred_time で照合
+        # session_id が存在しないか、セッション再作成で無効化された場合は表示名（と日付）で照合する。
+        # まずその日の枠、無ければ全日程で共通の枠と照合する
         if not sid or sid not in session_id_set:
-            # 変数の内容: sid: 照合対象の時間枠 ID。
-            sid = time_to_sid.get(r.get('preferred_time') or '')
+            # 変数の内容: label: 予約の希望時間（枠の表示名と同じ文字列のはず）。
+            label = r.get('preferred_time') or ''
+            sid = key_to_sid.get((label, r.get('preferred_date'))) or key_to_sid.get((label, None))
         if sid:
             count_map[sid] = count_map.get(sid, 0) + (r.get('participants') or 1)
 
@@ -413,63 +550,231 @@ def _sessions_with_counts(event_id: str, date: Optional[str] = None) -> list[dic
     return sessions
 
 
-@router.put('/{event_id}/sessions')
-def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) -> list[dict]:
-    """セッション一覧を upsert 形式で保存し、リクエストに含まれないセッションを削除する（管理者のみ）。
+def _check_session_dates(event: dict, sessions: list[WsSessionInput]) -> None:
+    """保存する時間枠の session_date が、イベントの実施日の設定に合っているか確かめる。
 
-    id が送られた場合はそれを優先してマッチし、なければ time_label でフォールバック照合する。
+    - イベントに実施日（ws_dates）が無い（全日程で実施）: session_date は必ず None（全日程で共通の枠）
+    - 実施日があるイベント: session_date は必ず実施日のどれか（日ごとに枠を設定する仕様なので、
+      全日程で共通の枠（None）は使わない）
+
+    Args:
+        event: events の行（has_workshop・start_date・end_date・ws_dates）
+        sessions: 保存する時間枠の入力
+
+    Raises:
+        HTTPException(422): 上の決まりに合わない session_date がある場合
+
+    Returns:
+        なし。
+    """
+    # 1. イベントで効き目のある実施日の一覧を求める（None なら全日程）。
+    # 変数の内容: ws_dates: 実施日の一覧。
+    ws_dates = effective_ws_dates(event)
+    # 変数の内容: s: 確かめる時間枠の入力。
+    for s in sessions:
+        # 2. 全日程で実施するイベントでは、日付付きの枠を受け付けない。
+        if ws_dates is None:
+            if s.session_date is not None:
+                raise HTTPException(422, 'このイベントは全日程でワークショップを実施するため、時間枠に日付は指定できません')
+            continue
+        # 3. 実施日のあるイベントでは、実施日のどれかを必ず指定させる。
+        if s.session_date is None:
+            raise HTTPException(422, '時間枠ごとに実施日を指定してください')
+        if s.session_date not in ws_dates:
+            raise HTTPException(422, '時間枠の日付がワークショップの実施日ではありません')
+
+
+# 移し先の無い予約があって保存できないときの文言（409 の detail）
+_SCHEDULE_CONFLICT_DETAIL = (
+    '予約が入っている日時を変更・削除しようとしています。先に予約をキャンセルするか、別の日時へ変更してください。'
+)
+# DB 関数 save_event_schedule が出す例外の SQLSTATE（migrations/023 の先頭のコメントを参照）
+_SQLSTATE_EVENT_NOT_FOUND = 'P0404'
+_SQLSTATE_SESSION_DATE_INVALID = 'P0422'
+_SQLSTATE_RESERVATION_CONFLICT = 'P0409'
+
+
+class ScheduleConflictError(Exception):
+    """移し先の無い予約があり、イベントの日程・時間枠を保存できなかったことを表す例外。
+
+    ルートの関数で受けて、409 の応答（detail と conflicts）に変える。
+    """
+
+    def __init__(self, conflicts: list[dict]) -> None:
+        """例外を作る。
+
+        Args:
+            conflicts: 移し先の無い予約を日時ごとにまとめた一覧
+                （各要素 {date: 'YYYY-MM-DD' か None, time_label: str, count: 件数, participants: 人数}）
+
+        Returns:
+            なし。
+        """
+        # 1. 例外の文字列には件数だけを入れ、一覧は属性に持たせる。
+        super().__init__(f'reservation conflict: {len(conflicts)}')
+        # 移し先の無い予約の一覧（409 の応答の conflicts）
+        self.conflicts = conflicts
+
+
+def _conflict_response(e: ScheduleConflictError) -> JSONResponse:
+    """移し先の無い予約の例外を、409 の応答にする。
+
+    Args:
+        e: 移し先の無い予約の例外
+
+    Returns:
+        {"detail": 文言, "conflicts": [...]} の 409 の応答
+    """
+    # 1. 画面が日時ごとの一覧を出せるよう、detail と conflicts を並べて返す。
+    return JSONResponse(status_code=409, content={'detail': _SCHEDULE_CONFLICT_DETAIL, 'conflicts': e.conflicts})
+
+
+def _parse_conflicts(details: object) -> list[dict]:
+    """DB 関数の例外の DETAIL（JSON の文字列）から、移し先の無い予約の一覧を読む。
+
+    Args:
+        details: PostgREST のエラーの details（JSON の配列の文字列のはず）
+
+    Returns:
+        日時ごとの一覧。読めなければ空のリスト（409 の応答そのものは返す）
+    """
+    # 1. JSON として読み、配列でなければ空にする。
+    try:
+        # 変数の内容: data: DETAIL を JSON として読んだ値。
+        data = json.loads(details) if isinstance(details, str) else details
+    except ValueError:
+        logger.error('移し先の無い予約の一覧を読めませんでした')
+        return []
+    if not isinstance(data, list):
+        return []
+    # 2. 必要な項目だけを、決まった形にそろえて返す。
+    # 変数の内容: c: 一覧の 1 件。
+    return [
+        {
+            'date': c.get('date'),
+            'time_label': c.get('time_label'),
+            'count': c.get('count'),
+            'participants': c.get('participants'),
+        }
+        for c in data if isinstance(c, dict)
+    ]
+
+
+def _sessions_payload(sessions: list[WsSessionInput]) -> list[dict]:
+    """時間枠の入力を、DB 関数に渡す JSON の形にする。
+
+    UUID の形でない id は渡さない（新しい枠として作る。今までも存在しない id は新しい枠として扱っていた）。
+
+    Args:
+        sessions: 時間枠の入力（並びが表示順）
+
+    Returns:
+        [{id?, time_label, max_participants, session_date}, ...]
+    """
+    # 1. 並びを保ったまま、各枠を辞書にする。
+    # 変数の内容: result: DB 関数に渡す時間枠の一覧。
+    result = []
+    # 変数の内容: s: 時間枠の入力の 1 件、item: 渡す 1 件。
+    for s in sessions:
+        item = {'time_label': s.time_label, 'max_participants': s.max_participants, 'session_date': s.session_date}
+        if s.id and is_uuid(s.id):
+            item['id'] = s.id
+        result.append(item)
+    return result
+
+
+def _save_schedule(event_id: Optional[str], event_row: Optional[dict], sessions: Optional[list[WsSessionInput]]) -> str:
+    """DB 関数 save_event_schedule を呼び、イベント本体と時間枠を 1 つのトランザクションで保存する。
+
+    関数の中身は migrations/023_workshop_dates_and_session_date.sql を参照。
+    途中で失敗したら DB 側で全部が取り消される（イベント本体・時間枠・予約の付け替えのどれも残らない）。
+
+    Args:
+        event_id: 対象イベントの ID。None ならイベントを新しく作る
+        event_row: イベント本体の列（None ならイベント本体は変えない）
+        sessions: 時間枠の一覧（None なら時間枠は変えない）
+
+    Returns:
+        イベントの ID
+
+    Raises:
+        HTTPException(404): イベントが無い場合（P0404）
+        HTTPException(422): 時間枠の日付がイベントの実施日の設定に合わない場合（P0422）
+        ScheduleConflictError: 移し先の無い予約がある場合（P0409。ルートで 409 にする）
+        Exception: そのほかの DB の失敗（そのまま投げ直して 500 にする）
+    """
+    # 1. 関数を呼ぶ。
+    # 変数の内容: params: DB 関数に渡す引数。
+    params = {
+        'p_event_id': event_id,
+        'p_event': event_row,
+        'p_sessions': _sessions_payload(sessions) if sessions is not None else None,
+    }
+    try:
+        # 変数の内容: data: 関数の戻り値（イベントの ID）。
+        data = admin_supabase.rpc('save_event_schedule', params).execute().data
+    # 変数の内容: e: except で捕捉した処理例外。
+    except Exception as e:
+        # 2. 関数が出した例外の SQLSTATE を見て、HTTP の応答に変える。
+        # 変数の内容: code: 例外の SQLSTATE、message: 例外の文言。
+        code = getattr(e, 'code', None)
+        message = getattr(e, 'message', None)
+        if code == _SQLSTATE_EVENT_NOT_FOUND or code == '22P02':
+            raise HTTPException(404, _EVENT_NOT_FOUND)
+        if code == _SQLSTATE_SESSION_DATE_INVALID:
+            raise HTTPException(422, message if isinstance(message, str) and message else '時間枠の日付が正しくありません')
+        if code == _SQLSTATE_RESERVATION_CONFLICT:
+            raise ScheduleConflictError(_parse_conflicts(getattr(e, 'details', None)))
+        raise
+    # 3. 戻り値からイベントの ID を取り出す（PostgREST はスカラーの戻り値をそのまま返す）。
+    if isinstance(data, list):
+        # 変数の内容: data: 1 件目の値。
+        data = data[0] if data else None
+    if isinstance(data, dict):
+        # 変数の内容: data: 辞書の中の ID。
+        data = data.get('save_event_schedule') or data.get('id')
+    if not data:
+        raise RuntimeError('save_event_schedule がイベントの ID を返しませんでした')
+    return str(data)
+
+
+# response_model=None: 409 のときに JSONResponse を返すため（戻り値の型から応答の形を作らない）
+@router.put('/{event_id}/sessions', response_model=None)
+def save_sessions(event_id: str, body: WsSessionsBody, _=Depends(require_auth)) -> list[dict] | JSONResponse:
+    """時間枠の一覧を保存する（管理者のみ）。イベント本体は変えない。
+
+    保存は DB 関数 save_event_schedule（イベント本体は渡さない）で行うので、イベントの保存（sessions 付き）と
+    同じく、既存の予約の付け替えと、移し先の無い予約があるときの 409 になる。
+    既存の枠との突き合わせは、id が既存の枠にあればその枠、無ければ (time_label, session_date) の組で行う。
 
     Args:
         event_id: 対象イベントのID
-        body: 保存するセッションリスト（id・time_label・max_participants を含む）
+        body: 保存するセッションリスト（id・time_label・max_participants・session_date を含む）
         _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
-        保存後の最新セッションリスト（reserved_count 付き）
+        保存後の最新セッションリスト（reserved_count 付き）。移し先の無い予約があれば 409 の応答
 
     Raises:
         HTTPException(404): イベントが存在しない場合
+        HTTPException(422): session_date がイベントの実施日の設定に合わない場合（_check_session_dates・DB 関数）
     """
-    # 0. イベントがあるか確かめる（無い id で時間枠を作ると外部キー違反で 500 になるため）
-    _ensure_event_exists(event_id)
-    # 1. 既存の時間枠を読む
-    # 変数の内容: existing: 現在保存済みの時間枠、existing_by_id: 時間枠 ID をキーに行を引く辞書。
-    existing = admin_supabase.table('ws_sessions').select('id, time_label').eq('event_id', event_id).execute().data or []
-    existing_by_id = {s['id']: s for s in existing}
-    # 変数の内容: existing_by_label: time_label をキー、対応する時間枠 ID を値にする照合辞書。
-    existing_by_label = {s['time_label']: s['id'] for s in existing}
-
-    # 2. 送られた順に、既存の枠は更新・新しい枠は作成する
-    # 変数の内容: incoming_ids: 今回の入力に含まれる既存時間枠 ID。
-    incoming_ids: set[str] = set()
-    # 変数の内容: i: 保存順として使うセッション番号、s: リクエスト内のセッション内容。
-    for i, s in enumerate(body.sessions):
-        # id が送られてきた場合はそれを優先、なければ time_label で照合
-        # 変数の内容: sid: 入力セッションに対応する既存 ID。対応する枠が無ければ None。
-        sid = s.id if s.id and s.id in existing_by_id else existing_by_label.get(s.time_label)
-        if sid:
-            incoming_ids.add(sid)
-            admin_supabase.table('ws_sessions').update({
-                'time_label': s.time_label,
-                'max_participants': s.max_participants,
-                'display_order': i,
-            }).eq('id', sid).execute()
-        else:
-            # 変数の内容: result: 新規セッションの INSERT 応答。
-            result = admin_supabase.table('ws_sessions').insert({
-                'event_id': event_id,
-                'time_label': s.time_label,
-                'max_participants': s.max_participants,
-                'display_order': i,
-            }).execute()
-            if result.data:
-                incoming_ids.add(result.data[0]['id'])
-
-    # 3. 送られてこなかった既存セッションを削除
-    for s in existing:
-        if s['id'] not in incoming_ids:
-            admin_supabase.table('ws_sessions').delete().eq('id', s['id']).execute()
-
+    # 0. イベントを読む（UUID の形でない・無い id は 404。DB 関数を呼ぶ前に分かりやすく返す）
+    if not is_uuid(event_id):
+        raise HTTPException(404, _EVENT_NOT_FOUND)
+    # 変数の内容: event: 対象イベントの行。
+    event = _load_event_for_sessions(event_id)
+    if event is None:
+        raise HTTPException(404, _EVENT_NOT_FOUND)
+    # 1. session_date がイベントの実施日の設定に合うか確かめる（DB 関数の中でもロックを取って確かめ直す）
+    _check_session_dates(event, body.sessions)
+    # 2. DB 関数で、時間枠の保存と予約の付け替えを 1 つのトランザクションで行う
+    try:
+        _save_schedule(event_id, None, body.sessions)
+    # 変数の内容: e: 移し先の無い予約の例外。
+    except ScheduleConflictError as e:
+        return _conflict_response(e)
+    # 3. 保存後の一覧を、予約済みの人数を付けて返す
     return _sessions_with_counts(event_id)
 
 
@@ -534,9 +839,33 @@ def get_event(event_id: str) -> dict:
     return _attach_images([data])[0]
 
 
-@router.post('')
-def create_event(body: EventBody, _=Depends(require_auth)) -> dict:
+def _event_row(body: EventBody) -> dict:
+    """イベントの入力から、events に保存する列を作る（実施日の検証・過去かどうかの計算を含む）。
+
+    Args:
+        body: イベントの作成・更新の入力
+
+    Returns:
+        保存する列の辞書（image_urls・sessions は含めない。ws_dates はそろえた値、is_past は計算した値）
+
+    Raises:
+        HTTPException(422): ws_dates が正しくない場合（_normalize_ws_dates を参照）
+    """
+    # 1. 画像と時間枠は別の表に保存するので除き、実施日と過去かどうかを入れる。
+    # 変数の内容: row: 保存する列。
+    row = body.model_dump(exclude={'image_urls', 'sessions'})
+    row['ws_dates'] = _normalize_ws_dates(body)
+    row['is_past'] = _calc_is_past(body.start_date, body.end_date)
+    return row
+
+
+# response_model=None: 409 のときに JSONResponse を返すため（戻り値の型から応答の形を作らない）
+@router.post('', response_model=None)
+def create_event(body: EventBody, _=Depends(require_auth)) -> dict | JSONResponse:
     """新規イベントを作成し、画像URLを event_images テーブルに紐付けて返す（管理者のみ）。
+
+    sessions が送られたら、イベント本体と時間枠を DB 関数 save_event_schedule で 1 つのトランザクションで保存する。
+    画像の保存はそのあと（トランザクションの外）で行う。
 
     Args:
         body: イベントの内容
@@ -544,19 +873,41 @@ def create_event(body: EventBody, _=Depends(require_auth)) -> dict:
 
     Returns:
         作成したイベント（get_event と同じ形）
+
+    Raises:
+        HTTPException(422): ws_dates・時間枠の session_date が正しくない場合
     """
-    # 変数の内容: row: INSERT 前に整形するイベント列、result: INSERT で作成されたイベントレコード。
-    # 1. イベント本体を登録し、2. 画像を紐付けて完全なイベントを返す。
-    row = body.model_dump(exclude={'image_urls'})
-    row['is_past'] = _calc_is_past(body.start_date, body.end_date)
-    result = admin_supabase.table('events').insert(row).execute().data[0]
-    _save_images(result['id'], body.image_urls)
-    return get_event(result['id'])
+    # 1. ワークショップの実施日を確かめてそろえ、保存する列を作る。
+    # 変数の内容: row: INSERT するイベントの列、event_id: 作成したイベントの ID。
+    row = _event_row(body)
+    if body.sessions is None:
+        # 2-a. 時間枠が無ければ、今までどおりイベント本体だけを登録する。
+        event_id = admin_supabase.table('events').insert(row).execute().data[0]['id']
+    else:
+        # 2-b. 時間枠があれば、保存後のイベントの実施日に合うかを確かめてから、DB 関数でまとめて保存する。
+        _check_session_dates(row, body.sessions)
+        try:
+            event_id = _save_schedule(None, row, body.sessions)
+        # 変数の内容: e: 移し先の無い予約の例外（新しいイベントには予約が無いので、ふつうは起きない）。
+        except ScheduleConflictError as e:
+            return _conflict_response(e)
+    # 3. 画像を紐付けて、完全なイベントを返す。
+    _save_images(event_id, body.image_urls)
+    return get_event(event_id)
 
 
-@router.put('/{event_id}')
-def update_event(event_id: str, body: EventBody, _=Depends(require_auth)) -> dict:
+# response_model=None: 409 のときに JSONResponse を返すため（戻り値の型から応答の形を作らない）
+@router.put('/{event_id}', response_model=None)
+def update_event(event_id: str, body: EventBody, _=Depends(require_auth)) -> dict | JSONResponse:
     """イベントを更新する。画像は全削除後に再挿入して順序変更に対応する（管理者のみ）。
+
+    イベント本体と時間枠は、sessions の有無にかかわらず、必ず DB 関数 save_event_schedule で
+    1 つのトランザクションで保存する（日程を変えたときに、予約の確認と付け替えを抜かさないため）。
+    - sessions が送られたら、その一覧で時間枠を保存する
+    - sessions が無ければ、今の枠をそのまま入力として扱い、実施日との食い違いと予約の確認だけを行う
+      （枠の日付が新しい実施日と合わなくなるなら 422「時間枠も一緒に保存してください」）
+    - ws_dates が本文に無ければ（古い画面など）、DB の今の値を残す
+    移し先の無い予約があれば、何も保存せずに 409 を返す。画像の保存はそのあと（トランザクションの外）で行う。
 
     Args:
         event_id: イベントの ID
@@ -564,18 +915,34 @@ def update_event(event_id: str, body: EventBody, _=Depends(require_auth)) -> dic
         _: 認証確認のために注入される値（この関数内では使用しません）。
 
     Returns:
-        更新後のイベント（get_event と同じ形）
+        更新後のイベント（get_event と同じ形）。移し先の無い予約があれば
+        409 の応答（{"detail": 文言, "conflicts": [{date, time_label, count, participants}]}）
 
     Raises:
-        HTTPException(404): イベントが存在しない場合
+        HTTPException(404): イベントが存在しない場合（UUID の形でない id も）
+        HTTPException(422): ws_dates・時間枠の session_date が正しくない場合
     """
-    # 1. イベントがあるか確かめる（無い id のまま画像を入れると外部キー違反で 500 になるため）
-    _ensure_event_exists(event_id)
-    # 2. イベントを更新し、画像は全部消してから送られた順に入れ直す
-    # 変数の内容: row: image_urls を除いたイベント更新項目。
-    row = body.model_dump(exclude={'image_urls'})
-    row['is_past'] = _calc_is_past(body.start_date, body.end_date)
-    admin_supabase.table('events').update(row).eq('id', event_id).execute()
+    # 1. 保存する列を作る（ws_dates があれば確かめてそろえる。DB を読む前に入力の誤りを返す）
+    # 変数の内容: row: image_urls・sessions を除いたイベント更新項目。
+    row = _event_row(body)
+    # 変数の内容: has_ws_dates: 本文に ws_dates の項目があったか（無ければ DB の今の値を残す）。
+    has_ws_dates = 'ws_dates' in body.model_fields_set
+    if not has_ws_dates:
+        # キー ws_dates を渡さないと、DB 関数は今の値を残す
+        row.pop('ws_dates', None)
+    if not is_uuid(event_id):
+        raise HTTPException(404, _EVENT_NOT_FOUND)
+    # 2. 時間枠が送られ、実施日も送られていれば、保存後の実施日に合うかを先に確かめる
+    #    （実施日が送られていないときは今の値と比べる必要があるので、DB 関数の確認に任せる）
+    if body.sessions is not None and has_ws_dates:
+        _check_session_dates(row, body.sessions)
+    # 3. DB 関数で、イベント本体と時間枠をまとめて保存する（sessions が無ければ今の枠のまま確かめる）
+    try:
+        _save_schedule(event_id, row, body.sessions)
+    # 変数の内容: e: 移し先の無い予約の例外。
+    except ScheduleConflictError as e:
+        return _conflict_response(e)
+    # 4. 画像は全部消してから送られた順に入れ直す
     admin_supabase.table('event_images').delete().eq('event_id', event_id).execute()
     _save_images(event_id, body.image_urls)
     return get_event(event_id)

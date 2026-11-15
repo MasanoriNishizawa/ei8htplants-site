@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from ..config import GEMINI_API_KEY, SITE_ORIGIN
 from ..db import admin_supabase, supabase
 from ..rate_limit import RateLimiter, client_ip
+from ..services.reservation_policy import effective_ws_dates
 from ..utils.dates import event_end_date, today_jst
 from ..utils.errors import error_summary
 
@@ -94,6 +95,35 @@ SYSTEM_PROMPT = f"""あなたは「ei8ht plants」のAIコンシェルジュで�
 MODEL = 'gemini-flash-lite-latest'
 
 
+def _workshop_note(event: dict) -> str:
+    """イベントの説明文に添えるワークショップの案内（予約の要否と実施日）を作る。
+
+    - has_workshop が false なら空文字
+    - ws_requires_reservation が false なら「（ワークショップあり・予約不要）」、
+      それ以外（true・列が無い古い行）は「（ワークショップあり・要予約）」
+    - 実施日の指定（ws_dates。ワークショップありの複数日イベントでだけ効く）があれば、
+      「ワークショップ実施日: 2026-11-03・2026-11-05」を続ける
+
+    Args:
+        event: events の行（has_workshop・ws_requires_reservation・start_date・end_date・ws_dates）
+
+    Returns:
+        説明文の末尾に付ける文字列（ワークショップが無ければ ''）
+    """
+    # 1. ワークショップが無ければ何も付けない。
+    if not event.get('has_workshop'):
+        return ''
+    # 2. 予約の要否を書く（列が無い古い行は今までどおり要予約）。
+    # 変数の内容: note: 付ける案内の文字列。
+    note = '（ワークショップあり・予約不要）' if event.get('ws_requires_reservation') is False else '（ワークショップあり・要予約）'
+    # 3. 実施日の指定があれば添える（None なら開催期間の全日程なので添えない）。
+    # 変数の内容: ws_dates: 効き目のある実施日の一覧。
+    ws_dates = effective_ws_dates(event)
+    if ws_dates:
+        note += f"ワークショップ実施日: {'・'.join(ws_dates)}"
+    return note
+
+
 def _build_site_context() -> str:
     """公開データ（イベント・商品・記事・取扱店）を取得してコンテキスト文字列を構築する。
 
@@ -110,7 +140,8 @@ def _build_site_context() -> str:
     # 1. 開催予定・開催中のイベント（過去分は除外）を読み、説明文にする。
     try:
         # 変数の内容: rows: DB から取得した行の一覧、upcoming: 開催中または今後のイベント一覧。
-        rows = supabase.table('events').select('name,start_date,end_date,time,location,has_workshop').order('start_date').execute().data
+        # 列の名前を並べず '*' で読む（migrations/023 の前でも ws_dates が無いことで失敗しないため）
+        rows = supabase.table('events').select('*').order('start_date').execute().data
         upcoming = [e for e in rows if event_end_date(e) >= today]
         if upcoming:
             # 変数の内容: lines: 本文や応答に使う行の一覧。
@@ -121,9 +152,9 @@ def _build_site_context() -> str:
                 date_str = e['start_date']
                 if e.get('end_date') and e['end_date'] != e['start_date']:
                     date_str += f"〜{e['end_date']}"
-                # 変数の内容: time_str: 表示用の開催時刻、ws: ワークショップ開催を示す表示文字列。
+                # 変数の内容: time_str: 表示用の開催時刻、ws: ワークショップの案内（予約の要否・実施日）。
                 time_str = f" {e['time']}" if e.get('time') else ''
-                ws = '（ワークショップあり・要予約）' if e.get('has_workshop') else ''
+                ws = _workshop_note(e)
                 lines.append(f"- {e['name']}：{date_str}{time_str}、{e['location']}{ws}")
             parts.append('\n'.join(lines))
     # 変数の内容: e: except で捕捉した処理例外。

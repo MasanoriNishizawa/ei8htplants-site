@@ -270,14 +270,15 @@ class TestEventsNotFound:
     """events の存在しない id・UUID の形でない id。"""
 
     def test_存在しないidへのPUTは画像付きでも404でevent_imagesにinsertしない(self):
-        """先にイベントを確かめるので、更新・画像の削除・insert を呼ばずに 404 になること。
+        """DB 関数がイベントなし（P0404）を返すので、画像の削除・insert を呼ばずに 404 になること。
 
         Returns:
             なし。
         """
         # 変数の内容: sb: Supabase クライアントまたはそのモック。
-        # 1. 先にイベントを確かめるので、更新・画像の削除・insert を呼ばずに 404 になること。
+        # 1. 更新の DB 関数（save_event_schedule）にイベントなしの例外を出させる。
         sb = _events_sb_missing()
+        sb.rpc.return_value.execute.side_effect = PostgrestError('P0404', 'event_not_found')
         with as_admin(), patch('app.routes.events.admin_supabase', sb):
             # 変数の内容: resp: API から返されたレスポンス。
             resp = TestClient(app).put(f'/api/events/{MISSING_UUID}', json=EVENT_BODY)

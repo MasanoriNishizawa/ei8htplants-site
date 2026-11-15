@@ -1,5 +1,5 @@
 // MSW のモック（handlers.ts）が返す固定のデータ。Vitest と E2E（`npm run mock:e2e`）で、本物のバックエンドの代わりに使う
-import type { Event, EventFinances, EventAdminInfo, AdminInfoDashboardItem, GalleryImage, Stockist, Product } from '../lib/api'
+import type { Event, EventFinances, EventAdminInfo, AdminInfoDashboardItem, GalleryImage, Stockist, Product, Reservation, WsSession } from '../lib/api'
 
 /** 設計書の目次（GET /api/docs/tree）の 1 項目（type: ファイルかフォルダか、name: 表示名、path: doc/ からのパス、children: フォルダの中身） */
 type DocTreeNode = { type: 'file' | 'dir'; name: string; path: string; children?: DocTreeNode[] }
@@ -80,6 +80,7 @@ cd frontend && npx playwright test
  * - mock-upcoming-1: 写真 2 枚・WS あり（予約制）・イベントページの文章あり
  * - mock-upcoming-2: HUE のみ・WS なし・写真なし
  * - mock-no-time: 時間・ブランドが未設定のイベント（未設定の表示を確かめる用）
+ * - mock-ws-dates: 4 日間のうち、ワークショップを 7/2（金）と 7/4（日）だけ実施するイベント（ws_dates あり。枠は MOCK_SESSIONS）
  */
 export const MOCK_EVENTS: Event[] = [
   {
@@ -149,6 +150,66 @@ export const MOCK_EVENTS: Event[] = [
     images: [],
     page_content: null,
     daily_times: null,
+  },
+  {
+    // 特定の日だけワークショップを実施するイベント（E2E で、予約日の選択肢・日ごとの枠・枠なしの日の送信を確かめる用）
+    id: 'mock-ws-dates',
+    slug: 'plants-weekend-2027',
+    name: 'Plants Weekend 2027',
+    start_date: '2027-07-01',
+    end_date: '2027-07-04',
+    time: '10:00〜17:00',
+    location: '横浜赤レンガ倉庫 イベント広場',
+    booth_number: 'B-3',
+    address: '神奈川県横浜市中区新港1-1',
+    official_url: null,
+    brands: ['Habitat Oides'],
+    has_workshop: true,
+    ws_requires_reservation: true,
+    is_past: false,
+    display_order: 4,
+    images: [],
+    page_content: null,
+    daily_times: null,
+    // 7/2（金）と 7/4（日）だけ実施する。7/2 は時間枠 2 つ（1 つは満席）、7/4 は枠なし（時間指定なしで予約受付）
+    ws_dates: ['2027-07-02', '2027-07-04'],
+  },
+]
+
+/**
+ * 最初から保存されている WS の時間枠（GET /api/events/:id/sessions）。イベント ID → 時間枠
+ * - mock-ws-dates: 7/2（金）だけの枠が 2 つ（13:00〜14:00 は満席）。7/4（日）は枠なし
+ * ほかのイベントは枠なし（管理画面で保存するとメモリに持つ）
+ */
+export const MOCK_SESSIONS: Record<string, WsSession[]> = {
+  'mock-ws-dates': [
+    { id: 'mock-ws-dates-s1', event_id: 'mock-ws-dates', time_label: '11:00〜12:00', max_participants: 6, reserved_count: 2, display_order: 0, session_date: '2027-07-02' },
+    { id: 'mock-ws-dates-s2', event_id: 'mock-ws-dates', time_label: '13:00〜14:00', max_participants: 4, reserved_count: 4, display_order: 1, session_date: '2027-07-02' },
+  ],
+}
+
+/**
+ * 最初から入っている WS の予約（GET /api/reserves）
+ * - mock-ws-dates の 7/2（金）11:00〜12:00 に 2 名（MOCK_SESSIONS の reserved_count 2 と合わせる）。
+ *   イベント編集でこの日時の枠を消して保存すると、移し先が無いので 409 になる（E2E で使う）
+ */
+export const MOCK_RESERVATIONS: Reservation[] = [
+  {
+    id: 'mock-reservation-ws-dates-1',
+    event_id: 'mock-ws-dates',
+    name: '予約 太郎',
+    email: 'taro@example.com',
+    phone: null,
+    participants: 2,
+    note: null,
+    status: 'pending',
+    session_id: 'mock-ws-dates-s1',
+    bring_plant: false,
+    bring_pot: false,
+    preferred_date: '2027-07-02',
+    preferred_time: '11:00〜12:00',
+    created_at: '2027-06-01T01:00:00Z',
+    email_failed: false,
   },
 ]
 

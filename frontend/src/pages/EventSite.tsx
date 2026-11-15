@@ -8,6 +8,7 @@ import LoadError from '../components/LoadError'
 import { useApi } from '../hooks/useApi'
 import { useLang, useT } from '../lib/lang'
 import { formatDateRange } from '../lib/localDate'
+import { formatWorkshopDates, isPartialWorkshopSchedule, workshopDates } from '../lib/wsDates'
 import { BRAND_INSTAGRAM } from '../lib/brands'
 import { SWIPE_THRESHOLD_PX } from '../lib/constants'
 
@@ -106,6 +107,8 @@ export default function EventSite() {
   const isArchived = pc.archive?.enabled ?? false
   // 開催期間の表示（ページの説明文に使う）
   const dateLabel = formatDateRange(event.start_date, event.end_date, lang)
+  // 一部の日だけワークショップを実施するときの実施日の表示（全日程なら null）
+  const wsDatesLabel = isPartialWorkshopSchedule(event) ? formatWorkshopDates(workshopDates(event), lang) : null
   // 表示する写真（URL が空のものと、作成途中の blob: の URL は除く）
   const validImages = event.images.filter((i) => i.url && !i.url.startsWith('blob:'))
   // SNS で共有したときに出す画像（1 枚目の写真）
@@ -270,6 +273,12 @@ export default function EventSite() {
             {event.has_workshop && (
               <div style={{ background: '#f2f2f7', border: '1px solid #c0c0d2', padding: '16px 20px', marginBottom: 24, borderRadius: 4 }}>
                 <div style={{ fontSize: 11, letterSpacing: 3, color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: 10 }}>Workshop</div>
+                {/* 一部の日だけ実施するときは実施日を出す（終了・アーカイブでも記録として残す） */}
+                {wsDatesLabel && (
+                  <p style={{ fontSize: 14, color: 'var(--c-body)', margin: '0 0 10px', lineHeight: 1.7 }}>
+                    {t('ワークショップ実施日: ', 'Workshop dates: ')}{wsDatesLabel}
+                  </p>
+                )}
                 {(isArchived || event.is_past) ? (
                   <p style={{ fontSize: 14, color: 'var(--c-body)', margin: 0, lineHeight: 1.8 }}>
                     {t('ワークショップを開催しました。ご参加いただいた皆様ありがとうございました。', 'The workshop has concluded. Thank you to all who participated.')}

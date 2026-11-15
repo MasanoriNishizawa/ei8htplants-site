@@ -263,7 +263,7 @@ test.describe('管理画面: 認証つき API がモックまで届く', () => {
   })
 
   // ダッシュボードの統計（api.stats）は contacts・orders（authRequest）を含むため、401 だと全項目が「-」のまま
-  test('/admin — ダッシュボードの「公開中のイベント」にモックの件数（3）が表示される', /**
+  test('/admin — ダッシュボードの「公開中のイベント」にモックの件数（4）が表示される', /**
      * 「/admin」を開く、「未読お問い合わせ」に「0」が表示されること、「未発送の注文」に「0」が表示されることを確認する。
      * @param page 操作・検証対象の Playwright ページ。
      * @returns {Promise<void>} すべての画面アサーションが完了したときに解決する。
@@ -272,8 +272,9 @@ test.describe('管理画面: 認証つき API がモックまで届く', () => {
     // 1. ダッシュボードを開き、モックの各統計件数が表示されることを確認する。
     await page.goto('/admin')
     // 統計カード（リンク）の中に件数とラベルが並ぶ
+    // 2026-11-13 変更: MOCK_EVENTS に mock-ws-dates（Plants Weekend 2027）を足したので、今後のイベントは 3 件から 4 件になった
     const card = page.getByRole('link', { name: /公開中のイベント/ })
-    await expect(card).toContainText('3')
+    await expect(card).toContainText('4')
     // お問い合わせ・注文のモックは空配列なので 0 件になる（「-」ではない）
     await expect(page.getByRole('link', { name: /未読お問い合わせ/ })).toContainText('0')
     await expect(page.getByRole('link', { name: /未発送の注文/ })).toContainText('0')

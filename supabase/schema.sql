@@ -17,11 +17,17 @@ create table if not exists events (
   brands          text[] default '{}',
   has_workshop    boolean default false,
   ws_requires_reservation boolean default true,
+  -- ワークショップを実施する日の一覧（["YYYY-MM-DD", ...]）。NULL なら開催期間の全日程で実施（migrations/023）
+  ws_dates        jsonb,
   is_past         boolean default false,
   display_order   int default 0,
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
 );
+
+-- ワークショップの時間枠（ws_sessions）は、ここでは作らない。backend/migrations/006（表・RLS）と
+-- 023（session_date・reserved_count の列、予約の確認のトリガー、日程を保存する関数）で作る。
+-- （ここで作ると、006 の CREATE TABLE が「すでにある」で止まり、RLS も付かないため）
 
 -- イベントに紐づく画像を複数枚保存する。event_id のイベント削除に合わせて画像行も削除する。
 create table if not exists event_images (

@@ -5,7 +5,8 @@ import PageMeta from '../components/PageMeta'
 import { useApi } from '../hooks/useApi'
 import { httpStatusOf } from '../lib/httpError'
 import { useT, useLang } from '../lib/lang'
-import { listDates, parseLocalDate } from '../lib/localDate'
+import { listDates, parseLocalDate, todayJst } from '../lib/localDate'
+import { workshopDates } from '../lib/wsDates'
 import { INPUT_MAX_LENGTH, RESERVE_MAX_PARTICIPANTS } from '../lib/constants'
 import { reserve400Message } from '../lib/reserve/errorMessage'
 import EventInfoPanel from './reserve/EventInfoPanel'
@@ -40,6 +41,18 @@ const BLANK: FormState = {
   name: '', email: '', phone: '', participants: 1, note: '',
   session_id: '', bring_plant: false, bring_pot: false,
   preferred_date: '',
+}
+
+/**
+ * 予約日の選択肢を作る。ワークショップのイベントは実施日（ws_dates があればその日、無ければ全日程）、
+ * それ以外は開催期間の全日程から、今日（日本時間）より前の日を除く
+ * @param event - 予約するイベント
+ * @returns 予約できる日（YYYY-MM-DD・昇順）
+ */
+function reservableDates(event: Parameters<typeof workshopDates>[0]): string[] {
+  /** 今日（日本時間。サーバーと同じ日付で判定する） */
+  const today = todayJst()
+  return workshopDates(event).filter((d) => d >= today)
 }
 
 /**
@@ -87,20 +100,16 @@ export default function Reserve() {
       month: 'long', day: 'numeric', weekday: 'short',
     })
 
-  // イベントが取れたら、1 日だけのイベントは予約日を自動で選ぶ
-  useEffect(() => {
-    if (!event) return
-    // イベントの開催日
-    const dates = listDates(event.start_date, event.end_date)
-    if (dates.length === 1) {
-      setForm((f) => ({ ...f, preferred_date: dates[0] }))
-    }
-  }, [event])
+  // 予約日の選択肢（ワークショップの実施日のうち、今日以降の日。過ぎた日は出さない）
+  const dates = event ? reservableDates(event) : []
+  // 使う予約日。選んだ日があればその日、まだ選んでいなくても選べる日が 1 日だけ（1 日のイベント・実施日が 1 日だけ）ならその日。
+  // effect で後から入れると最初の描画で一瞬「未選択」になるので、描画のたびに決める
+  const preferredDate = form.preferred_date || (dates.length === 1 ? dates[0] : '')
 
   // ワークショップありのイベントで日付が決まったら予約枠を取り直す。
   // 日付を素早く選び直したときに、前の日付の応答が後から届いても捨てる
   useEffect(() => {
-    if (!event?.has_workshop || !form.preferred_date) {
+    if (!event?.has_workshop || !preferredDate) {
       setSessions([])
       setSessionsStatus('idle')
       return
@@ -109,7 +118,7 @@ export default function Reserve() {
     let cancelled = false
     setSessions([])
     setSessionsStatus('loading')
-    api.events.getSessions(eventId, form.preferred_date)
+    api.events.getSessions(eventId, preferredDate)
       .then((list) => {
         if (cancelled) return
         setSessions(list)
@@ -117,7 +126,7 @@ export default function Reserve() {
       })
       .catch(() => { if (!cancelled) setSessionsStatus('error') })
     return () => { cancelled = true }
-  }, [event, form.preferred_date, eventId, sessionsRetry])
+  }, [event, preferredDate, eventId, sessionsRetry])
 
   /**
    * フォームの 1 項目を変える
@@ -128,10 +137,8 @@ export default function Reserve() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
-  // イベントの開催日の一覧
-  const dates = event ? listDates(event.start_date, event.end_date) : []
-  // 複数日のイベントか（そのときだけ日付を選ばせる）
-  const isMultiDay = dates.length > 1
+  // 複数日のイベントか（そのときだけ日付を選ばせる。実施日が 1 日だけでも、どの日かが分かるよう選択肢として出す）
+  const isMultiDay = !!event && listDates(event.start_date, event.end_date).length > 1
   // 選んでいる時間枠（未選択は null）
   const selectedSession = sessions.find((s) => s.id === form.session_id) ?? null
   // 選んでいる時間枠の残りの人数
@@ -139,17 +146,19 @@ export default function Reserve() {
     ? selectedSession.max_participants - selectedSession.reserved_count
     : 0
   // 日付を選ぶまで時間枠を選べない（薄く表示する）
-  const sessionsDisabled = isMultiDay && !form.preferred_date
+  const sessionsDisabled = isMultiDay && !preferredDate
+  // その日の枠が 0 件と分かった（時間の指定なしで予約できる）
+  const noSessionsForDate = !!event?.has_workshop && sessionsStatus === 'ok' && sessions.length === 0
 
-  // WS ありのイベントは時間枠を選ばせる
-  const expectsSessions = !!event?.has_workshop
+  // WS ありのイベントは時間枠を選ばせる（その日の枠が 0 件なら選ばずに送れる）
+  const expectsSessions = !!event?.has_workshop && !noSessionsForDate
   // 時間枠を選ぶまで人数を選べない
   const participantsDisabled = expectsSessions && !form.session_id
 
   // 日付がまだ選ばれていない
-  const needsDate = isMultiDay && !form.preferred_date
-  // 時間枠がまだ選ばれていない
-  const needsSession = expectsSessions && !form.session_id
+  const needsDate = isMultiDay && !preferredDate
+  // 時間枠がまだ選ばれていない（枠の読み込み中・失敗も、まだ選べないので送らない）
+  const needsSession = expectsSessions && (!form.session_id || sessionsStatus !== 'ok')
   // 送信できるか
   const canSubmit = !needsDate && !needsSession
 
@@ -174,9 +183,11 @@ export default function Reserve() {
         participants: form.participants,
         note: form.note || undefined,
         session_id: form.session_id || undefined,
+        // 選んだ枠の表示名も送る（枠を作り直したときに、サーバーが予約をこの名前で照らし合わせられるように）
+        preferred_time: selectedSession?.time_label,
         bring_plant: form.bring_plant,
         bring_pot: form.bring_pot,
-        preferred_date: form.preferred_date || undefined,
+        preferred_date: preferredDate || undefined,
         lang,
       })
       setStatus('done')
@@ -229,7 +240,7 @@ export default function Reserve() {
     { label: t('メール', 'Email'), value: form.email },
     ...(form.phone ? [{ label: t('電話番号', 'Phone'), value: form.phone }] : []),
     { label: t('イベント', 'Event'), value: event?.name ?? '' },
-    ...(form.preferred_date ? [{ label: t('予約日', 'Date'), value: fmtDate(form.preferred_date) }] : []),
+    ...(preferredDate ? [{ label: t('予約日', 'Date'), value: fmtDate(preferredDate) }] : []),
     ...(selectedSession ? [{ label: t('予約時間', 'Time'), value: selectedSession.time_label }] : []),
     { label: t('参加人数', 'Participants'), value: t(`${form.participants} 名`, `${form.participants}`) },
     { label: t('植物持ち込み', 'Bring plant'), value: t(form.bring_plant ? 'あり' : 'なし', form.bring_plant ? 'Yes' : 'No') },
@@ -237,8 +248,8 @@ export default function Reserve() {
     ...(form.note ? [{ label: t('備考', 'Notes'), value: form.note }] : []),
   ]
 
-  /** 終了・満席・完了のいずれかを示す表示状態。通常の入力中と送信エラーでは null */
-  const resultViewState: ReserveResultState | null = event?.is_past
+  /** 終了・満席・完了のいずれかを示す表示状態。通常の入力中と送信エラーでは null（予約できる日が残っていなければ終了と同じ扱い） */
+  const resultViewState: ReserveResultState | null = (event?.is_past || (!!event && dates.length === 0))
     ? 'closed'
     : status === 'full'
       ? 'full'
@@ -325,7 +336,17 @@ export default function Reserve() {
 
           {/* 右：終了・満席・完了の案内、または予約フォーム */}
           <div>
-            {resultViewState ? (
+            {event.has_workshop && !event.ws_requires_reservation && !event.is_past ? (
+              // 予約不要のワークショップは入力欄を出さず、当日会場へ来てもらう案内だけにする
+              <div role="status" style={{ background: '#ffffff', border: '1px solid #dddde8', borderRadius: 4, padding: '40px', textAlign: 'center' }}>
+                <p style={{ fontSize: 17, fontWeight: 300, letterSpacing: '0.05em', color: 'var(--c-ink)', margin: '0 0 12px' }}>
+                  {t('このワークショップは予約不要です。', 'No reservation is needed for this workshop.')}
+                </p>
+                <p style={{ fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.8, margin: 0 }}>
+                  {t('当日会場へお越しください。', 'Please come directly to the venue on the day.')}
+                </p>
+              </div>
+            ) : resultViewState ? (
               <ReserveResultView
                 state={resultViewState}
                 email={form.email}
@@ -341,10 +362,11 @@ export default function Reserve() {
               uid={uid}
               isMultiDay={isMultiDay}
               dates={dates}
-              preferredDate={form.preferred_date}
+              preferredDate={preferredDate}
               formatDate={fmtDate}
               onSelectDate={(date) => setForm((f) => ({ ...f, preferred_date: date, session_id: '', participants: 1 }))}
               hasWorkshop={event.has_workshop}
+              noSessionsForDate={noSessionsForDate}
               sessionsDisabled={sessionsDisabled}
               sessionsStatus={sessionsStatus}
               sessions={sessions.map((session) => {
@@ -401,8 +423,8 @@ export default function Reserve() {
             >
               {status === 'loading' ? t('送信中...', 'Submitting...') : t('予約する', 'Reserve')}
             </button>
-            {/* まだ選んでいない項目の案内 */}
-            {(needsDate || needsSession) && (
+            {/* まだ選んでいない項目の案内（枠の読み込み中・失敗のときは枠の欄に案内が出るのでここには出さない） */}
+            {(needsDate || (needsSession && sessionsStatus === 'ok')) && (
               <p style={{ textAlign: 'center', fontSize: 12, color: '#c0392b', marginTop: 8 }}>
                 {needsDate ? t('予約日を選択してください', 'Please select a date') : t('予約時間を選択してください', 'Please select a time')}
               </p>

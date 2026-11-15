@@ -12,8 +12,12 @@ import {
   MOCK_PRODUCTS,
   MOCK_DOC_TREE,
   MOCK_DOC_CONTENTS,
+  MOCK_SESSIONS,
+  MOCK_RESERVATIONS,
 } from './data'
 import { PAGE_IMAGE_BRANDS } from '../lib/pageImageSlots'
+import { hasWsDateSelection, isWorkshopDay, workshopDates } from '../lib/wsDates'
+import { todayJst } from '../lib/localDate'
 import type {
   Article,
   ArticleBody,
@@ -40,6 +44,7 @@ import type {
   Stockist,
   StockistBody,
   WsSession,
+  WsSessionInput,
 } from '../lib/api'
 
 /**
@@ -130,6 +135,14 @@ const FINANCE_DEFAULTS: Omit<EventFinances, 'id' | 'event_id' | 'updated_at'> = 
 }
 
 /**
+ * 最初から保存されている WS の時間枠（MOCK_SESSIONS）の写しを作る（書き換えても固定データを汚さない）
+ * @returns イベントID → 時間枠
+ */
+function cloneMockSessions(): Record<string, WsSession[]> {
+  return Object.fromEntries(Object.entries(MOCK_SESSIONS).map(([id, list]) => [id, list.map((s) => ({ ...s }))]))
+}
+
+/**
  * 管理画面の書き込み（追加・更新・削除）を受けてメモリに持つデータ。
  * ブラウザでは再読み込みで、Vitest では resetSavedMockData で初期状態（data.ts の固定データ）に戻る
  */
@@ -140,10 +153,10 @@ const store = {
   updatedEvents: {} as Record<string, Event>,
   /** 削除したイベントの ID */
   deletedEventIds: [] as string[],
-  /** 保存した WS の時間枠。イベントID → 時間枠（未保存のイベントは空） */
-  sessions: {} as Record<string, WsSession[]>,
-  /** 当日参加などで追加した予約 */
-  reservations: [] as Reservation[],
+  /** 保存した WS の時間枠。イベントID → 時間枠（最初は data.ts の MOCK_SESSIONS。未保存のイベントは空） */
+  sessions: cloneMockSessions(),
+  /** 予約（最初は data.ts の MOCK_RESERVATIONS。当日参加などで足す） */
+  reservations: MOCK_RESERVATIONS.map((r) => ({ ...r })) as Reservation[],
   /** 商品（固定データの写し） */
   products: [...MOCK_PRODUCTS] as Product[],
   /** 取扱店（固定データの写し） */
@@ -226,7 +239,104 @@ function toMockEvent(id: string, body: EventBody, base?: Event): Event {
     images: body.image_urls.map((url, i) => ({ id: `${id}-img-${i}`, url, display_order: i })),
     page_content: base?.page_content ?? null,
     daily_times: body.daily_times ?? null,
+    ws_dates: body.ws_dates ?? null,
   }
+}
+
+/** 時間枠の保存で、移し先の無い予約があったときの案内（本番と同じ文言） */
+const SESSION_CONFLICT_DETAIL = '予約が入っている日時を変更・削除しようとしています。先に予約をキャンセルするか、別の日時へ変更してください。'
+
+/**
+ * 時間枠を保存する（本番の「イベントと枠を 1 回で保存し、既存の予約を新しい枠へ付け替える」と同じ考え方）
+ * 1. 枠の日付がイベントの実施日の設定に合うか確かめる（合わなければ 422）
+ * 2. 送られた枠を既存の枠と突き合わせる（id → (表示名, 日付) の順。無ければ新しい id）
+ * 3. 既存の予約（キャンセル以外）を、予約日に使える枠へ付け替える（同じ枠が使えればそのまま、無ければ同じ表示名の枠）。
+ *    移し先が無い予約があれば、何も書き込まずに 409（conflicts つき）を返す
+ * 4. 枠と予約を書き込む。予約済みの人数は付け替えたあとの予約から数え直す
+ * @param event - 保存後のイベント（ws_dates は新しい値）
+ * @param inputs - 送られた時間枠
+ * @returns 保存後の枠、または失敗の応答
+ */
+function applySessions(event: Event, inputs: WsSessionInput[]): { saved: WsSession[] } | { error: Response } {
+  // 1. 日付の確かめ
+  if (hasWsDateSelection(event)) {
+    /** 実施日 */
+    const days = workshopDates(event)
+    if (inputs.some((s) => !s.session_date || !days.includes(s.session_date))) {
+      return { error: HttpResponse.json({ detail: '時間枠ごとに実施日を指定してください' }, { status: 422 }) }
+    }
+  } else if (inputs.some((s) => s.session_date)) {
+    return { error: HttpResponse.json({ detail: 'このイベントは全日程でワークショップを実施するため、時間枠に日付は指定できません' }, { status: 422 }) }
+  }
+  // 2. 突き合わせ
+  /** 今の枠 */
+  const old = store.sessions[event.id] ?? []
+  /** すでに使った既存の枠の id */
+  const used = new Set<string>()
+  /** 保存後の枠（予約済みの人数はあとで数える） */
+  const next: WsSession[] = inputs.map((s, i) => {
+    /** 突き合わせた既存の枠 */
+    const match = (s.id ? old.find((o) => o.id === s.id && !used.has(o.id)) : undefined)
+      ?? old.find((o) => !used.has(o.id) && o.time_label === s.time_label && (o.session_date ?? null) === (s.session_date ?? null))
+    if (match) used.add(match.id)
+    return {
+      id: match?.id ?? newMockId('session'), event_id: event.id, time_label: s.time_label,
+      max_participants: s.max_participants, reserved_count: 0, display_order: i, session_date: s.session_date ?? null,
+    }
+  })
+  // 3. 予約の付け替え
+  /** 予約 id → 付け替え先の枠 id（null は枠なしにする） */
+  const moves = new Map<string, string | null>()
+  /** 移し先の無い予約（日付と表示名ごとの件数） */
+  const conflicts = new Map<string, { date: string | null; time_label: string; count: number }>()
+  store.reservations.filter((r) => r.event_id === event.id && r.session_id && old.some((o) => o.id === r.session_id)).forEach((r) => {
+    /** 予約していた枠 */
+    const was = old.find((o) => o.id === r.session_id)!
+    /**
+     * その予約日に使える枠か
+     * @param s - 保存後の枠
+     * @returns 使えるなら true
+     */
+    const usable = (s: WsSession) => !s.session_date || !r.preferred_date || s.session_date === r.preferred_date
+    /** 付け替え先（同じ枠 → 同じ表示名のその日の枠 → 同じ表示名の共通の枠） */
+    const target = next.find((s) => s.id === was.id && usable(s))
+      ?? next.find((s) => s.time_label === was.time_label && s.session_date && s.session_date === r.preferred_date)
+      ?? next.find((s) => s.time_label === was.time_label && !s.session_date)
+    if (target) { moves.set(r.id, target.id); return }
+    if (r.status === 'cancelled') { moves.set(r.id, null); return }
+    /** まとめる鍵 */
+    const key = `${r.preferred_date ?? ''}|${was.time_label}`
+    /** 今までの件数 */
+    const cur = conflicts.get(key) ?? { date: r.preferred_date, time_label: was.time_label, count: 0 }
+    conflicts.set(key, { ...cur, count: cur.count + 1 })
+  })
+  if (conflicts.size > 0) {
+    return { error: HttpResponse.json({ detail: SESSION_CONFLICT_DETAIL, conflicts: [...conflicts.values()] }, { status: 409 }) }
+  }
+  // 4. 書き込み
+  store.reservations = store.reservations.map((r) => (moves.has(r.id) ? { ...r, session_id: moves.get(r.id) ?? null } : r))
+  next.forEach((s) => {
+    s.reserved_count = store.reservations
+      .filter((r) => r.session_id === s.id && r.status !== 'cancelled')
+      .reduce((sum, r) => sum + r.participants, 0)
+  })
+  store.sessions[event.id] = next
+  return { saved: next }
+}
+
+/**
+ * その日に使える時間枠（共通の枠＋その日だけの枠）を返す。実施しない日（開催期間外・ws_dates に無い日など）は空
+ * 本番の GET /api/events/{id}/sessions?date= と同じ考え方（ただし残り人数は日ごとに数え直さず、保存した値のまま）
+ * @param event - イベント（見つからなければ undefined）
+ * @param sessions - イベントの全部の時間枠
+ * @param date - 日付（YYYY-MM-DD）
+ * @returns その日に使える時間枠
+ */
+function sessionsForDate(event: Event | undefined, sessions: WsSession[], date: string): WsSession[] {
+  // 1. 実施しない日（イベントが無い・WS なし・開催期間外・ws_dates に無い日）は空
+  if (!event || !isWorkshopDay(event, date)) return []
+  // 2. 共通の枠と、その日だけの枠
+  return sessions.filter((s) => !s.session_date || s.session_date === date)
 }
 
 /**
@@ -255,8 +365,8 @@ export function resetSavedMockData(): void {
   store.createdEvents = []
   store.updatedEvents = {}
   store.deletedEventIds = []
-  store.sessions = {}
-  store.reservations = []
+  store.sessions = cloneMockSessions()
+  store.reservations = MOCK_RESERVATIONS.map((r) => ({ ...r }))
   store.products = [...MOCK_PRODUCTS]
   store.stockists = [...MOCK_STOCKISTS]
   store.gallery = [...MOCK_GALLERY]
@@ -305,6 +415,12 @@ export const handlers = [
     const body = (await request.json()) as EventBody
     /** 作成したイベント（表示順は末尾） */
     const created = { ...toMockEvent(newMockId('event'), body), display_order: allEvents().length }
+    // 時間枠が一緒に送られたら、イベントと一緒に保存する（失敗したらイベントも作らない）
+    if (body.sessions) {
+      /** 枠の保存の結果 */
+      const result = applySessions(created, body.sessions)
+      if ('error' in result) return result.error
+    }
     store.createdEvents.push(created)
     return HttpResponse.json(created)
   }),
@@ -314,8 +430,16 @@ export const handlers = [
     // 更新対象の既存イベント
     const base = allEvents().find((e) => e.id === params.id)
     if (!base) return notFound()
+    /** 送られた入力 */
+    const body = (await request.json()) as EventBody
     // 入力と既存イベントから作った更新後データ
-    const updated = toMockEvent(base.id, (await request.json()) as EventBody, base)
+    const updated = toMockEvent(base.id, body, base)
+    // 時間枠が一緒に送られたら、イベントと一緒に保存する（409・422 ならイベントも書き換えない）
+    if (body.sessions) {
+      /** 枠の保存の結果 */
+      const result = applySessions(updated, body.sessions)
+      if ('error' in result) return result.error
+    }
     saveMockEvent(updated)
     return HttpResponse.json(updated)
   }),
@@ -370,9 +494,14 @@ export const handlers = [
     return HttpResponse.json(saved)
   }),
 
-  // WS の時間枠（保存した枠があれば返す。無ければ空）
-  http.get('/api/events/:id/sessions', ({ params }) => {
-    return HttpResponse.json(store.sessions[params.id as string] ?? [])
+  // WS の時間枠（保存した枠があれば返す。無ければ空）。?date= があれば、その日に使える枠だけ（実施しない日は空）
+  http.get('/api/events/:id/sessions', ({ params, request }) => {
+    /** イベントの全部の時間枠 */
+    const all = store.sessions[params.id as string] ?? []
+    /** 絞り込む日付（無ければ全部） */
+    const date = new URL(request.url).searchParams.get('date')
+    if (!date) return HttpResponse.json(all)
+    return HttpResponse.json(sessionsForDate(allEvents().find((e) => e.id === params.id), all, date))
   }),
 
   // WS の時間枠の保存（本番と同じく、保存後の枠の一覧を返す。id の無い行には新しい id を付ける）
@@ -381,18 +510,14 @@ export const handlers = [
     const id = params.id as string
     if (!allEvents().some((e) => e.id === id)) return notFound()
     // フォームから送信された時間枠の一覧
-    const { sessions } = (await request.json()) as { sessions: { id?: string; time_label: string; max_participants: number }[] }
-    /** 保存後の時間枠（予約済みの人数は 0 から） */
-    const saved: WsSession[] = sessions.map((s, i) => ({
-      id: s.id ?? newMockId('session'),
-      event_id: id,
-      time_label: s.time_label,
-      max_participants: s.max_participants,
-      reserved_count: 0,
-      display_order: i,
-    }))
-    store.sessions[id] = saved
-    return HttpResponse.json(saved)
+    const { sessions } = (await request.json()) as { sessions: WsSessionInput[] }
+    /** 保存先のイベント */
+    const event = allEvents().find((e) => e.id === id)!
+    // イベントの保存と同じ処理で枠を保存する（日付の確かめ・予約の付け替え・409）
+    /** 枠の保存の結果 */
+    const result = applySessions(event, sessions)
+    if ('error' in result) return result.error
+    return HttpResponse.json(result.saved)
   }),
 
   // 管理情報（搬入時間・ホテル・ブース費用等）の取得・保存
@@ -551,8 +676,36 @@ export const handlers = [
     return HttpResponse.json({ ok: true })
   }),
 
-  // WS 予約の送信（何もせず成功を返す）
-  http.post('/api/reserve', () => {
+  // WS 予約の送信（保存はせず成功を返す）。本番と同じく、次のときは 400 にする
+  // - 予約不要のワークショップ / 複数日のワークショップで予約日なし / 実施しない日 / その日に枠があるのに枠なし・その日に使えない枠
+  http.post('/api/reserve', async ({ request }) => {
+    /** 予約フォームから送られた内容 */
+    const body = (await request.json()) as { event_id: string; session_id?: string; preferred_date?: string }
+    /** 予約するイベント（見つからなければ今までどおり成功を返す） */
+    const event = allEvents().find((e) => e.id === body.event_id)
+    if (!event || !event.has_workshop) return HttpResponse.json({ ok: true })
+    /**
+     * 400 の応答を作る
+     * @param detail - 案内の文言
+     * @returns detail つきの 400 応答
+     */
+    const bad = (detail: string) => HttpResponse.json({ detail }, { status: 400 })
+    if (!event.ws_requires_reservation) return bad('このワークショップは予約不要です。当日会場へお越しください。')
+    /** 開催期間の日数 */
+    const days = workshopDates({ ...event, ws_dates: null }).length
+    if (days > 1 && !body.preferred_date) return bad('予約日を選んでください')
+    /** 確かめる予約日（1 日のイベントで省いたら開始日） */
+    const day = body.preferred_date || event.start_date
+    if (!isWorkshopDay(event, day)) return bad('この日はワークショップを実施していません')
+    /** イベントの全部の枠 */
+    const allSessions = store.sessions[event.id] ?? []
+    /** その日に使える枠 */
+    const daySessions = sessionsForDate(event, allSessions, day)
+    if (body.session_id) {
+      if (daySessions.some((s) => s.id === body.session_id)) return HttpResponse.json({ ok: true })
+      return bad(allSessions.some((s) => s.id === body.session_id) ? 'この時間枠は選んだ日には使えません' : 'ワークショップの時間枠が正しくありません')
+    }
+    if (daySessions.length > 0) return bad('時間枠を選んでください')
     return HttpResponse.json({ ok: true })
   }),
 
@@ -565,6 +718,16 @@ export const handlers = [
   http.post('/api/reserve/walkin', async ({ request }) => {
     // 当日参加の予約フォームから送られた項目
     const body = (await request.json()) as { event_id: string; participants: number; session_id?: string; preferred_time?: string; preferred_date?: string }
+    /** 登録するイベント */
+    const walkinEvent = allEvents().find((e) => e.id === body.event_id)
+    // 参加日（送られた日。無ければ 1 日のイベントは開始日、複数日は今日）がワークショップの実施日でなければ 400（本番と同じ）
+    if (walkinEvent) {
+      /** 確かめる参加日 */
+      const day = body.preferred_date || (workshopDates({ ...walkinEvent, ws_dates: null }).length > 1 ? todayJst() : walkinEvent.start_date)
+      if (!isWorkshopDay(walkinEvent, day)) {
+        return HttpResponse.json({ detail: 'この日はワークショップを実施していません' }, { status: 400 })
+      }
+    }
     // API が返す予約レコード
     const created: Reservation = {
       id: newMockId('reservation'),

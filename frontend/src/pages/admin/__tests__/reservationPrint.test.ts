@@ -86,3 +86,72 @@ describe('buildReservationPrintHtml', () => {
     expect(html).not.toContain('<img src=x>')
   })
 })
+
+/**
+ * ワークショップを一部の日だけ実施するイベントの印刷（2026-11-13 追加）
+ * - 実施日（ws_dates）だけの見出しを出し、実施しない日は出さない
+ * - 日ごとの枠（session_date あり）はその日だけ、共通の枠（session_date なし）はすべての実施日に出す
+ * - その日に使える枠が 0 件の日は「時間指定なし」の見出しで、その日の予約をまとめる
+ */
+describe('buildReservationPrintHtml（実施日と日ごとの枠）', () => {
+  /** 7/1〜7/4 の 4 日間で、7/2 と 7/4 だけ実施するイベント */
+  const WS_EVENT: Event = { ...EVENT, id: 'ws-ev', start_date: '2027-07-01', end_date: '2027-07-04', ws_dates: ['2027-07-02', '2027-07-04'] }
+  /** 7/2 だけの枠 */
+  const DAY2: WsSession = { id: 'd2', event_id: 'ws-ev', time_label: '11:00〜12:00', max_participants: 2, reserved_count: 0, display_order: 0, session_date: '2027-07-02' }
+  /** 印刷の日時 */
+  const NOW = new Date('2027-06-01T00:00:00Z')
+
+  /**
+   * 表の本体（tbody の中）だけを取り出す
+   * @param html - 印刷の HTML
+   * @returns tbody の中の文字列
+   */
+  const bodyOf = (html: string) => html.split('<tbody>')[1].split('</tbody>')[0]
+
+  it('FE-ET-01 実施日（7/2・7/4）だけの見出しを出し、実施しない日（7/1・7/3）は出さない', () => {
+    const html = bodyOf(buildReservationPrintHtml([], 'WS', new Map([[DAY2.id, DAY2]]), WS_EVENT, NOW))
+    expect(html).toContain('2027年7月2日')
+    expect(html).toContain('2027年7月4日')
+    expect(html).not.toContain('2027年7月1日')
+    expect(html).not.toContain('2027年7月3日')
+    // 2 日目（7/4）の見出しに改ページが付く
+    expect(html.match(/date-header date-break/g)).toHaveLength(1)
+  })
+
+  it('FE-ET-02 日ごとの枠はその日だけに出し、枠の無い 7/4 は「時間指定なし」の見出しでその日の予約をまとめる', () => {
+    const rows = [
+      reservation({ id: 'r2', name: '二日の人', event_id: 'ws-ev', session_id: 'd2', preferred_date: '2027-07-02' }),
+      reservation({ id: 'r4', name: '四日の人', event_id: 'ws-ev', session_id: null, preferred_date: '2027-07-04' }),
+    ]
+    const html = bodyOf(buildReservationPrintHtml(rows, 'WS', new Map([[DAY2.id, DAY2]]), WS_EVENT, NOW))
+    // 11:00〜12:00 の枠は 7/2 の 1 回だけ（7/4 には出ない）
+    expect(html.match(/11:00〜12:00/g)).toHaveLength(1)
+    expect(html).toContain('11:00〜12:00　1 / 2 名')
+    // 7/4 は「時間指定なし」の下に 7/4 の予約
+    /** 7/4 の見出しの位置 */
+    const day4 = html.indexOf('2027年7月4日')
+    expect(html.indexOf('時間指定なし')).toBeGreaterThan(day4)
+    expect(html.indexOf('<td>四日の人</td>')).toBeGreaterThan(html.indexOf('時間指定なし'))
+    // 7/2 の予約は 7/2 の枠の下（7/4 の見出しより前）
+    expect(html.indexOf('<td>二日の人</td>')).toBeLessThan(day4)
+    // 全部割り当てられたので「セッション未指定」は出ない
+    expect(html).not.toContain('セッション未指定')
+  })
+
+  it('FE-ET-03 共通の枠（session_date なし）は、すべての実施日に出る', () => {
+    /** 共通の枠 */
+    const COMMON: WsSession = { ...DAY2, id: 'c', time_label: '15:00〜16:00', session_date: null }
+    const html = bodyOf(buildReservationPrintHtml([], 'WS', new Map([[DAY2.id, DAY2], [COMMON.id, COMMON]]), WS_EVENT, NOW))
+    expect(html.match(/15:00〜16:00/g)).toHaveLength(2)
+    expect(html.match(/11:00〜12:00/g)).toHaveLength(1)
+    // 共通の枠があるので 7/4 も「時間指定なし」にはならない
+    expect(html).not.toContain('時間指定なし')
+  })
+
+  it('FE-ET-04 実施しない日（7/3）の予約は、どの日にも入らず「セッション未指定」にまとめる', () => {
+    const rows = [reservation({ id: 'r3', name: '三日の人', event_id: 'ws-ev', preferred_date: '2027-07-03' })]
+    const html = bodyOf(buildReservationPrintHtml(rows, 'WS', new Map([[DAY2.id, DAY2]]), WS_EVENT, NOW))
+    expect(html.match(/<td>三日の人<\/td>/g)).toHaveLength(1)
+    expect(html.indexOf('<td>三日の人</td>')).toBeGreaterThan(html.indexOf('セッション未指定'))
+  })
+})

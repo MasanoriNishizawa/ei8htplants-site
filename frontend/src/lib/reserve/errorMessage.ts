@@ -9,15 +9,22 @@ const RESERVE_CLOSED_DETAILS = [
   'この日の予約受付は終了しています',
 ]
 
-/** 予約日または時間枠の不一致を示すAPI detail */
+/** 予約日または時間枠の不一致を示すAPI detail（実施しない日・予約日なしも含む） */
 const RESERVE_MISMATCH_DETAILS = [
   '予約日がイベントの開催期間外です',
   'ワークショップの時間枠が正しくありません',
+  'この日はワークショップを実施していません',
+  'この時間枠は選んだ日には使えません',
+  '時間枠を選んでください',
+  '予約日を選んでください',
 ]
+
+/** 予約不要のワークショップへの予約を示すAPI detail */
+const RESERVE_NOT_REQUIRED_DETAIL = 'このワークショップは予約不要です。当日会場へお越しください。'
 
 /**
  * 予約送信時のHTTP 400エラーを、detailの種類と表示言語に応じた案内文へ変換する。
- * 1. 文字列detailが受付終了・日付や時間枠の不一致に一致するか判定する
+ * 1. 文字列detailが受付終了・予約不要・日付や時間枠の不一致（実施しない日を含む）に一致するか判定する
  * 2. 日本語では既存のサーバー文言を保ち、英語では対応する案内文を返す
  * 3. 未知のdetailやApiError以外は、日付と時間を選び直す案内へ戻す
  * @param err - 予約送信処理のcatchで受け取った値
@@ -29,6 +36,9 @@ export function reserve400Message(err: unknown, t: Translate): string {
   const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : ''
   if (RESERVE_CLOSED_DETAILS.includes(detail)) {
     return t(detail, 'Reservations for this date or event are closed. Please choose another date or event.')
+  }
+  if (detail === RESERVE_NOT_REQUIRED_DETAIL) {
+    return t(detail, 'No reservation is needed for this workshop. Please come directly to the venue on the day.')
   }
   if (RESERVE_MISMATCH_DETAILS.includes(detail)) {
     return t(detail, 'The selected date or time does not match this event. Please choose the date and time again.')

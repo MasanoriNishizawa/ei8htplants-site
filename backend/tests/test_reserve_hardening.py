@@ -25,7 +25,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import require_auth
 from app.routes import reserve as reserve_module
-from tests._helpers import not_found_error
+from tests._helpers import PostgrestError, not_found_error
 
 # テストで使う「今日」（日本時間）
 TODAY = '2026-10-22'
@@ -485,9 +485,13 @@ class TestCancelToken:
         # 変数の内容: reservations: 取得した予約の一覧。
         # 1. 管理画面の当日参加で作る予約のトークンも 20 文字以上になること。
         reservations = _table_mock()
+        # 変数の内容: ws_event: 今日（TODAY）にワークショップを実施するイベント（当日参加は実施日を確かめるため）。
+        ws_event = {**EVENT, 'has_workshop': True}
         app.dependency_overrides[require_auth] = lambda: None
         try:
-            with patch('app.routes.reserve.admin_supabase', _db({'workshop_reservations': reservations})):
+            with patch('app.routes.reserve.admin_supabase', _db({
+                'events': _table_mock(single_data=ws_event), 'workshop_reservations': reservations,
+            })), patch('app.routes.reserve.today_jst', return_value=TODAY):
                 # 変数の内容: resp: API から返されたレスポンス。
                 resp = TestClient(app).post('/api/reserve/walkin', json={'event_id': 'event-1', 'participants': 2})
         finally:
@@ -1046,13 +1050,17 @@ class TestReservationStatusChange:
         return {'id': 'r1', 'status': status, 'session_id': session_id, 'event_id': 'event-1',
                 'participants': 2, 'preferred_date': None, 'name': '山田', 'email': 'yamada@example.com'}
 
-    def _patch(self, row: Optional[dict], new_status: str, used: int = 0):
+    def _patch(self, row: Optional[dict], new_status: str, used: int = 0, rpc_error: Optional[Exception] = None):
         """ステータスを変える API を呼び、(応答, 予約の表のモック, resend のモック) を返す。
+
+        キャンセルから戻すときは DB 関数 reinstate_reservation を呼ぶので、その戻り値（更新後の行）も設定する。
+        呼び出しは self.rpc に残す（テストで確かめる）。
 
         Args:
             row: 今の予約の行（None なら存在しない）
             new_status: 新しいステータス
             used: その時間枠にすでに入っている人数（キャンセルを除く）
+            rpc_error: DB 関数 reinstate_reservation に出させる例外（満席の P0413 など）
 
         Returns:
             Resend モックに渡されたメール payload の一覧を返す。
@@ -1070,6 +1078,12 @@ class TestReservationStatusChange:
             )
         # 変数の内容: admin_sb: 管理用 Supabase クライアントのモック、resend: Resend メール送信関数のモック。
         admin_sb = _db({'workshop_reservations': reservations, 'ws_sessions': _table_mock(single_data=dict(SESSION))})
+        # キャンセルから戻す DB 関数は、更新後の行を返す（または指定の例外を出す）
+        admin_sb.rpc.return_value.execute.return_value.data = {**(row or {}), 'status': new_status}
+        if rpc_error is not None:
+            admin_sb.rpc.return_value.execute.side_effect = rpc_error
+        # 変数の内容: self.rpc: DB 関数の呼び出しのモック（テストで確かめる）。
+        self.rpc = admin_sb.rpc
         resend = MagicMock()
         with patch('app.routes.reserve.admin_supabase', admin_sb), \
              patch('app.routes.reserve.supabase', _public_sb()), \
@@ -1110,16 +1124,21 @@ class TestReservationStatusChange:
         assert resend.Emails.send.call_args.args[0]['to'] == ['yamada@example.com']
 
     def test_キャンセルから戻すとき満席なら409で更新しない(self):
-        """cancelled → pending で、時間枠に 4 名入っている（4 + 2 > 定員 5）なら 409 になり更新しないこと。
+        """cancelled → pending で、DB 関数が満席（P0413）を出したら 409 になり、表を直接更新しないこと。
+
+        満席の数え方（予約日と枠の組で、キャンセル以外の予約を数える）は DB 関数の中にあり、
+        使い捨ての Postgres で確かめた（この pytest では DB 関数の例外の変換を確かめる）。
 
         Returns:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
-        # 1. cancelled → pending で、時間枠に 4 名入っている（4 + 2 > 定員 5）なら 409 になり更新しないこと。
-        resp, reservations, resend = self._patch(self._row('cancelled'), 'pending', used=4)
+        # 1. DB 関数に満席の例外を出させる。
+        resp, reservations, resend = self._patch(self._row('cancelled'), 'pending',
+                                                 rpc_error=PostgrestError('P0413', 'session_full'))
 
         assert resp.status_code == 409
+        assert resp.json()['detail'] == 'この時間枠は満席のため、キャンセルを取り消せません'
         # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
         assert all(c.args[0] != {'status': 'pending'} for c in reservations.update.call_args_list)
         resend.Emails.send.assert_not_called()
@@ -1131,25 +1150,28 @@ class TestReservationStatusChange:
             なし。
         """
         # 変数の内容: resend: Resend メール送信関数のモック、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
-        # 1. cancelled → confirmed で 3 + 2 <= 5 なら更新され、メールは送らないこと（メールはキャンセルに変えたときだけ）。
+        # 1. cancelled → confirmed は DB 関数 reinstate_reservation で戻し、メールは送らないこと。
         resp, reservations, resend = self._patch(self._row('cancelled'), 'confirmed', used=3)
 
         assert resp.status_code == 200
-        reservations.update.assert_any_call({'status': 'confirmed'})
+        assert resp.json()['status'] == 'confirmed'
+        self.rpc.assert_called_once_with('reinstate_reservation', {'p_reservation_id': 'r1', 'p_status': 'confirmed'})
+        # 変数の内容: c: 呼び出し履歴から取り出すモック呼び出し。
+        assert all(c.args[0] != {'status': 'confirmed'} for c in reservations.update.call_args_list)
         resend.Emails.send.assert_not_called()
 
-    def test_時間枠の無い予約はキャンセルから戻すとき満席を確かめない(self):
-        """session_id が無い予約は満席の確認をせずに戻せること。
+    def test_時間枠の無い予約もキャンセルから戻すときはDB関数で戻す(self):
+        """session_id が無い予約も DB 関数で戻す（実施日の確認のため。満席は確かめない）こと。
 
         Returns:
             なし。
         """
         # 変数の内容: _: テスト条件として指定する値、reservations: 取得した予約の一覧、resp: API から返されたレスポンス。
-        # 1. session_id が無い予約は満席の確認をせずに戻せること。
+        # 1. session_id が無い予約を戻す。
         resp, reservations, _ = self._patch(self._row('cancelled', session_id=None), 'pending', used=100)
 
         assert resp.status_code == 200
-        reservations.update.assert_any_call({'status': 'pending'})
+        self.rpc.assert_called_once_with('reinstate_reservation', {'p_reservation_id': 'r1', 'p_status': 'pending'})
 
     def test_pendingからconfirmedに変えてもメールは送らない(self):
         """キャンセル以外への変更ではメールを送らないこと。

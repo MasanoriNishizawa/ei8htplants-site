@@ -41,17 +41,21 @@ export class ApiError extends Error {
   status: number
   /** 応答の detail（文字列、または 422 の入力チェックでは項目ごとのエラーの配列。無ければ null） */
   detail: unknown
+  /** 応答の本文全体（JSON で読めたときだけ。409 の conflicts など detail 以外の項目を読むのに使う。無ければ null） */
+  body: unknown
 
   /**
    * @param status - HTTP のステータスコード
    * @param message - 表示用の文言（「ステータス 詳細」の形）
    * @param detail - 応答の detail
+   * @param body - 応答の本文全体（省略時は null）
    */
-  constructor(status: number, message: string, detail: unknown) {
+  constructor(status: number, message: string, detail: unknown, body: unknown = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.detail = detail
+    this.body = body
   }
 }
 
@@ -83,15 +87,18 @@ async function fetchOk(path: string, options?: RequestInit): Promise<Response> {
     let msg = `${res.status} ${res.statusText}`
     // サーバーが返した detail（無ければ null）
     let detail: unknown = null
+    // 応答の本文全体（JSON で読めたときだけ）
+    let errorBody: unknown = null
     try {
       // FastAPI が返した detail を持つ JSON 本文
       const body: { detail?: unknown } = await res.json()
+      errorBody = body
       if (body.detail) {
         detail = body.detail
         msg = `${res.status} ${typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)}`
       }
     } catch { /* 本文が JSON でなければステータスだけを使う */ }
-    throw new ApiError(res.status, msg, detail)
+    throw new ApiError(res.status, msg, detail, errorBody)
   }
   return res
 }

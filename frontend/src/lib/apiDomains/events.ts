@@ -7,6 +7,7 @@ import type {
   EventFinancesBody,
   PageContent,
   WsSession,
+  WsSessionInput,
 } from '../apiTypes'
 
 /** JSON API 呼び出しを受け取り、イベント領域の API 操作を組み立てる型 */
@@ -44,11 +45,11 @@ export function createEventsApi(request: JsonRequest, authRequest: JsonRequest) 
     /** 全イベントの収支をまとめて取る（管理者のみ） */
     getAllFinances: () =>
       authRequest<EventFinances[]>('/events/finances'),
-    /** ワークショップの時間枠を取る（date を渡すとその日の枠だけ） */
+    /** ワークショップの時間枠を取る（date を渡すと、その日に使える枠＝共通の枠＋その日の枠だけを、その日の残り人数つきで返す。実施しない日は空） */
     getSessions: (id: string, date?: string) =>
       request<WsSession[]>(`/events/${id}/sessions${date ? `?date=${encodeURIComponent(date)}` : ''}`),
-    /** ワークショップの時間枠をまとめて保存する（管理者のみ。id の無い行は新しく作る） */
-    saveSessions: (id: string, sessions: { id?: string; time_label: string; max_participants: number }[]) =>
+    /** ワークショップの時間枠をまとめて保存する（管理者のみ。id の無い行は新しく作る。session_date があればその日だけの枠） */
+    saveSessions: (id: string, sessions: WsSessionInput[]) =>
       authRequest<WsSession[]>(`/events/${id}/sessions`, { method: 'PUT', body: JSON.stringify({ sessions }) }),
     /** イベントページの中身を保存する（管理者のみ） */
     savePageContent: (id: string, page_content: PageContent) =>

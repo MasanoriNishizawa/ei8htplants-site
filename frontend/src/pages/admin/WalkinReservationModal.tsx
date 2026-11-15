@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type Event, type Reservation, type WsSession } from '../../lib/api'
 import { failMessage } from './errorMessage'
+import { formatJaMonthDayDow } from '../../lib/localDate'
+import { defaultWalkinDate, isWorkshopDay, workshopDates } from '../../lib/wsDates'
 import type { ReservationWithTime } from './reservationPrint'
 
 /** 当日参加モーダルの入力・時間枠取得・登録を担当するためのプロパティ */
@@ -11,7 +13,7 @@ interface WalkinReservationModalProps {
   eventsDataMap: Map<string, Event>
   /** 親が初期値として決めたイベント ID */
   initialEventId: string
-  /** 親が初期値として決めた参加日 */
+  /** 今日の日付（YYYY-MM-DD。参加日の初めの値を決めるのに使う） */
   initialDate: string
   /** モーダルを閉じる処理 */
   onClose: () => void
@@ -32,10 +34,20 @@ export default function WalkinReservationModal({
   onClose,
   onCreated,
 }: WalkinReservationModalProps) {
+  /** 初めに選ぶイベント ID（選択肢の events に無い ID は、表示と中身が食い違うので空にする） */
+  const startEventId = events.some((event) => event.id === initialEventId) ? initialEventId : ''
   /** 現在フォームで選択しているイベント ID */
-  const [eventId, setEventId] = useState(initialEventId)
-  /** 参加日（YYYY-MM-DD）。親が決めた日付を使い、日付が変われば取得 effect を更新する */
-  const date = initialDate
+  const [eventId, setEventId] = useState(startEventId)
+  /**
+   * 参加日（YYYY-MM-DD）。イベントの実施日から選ぶ。初めの値は defaultWalkinDate
+   * （今日が実施日なら今日、無ければ今日より前で一番近い実施日、それも無ければ最初の実施日）。
+   * イベントを選んでいなければ今日。日付が変われば取得 effect が枠を取り直す
+   */
+  const [date, setDate] = useState(() => {
+    /** 初めに選んでいるイベント */
+    const initialEvent = startEventId ? eventsDataMap.get(startEventId) : undefined
+    return initialEvent ? (defaultWalkinDate(initialEvent, initialDate) || initialDate) : initialDate
+  })
   /** 選択中イベント・日付で予約可能な時間枠 */
   const [sessions, setSessions] = useState<WsSession[]>([])
   /** 選択中の時間枠 ID */
@@ -111,6 +123,21 @@ export default function WalkinReservationModal({
     // 選択変更の処理時点で旧要求を無効化し、新しい effect が始まる前の応答も捨てる。
     sessionsRequestSequence.current += 1
     setEventId(nextEventId)
+    // 参加日を、選んだイベントの実施日の初めの値にする
+    /** 選んだイベント */
+    const nextEvent = nextEventId ? eventsDataMap.get(nextEventId) : undefined
+    setDate(nextEvent ? (defaultWalkinDate(nextEvent, initialDate) || initialDate) : initialDate)
+  }
+
+  /**
+   * 参加日を変える（選んでいた枠・人数は取得 effect が初期値に戻し、その日の枠を取り直す）
+   * @param nextDate - 選んだ参加日（YYYY-MM-DD）
+   * @returns 戻り値なし。
+   */
+  const changeDate = (nextDate: string) => {
+    // 古い日付の応答を、新しい effect が始まる前から捨てる
+    sessionsRequestSequence.current += 1
+    setDate(nextDate)
   }
 
   /**
@@ -162,12 +189,19 @@ export default function WalkinReservationModal({
   const selectedEvent = eventId ? eventsDataMap.get(eventId) : undefined
   /** 選択イベントが複数日にわたるか */
   const isMultiDay = !!selectedEvent?.end_date && selectedEvent.end_date !== selectedEvent.start_date
+  /** 参加日に選べる日（選んだイベントのワークショップ実施日。過去・未来の日も含む） */
+  const walkinDates = selectedEvent ? workshopDates(selectedEvent) : []
   /** 現在選択中の時間枠 */
   const selectedSession = sessions.find((session) => session.id === sessionId) ?? null
   /** 選択枠の残り人数 */
   const remaining = selectedSession ? selectedSession.max_participants - selectedSession.reserved_count : 0
-  /** 必須選択が揃い、枠読み込み中・取得失敗中でない場合に登録可能 */
-  const canSubmit = !!eventId && !sessionsLoading && !sessionsFailed && (sessions.length === 0 || !!sessionId)
+  /**
+   * 参加日がワークショップの実施日でないか（開催期間外・実施する日に選んでいない日）。
+   * サーバーも 400 で受け付けないので、登録できなくして理由を出す
+   */
+  const notWorkshopDay = !!selectedEvent && !!date && !isWorkshopDay(selectedEvent, date)
+  /** 必須選択が揃い、枠読み込み中・取得失敗中でなく、参加日が実施日の場合に登録可能 */
+  const canSubmit = !!eventId && !notWorkshopDay && !sessionsLoading && !sessionsFailed && (sessions.length === 0 || !!sessionId)
 
   return (
     <div
@@ -197,8 +231,21 @@ export default function WalkinReservationModal({
           </select>
         </div>
 
-        {/* 複数日イベントだけ、親が決めた参加日を確認用に表示する */}
-        {isMultiDay && (
+        {/* 参加日に選べる日が 2 日以上なら、選ぶ欄を出す */}
+        {walkinDates.length > 1 && (
+          <div style={{ marginBottom: 16 }}>
+            <label htmlFor="walkin-date" style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</label>
+            <select id="walkin-date" value={date} onChange={(e) => changeDate(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #dddde8', borderRadius: 4, fontSize: 14, fontFamily: 'inherit' }}>
+              {walkinDates.map((d) => (
+                <option key={d} value={d}>{formatJaMonthDayDow(d)}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* 複数日イベントで選べる日が 1 日以下なら、参加日を文字で出すだけにする */}
+        {isMultiDay && walkinDates.length <= 1 && (
           <div style={{ marginBottom: 16 }}>
             {/* 参加日は親から渡された当日で固定し、複数日イベントのときだけ表示する */}
             <span style={{ fontSize: 12, color: 'var(--c-muted)', display: 'block', marginBottom: 6 }}>参加日</span>
@@ -227,8 +274,12 @@ export default function WalkinReservationModal({
                 )
               })}
             </select>
+          ) : notWorkshopDay ? (
+            <p role="alert" style={{ margin: 0, fontSize: 13, color: '#c0392b' }}>
+              {formatJaMonthDayDow(date)}はこのイベントのワークショップの実施日ではありません
+            </p>
           ) : (
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>この日の枠はありません</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--c-muted)' }}>この日の枠はありません（時間指定なしで登録します）</p>
           )}
         </div>
 

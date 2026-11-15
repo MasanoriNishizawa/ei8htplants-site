@@ -184,6 +184,47 @@ class _Query:
         return MagicMock(data=data)
 
 
+class _RpcCall:
+    """DB 関数（save_event_schedule）の呼び出しを、イベント本体の更新の段階（event_update）として記録する。"""
+
+    def __init__(self, operations: list[str], stage: str | None, params: dict, state: dict | None = None):
+        """呼び出しの記録先・失敗段階・引数を保存する。
+
+        Args:
+            operations: 操作順を記録する共有リスト。
+            stage: 失敗させる操作名（'event_update' なら失敗させる）。
+            params: DB 関数に渡した引数。
+            state: 成功したときにイベント本体を反映する fake state（無ければ反映しない）。
+
+        Returns:
+            なし。
+        """
+        # 1. 実行時に使う値を保持する。
+        # 変数の内容: operations: 操作ログ、stage: 失敗段階、params: DB 関数の引数、state: fake state。
+        self.operations = operations
+        self.stage = stage
+        self.params = params
+        self.state = state
+
+    def execute(self):
+        """段階を記録し、失敗の指定があれば反映の前に例外を出す。成功ならイベント本体を fake state へ反映する。
+
+        Returns:
+            data にイベントの ID を持つ応答 fake。
+
+        Raises:
+            RuntimeError: stage が 'event_update' の場合。
+        """
+        # 1. 段階を記録し、指定があれば失敗させる。
+        self.operations.append('event_update')
+        if self.stage == 'event_update':
+            raise RuntimeError('event_update failure before fake state apply')
+        # 2. DB 関数の中のイベント本体の更新を fake state に反映する（ws_dates のキーが無ければ今の値のまま）。
+        if self.state is not None and self.params.get('p_event'):
+            self.state['event'].update(self.params['p_event'])
+        return MagicMock(data=self.params.get('p_event_id'))
+
+
 class _Supabase:
     """テーブル名に応じて段階記録クエリを返す Supabase モック。"""
 
@@ -228,6 +269,19 @@ class _Supabase:
             self.record_event_exists,
         )
 
+    def rpc(self, _name: str, params: dict):
+        """DB 関数の呼び出しを記録するモックを返す。
+
+        Args:
+            _name: DB 関数の名前（save_event_schedule）。
+            params: DB 関数に渡す引数。
+
+        Returns:
+            execute を持つ呼び出しのモック。
+        """
+        # 1. イベント本体の更新の段階として記録する呼び出しを返す。
+        return _RpcCall(self.operations, self.stage, params)
+
 
 class _StatefulSupabaseFake:
     """共有stateへexecute成功時だけ反映する、テスト専用のSupabase fake。"""
@@ -260,6 +314,19 @@ class _StatefulSupabaseFake:
         """
         # 1. 呼出元にテーブル名を保持した独立クエリfakeを返す。
         return _StatefulQuery(self.state, self.operations, self.failure_stage, table_name)
+
+    def rpc(self, _name: str, params: dict):
+        """DB 関数の呼び出しを、fake state に反映するモックを返す。
+
+        Args:
+            _name: DB 関数の名前（save_event_schedule）。
+            params: DB 関数に渡す引数。
+
+        Returns:
+            execute を持つ呼び出しのモック。
+        """
+        # 1. 成功したらイベント本体を fake state に反映する呼び出しを返す。
+        return _RpcCall(self.operations, self.failure_stage, params, self.state)
 
 
 class _StatefulQuery:
@@ -570,18 +637,20 @@ class TestEventUpdateFailures:
         assert status == 500
         assert operations == ['event_update', 'image_delete', 'image_insert']
 
-    def test_イベント存在確認の一般例外は500で後続処理をしない(self):
-        """管理用のイベント存在確認で一般例外が出ると後続操作へ進まず 500 になる。
+    def test_更新は存在確認を読まずDB関数から始め失敗なら後続処理をしない(self):
+        """更新はイベントの存在確認を別に読まず、DB 関数（無ければ DB 関数が 404 を返す）から始める。
+
+        DB 関数が一般例外を出すと、画像操作・公開読戻しへ進まず 500 になる。
 
         Returns:
             なし。
         """
-        # 1. 存在確認で RuntimeError を起こし、更新・画像操作・公開読戻しが未実行であることを確認する。
+        # 1. 存在確認も記録する設定で DB 関数を失敗させ、存在確認が無く後続も未実行であることを確認する。
         # 変数の内容: operations: 実行された DB 操作の順序、status: テスト対象 API の HTTP 応答コード。
-        status, operations = self._put('event_exists', record_event_exists=True)
+        status, operations = self._put('event_update', record_event_exists=True)
 
         assert status == 500
-        assert operations == ['event_exists']
+        assert operations == ['event_update']
 
     def test_公開読戻しのイベントselect失敗は先行処理後に500(self):
         """公開読戻しのイベント select で一般例外が出ると、先行操作の後に 500 になる。
@@ -595,7 +664,6 @@ class TestEventUpdateFailures:
 
         assert status == 500
         assert operations == [
-            'event_exists',
             'event_update',
             'image_delete',
             'image_insert',
@@ -614,7 +682,6 @@ class TestEventUpdateFailures:
 
         assert status == 500
         assert operations == [
-            'event_exists',
             'event_update',
             'image_delete',
             'image_insert',
@@ -649,27 +716,27 @@ class TestEventUpdateFailureFakeState:
         [
             (
                 'event_update', '更新前イベント', 'old',
-                ['event_exists', 'event_update'],
+                ['event_update'],
             ),
             (
                 'image_delete', '更新後イベント', 'old',
-                ['event_exists', 'event_update', 'image_delete'],
+                ['event_update', 'image_delete'],
             ),
             (
                 'image_insert', '更新後イベント', 'empty',
-                ['event_exists', 'event_update', 'image_delete', 'image_insert'],
+                ['event_update', 'image_delete', 'image_insert'],
             ),
             (
                 'public_readback', '更新後イベント', 'new',
                 [
-                    'event_exists', 'event_update', 'image_delete', 'image_insert',
+                    'event_update', 'image_delete', 'image_insert',
                     'public_slug_lookup', 'public_readback',
                 ],
             ),
             (
                 'image_readback', '更新後イベント', 'new',
                 [
-                    'event_exists', 'event_update', 'image_delete', 'image_insert',
+                    'event_update', 'image_delete', 'image_insert',
                     'public_slug_lookup', 'public_readback', 'image_readback',
                 ],
             ),
@@ -759,6 +826,7 @@ class TestEventUpdateFailureFakeState:
                 'has_workshop': False,
                 'ws_requires_reservation': True,
                 'daily_times': None,
+                # ws_dates は本文に無いので DB 関数に渡さず、今の値のまま（fake state にもキーが増えない）
                 'is_past': False,
             })
         if expected_image_state == 'old':

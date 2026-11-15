@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type Event, type WsSession } from '../../lib/api'
 import { todayJst } from '../../lib/localDate'
+import { isWorkshopDay } from '../../lib/wsDates'
 import { failMessage, statusOf } from './errorMessage'
 import { buildReservationPrintHtml, type ReservationWithTime } from './reservationPrint'
 import ReservationsList from './reservations/ReservationsList'
@@ -86,7 +87,7 @@ export default function AdminReservations() {
    * 画面を開いたときに一度だけ読み込む
    * 1. 予約・今後のイベント・過去のイベントをまとめて取得する
    * 2. イベントの対応表と、WS ありのイベントの一覧を作る
-   * 3. URL に event_id が無ければ、今日開催の WS イベントで絞り込む
+   * 3. URL に event_id が無ければ、今日がワークショップの実施日の WS イベントで絞り込む
    * 4. 予約があるイベントの時間枠を取得し、予約に時間ラベルを付ける
    */
   useEffect(() => {
@@ -112,12 +113,12 @@ export default function AdminReservations() {
       setUpcomingWorkshopEvents(upcomingWs)
       setPastWorkshopEvents(pastWs)
 
-      // 3. URL に event_id 指定がなければ、本日開催のWSイベントで自動絞り込み
+      // 3. URL に event_id 指定がなければ、今日がWS実施日のイベントで自動絞り込み
       if (!hadEventIdParam.current) {
         /** 今日の日付（日本時間） */
         const today = todayJst()
-        /** 今日開催している WS イベント（複数あれば最初の1つ） */
-        const todayEvent = upcomingWs.find((e) => e.start_date <= today && (e.end_date ?? e.start_date) >= today)
+        /** 今日がワークショップの実施日の WS イベント（複数あれば最初の1つ。実施する日を選んでいるイベントは、その日だけ） */
+        const todayEvent = upcomingWs.find((e) => isWorkshopDay(e, today))
         if (todayEvent) setEventFilter(todayEvent.id)
       }
 
@@ -181,20 +182,18 @@ export default function AdminReservations() {
    * @returns 戻り値なし。
    */
   const openWalkin = () => {
-    /** 今日の日付（日本時間。当日参加の参加日にする） */
+    /** 今日の日付（日本時間。モーダルが参加日の初めの値を決めるのに使う） */
     const today = todayJst()
     /** 最初から選んでおくイベントの id（決められなければ空） */
     let autoEventId = ''
     // 1. 過去タブでは絞り込み対象、今後タブでは本日開催イベント数から初期選択を決める。
-    if (isPast && eventFilter !== 'all') {
-      // 過去タブ: 絞り込み済みのイベントを使用
-      autoEventId = eventFilter
+    if (isPast) {
+      // 過去タブ: 絞り込み済みのイベントを使う。「全て」なら選ばない（今後のイベントは選択肢に無いので自動で選ばない）
+      autoEventId = eventFilter !== 'all' ? eventFilter : ''
     } else {
       // 今後タブ: 本日開催のWSイベントを自動特定
-      /** 今日開催している WS イベント */
-      const todayEvents = upcomingWorkshopEvents.filter(
-        (e) => e.start_date <= today && (e.end_date ?? e.start_date) >= today
-      )
+      /** 今日がワークショップの実施日の WS イベント */
+      const todayEvents = upcomingWorkshopEvents.filter((e) => isWorkshopDay(e, today))
       autoEventId = todayEvents.length === 1 ? todayEvents[0].id : ''
     }
     // 2. 初期日とイベントを親 state に保存してからモーダルを表示する。
@@ -278,7 +277,7 @@ export default function AdminReservations() {
           </button>
         ))}
       </div>
-      {/* 見出しと、イベントの絞り込み・当日参加の追加（今後のタブだけ）・印刷 */}
+      {/* 見出しと、イベントの絞り込み・当日参加の追加・印刷 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif", fontSize: 28, fontWeight: 300, margin: 0 }}>WS予約一覧</h2>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -295,14 +294,13 @@ export default function AdminReservations() {
               ))}
             </select>
           )}
-          {!isPast && (
-            <button
-              onClick={openWalkin}
-              style={{ padding: '8px 18px', border: 'none', borderRadius: 4, fontSize: 13, background: '#2d3a24', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              当日参加を追加
-            </button>
-          )}
+          {/* 当日参加の追加（過去の開催のタブでも、参加日を選んであとから記録できる） */}
+          <button
+            onClick={openWalkin}
+            style={{ padding: '8px 18px', border: 'none', borderRadius: 4, fontSize: 13, background: '#2d3a24', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            当日参加を追加
+          </button>
           {filtered.length > 0 && (
             <button
               onClick={() => printReservations(filtered, selectedEventName, sessionsData, eventFilter === 'all' ? null : (eventsDataMap.get(eventFilter) ?? null))}

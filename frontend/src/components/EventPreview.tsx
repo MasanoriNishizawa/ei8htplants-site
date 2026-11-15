@@ -6,6 +6,7 @@ import { useLang, useT, type Lang } from '../lib/lang'
 import { WEEKDAYS_JA, formatDateRange, parseLocalDate } from '../lib/localDate'
 import { BRAND_INSTAGRAM } from '../lib/brands'
 import { SWIPE_THRESHOLD_PX } from '../lib/constants'
+import { formatWorkshopDates, isPartialWorkshopSchedule, workshopDates } from '../lib/wsDates'
 
 /**
  * daily_times が設定されているとき、日毎の時間を 1 行の文字列に整形して返す。全日同じ時間なら時間だけ返す
@@ -232,6 +233,12 @@ export default function EventPreview({ event, horizontal = false }: Props) {
         {/* WS の案内（終了したイベントはお礼の文、予約制なら予約ページへのリンク） */}
         {event.has_workshop && (
           <div style={{ marginTop: 14 }}>
+            {/* 一部の日だけ実施するときは実施日を出す（例: ワークショップ実施日: 11/3（日）・11/5（火）） */}
+            {isPartialWorkshopSchedule(event) && (
+              <p style={{ fontSize: 12, color: 'var(--c-body)', margin: '0 0 8px', lineHeight: 1.7 }}>
+                {t('ワークショップ実施日: ', 'Workshop dates: ')}{formatWorkshopDates(workshopDates(event), lang)}
+              </p>
+            )}
             {event.is_past ? (
               <p style={{ fontSize: 12, color: 'var(--c-muted)', margin: 0, lineHeight: 1.7 }}>
                 {t(
