@@ -442,3 +442,96 @@ describe('EventForm の読み込み時の補正の案内（2026-11-13 追加）'
     expect(screen.queryByText('内容を確かめて、保存し直してください。')).toBeNull()
   })
 })
+
+describe('EventForm の時間枠の並べ替え（2026-11-16 追加）', () => {
+  /** 時間順になっていない共通の枠（id つき 2 つと id なし 1 つ） */
+  const UNSORTED: WsSession[] = [
+    { id: 'c-13', event_id: 'all-ev', time_label: '13:00〜14:00', max_participants: 4, reserved_count: 0, display_order: 0, session_date: null },
+    { id: 'c-10', event_id: 'all-ev', time_label: '10:00〜11:00', max_participants: 6, reserved_count: 0, display_order: 1, session_date: null },
+    { id: 'c-11', event_id: 'all-ev', time_label: '11:00〜12:00', max_participants: 5, reserved_count: 0, display_order: 2, session_date: null },
+  ]
+  /** 共通の枠の時間を上から並べる */
+  const commonLabels = () => screen.getAllByRole('textbox', { name: /^\d回目の時間$/ }).map((i) => (i as HTMLInputElement).value)
+
+  /**
+   * 保存して、update に送った sessions を返す
+   * @returns 送った sessions
+   */
+  async function saveAndGetSessions() {
+    vi.mocked(api.events.update).mockResolvedValue(ALL_EVENT)
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+    await waitFor(() => expect(api.events.update).toHaveBeenCalledTimes(1))
+    return vi.mocked(api.events.update).mock.calls[0][1].sessions
+  }
+
+  it('FE-EQ-29 共通の枠で「↓」を押すと順番が入れ替わり、update の sessions の順が変わって id は保たれる', async () => {
+    await openEdit(ALL_EVENT, UNSORTED)
+    fireEvent.click(screen.getByRole('button', { name: '1行目を下へ' }))
+    expect(commonLabels()).toEqual(['10:00〜11:00', '13:00〜14:00', '11:00〜12:00'])
+    expect(await saveAndGetSessions()).toEqual([
+      { id: 'c-10', time_label: '10:00〜11:00', max_participants: 6 },
+      { id: 'c-13', time_label: '13:00〜14:00', max_participants: 4 },
+      { id: 'c-11', time_label: '11:00〜12:00', max_participants: 5 },
+    ])
+  })
+
+  it('FE-EQ-30 共通の枠で「時間順に並べる」を押すと早い順になり、id は保たれる', async () => {
+    await openEdit(ALL_EVENT, UNSORTED)
+    fireEvent.click(screen.getByRole('button', { name: '時間順に並べる' }))
+    expect(commonLabels()).toEqual(['10:00〜11:00', '11:00〜12:00', '13:00〜14:00'])
+    expect((await saveAndGetSessions())?.map((x) => x.id)).toEqual(['c-10', 'c-11', 'c-13'])
+  })
+
+  it('FE-EQ-31 並べ替えると未保存の変更になり、元の順に戻すと変更なしに戻る', async () => {
+    await openEdit(ALL_EVENT, UNSORTED)
+    fireEvent.click(screen.getByRole('button', { name: '2行目を上へ' }))
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(confirmSpy).toHaveBeenCalledWith('保存していない変更があります。破棄して移動しますか？')
+    confirmSpy.mockClear()
+    // もう一度入れ替えて元の順に戻す
+    fireEvent.click(screen.getByRole('button', { name: '2行目を上へ' }))
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(confirmSpy).not.toHaveBeenCalled()
+  })
+
+  it('FE-EQ-32 共通の枠が 1 件以下なら「時間順に並べる」を押せない', async () => {
+    await openEdit(ALL_EVENT, COMMON_SESSIONS)
+    expect(screen.getByRole('button', { name: '時間順に並べる' })).toBeDisabled()
+  })
+
+  it('FE-EQ-33 日ごとの枠で「↑」「時間順に並べる」を押すと、その日の順だけが変わり、update の sessions の順が変わって id は保たれる', async () => {
+    await openEdit(WS_EVENT, DAY2_SESSIONS)
+    // 7/2 の 2 行目（13:00）を上へ
+    fireEvent.click(await screen.findByRole('button', { name: '7月2日（金）の2行目を上へ' }))
+    expect(screen.getByRole('textbox', { name: '7月2日（金）の1回目の時間' })).toHaveValue('13:00〜14:00')
+    expect(screen.getByRole('textbox', { name: '7月2日（金）の2回目の時間' })).toHaveValue('11:00〜12:00')
+    vi.mocked(api.events.update).mockResolvedValue(WS_EVENT)
+    await act(async () => {
+      fireEvent.submit(document.querySelector('form')!)
+    })
+    await waitFor(() => expect(api.events.update).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(api.events.update).mock.calls[0][1].sessions).toEqual([
+      { id: 's-13', time_label: '13:00〜14:00', max_participants: 4, session_date: '2027-07-02' },
+      { id: 's-11', time_label: '11:00〜12:00', max_participants: 6, session_date: '2027-07-02' },
+    ])
+  })
+
+  it('FE-EQ-34 日ごとの「時間順に並べる」で、その日の枠を早い順に戻す', async () => {
+    await openEdit(WS_EVENT, [DAY2_SESSIONS[1], { ...DAY2_SESSIONS[0], display_order: 2 }].map((x, i) => ({ ...x, display_order: i })))
+    expect(await screen.findByRole('textbox', { name: '7月2日（金）の1回目の時間' })).toHaveValue('13:00〜14:00')
+    fireEvent.click(screen.getByRole('button', { name: '7月2日（金）の枠を時間順に並べる' }))
+    expect(screen.getByRole('textbox', { name: '7月2日（金）の1回目の時間' })).toHaveValue('11:00〜12:00')
+    expect(screen.getByRole('textbox', { name: '7月2日（金）の2回目の時間' })).toHaveValue('13:00〜14:00')
+    // 未保存の変更になる
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(confirmSpy).toHaveBeenCalledWith('保存していない変更があります。破棄して移動しますか？')
+  })
+
+  it('FE-EQ-35 日ごとの枠が 1 件以下の日は「時間順に並べる」を押せない（7/4 は枠なし）', async () => {
+    await openEdit(WS_EVENT, DAY2_SESSIONS)
+    expect(await screen.findByRole('button', { name: '7月4日（日）の枠を時間順に並べる' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '7月2日（金）の枠を時間順に並べる' })).toBeEnabled()
+  })
+})

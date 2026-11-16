@@ -33,6 +33,10 @@ interface EventWorkshopDatesFieldProps {
   onRemoveSession: (date: string, index: number) => void
   /** その日の指定位置の枠の時間・定員を変える */
   onSessionChange: (date: string, index: number, key: keyof SessionInput, value: string | number) => void
+  /** その日の指定位置の枠を 1 つ上（-1）・1 つ下（1）へ動かす */
+  onMoveSession: (date: string, index: number, direction: -1 | 1) => void
+  /** その日の枠を時間順に並べ直す */
+  onSortSessions: (date: string) => void
 }
 
 /**
@@ -56,6 +60,8 @@ export default function EventWorkshopDatesField({
   onCopySessions,
   onRemoveSession,
   onSessionChange,
+  onMoveSession,
+  onSortSessions,
 }: EventWorkshopDatesFieldProps) {
   /**
    * 実施日のチェック 1 つ分の見た目: 枠線つきの小さな札にし、選んでいる日は緑の枠・薄い緑の背景にする
@@ -75,6 +81,15 @@ export default function EventWorkshopDatesField({
    */
   const autoButtonStyle = (enabled: boolean): React.CSSProperties => ({
     padding: '6px 12px', background: 'none', color: '#4a6741', border: '1px solid #4a6741',
+    borderRadius: 2, fontSize: 13, cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.4,
+  })
+  /**
+   * 「時間順に並べる」ボタンの見た目: 枠線だけの控えめなボタン。押せないときは薄くする
+   * @param enabled - 押せるか（その日の枠が 2 件以上）
+   * @returns ボタンのスタイル
+   */
+  const sortButtonStyle = (enabled: boolean): React.CSSProperties => ({
+    padding: '6px 12px', background: 'none', color: 'var(--c-body)', border: '1px solid #c8d8c0',
     borderRadius: 2, fontSize: 13, cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.4,
   })
   /** + 追加ボタン: 緑の背景・白い文字 */
@@ -128,6 +143,16 @@ export default function EventWorkshopDatesField({
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: 'var(--c-ink)' }}>{dateLabel}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {/* 時間順に並べる（枠が 1 件以下なら押せない） */}
+                <button
+                  type="button"
+                  onClick={() => onSortSessions(date)}
+                  disabled={sessions.length <= 1}
+                  aria-label={`${dateLabel}の枠を時間順に並べる`}
+                  style={sortButtonStyle(sessions.length > 1)}
+                >
+                  時間順に並べる
+                </button>
                 <button
                   type="button"
                   onClick={() => onAutoSetSessions(date)}
@@ -164,6 +189,7 @@ export default function EventWorkshopDatesField({
               emptyText="枠なし（時間指定なしで予約受付）"
               onRemove={(index) => onRemoveSession(date, index)}
               onChange={(index, key, value) => onSessionChange(date, index, key, value)}
+              onMove={(index, direction) => onMoveSession(date, index, direction)}
             />
           </section>
         )

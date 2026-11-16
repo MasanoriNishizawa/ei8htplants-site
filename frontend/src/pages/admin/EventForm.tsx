@@ -12,7 +12,7 @@ import EventWorkshopDatesField from './eventForm/EventWorkshopDatesField'
 import { formatJaMonthDayDow, listDates } from '../../lib/localDate'
 import { hasWsDateSelection } from '../../lib/wsDates'
 import { WS_DEFAULT_SESSION_CAPACITY } from '../../lib/constants'
-import { buildAutoSessions, hasTimeRange, type SessionInput } from './eventTime'
+import { buildAutoSessions, hasTimeRange, moveItem, sortSessionsByTime, type SessionInput } from './eventTime'
 import { formatSessionConflict, parseSessionConflicts } from './eventForm/sessionConflicts'
 import {
   buildSessionsPayload,
@@ -564,6 +564,8 @@ export default function AdminEventForm() {
           onAutoSetSessions={autoSetSessions}
           onRemoveSession={removeSession}
           onSessionChange={setSession}
+          onMoveSession={(index, direction) => setSessions((prev) => moveItem(prev, index, direction))}
+          onSortSessions={() => setSessions((prev) => sortSessionsByTime(prev) ?? prev)}
           canSelectDates={isMultiDay}
           wsDateMode={wsDateMode}
           onWsDateModeChange={changeWsDateMode}
@@ -581,6 +583,8 @@ export default function AdminEventForm() {
               onCopySessions={copyDaySessions}
               onRemoveSession={(date, index) => updateDaySessions(date, (list) => list.filter((_, j) => j !== index))}
               onSessionChange={(date, index, key, value) => updateDaySessions(date, (list) => list.map((s, j) => j === index ? { ...s, [key]: value } : s))}
+              onMoveSession={(date, index, direction) => updateDaySessions(date, (list) => moveItem(list, index, direction))}
+              onSortSessions={(date) => updateDaySessions(date, (list) => sortSessionsByTime(list) ?? list)}
             />
           }
         />

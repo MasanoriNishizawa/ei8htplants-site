@@ -147,4 +147,71 @@ test.describe('イベントフォーム ワークショップ実施日', () => {
     await expect(page.getByRole('group', { name: '実施する日（1日以上）' }).getByRole('checkbox', { name: '7月2日（金）' })).toBeChecked()
     await expect(page.getByRole('textbox', { name: '7月2日（金）の1回目の時間' })).toHaveValue('11:00〜12:00')
   })
+
+  test('E2E-AH-06 7/2 の枠を「↑」で入れ替えて保存すると、開き直したときも予約ページでもその順（13:00 → 11:00）になる', /**
+     * 日ごとの枠の順を入れ替えて保存し、編集画面を開き直したときと予約ページの時間枠の並びで確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} 画面の確認が終わったときに解決する。
+     */
+    async ({ page }) => {
+    await page.goto(EDIT_URL)
+    // 1. 7/2 の 2 行目（13:00〜14:00）を上へ
+    await page.getByRole('button', { name: '7月2日（金）の2行目を上へ' }).click()
+    await expect(page.getByRole('textbox', { name: '7月2日（金）の1回目の時間' })).toHaveValue('13:00〜14:00')
+    await expect(page.getByRole('textbox', { name: '7月2日（金）の2回目の時間' })).toHaveValue('11:00〜12:00')
+    // 先頭の「↑」と末尾の「↓」は押せない
+    await expect(page.getByRole('button', { name: '7月2日（金）の1行目を上へ' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: '7月2日（金）の2行目を下へ' })).toBeDisabled()
+    // 2. 保存する（送る sessions の順も確かめる。id は保つ）
+    const request = page.waitForRequest((r) => r.url().endsWith('/api/events/mock-ws-dates') && r.method() === 'PUT')
+    await page.getByRole('button', { name: '保存する' }).click()
+    const sent = (await request).postDataJSON() as { sessions: { id?: string; time_label: string }[] }
+    expect(sent.sessions.map((x) => [x.id, x.time_label])).toEqual([
+      ['mock-ws-dates-s2', '13:00〜14:00'],
+      ['mock-ws-dates-s1', '11:00〜12:00'],
+    ])
+    await expect(page).toHaveURL(/\/admin\/events$/)
+    // 3. 一覧から開き直すと、その順のまま
+    const row = page.getByText('Plants Weekend 2027', { exact: true }).locator('..').locator('..')
+    await row.getByRole('link', { name: '編集' }).click()
+    await expect(page.getByRole('textbox', { name: '7月2日（金）の1回目の時間' })).toHaveValue('13:00〜14:00')
+    await expect(page.getByRole('textbox', { name: '7月2日（金）の2回目の時間' })).toHaveValue('11:00〜12:00')
+    // 4. 予約ページへ（モックのデータはブラウザのメモリにあるので、再読み込みせずに画面の中で移る）
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/official/reserve?event_id=mock-ws-dates')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+    await page.getByRole('radio', { name: /7月2日/ }).check()
+    const times = page.getByRole('radiogroup', { name: /予約時間/ }).getByRole('radio')
+    await expect(times).toHaveCount(2)
+    await expect(times.nth(0)).toHaveAccessibleName(/13:00〜14:00/)
+    await expect(times.nth(1)).toHaveAccessibleName(/11:00〜12:00/)
+  })
+
+  test('E2E-AH-07 全日程に切り替えたあと、共通の枠の「時間順に並べる」で早い順に並べて保存できる', /**
+     * 共通の枠を時間順に並べ替えて保存し、開き直して順番を確かめる。
+     * @param page 操作・検証対象の Playwright ページ。
+     * @returns {Promise<void>} 画面の確認が終わったときに解決する。
+     */
+    async ({ page }) => {
+    await page.goto(EDIT_URL)
+    const mode = page.getByRole('radiogroup', { name: 'ワークショップの実施のしかた' })
+    await mode.getByRole('radio', { name: '全日程で実施（共通の枠）' }).check()
+    // 1. 9:00 の枠を末尾に足す（11:00・13:00・9:00 の順）
+    await page.getByRole('button', { name: '+ 追加' }).click()
+    await page.getByRole('textbox', { name: '3回目の時間', exact: true }).fill('9:00〜10:00')
+    // 2. 時間順に並べる
+    await page.getByRole('button', { name: '時間順に並べる' }).click()
+    await expect(page.getByRole('textbox', { name: '1回目の時間', exact: true })).toHaveValue('9:00〜10:00')
+    await expect(page.getByRole('textbox', { name: '2回目の時間', exact: true })).toHaveValue('11:00〜12:00')
+    await expect(page.getByRole('textbox', { name: '3回目の時間', exact: true })).toHaveValue('13:00〜14:00')
+    // 3. 保存して開き直すと、その順のまま
+    await page.getByRole('button', { name: '保存する' }).click()
+    await expect(page).toHaveURL(/\/admin\/events$/)
+    const row = page.getByText('Plants Weekend 2027', { exact: true }).locator('..').locator('..')
+    await row.getByRole('link', { name: '編集' }).click()
+    await expect(page.getByRole('textbox', { name: '1回目の時間', exact: true })).toHaveValue('9:00〜10:00')
+    await expect(page.getByRole('textbox', { name: '2回目の時間', exact: true })).toHaveValue('11:00〜12:00')
+    await expect(page.getByRole('textbox', { name: '3回目の時間', exact: true })).toHaveValue('13:00〜14:00')
+  })
 })

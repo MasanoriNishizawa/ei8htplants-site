@@ -86,3 +86,80 @@ export function buildAutoSessions(time: string): SessionInput[] {
   }
   return generated
 }
+
+/**
+ * 時間の文字の最初の時刻（「11:00」「9:30」「13時」「13時30分」など）を取り出す正規表現（数字・区切りは半角に直してから使う）
+ * - コロンの形は分を 2 桁必須にする（「9:」「9:xx」は読み取らない）
+ * - 「時」の形は分を省ける（「13時」は 13:00）。ただし省いたとみなすのは、「時」のあとに数字が続かないときだけ
+ *   （「9時123分」「9時 999分」のような不正な分を、0 分と読み替えないため）
+ * - 長い数字の途中（「123:00」の「23:00」など）は読み取らないよう、時の前が数字でないことと、分のあとが数字でないことを確かめる
+ * - 古い Safari でも動くよう、後ろ読み（(?<!…)）は使わず、時の前の 1 文字を「先頭か数字以外」として読む
+ * グループ: [1][2] がコロンの形の時・分、[3][4] が「時」の形の時・分
+ */
+const FIRST_TIME_RE = /(?:^|[^\d])(\d{1,2})\s*:\s*(\d{2})(?!\d)|(?:^|[^\d])(\d{1,2})\s*時(?:\s*(\d{1,2})(?!\d)\s*分?|(?!\s*\d))/
+
+/**
+ * 時間枠の表示（例「11:00〜12:00」「9:30〜」「13時」「１３：００」）から、最初の時刻を 0 時からの分で読み取る
+ * 1. 全角の数字・コロンを半角に直す
+ * 2. 最初の「時:分」「時時」「時時分」を探す
+ * 3. 時は 0〜23、分は 0〜59 のときだけ使う
+ * @param label - 時間枠の表示
+ * @returns 0 時からの分（読み取れなければ null）
+ */
+export function parseStartMinutes(label: string): number | null {
+  // 1. 全角の数字（０〜９）とコロン（：）を半角にする
+  /** 半角にそろえた表示 */
+  const normalized = label
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/：/g, ':')
+  // 2. 最初の時刻
+  const m = normalized.match(FIRST_TIME_RE)
+  if (!m) return null
+  /** 時（コロンの形なら [1]、「時」の形なら [3]） */
+  const h = Number(m[1] ?? m[3])
+  /** 分（コロンの形なら [2]。「時」の形で分が無ければ 0） */
+  const min = m[1] !== undefined ? Number(m[2]) : m[4] === undefined ? 0 : Number(m[4])
+  // 3. あり得ない時刻は読み取れなかったことにする
+  if (h > 23 || min > 59) return null
+  return h * 60 + min
+}
+
+/**
+ * 時間枠を、表示の最初の時刻の早い順に並べ直す（安定な並べ替え。id などの中身は変えない）
+ * - 時刻を読み取れない枠は、元の順番のまま末尾にまとめる
+ * - 同じ時刻どうしは元の順番を保つ
+ * @param sessions - 時間枠の入力
+ * @returns 並べ直した一覧。並びが変わらないときは null（呼び出し側は何もしない）
+ */
+export function sortSessionsByTime(sessions: SessionInput[]): SessionInput[] | null {
+  // 1. 元の位置と読み取った時刻を組にする
+  /** [元の位置, 時刻（読み取れなければ null）, 枠] の一覧 */
+  const keyed = sessions.map((s, i) => ({ i, t: parseStartMinutes(s.time_label), s }))
+  // 2. 時刻のある枠は早い順（同じなら元の順）、読み取れない枠は末尾に元の順
+  keyed.sort((a, b) => {
+    if (a.t === null && b.t === null) return a.i - b.i
+    if (a.t === null) return 1
+    if (b.t === null) return -1
+    return a.t - b.t || a.i - b.i
+  })
+  // 3. 並びが変わらなければ null
+  if (keyed.every((k, idx) => k.i === idx)) return null
+  return keyed.map((k) => k.s)
+}
+
+/**
+ * 一覧の 1 件を 1 つ上・1 つ下へ動かす（端から外へは動かさない）
+ * @param list - 一覧
+ * @param index - 動かす位置
+ * @param direction - -1 で上へ、1 で下へ
+ * @returns 動かした新しい一覧（動かせなければ元の一覧）
+ */
+export function moveItem<T>(list: T[], index: number, direction: -1 | 1): T[] {
+  /** 入れ替える相手の位置 */
+  const target = index + direction
+  if (index < 0 || index >= list.length || target < 0 || target >= list.length) return list
+  /** 入れ替えた一覧 */
+  const next = [...list]
+  ;[next[index], next[target]] = [next[target], next[index]]
+  return next
+}

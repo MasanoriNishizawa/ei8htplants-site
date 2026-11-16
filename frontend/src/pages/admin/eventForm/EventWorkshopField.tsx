@@ -29,6 +29,10 @@ interface EventWorkshopFieldProps {
   onRemoveSession: (index: number) => void
   /** 指定位置のセッション入力変更を親へ通知する */
   onSessionChange: (index: number, key: keyof SessionInput, value: string | number) => void
+  /** 指定位置の枠を 1 つ上（-1）・1 つ下（1）へ動かすことを親へ通知する（省略したら↑↓を出さない） */
+  onMoveSession?: (index: number, direction: -1 | 1) => void
+  /** 枠を時間順に並べ直すことを親へ通知する（省略したら「時間順に並べる」を出さない） */
+  onSortSessions?: () => void
   /** 「全日程で実施」「実施する日を選ぶ」の切り替えを出すか（ワークショップあり・複数日のときだけ true） */
   canSelectDates?: boolean
   /** 今の実施のしかた（canSelectDates が true のときだけ使う） */
@@ -60,6 +64,8 @@ export default function EventWorkshopField({
   onAutoSetSessions,
   onRemoveSession,
   onSessionChange,
+  onMoveSession,
+  onSortSessions,
   canSelectDates = false,
   wsDateMode = 'all',
   onWsDateModeChange,
@@ -77,6 +83,15 @@ export default function EventWorkshopField({
     padding: '6px 16px', background: '#4a6741', color: '#fff', border: 'none',
     borderRadius: 2, fontSize: 13, cursor: 'pointer',
   }
+  /**
+   * 「時間順に並べる」ボタンの見た目: 枠線だけの控えめなボタン。押せないときは薄くする
+   * @param enabled - 押せるか（枠が 2 件以上）
+   * @returns ボタンのスタイル
+   */
+  const sortButtonStyle = (enabled: boolean): React.CSSProperties => ({
+    padding: '6px 12px', background: 'none', color: 'var(--c-body)', border: '1px solid #c8d8c0',
+    borderRadius: 2, fontSize: 13, cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.4,
+  })
   /** 実施のしかたのラジオ 1 つ分のラベル: 横にラジオと文字を並べ、狭い画面でも文字が折り返せるようにする */
   const modeLabelStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer', color: 'var(--c-body)' }
 
@@ -118,7 +133,13 @@ export default function EventWorkshopField({
         <div style={{ padding: '20px', background: '#f8faf6', border: '1px solid #c8d8c0', borderRadius: 4 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 8 }}>
             <p style={{ ...labelStyle, margin: 0, fontSize: 14, fontWeight: 500 }}>WSセッション（各回の時間・定員）</p>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {/* 時間順に並べる（枠が 1 件以下なら押せない） */}
+              {onSortSessions && (
+                <button type="button" onClick={onSortSessions} disabled={sessions.length <= 1} style={sortButtonStyle(sessions.length > 1)}>
+                  時間順に並べる
+                </button>
+              )}
               <button type="button" onClick={onAutoSetSessions} disabled={!canAutoSetSessions} style={autoSetButtonStyle}>
                 自動設定
               </button>
@@ -134,6 +155,7 @@ export default function EventWorkshopField({
             emptyText="セッションなし（時間指定なしで予約受付）"
             onRemove={onRemoveSession}
             onChange={onSessionChange}
+            onMove={onMoveSession}
           />
         </div>
       )}
